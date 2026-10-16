@@ -1,0 +1,87 @@
+# =============================================================================
+# .dockerignore — Keep ACR build context small and fast
+# This file is CRITICAL for az acr build performance
+# =============================================================================
+
+# Version control & CI
+.git
+.github
+.gitignore
+.deployment
+
+# IDE
+.vscode
+.idea
+*.code-workspace
+.history
+
+# Documentation (not needed at runtime)
+docs/
+specs/
+README.md
+LICENSE
+
+# Tests
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage/
+.hypothesis/
+
+# Scripts are dev/ops tooling: only startup.sh is needed (Dockerfile COPY)
+scripts/*.py
+scripts/*.ps1
+scripts/*.bat
+scripts/run_frontend.sh
+scripts/seed_data/
+
+# Frontend (separate image with own build context)
+frontend
+frontend/
+frontend/**
+
+# Assets — most excluded, but keep policy PDFs for API serving
+assets
+assets/
+assets/**
+!assets/pdf/
+!assets/pdf/*.pdf
+!assets/pdf/*/
+!assets/pdf/*/*.pdf
+
+# Infra (Bicep, deploy scripts)
+infra
+infra/
+infra/**
+
+# Python build artifacts
+__pycache__/
+*.py[cod]
+*.so
+.Python
+.venv/
+venv/
+env/
+.uv/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+
+# Node artifacts (root level and nested)
+node_modules
+node_modules/
+**/node_modules
+**/node_modules/**
+package-lock.json
+
+# Data directories
+data/
+underwriting-aps-docs/
+batch-review-output/
+
+# Environment files (secrets injected at runtime)
+.env
+.env.local
+.env.production

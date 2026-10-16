@@ -1,0 +1,6 @@
+# Ops image: API image + scripts/ to run data jobs (schema, RAG indexing, seed) inside Azure,
+# where PostgreSQL is reachable. Build: az acr build --build-arg BASE_IMAGE=<acr>/workbenchiq-api:<tag>
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+COPY scripts/ ./scripts/
+CMD ["python", "scripts/bootstrap_data.py"]

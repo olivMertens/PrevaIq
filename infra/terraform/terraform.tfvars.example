@@ -1,0 +1,33 @@
+# Copy to terraform.tfvars (git-ignored) and adjust. Equivalent of ../main.bicepparam.
+#
+# Secrets do not belong in this file. Export them instead, e.g. from the same
+# variables main.bicepparam reads:
+#   PowerShell: $env:TF_VAR_api_key = $env:PREVAIQ_API_KEY
+#               $env:TF_VAR_pg_admin_password = $env:PREVAIQ_PG_PASSWORD
+#   Bash:       export TF_VAR_api_key="$PREVAIQ_API_KEY" TF_VAR_pg_admin_password="$PREVAIQ_PG_PASSWORD"
+
+# subscription_id = "00000000-0000-0000-0000-000000000000" # default: Azure CLI's current subscription
+resource_group_name = "rg-prevaiq-demo"
+environment         = "demo"
+location            = "swedencentral"
+project_name        = "prevaiq"
+brand_name          = "PrevaIQ"
+pg_admin_login      = "prevaiqadmin"
+
+# Premium is required for deploy.ps1's dedicated build agent pool (-AgentPool).
+# acr_sku = "Premium"
+
+# Enable after running infra/set-webiq-secret.ps1, so re-applies keep the Key Vault reference.
+# webiq_secret_enabled = true
+
+# Data-plane roles (Foundry, Key Vault, Storage) for whoever runs deploy.ps1, set-webiq-secret.ps1 and the
+# maintenance scripts; Owner/Contributor does not include them. Object ID: az ad signed-in-user show --query id -o tsv
+# admin_principal_ids = ["<object-id>"]
+
+# Private networking: VNet, private endpoints for Storage, Key Vault, AI Search and Foundry, PostgreSQL private
+# access. ACR stays public. Without admin_ip_ranges the data services are private-only, so deploy.ps1 and
+# set-webiq-secret.ps1 need a network path into the VNet.
+# private_networking_enabled = true
+# admin_ip_ranges            = ["203.0.113.10"] # operator public IPs (a single address without /32) or CIDR ranges
+# vnet_address_space         = "10.60.0.0/16"
+# Bicep equivalent (infra/main.bicepparam): privateNetworkingEnabled = true, adminIpRanges = ['203.0.113.10'], vnetAddressSpace = '10.60.0.0/16'

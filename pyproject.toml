@@ -1,0 +1,50 @@
+[project]
+name = "workbenchiq"
+version = "0.3.0"
+description = "WorkbenchIQ - AI-powered document processing workbench for insurance underwriting, claims and mortgage, with FastAPI backend and Next.js frontend."
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.32.0",
+    "python-dotenv>=1.0.1",
+    "azure-identity>=1.19.0",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "python-multipart>=0.0.12",
+    "azure-storage-blob>=12.27.1",
+    "gunicorn>=21.0.0",
+    "asyncpg>=0.31.0",
+    "tiktoken>=0.12.0",
+    "openai>=1.50.0",
+    "pydantic>=2.9.0",
+    "pgvector>=0.2.4",
+    "numpy>=1.24.0",
+    "pymupdf>=1.25.0",
+    "agent-framework-core>=1.21.0,<2.0",
+    "agent-framework-openai>=1.15.0,<2.0",
+    # Required by MCPStreamableHTTPTool (Microsoft Web IQ)
+    "mcp>=1.20.0,<2.0",
+    "azure-monitor-opentelemetry>=1.6.0",
+    "opentelemetry-api>=1.27.0",
+    "opentelemetry-instrumentation-openai-v2>=2.0.0",
+    "azure-ai-projects>=1.0.0",
+    "azure-ai-contentunderstanding>=1.2.0b1",
+    "markitdown[az-content-understanding]>=0.1.6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "ruff",
+    "pytest>=7.4.0",
+]
+
+[project.scripts]
+api-server = "api_server:main"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

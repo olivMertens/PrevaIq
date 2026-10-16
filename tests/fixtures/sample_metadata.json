@@ -1,0 +1,35 @@
+{
+  "id": "sample-app",
+  "created_at": "2025-01-01T12:00:00Z",
+  "external_reference": "POL12345",
+  "status": "completed",
+  "files": [
+    {
+      "filename": "app.pdf",
+      "path": "data/applications/sample-app/files/app.pdf",
+      "url": null
+    }
+  ],
+  "document_markdown": "# Sample Markdown",
+  "markdown_pages": [
+    {
+      "file": "app.pdf",
+      "page_number": 1,
+      "markdown": "# File: app.pdf \u2013 Page 1\\n\\nSample content"
+    }
+  ],
+  "cu_raw_result_path": "data/applications/sample-app/content_understanding.json",
+  "llm_outputs": {
+    "application_summary": {
+      "customer_profile": {
+        "raw": "{}",
+        "parsed": {
+          "summary": "Sample summary",
+          "key_fields": [],
+          "risk_assessment": "Low",
+          "underwriting_action": "Accept"
+        }
+      }
+    }
+  }
+}

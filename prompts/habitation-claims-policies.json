@@ -1,0 +1,190 @@
+{
+  "version": "1.0",
+  "description": "Polices de traitement des sinistres habitation {brand} — Tempêtes, inondations et catastrophes naturelles",
+  "policies": [
+    {
+      "id": "HAB-TMP-001",
+      "category": "sinistres_habitation",
+      "subcategory": "tempete_grele",
+      "name": "Garantie Tempête, Grêle et Neige — Conditions Générales Habitation {brand}",
+      "description": "Procédure de traitement des sinistres liés aux tempêtes, à la grêle et au poids de la neige sur les bâtiments assurés et leur contenu.",
+      "criteria": [
+        {
+          "id": "C1",
+          "condition": "Vents supérieurs à 100 km/h constatés par Météo France dans la commune du sinistre",
+          "risk_level": "high",
+          "action": "Accepter la déclaration — événement qualifié tempête",
+          "rationale": "L'article L.122-7 du Code des assurances définit la tempête par des vents d'intensité anormale"
+        },
+        {
+          "id": "C2",
+          "condition": "Dommages matériels directs causés par le vent, la grêle ou le poids de la neige sur le bâtiment assuré",
+          "risk_level": "high",
+          "action": "Mandater un expert si montant estimé > 5 000€, sinon traitement rapide sur pièces",
+          "rationale": "Les dommages directs aux biens assurés sont couverts par la garantie tempête des CG Habitation"
+        },
+        {
+          "id": "C3",
+          "condition": "Contenu du bâtiment endommagé suite à la destruction partielle ou totale du bâtiment par la tempête",
+          "risk_level": "moderate",
+          "action": "Indemniser le contenu selon la formule choisie (valeur à neuf ou vétusté déduite)",
+          "rationale": "Le contenu est garanti si les dommages résultent directement de l'événement climatique ayant endommagé le bâtiment"
+        },
+        {
+          "id": "C4",
+          "condition": "Véhicules stationnés dans un garage ou dépendance détruits par la chute d'un arbre",
+          "risk_level": "moderate",
+          "action": "Orienter vers la garantie auto si véhicule assuré séparément, sinon couvrir au titre du contenu",
+          "rationale": "Les véhicules dans les dépendances peuvent relever du contrat habitation ou du contrat auto selon les garanties souscrites"
+        }
+      ],
+      "modifying_factors": [
+        {"factor": "Franchise contractuelle tempête", "impact": "Franchise événements climatiques de 300€ par sinistre (380€ si arrêté Cat-Nat)"},
+        {"factor": "Vétusté des matériaux", "impact": "Abattement pour vétusté sauf option valeur à neuf souscrite"},
+        {"factor": "Défaut d'entretien caractérisé", "impact": "Réduction proportionnelle si le défaut a contribué aux dommages"},
+        {"factor": "Zone inondable classée", "impact": "Surprime possible ou exclusion selon le Plan de Prévention des Risques"}
+      ],
+      "references": ["CG Habitation {brand} Art. 3.4 — Tempête, grêle, neige", "Code des assurances L.122-7", "Convention IRSI"]
+    },
+    {
+      "id": "HAB-INOND-002",
+      "category": "sinistres_habitation",
+      "subcategory": "degats_des_eaux",
+      "name": "Garantie Dégâts des Eaux — Infiltrations et Inondations",
+      "description": "Procédure de traitement des sinistres dégâts des eaux incluant les infiltrations par toiture, les remontées de nappe et les débordements.",
+      "criteria": [
+        {
+          "id": "C1",
+          "condition": "Fuite accidentelle de canalisation intérieure ou débordement d'appareil sanitaire",
+          "risk_level": "moderate",
+          "action": "Traitement standard — appliquer la convention IRSI si tiers impliqué",
+          "rationale": "Les fuites accidentelles sont le cas le plus fréquent de dégât des eaux, couvert par toutes les formules"
+        },
+        {
+          "id": "C2",
+          "condition": "Infiltration par toiture suite à intempéries (vent < 100 km/h, pluie prolongée)",
+          "risk_level": "high",
+          "action": "Couvrir les dommages intérieurs si la toiture était en bon état d'entretien avant le sinistre",
+          "rationale": "L'infiltration par toiture est couverte en dégât des eaux sauf si résultant d'un défaut d'entretien manifeste"
+        },
+        {
+          "id": "C3",
+          "condition": "Remontée de nappe phréatique ou débordement de cours d'eau dans une cave ou sous-sol",
+          "risk_level": "high",
+          "action": "Vérifier si l'état de catastrophe naturelle est déclaré par arrêté interministériel pour la commune",
+          "rationale": "Les inondations par remontée de nappe relèvent généralement de la garantie catastrophe naturelle (cat-nat) et non de la garantie dégâts des eaux standard"
+        },
+        {
+          "id": "C4",
+          "condition": "Cave à vins endommagée — bouteilles et casiers détruits par l'eau",
+          "risk_level": "high",
+          "action": "Évaluer le contenu de la cave selon les justificatifs fournis (factures, photos, inventaire). Appliquer le plafond de garantie objets de valeur si applicable",
+          "rationale": "Les collections de vins peuvent être considérées comme objets de valeur avec plafond spécifique selon les CG. L'assuré doit fournir des justificatifs de la valeur des biens endommagés"
+        },
+        {
+          "id": "C5",
+          "condition": "Moisissures et champignons apparaissant dans les semaines suivant le sinistre initial",
+          "risk_level": "moderate",
+          "action": "Couvrir le traitement anti-moisissure si lien direct avec le sinistre déclaré dans les 5 jours",
+          "rationale": "Les dommages immatériels consécutifs au sinistre garanti sont couverts dans la limite du plafond contractuel"
+        }
+      ],
+      "modifying_factors": [
+        {"factor": "Convention IRSI applicable", "impact": "Gestion simplifiée si sinistre < 5 000€ HT et tiers impliqué"},
+        {"factor": "Franchise dégâts des eaux", "impact": "Franchise standard de 250€ ou selon contrat"},
+        {"factor": "Plafond objets de valeur", "impact": "Les collections de vins > 3 000€ nécessitent une déclaration spécifique"},
+        {"factor": "Déclaration tardive (> 5 jours)", "impact": "Déchéance possible si déclaration hors délai sauf cas de force majeure"},
+        {"factor": "Non-occupation du logement", "impact": "Exclusion si logement inoccupé > 90 jours et absence de surveillance"}
+      ],
+      "references": ["CG Habitation {brand} Art. 3.2 — Dégâts des eaux", "Convention IRSI 2018", "Code des assurances Art. L.113-2"]
+    },
+    {
+      "id": "HAB-CATNAT-003",
+      "category": "sinistres_habitation",
+      "subcategory": "catastrophe_naturelle",
+      "name": "Garantie Catastrophe Naturelle — Arrêté Interministériel",
+      "description": "Procédure de traitement des sinistres relevant du régime légal des catastrophes naturelles (inondations, coulées de boue, sécheresse, submersion marine).",
+      "criteria": [
+        {
+          "id": "C1",
+          "condition": "Arrêté interministériel de catastrophe naturelle publié au Journal Officiel pour la commune concernée",
+          "risk_level": "high",
+          "action": "Ouvrir automatiquement le dossier sinistre cat-nat — délai de déclaration de 10 jours après publication de l'arrêté",
+          "rationale": "L'article L.125-1 du Code des assurances impose la couverture cat-nat. L'assureur ne peut refuser la garantie"
+        },
+        {
+          "id": "C2",
+          "condition": "Inondation généralisée — bâtiment et contenu touchés (rez-de-chaussée + cave/sous-sol)",
+          "risk_level": "high",
+          "action": "Mandater un expert catastrophe naturelle dans les 48h. Avance sur indemnité de 1 500€ dans les 2 mois",
+          "rationale": "L'assureur doit indemniser dans les 3 mois après remise de l'état estimatif ou dans les 3 mois après la publication de l'arrêté cat-nat"
+        },
+        {
+          "id": "C3",
+          "condition": "Dommages de sécheresse — fissures structurelles sur les murs porteurs",
+          "risk_level": "high",
+          "action": "Expertise technique obligatoire (étude de sol). Vérifier si le terrain est en zone argileuse selon la carte BRGM",
+          "rationale": "La sécheresse est la 2ème cause de cat-nat en coût. Le lien entre le retrait-gonflement des argiles et les fissures doit être établi"
+        },
+        {
+          "id": "C4",
+          "condition": "Coulée de boue ayant envahi le rez-de-chaussée suite à des pluies torrentielles",
+          "risk_level": "high",
+          "action": "Couvrir le nettoyage complet, la remise en état des sols, murs et mobilier endommagé. Proposer un relogement temporaire si inhabitable",
+          "rationale": "La coulée de boue est un péril garanti en cat-nat. Les frais de relogement sont couverts en garantie complémentaire"
+        }
+      ],
+      "modifying_factors": [
+        {"factor": "Franchise légale cat-nat", "impact": "380€ pour les particuliers (habitation), modulable en zone PPR sans mesures de prévention"},
+        {"factor": "Modulation de franchise PPR", "impact": "Doublement, triplement ou quadruplement de la franchise si la commune n'a pas de PPR prescrit"},
+        {"factor": "Relogement temporaire", "impact": "Prise en charge des frais de relogement si le logement est inhabitable, dans la limite du plafond"},
+        {"factor": "Pertes indirectes", "impact": "Couverture des pertes indirectes à hauteur de 25% des dommages matériels directs"}
+      ],
+      "references": ["CG Habitation {brand} Art. 4.1 — Catastrophes naturelles", "Code des assurances L.125-1", "Arrêtés interministériels JO", "Carte d'aléa BRGM"]
+    },
+    {
+      "id": "HAB-FRAUD-004",
+      "category": "detection_fraude",
+      "subcategory": "fraude_habitation",
+      "name": "Détection de Fraude — Sinistres Habitation",
+      "description": "Indicateurs de fraude potentielle pour les sinistres habitation, incluant les déclarations gonflées, les sinistres fictifs et les récidives suspectes.",
+      "criteria": [
+        {
+          "id": "C1",
+          "condition": "Déclaration de sinistre plus de 30 jours après la date alléguée de l'événement sans justification",
+          "risk_level": "high",
+          "action": "Référer au service anti-fraude. Demander des justificatifs complémentaires (photos datées, témoignages)",
+          "rationale": "Le retard de déclaration important sans explication est un indicateur fort de déclaration frauduleuse"
+        },
+        {
+          "id": "C2",
+          "condition": "Montant déclaré des biens endommagés disproportionné par rapport à la surface et au standing du logement",
+          "risk_level": "high",
+          "action": "Mandater un expert et demander des factures originales pour tous les biens > 500€",
+          "rationale": "La surestimation des biens est la forme de fraude la plus courante en habitation (30% des cas de fraude)"
+        },
+        {
+          "id": "C3",
+          "condition": "Assuré ayant déclaré 3+ sinistres habitation dans les 24 derniers mois",
+          "risk_level": "high",
+          "action": "Croiser avec la base ALFA (Agence de Lutte contre la Fraude à l'Assurance). Entretien approfondi obligatoire",
+          "rationale": "La multi-sinistralité est un signal fort. Le croisement avec ALFA permet de détecter les fraudes organisées multi-assureurs"
+        },
+        {
+          "id": "C4",
+          "condition": "Photos fournies sans métadonnées EXIF ou avec des dates incohérentes",
+          "risk_level": "moderate",
+          "action": "Demander des photos complémentaires avec géolocalisation. Vérifier la cohérence avec les données météo",
+          "rationale": "Les photos sans EXIF ou avec des dates modifiées sont un indicateur de montage ou de réutilisation de photos d'un autre sinistre"
+        }
+      ],
+      "modifying_factors": [
+        {"factor": "Assurance récemment souscrite (< 3 mois)", "impact": "Signal supplémentaire de fraude si sinistre important sur contrat récent"},
+        {"factor": "Résiliation récente demandée par l'assuré", "impact": "Signal si le sinistre survient juste avant la date de résiliation"},
+        {"factor": "Incohérence entre déclaration et expertise", "impact": "Envoi dossier au service contentieux si écart > 50%"}
+      ],
+      "references": ["Code des assurances L.113-8 — Fausse déclaration", "ALFA — Base nationale anti-fraude", "CG Habitation {brand} Art. 8 — Obligations de l'assuré"]
+    }
+  ]
+}
+

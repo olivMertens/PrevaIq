@@ -1,0 +1,38 @@
+# =============================================================================
+# Frontend .dockerignore — Keep ACR build context minimal (<2 MiB)
+# =============================================================================
+
+# Dependencies & build output (installed inside Docker)
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Test & coverage
+coverage/
+.nyc_output/
+jest.config.*
+
+# Environment (secrets injected at runtime)
+.env
+.env.*
+!.env.example
+
+# Documentation & metadata
+*.md
+LICENSE
+.gitignore
+.editorconfig
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+Thumbs.db
+.DS_Store
+
+# Docker (don't include self)
+Dockerfile
+.dockerignore

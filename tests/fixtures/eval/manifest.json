@@ -1,0 +1,36 @@
+{
+  "description": "Golden set for scripts/eval_pipeline.py. expected_values are verbatim strings from the source PDFs; expected_citations must appear in the LLM analysis outputs.",
+  "cases": [
+    {
+      "id": "habitation-degats-eaux",
+      "persona": "habitation_claims",
+      "files": [
+        "assets/demo-prevaiq/habitation/declaration-sinistre-habitation.pdf",
+        "assets/demo-prevaiq/habitation/facture-plombier-degats-eaux.pdf"
+      ],
+      "expected_values": [
+        "SIN-2026-HAB-04837",
+        "MERTENS LAFFITE",
+        "HAB-33-2021-091745",
+        "27 mars 2026",
+        "1 556,50",
+        "DURAND PLOMBERIE"
+      ],
+      "expected_citations": ["SIN-2026-HAB-04837", "franchise"]
+    },
+    {
+      "id": "souscription-sante-lefevre",
+      "persona": "underwriting",
+      "files": ["assets/demo-prevaiq/sante/souscription-sante-lefevre.pdf"],
+      "expected_values": [
+        "LEFEVRE Antoine",
+        "12 septembre 1977",
+        "Equilibre Plus",
+        "01/05/2026",
+        "Amlodipine",
+        "178 cm"
+      ],
+      "expected_citations": ["hypertension", "Amlodipine"]
+    }
+  ]
+}

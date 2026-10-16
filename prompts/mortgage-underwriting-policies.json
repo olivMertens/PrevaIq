@@ -1,0 +1,168 @@
+{
+  "version": "3.0-fr",
+  "effective_date": "2026-01-01",
+  "last_updated": "2026-05-01",
+  "jurisdiction": "France",
+  "regulatory_framework": "HCSF (Haut Conseil de Stabilité Financière) / ACPR / Banque de France",
+  "description": "Politiques de souscription crédit immobilier résidentiel — Recommandations HCSF, règles internes de la banque, loi Lemoine (assurance emprunteur) et seuils Banque de France (taux d'usure).",
+  "policies": [
+    {
+      "id": "HCSF-EFFORT-001",
+      "category": "ratios",
+      "subcategory": "taux_effort",
+      "name": "Taux d'effort maximum (HCSF)",
+      "description": "Plafond du taux d'effort imposé par le HCSF : charges totales de remboursement ne dépassent pas 35% des revenus nets.",
+      "criteria": [
+        { "id": "HCSF-EFFORT-001-A", "condition": "Taux d'effort <= 35%", "severity": "Pass", "action": "Dossier conforme à la norme HCSF.", "rationale": "Les charges de remboursement restent maîtrisées par rapport aux revenus nets." },
+        { "id": "HCSF-EFFORT-001-B", "condition": "Taux d'effort > 35% et <= 38%", "severity": "Warning", "action": "Dérogation HCSF possible (enveloppe 20%). Vérifier l'apport personnel (>20%), la stabilité professionnelle et le reste à vivre.", "rationale": "Dépassement mineur acceptable dans l'enveloppe de flexibilité HCSF (20% des dossiers)." },
+        { "id": "HCSF-EFFORT-001-C", "condition": "Taux d'effort > 38%", "severity": "Fail", "action": "REFUS sauf circonstances exceptionnelles. Recommander : réduire le montant emprunté, augmenter l'apport, ou rallonger la durée (dans la limite des 25 ans HCSF).", "rationale": "Risque de défaut élevé : charges incompatibles avec les revenus nets." }
+      ],
+      "calculation": "Taux d'effort = (Mensualité crédit immobilier + Assurance emprunteur + Autres crédits) / Revenus nets mensuels",
+      "references": ["Recommandation HCSF R-HCSF-2021-1", "Décision HCSF du 29 septembre 2021"]
+    },
+    {
+      "id": "HCSF-DUREE-001",
+      "category": "duree",
+      "name": "Durée maximale du prêt (HCSF)",
+      "description": "Durée maximale d'amortissement du crédit immobilier : 25 ans, prolongeable à 27 ans pour les VEFA et travaux importants.",
+      "criteria": [
+        { "id": "HCSF-DUREE-001-A", "condition": "Durée <= 25 ans", "severity": "Pass", "action": "Durée conforme à la norme HCSF.", "rationale": "Durée d'amortissement standard pour un prêt immobilier résidentiel." },
+        { "id": "HCSF-DUREE-001-B", "condition": "Durée 25-27 ans (différé pour VEFA/neuf)", "severity": "Warning", "action": "Acceptable uniquement pour VEFA, construction neuve ou travaux >10% du prix d'acquisition. Justifier le différé.", "rationale": "Exception HCSF pour permettre le différé d'entrée dans les lieux." },
+        { "id": "HCSF-DUREE-001-C", "condition": "Durée > 27 ans", "severity": "Fail", "action": "REFUS. Réduire la durée à 25 ans maximum.", "rationale": "Hors normes HCSF, non autorisé." }
+      ],
+      "references": ["Recommandation HCSF R-HCSF-2021-1 art. 2"]
+    },
+    {
+      "id": "BANK-APPORT-001",
+      "category": "apport",
+      "name": "Apport personnel minimum (règles internes de la banque)",
+      "description": "Apport personnel exigé : 10% minimum du prix d'acquisition, 20% recommandé pour couvrir frais de notaire et garantie.",
+      "criteria": [
+        { "id": "BANK-APPORT-001-A", "condition": "Apport >= 20%", "severity": "Pass", "action": "Apport idéal : couvre frais de notaire (7-8% ancien) et garantie. Profil emprunteur favorable.", "rationale": "Apport substantiel : réduit le LTV et le risque." },
+        { "id": "BANK-APPORT-001-B", "condition": "Apport 10% - 20%", "severity": "Warning", "action": "Apport suffisant mais limité. Vérifier épargne résiduelle (>3 mois de charges) et capacité à faire face aux imprévus.", "rationale": "Apport sous le seuil recommandé : exiger une épargne résiduelle." },
+        { "id": "BANK-APPORT-001-C", "condition": "Apport < 10%", "severity": "Fail", "action": "REFUS sauf primo-accédant avec garanties solides. Conseiller : épargne complémentaire (PEL, CEL), donation familiale, vente d'un bien.", "rationale": "Apport insuffisant : ne couvre même pas les frais annexes." }
+      ],
+      "references": ["Règles internes de la banque — Politique crédit immobilier 2026"]
+    },
+    {
+      "id": "BANK-RESTE-VIVRE-001",
+      "category": "reste_a_vivre",
+      "name": "Reste à vivre minimum (règles internes de la banque)",
+      "description": "Reste à vivre après charges de crédit : minimum 1 000 € pour personne seule, 1 500 € pour couple, +400 € par enfant à charge.",
+      "criteria": [
+        { "id": "BANK-RESTE-VIVRE-001-A", "condition": "Reste à vivre >= seuil minimal", "severity": "Pass", "action": "Capacité de vie correcte après charges.", "rationale": "Le foyer peut faire face aux dépenses courantes." },
+        { "id": "BANK-RESTE-VIVRE-001-B", "condition": "Reste à vivre sous seuil minimal", "severity": "Fail", "action": "REFUS. Réduire la mensualité (durée, apport, ou montant emprunté).", "rationale": "Reste à vivre insuffisant : risque de surendettement même avec taux d'effort conforme." }
+      ],
+      "references": ["Pratique bancaire française — Reste à vivre", "Loi Neiertz / FICP"]
+    },
+    {
+      "id": "REVENUS-CDI-001",
+      "category": "revenus",
+      "subcategory": "salariés",
+      "name": "Revenus salariés CDI",
+      "description": "Salaire net mensuel pris à 100%, hors période d'essai. Vérification sur 3 derniers bulletins + avis d'imposition N-1.",
+      "criteria": [
+        { "id": "REVENUS-CDI-001-A", "condition": "CDI hors période d'essai, ancienneté >= 6 mois", "severity": "Pass", "action": "Revenus salariés stables pris en compte à 100%.", "rationale": "Statut CDI confirmé : revenus pérennes." },
+        { "id": "REVENUS-CDI-001-B", "condition": "CDI en période d'essai", "severity": "Warning", "action": "Reporter la décision jusqu'à confirmation du CDI, ou exiger un co-emprunteur titulaire.", "rationale": "Période d'essai = précarité de revenus." }
+      ],
+      "calculation": "Revenus salariés pris en compte = Net mensuel × 12 (avec primes contractuelles décotées à 50%)",
+      "references": ["Politique crédit interne de la banque art. 3.1"]
+    },
+    {
+      "id": "REVENUS-VARIABLES-001",
+      "category": "revenus",
+      "subcategory": "variables",
+      "name": "Revenus variables — Décote 50%",
+      "description": "Primes, bonus, commissions, heures supplémentaires : pris en compte à 50% sur moyenne 3 ans.",
+      "criteria": [
+        { "id": "REVENUS-VARIABLES-001-A", "condition": "Revenus variables récurrents sur 3 ans", "severity": "Pass", "action": "Intégrer 50% de la moyenne sur 3 ans dans le calcul du taux d'effort.", "rationale": "Décote pratique de place : protège contre la baisse conjoncturelle." },
+        { "id": "REVENUS-VARIABLES-001-B", "condition": "Revenus variables exceptionnels (1 an)", "severity": "Warning", "action": "Exclure du calcul. Ne pas se baser sur des bonus ponctuels.", "rationale": "Revenus non récurrents : risque de non-renouvellement." }
+      ],
+      "references": ["Pratique bancaire française", "Politique crédit interne de la banque art. 3.2"]
+    },
+    {
+      "id": "REVENUS-INDEP-001",
+      "category": "revenus",
+      "subcategory": "indépendants",
+      "name": "Revenus indépendants — Moyenne 3 ans",
+      "description": "Travailleurs indépendants, professions libérales, gérants : revenus pris sur la moyenne des 3 derniers bilans (liasse fiscale 2031/2065).",
+      "criteria": [
+        { "id": "REVENUS-INDEP-001-A", "condition": "3 bilans positifs en croissance ou stables", "severity": "Pass", "action": "Moyenne 3 ans des bénéfices nets prise en compte.", "rationale": "Activité pérenne avec revenus stables." },
+        { "id": "REVENUS-INDEP-001-B", "condition": "Bilans en baisse ou un exercice déficitaire", "severity": "Warning", "action": "Prendre le revenu le plus bas des 3 dernières années. Analyser les motifs de la baisse.", "rationale": "Précaution face à la dégradation de l'activité." },
+        { "id": "REVENUS-INDEP-001-C", "condition": "Activité < 2 ans ou perte continue", "severity": "Fail", "action": "REFUS. Activité non stabilisée.", "rationale": "Risque de défaut élevé." }
+      ],
+      "references": ["Politique crédit interne de la banque art. 3.3"]
+    },
+    {
+      "id": "REVENUS-LOCATIF-001",
+      "category": "revenus",
+      "subcategory": "locatif",
+      "name": "Revenus locatifs — Décote 30%",
+      "description": "Loyers nets perçus pris à 70% (décote 30% pour vacance locative + charges + impayés).",
+      "criteria": [
+        { "id": "REVENUS-LOCATIF-001-A", "condition": "Loyers déclarés et stables", "severity": "Pass", "action": "Intégrer 70% des loyers nets au calcul (décote de 30%).", "rationale": "Décote standard pour vacance + charges + risque impayés." }
+      ],
+      "calculation": "Revenus locatifs nets = Loyer mensuel × 12 × 0.70",
+      "references": ["Pratique bancaire française", "Politique crédit interne de la banque art. 3.4"]
+    },
+    {
+      "id": "BANK-LTV-001",
+      "category": "ltv",
+      "name": "LTV maximum (règles internes de la banque)",
+      "description": "Ratio Loan-to-Value (montant emprunté / valeur du bien) : 90% standard, 100% rare (premier achat avec excellents revenus).",
+      "criteria": [
+        { "id": "BANK-LTV-001-A", "condition": "LTV <= 90%", "severity": "Pass", "action": "LTV standard, profil acceptable.", "rationale": "Risque de perte limité en cas de défaut." },
+        { "id": "BANK-LTV-001-B", "condition": "LTV 90% - 100%", "severity": "Warning", "action": "Exiger une assurance emprunteur renforcée et un excellent profil revenus.", "rationale": "LTV élevé : risque accru pour la banque." },
+        { "id": "BANK-LTV-001-C", "condition": "LTV > 100% (financement frais inclus)", "severity": "Fail", "action": "REFUS sauf jeune actif primo-accédant avec garanties solides.", "rationale": "Endettement supérieur à la valeur du bien." }
+      ],
+      "references": ["Politique crédit interne de la banque art. 4.1"]
+    },
+    {
+      "id": "ASSURANCE-LEMOINE-001",
+      "category": "assurance",
+      "name": "Assurance emprunteur (Loi Lemoine)",
+      "description": "Depuis la loi Lemoine (2022), l'emprunteur peut changer d'assurance à tout moment. TAEA observé : 0.36% (référence) à 0.80% selon profil.",
+      "criteria": [
+        { "id": "ASSURANCE-LEMOINE-001-A", "condition": "TAEA <= 0.36%", "severity": "Pass", "action": "Profil santé favorable, assurance groupe de la banque compétitive.", "rationale": "Taux de référence pratiqué sur le marché." },
+        { "id": "ASSURANCE-LEMOINE-001-B", "condition": "TAEA 0.36% - 0.80%", "severity": "Warning", "action": "Comparer avec la délégation d'assurance externe (loi Lemoine).", "rationale": "Profil de risque standard." },
+        { "id": "ASSURANCE-LEMOINE-001-C", "condition": "TAEA > 0.80% ou refus médical", "severity": "Fail", "action": "Informer le client sur la convention AERAS pour risques aggravés de santé.", "rationale": "Difficultés d'assurabilité : risque pour la banque." }
+      ],
+      "references": ["Loi Lemoine n°2022-270 du 28 février 2022", "Convention AERAS"]
+    },
+    {
+      "id": "USURE-BDF-001",
+      "category": "usure",
+      "name": "Taux d'usure Banque de France",
+      "description": "Le TAEG (Taux Annuel Effectif Global) du prêt ne doit pas dépasser le taux d'usure publié trimestriellement par la Banque de France.",
+      "criteria": [
+        { "id": "USURE-BDF-001-A", "condition": "TAEG <= taux d'usure en vigueur", "severity": "Pass", "action": "Offre conforme à la réglementation.", "rationale": "TAEG sous le plafond légal." },
+        { "id": "USURE-BDF-001-B", "condition": "TAEG > taux d'usure", "severity": "Fail", "action": "Offre illégale. Réduire le taux nominal, l'assurance, ou les frais de dossier.", "rationale": "Le prêt ne peut être consenti au-dessus du taux d'usure (article L314-6 Code de la consommation)." }
+      ],
+      "references": ["Code de la consommation L314-6", "Publication trimestrielle Banque de France"]
+    },
+    {
+      "id": "FICP-BDF-001",
+      "category": "credit",
+      "name": "Vérification FICP / FCC (Banque de France)",
+      "description": "Consultation obligatoire des fichiers Banque de France (FICP, FCC) avant tout octroi de crédit.",
+      "criteria": [
+        { "id": "FICP-BDF-001-A", "condition": "Pas d'inscription FICP/FCC", "severity": "Pass", "action": "Profil de crédit sain.", "rationale": "Aucun incident de paiement répertorié." },
+        { "id": "FICP-BDF-001-B", "condition": "Inscription FCC (chèques sans provision)", "severity": "Warning", "action": "Analyser le motif et l'ancienneté. Exiger régularisation.", "rationale": "Incident bancaire à régulariser." },
+        { "id": "FICP-BDF-001-C", "condition": "Inscription FICP active", "severity": "Fail", "action": "REFUS du crédit immobilier (article L313-22 Code monétaire).", "rationale": "Interdit bancaire ou dossier de surendettement en cours." }
+      ],
+      "references": ["Code monétaire et financier L313-22", "Règlement Banque de France 90-05"]
+    },
+    {
+      "id": "BANK-FRAUDE-001",
+      "category": "fraude",
+      "name": "Détection de fraude documentaire",
+      "description": "Vérification systématique de l'authenticité des justificatifs : avis d'imposition (DGFiP), bulletins de salaire (cohérence employeur), pièce d'identité.",
+      "criteria": [
+        { "id": "BANK-FRAUDE-001-A", "condition": "Documents cohérents, identité vérifiée", "severity": "Pass", "action": "Dossier authentique.", "rationale": "Aucun signal de fraude." },
+        { "id": "BANK-FRAUDE-001-B", "condition": "Incohérences mineures (typo, formats)", "severity": "Warning", "action": "Demander un justificatif original ou une attestation employeur.", "rationale": "Doute léger à lever." },
+        { "id": "BANK-FRAUDE-001-C", "condition": "Document falsifié ou identité usurpée", "severity": "Fail", "action": "REFUS et signalement TRACFIN si suspicion blanchiment.", "rationale": "Fraude avérée : signalement légal obligatoire." }
+      ],
+      "references": ["Loi anti-blanchiment", "Procédure TRACFIN", "RGPD vérification d'identité"]
+    }
+  ]
+}

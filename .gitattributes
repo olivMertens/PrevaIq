@@ -1,0 +1,12 @@
+# Binary assets: never convert line endings (PDF byte offsets must stay intact)
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.zip binary
