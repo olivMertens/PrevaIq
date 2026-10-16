@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import time
 from typing import Any
 
@@ -1916,20 +1917,17 @@ async def _fraud_orchestrator(
             logger.warning("Context: policy search failed: %s", exc)
             return ""
 
-    # ── Branch D: Web Intelligence (Foundry Agent + Bing WebSearch) ──
+    # ── Branch D: Web Intelligence (Web IQ, or Foundry Agent + Bing WebSearch) ──
     async def _web_intelligence_branch() -> dict:
-        if (
-            not fraud_settings.web_intelligence_enabled
-            or not fraud_settings.foundry_project_endpoint
-        ):
+        if not _web_intelligence_available(settings):
             return {}
         try:
             lieu = _get_ef_value(app_md, ["LieuSinistre"], "")
             adresse = _get_ef_value(app_md, ["AdresseAssure", "Adresse", "Ville"], "")
             claim_location = f"{lieu}, {adresse}".strip(", ") if lieu or adresse else ""
             return await asyncio.to_thread(
-                _run_web_intelligence,
-                fraud_settings,
+                _run_claim_web_intelligence,
+                settings,
                 claim_date=claim_date,
                 claim_location=claim_location,
                 claim_nature=_get_ef_value(
@@ -2100,14 +2098,14 @@ def _fraud_orchestrator_sync(
 
         # Submit web intelligence (if enabled)
         web_intel_future = None
-        if fraud_settings.web_intelligence_enabled and fraud_settings.foundry_project_endpoint:
+        if _web_intelligence_available(settings):
             # Build precise location from multiple fields
             lieu = _get_ef_value(app_md, ["LieuSinistre"], "")
             adresse = _get_ef_value(app_md, ["AdresseAssure", "Adresse", "Ville"], "")
             claim_location = f"{lieu}, {adresse}".strip(", ") if lieu or adresse else ""
             web_intel_future = executor.submit(
-                _run_web_intelligence,
-                fraud_settings,
+                _run_claim_web_intelligence,
+                settings,
                 claim_date=claim_date,
                 claim_location=claim_location,
                 claim_nature=_get_ef_value(
@@ -2258,6 +2256,104 @@ def _load_fraud_prompts(prompts_root: str, brand: str = "") -> dict:
     with open(path, "r", encoding="utf-8") as f:
         raw = f.read().replace("{brand}", brand)
         return json.loads(raw)
+
+
+def _web_intelligence_available(settings) -> bool:
+    fraud_settings = settings.fraud_detection
+    return create_webiq_tool(settings) is not None or bool(
+        fraud_settings.web_intelligence_enabled and fraud_settings.foundry_project_endpoint
+    )
+
+
+def _run_claim_web_intelligence(settings, **claim) -> dict:
+    """Branch D dispatcher: Microsoft Web IQ when configured, else the Foundry Bing agent."""
+    if create_webiq_tool(settings) is not None:
+        return _run_webiq_intelligence(settings, **claim)
+    return _run_web_intelligence(settings.fraud_detection, **claim)
+
+
+def _run_webiq_intelligence(
+    settings,
+    claim_date: str,
+    claim_location: str,
+    claim_nature: str,
+    claim_type: str,
+    declared_amount: str,
+) -> dict:
+    """Branch D via Microsoft Web IQ: weather, Cat-Nat decrees and local news at the claim date.
+
+    Runs a few targeted Web IQ searches, then asks the fraud model to turn the
+    passages into the same structured result as the Foundry agent path.
+    """
+    from ..openai_client import chat_completion
+
+    fraud_settings = settings.fraud_detection
+    place = claim_location or "France"
+    when = claim_date if claim_date and claim_date != "non spécifiée" else ""
+    nature = (claim_nature or claim_type or "sinistre")[:120]
+    queries = [
+        (f"météo {place} {when} tempête pluie vent Météo-France".strip(), False),
+        (f"arrêté catastrophe naturelle {place} {when}".strip(), False),
+        (f"{nature} {place} {when}".strip(), True),
+    ]
+
+    async def _search_all():
+        return await asyncio.gather(*(webiq_search(q, news=n) for q, n in queries))
+
+    started = time.perf_counter()
+    try:
+        passages = asyncio.run(_search_all())
+    except Exception as exc:
+        logger.warning("Web IQ fraud branch failed: %r", exc)
+        return {"error": f"Web IQ indisponible: {exc}"}
+
+    corpus = "\n\n".join(
+        f"=== Recherche : {q} ===\n{p}" for (q, _), p in zip(queries, passages)
+    )[:12000]
+    source_urls = list(dict.fromkeys(re.findall(r"Source : (https?://\S+)", corpus)))[:10]
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "Tu es un analyste anti-fraude assurance. À partir UNIQUEMENT des passages web fournis, "
+                "vérifie si l'événement déclaré (météo, catastrophe naturelle, fait local) est confirmé "
+                "à la date et au lieu du sinistre. N'invente aucune source. Réponds en JSON : "
+                '{"event_verified": true|false|null, "confidence": 0.0-1.0, '
+                '"findings": [{"title": str, "summary": str, "source_url": str, "supports_claim": true|false|null}], '
+                '"overall_assessment": str}. Rédige en français.'
+            ),
+        },
+        {
+            "role": "user",
+            "content": (
+                f"Sinistre : {claim_type} — {nature}\nLieu : {place}\nDate déclarée : {when or 'non précisée'}\n"
+                f"Montant déclaré : {declared_amount}\n\nPassages Web IQ :\n{corpus}"
+            ),
+        },
+    ]
+    try:
+        raw = chat_completion(
+            settings.openai,
+            messages,
+            max_tokens=2000,
+            temperature=0.0,
+            deployment_override=fraud_settings.deployment_name,
+            model_override=fraud_settings.model_name,
+            response_format="json_object",
+        )
+        parsed = _parse_json_robust(raw.get("content", ""))
+    except Exception as exc:
+        logger.warning("Web IQ fraud synthesis failed: %r", exc)
+        return {"error": f"Synthèse Web IQ indisponible: {exc}"}
+    if parsed.get("parse_error"):
+        parsed = {"overall_assessment": corpus[:1500], "findings": []}
+    parsed["source_urls"] = source_urls
+    parsed["provider"] = "webiq"
+    logger.info(
+        "Web IQ fraud branch completed: duration_ms=%d sources=%d",
+        (time.perf_counter() - started) * 1000, len(source_urls),
+    )
+    return parsed
 
 
 def _run_web_intelligence(
