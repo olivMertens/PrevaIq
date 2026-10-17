@@ -2,11 +2,11 @@
 
 ![PrevaIQ Azure overview](architecture/prevaiq-architecture.png)
 
-Editable sources and exports are in [docs/architecture/](architecture/) (`.drawio` is the source of truth, with standalone `.svg` and `.png` exports). Azure icons come from [az-icons.com](https://az-icons.com/) using the July 2026 *Azure Architecture Icons* pack, which is Microsoft property under the [icon terms](https://learn.microsoft.com/en-us/azure/architecture/icons/#icon-terms). Content Understanding has no dedicated icon, so the real *AI Services* resource type icon is used with an explicit label. Diagrams are maintained with [`.github/skills/architecture-diagram-author`](../.github/skills/architecture-diagram-author/SKILL.md).
+Editable sources and exports are in [docs/architecture/](architecture/) (`.drawio` is the source of truth, with standalone `.svg` and `.png` exports). The overview shows the Microsoft Foundry project with its Entra ID connections (Blob, Web IQ over MCP, Fabric data agent — simulated in the demo — and Azure AI Search, where human corrections are indexed and reused on similar files). Azure icons come from [az-icons.com](https://az-icons.com/) (Azure Architecture Icons pack) and, where it has no match, from [MsiconsCollections](https://aka.ms/MsiconsCollections) (Container Apps, Microsoft Fabric, Microsoft Entra ID); they are Microsoft property under the [icon terms](https://learn.microsoft.com/en-us/azure/architecture/icons/#icon-terms). Services without a dedicated icon use the closest real one with an explicit label: *AI Services* for Content Understanding, *Foundry Models* for Mistral Document AI and the generic *Globe* for Microsoft Web IQ. Diagrams are maintained with [`.github/skills/architecture-diagram-author`](../.github/skills/architecture-diagram-author/SKILL.md).
 
 ```mermaid
 flowchart TB
-    subgraph UI["Next.js 14 UI (React + Tailwind + next-intl FR/EN)"]
+    subgraph UI["Next.js 16 UI (React 19 + Tailwind + next-intl FR/EN)"]
         P1["Life & health underwriting"]
         P2["Home / Auto / Health claims"]
         P3["Mortgage underwriting"]
