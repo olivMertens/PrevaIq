@@ -65,6 +65,7 @@ Image deployment is identical for Bicep and Terraform.
 - Do not apply both IaC tools to the same resource group because names match and states are independent. To switch tools, use a new resource group or `terraform import`.
 - The GitHub Actions workflow `deploy.yml` targets the same resources and requires OIDC secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`, plus the repository variable `AZURE_DEPLOY_ENABLED=true`; without it the deploy job is skipped.
 - RAG policy PDFs are not included. Put insurer policy PDFs in `assets/pdf/` before running `scripts/index_pdf_policies.py`.
+- `assets/video/` contains README demo videos only: they are versioned in Git but excluded from deployment. The root `.dockerignore` excludes this folder, `deploy.ps1` stages only `assets/pdf/` from the assets tree, and the frontend build context is limited to `frontend/`. The in-app demo guide still uses `assets/demo-prevaiq/`; its document selections are unchanged.
 
 ## Environment-specific script inputs
 
@@ -126,4 +127,3 @@ curl -H "X-API-Key: $API_KEY" http://localhost:8000/api/applications
 ### Production deployment
 
 When deploying to Azure Container Apps, `infra/main.bicep` or `infra/terraform/` stores `API_KEY` as the ACA secret `api-key`. Bicep reads parameter `apiKey` from `PREVAIQ_API_KEY`; Terraform uses variable `api_key`. The secret is exposed to both backend and frontend containers.
-

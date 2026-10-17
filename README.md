@@ -24,6 +24,15 @@ Five workbenches: **Home claims**, **Auto claims**, **Health claims**, **Life & 
 > [!NOTE]
 > PrevaIQ is a demonstration project, not a Microsoft product. The insurer, customers, policies and claims are fictitious, and the bundled demo dataset is in French (the UI is available in English and French). Review security, compliance and model behaviour before any production use.
 
+## Demo video
+
+https://github.com/user-attachments/assets/4726f612-a105-43ea-95dd-c199a02d75fa
+
+**[Download the video (MP4, 1080p, ~10 MB)](https://github.com/olivMertens/PrevaIq/raw/refs/heads/main/assets/video/PrevaIQ_demo_EN_1080p.mp4)**
+
+Play the demo directly in the embedded GitHub video player above. The demo is in English.
+The video is kept in the repository for documentation only and is excluded from deployment images.
+
 ## Screenshots
 
 | Dashboard | Claim and next best action |
@@ -92,6 +101,10 @@ Deploy to Azure with Bicep or Terraform, then `infra/deploy.ps1`: see [docs/depl
 **PrevaIQ** aide le gestionnaire d'assurance à traiter un dossier de bout en bout : extraction des pièces, analyse par des agents, détection de fraude, action recommandée et décision humaine tracée. L'application couvre les sinistres habitation, auto et santé, la souscription vie-santé et hypothécaire, ainsi qu'une vue Client 360.
 
 C'est un projet de démonstration : l'assureur, les clients et les dossiers sont fictifs. L'interface existe en français et en anglais, et le jeu de données de démo est en français. La documentation détaillée est en anglais, dans le dossier [docs](docs/).
+
+**[Voir la vidéo de démonstration (en anglais)](#demo-video)** · **[Télécharger la vidéo (MP4, 1080p, ~10 Mo)](https://github.com/olivMertens/PrevaIq/raw/refs/heads/main/assets/video/PrevaIQ_demo_EN_1080p.mp4)**
+
+Le lecteur intégré de la section [Demo video](#demo-video) permet de lire la vidéo directement dans ce README. La vidéo est conservée dans le dépôt uniquement pour la documentation et n'est pas incluse dans les images déployées.
 
 ## License
 

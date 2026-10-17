@@ -50,6 +50,9 @@ assets/**
 !assets/pdf/*/
 !assets/pdf/*/*.pdf
 
+# README demo videos stay in Git, never in deployment build contexts
+assets/video/
+
 # Infra (Bicep, deploy scripts)
 infra
 infra/

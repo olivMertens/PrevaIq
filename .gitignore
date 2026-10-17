@@ -22,6 +22,8 @@ assets/*
 !assets/pdf/
 !assets/pdf/.gitkeep
 !assets/pdf/**/*.pdf
+!assets/video/
+!assets/video/*.mp4
 docs/*
 !docs/architecture/
 !docs/images/
