@@ -37,7 +37,8 @@ function loadAuth(env) {
     });
     vm.runInNewContext(outputText, {
       module: sourceModule, exports: sourceModule.exports, require: requireSource, process: { env },
-      console, URL, TextEncoder, crypto: webcrypto,
+      console, URL, URLSearchParams, TextEncoder, Buffer, AbortSignal, crypto: webcrypto,
+      fetch: env.fetch,
     }, { filename });
     return sourceModule.exports;
   }
@@ -155,4 +156,199 @@ test('health reports providers rather than legacy account diagnostics', async ()
   assert.equal(data.auth.entraEnabled, true);
   assert.equal(data.auth.localAuthEnabled, false);
   assert.equal(data.debug, undefined);
+});
+
+test('multitenant sign-in requires an explicit tenant allowlist', () => {
+  const { policy } = loadAuth({ ...entra, ENTRA_TENANT_ID: 'organizations' });
+  assert.equal(policy.isEntraEnabled(), false);
+  const restricted = loadAuth({
+    ...entra, ENTRA_TENANT_ID: 'organizations', ENTRA_ALLOWED_TENANT_IDS: 'corporate-tenant',
+  });
+  assert.equal(restricted.policy.isEntraEnabled(), true);
+});
+
+test('Entra administrators must be explicitly authorized, not inferred from their name', () => {
+  const { auth } = loadAuth({ ...entra, ACCESS_ADMIN_EMAILS: 'owner@example.com' });
+  assert.equal(auth.isEntraAdminEmail('owner@example.com'), true);
+  assert.equal(auth.isEntraAdminEmail('prevaiq-admin-stranger@example.com'), false);
+});
+
+test('organization token exchange accepts only the allowed tenant and validates claims', async () => {
+  const { createHash } = require('node:crypto');
+  const state = 'test-state';
+  const claims = {
+    aud: 'test-client', tid: 'corporate-tenant',
+    iss: 'https://login.microsoftonline.com/corporate-tenant/v2.0',
+    nonce: createHash('sha256').update(state).digest('base64url'),
+    exp: Math.floor(Date.now() / 1000) + 600,
+    preferred_username: 'colleague@example.com', name: 'Colleague',
+  };
+  const { load } = loadAuth({
+    ...entra, ENTRA_TENANT_ID: 'organizations', ENTRA_ALLOWED_TENANT_IDS: 'corporate-tenant',
+    fetch: async () => ({
+      ok: true, json: async () => ({
+        id_token: `header.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.signature`,
+      }),
+    }),
+  });
+
+  const oidc = load('lib/entra');
+  const cfg = oidc.entraConfig();
+  const exchange = () => oidc.exchangeCode(cfg, 'https://demo.example.com', 'code', state);
+  assert.equal(new URL(oidc.authorizeUrl(cfg, 'https://demo.example.com', state)).pathname,
+    '/organizations/oauth2/v2.0/authorize');
+  assert.equal((await exchange()).email, 'colleague@example.com');
+  for (const tenant of ['other-tenant', '9188040d-6c67-4c5b-b112-36a304b66dad']) {
+    claims.tid = tenant;
+    claims.iss = `https://login.microsoftonline.com/${tenant}/v2.0`;
+    assert.equal(await exchange(), null);
+  }
+  claims.tid = 'corporate-tenant';
+  claims.iss = 'https://login.microsoftonline.com/corporate-tenant/v2.0';
+  for (const [key, invalid] of [['aud', 'other-client'], ['nonce', 'wrong'], ['exp', 0], ['iss', 'wrong']]) {
+    const original = claims[key];
+    claims[key] = invalid;
+    assert.equal(await exchange(), null);
+    claims[key] = original;
+  }
+});
+
+test('callback records pending colleagues but grants a session only after approval', async () => {
+    const { createHash } = require('node:crypto');
+    const state = 'callback-test';
+    const claims = {
+      aud: 'test-client', tid: 'corporate-tenant',
+      iss: 'https://login.microsoftonline.com/corporate-tenant/v2.0',
+      nonce: createHash('sha256').update(state).digest('base64url'),
+      exp: Math.floor(Date.now() / 1000) + 600, preferred_username: 'colleague@example.com',
+    };
+    for (const status of [null, 'pending', 'approved', 'refused']) {
+      const calls = [];
+      const { load } = loadAuth({
+        NODE_ENV: 'production', ...entra, ENTRA_TENANT_ID: 'organizations',
+        ENTRA_ALLOWED_TENANT_IDS: 'corporate-tenant',
+        fetch: async (url, options) => {
+          calls.push([url, options]);
+          if (url.includes('/token')) return {
+            ok: true, json: async () => ({
+              id_token: `h.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.s`,
+            }),
+          };
+          return { ok: true, json: async () => ({ status }) };
+        },
+      });
+      const response = await load('app/api/auth/entra/callback/route').GET(new NextRequest(
+        `https://demo.example.com/api/auth/entra/callback?code=code&state=${state}`,
+        { headers: { host: 'demo.example.com', cookie: `entra_state=${state}` } }
+      ));
+      const target = new URL(response.headers.get('location'));
+      if (status === 'approved') {
+        assert.equal(target.pathname, '/');
+        assert.ok(response.cookies.get('session'));
+      } else {
+        assert.equal(target.pathname, '/access');
+        assert.equal(target.searchParams.get('state'), status === 'refused' ? 'refused' : 'pending');
+        assert.equal(response.cookies.get('session'), undefined);
+      }
+      assert.equal(calls.some(([url]) => url.endsWith('/request')), status === null || status === 'pending');
+    }
+  });
+
+test('invalid state and Entra errors never create requests', async () => {
+    const calls = [];
+    const { load } = loadAuth({
+      ...entra, fetch: async (url) => { calls.push(url); throw new Error('must not fetch'); },
+    });
+    const callback = load('app/api/auth/entra/callback/route');
+    for (const query of ['code=code&state=missing-cookie', 'error=access_denied']) {
+      const response = await callback.GET(new NextRequest(
+        `https://demo.example.com/api/auth/entra/callback?${query}`,
+        { headers: { host: 'demo.example.com' } }
+      ));
+      assert.equal(new URL(response.headers.get('location')).pathname, '/login');
+      assert.equal(response.cookies.get('session'), undefined);
+    }
+    assert.equal(calls.length, 0);
+  });
+
+test('corporate and sandbox access keeps tenant, approval and administrator gates separate', async (t) => {
+  const { createHash } = require('node:crypto');
+  const state = 'technical-access-state';
+  const scenarios = [
+    { name: 'corporate administrator bypasses pending requests', tenant: 'corporate-tenant',
+      upn: 'owner@example.com', status: 'pending', role: 'admin' },
+    { name: 'explicit technical administrator bypasses pending requests', tenant: 'sandbox-tenant',
+      upn: 'TECHNICAL-ADMIN@sandbox.example', status: 'pending', role: 'admin' },
+    { name: 'approved technical user gets no administrator access', tenant: 'sandbox-tenant',
+      upn: 'technical-user@sandbox.example', status: 'approved', role: 'entra' },
+    { name: 'second approved technical user gets no administrator access', tenant: 'sandbox-tenant',
+      upn: 'technical-user2@sandbox.example', status: 'approved', role: 'entra' },
+    { name: 'approved corporate colleague still signs in', tenant: 'corporate-tenant',
+      upn: 'colleague@example.com', status: 'approved', role: 'entra' },
+    { name: 'other sandbox users still need approval', tenant: 'sandbox-tenant',
+      upn: 'other@sandbox.example', status: null, pending: true },
+    { name: 'an administrator address does not bypass a disallowed tenant', tenant: 'other-tenant',
+      upn: 'technical-admin@sandbox.example', status: 'approved', rejected: true },
+    { name: 'optional email claim cannot impersonate the technical administrator', tenant: 'sandbox-tenant',
+      upn: 'technical-user@sandbox.example', email: 'technical-admin@sandbox.example',
+      status: 'approved', role: 'entra' },
+  ];
+  for (const scenario of scenarios) {
+    await t.test(scenario.name, async () => {
+      const calls = [];
+      const claims = {
+        aud: 'test-client', tid: scenario.tenant,
+        iss: `https://login.microsoftonline.com/${scenario.tenant}/v2.0`,
+        nonce: createHash('sha256').update(state).digest('base64url'),
+        exp: Math.floor(Date.now() / 1000) + 600,
+        preferred_username: scenario.upn, email: scenario.email,
+      };
+      const { auth, load } = loadAuth({
+        NODE_ENV: 'production', ...entra, ENTRA_TENANT_ID: 'organizations',
+        ENTRA_ALLOWED_TENANT_IDS: 'corporate-tenant, sandbox-tenant',
+        ACCESS_ADMIN_EMAILS: 'owner@example.com, TECHNICAL-ADMIN@sandbox.example ',
+        fetch: async (url) => {
+          calls.push(url);
+          if (url.includes('/token')) return {
+            ok: true, json: async () => ({
+              id_token: `h.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.s`,
+            }),
+          };
+          return { ok: true, json: async () => ({ status: scenario.status }) };
+        },
+      });
+      const response = await load('app/api/auth/entra/callback/route').GET(new NextRequest(
+        `https://demo.example.com/api/auth/entra/callback?code=code&state=${state}`,
+        { headers: { host: 'demo.example.com', cookie: `entra_state=${state}` } }
+      ));
+      const target = new URL(response.headers.get('location'));
+      const session = response.cookies.get('session');
+      const accessCalls = calls.filter((url) => url.includes('/api/internal/access'));
+      if (scenario.rejected) {
+        assert.equal(target.pathname, '/login');
+        assert.equal(session, undefined);
+        assert.equal(accessCalls.length, 0);
+      } else if (scenario.pending) {
+        assert.equal(target.pathname, '/access');
+        assert.equal(target.searchParams.get('state'), 'pending');
+        assert.equal(session, undefined);
+        assert.ok(accessCalls.some((url) => url.endsWith('/request')));
+      } else {
+        assert.equal(target.pathname, '/');
+        assert.ok(session);
+        const username = auth.validateSessionToken(session.value);
+        assert.equal(auth.displayName(username), scenario.upn.toLowerCase());
+        assert.equal(auth.sessionRole(username), scenario.role);
+        const adminPage = await load('proxy').proxy(new NextRequest('https://demo.example.com/admin', {
+          headers: { cookie: `session=${session.value}` },
+        }));
+        if (scenario.role === 'admin') {
+          assert.equal(accessCalls.length, 0);
+          assert.equal(adminPage.headers.get('x-middleware-next'), '1');
+        } else {
+          assert.equal(new URL(adminPage.headers.get('location')).pathname, '/');
+        }
+      }
+    });
+  }
 });

@@ -16,6 +16,10 @@ type AccessEntry = {
   requested_at: string;
   decided_at: string | null;
   decided_by: string | null;
+  notification_status?: 'not_requested' | 'sending' | 'submitted' | 'failed';
+  notification_at?: string | null;
+  approval_notification_status?: 'not_requested' | 'sending' | 'submitted' | 'failed';
+  approval_notification_at?: string | null;
 };
 
 const STATUS_STYLE: Record<AccessStatus, string> = {
@@ -146,7 +150,7 @@ export default function AccessRequestsTab() {
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
               <tr>
-                {(['name', 'email', 'requested', 'status', 'decidedBy', 'actions'] as const).map((col) => (
+                {(['name', 'email', 'requested', 'status', 'notification', 'approvalNotification', 'decidedBy', 'actions'] as const).map((col) => (
                   <th key={col} className="px-4 py-3">{t(col)}</th>
                 ))}
               </tr>
@@ -161,6 +165,22 @@ export default function AccessRequestsTab() {
                     <span className={clsx('rounded-full border px-2.5 py-0.5 text-xs font-medium', STATUS_STYLE[entry.status])}>
                       {t(entry.status)}
                     </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-600">
+                    <span className={clsx(entry.notification_status === 'failed' && 'font-medium text-red-700')}>
+                      {t(`notification_${entry.notification_status || 'not_requested'}`)}
+                    </span>
+                    {entry.notification_at && (
+                      <span className="mt-1 block">{formatDate(entry.notification_at)}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-slate-500">
+                    <span className={clsx(entry.approval_notification_status === 'failed' && 'font-medium text-red-700')}>
+                      {t(`notification_${entry.approval_notification_status || 'not_requested'}`)}
+                    </span>
+                    {entry.approval_notification_at && (
+                      <span className="mt-1 block">{formatDate(entry.approval_notification_at)}</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-slate-500">
                     {entry.decided_by ? `${entry.decided_by} · ${formatDate(entry.decided_at)}` : '—'}

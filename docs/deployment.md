@@ -73,7 +73,56 @@ The deployment scripts read environment-specific values from environment variabl
 
 - `infra/deploy.ps1`, `infra/set-webiq-secret.ps1`, and `infra/set-entra-auth.ps1` read `AZURE_SUBSCRIPTION_ID` and `AZURE_TENANT_ID`. These are optional and default to the current `az account` context.
 - `infra/deploy.ps1` also reads optional `PREVAIQ_KNOWN_API_FQDN` and `PREVAIQ_KNOWN_FE_FQDN` to detect DNS changes after the first deployment.
-- `infra/set-entra-auth.ps1` requires `ENTRA_CLIENT_ID` and `PREVAIQ_ADMIN_EMAILS`. `PREVAIQ_ACCESS_REQUEST_EMAIL` is optional and defaults to the first admin email. `PREVAIQ_ALLOWED_EMAILS` pre-approves API access. `PREVAIQ_ENTRA_SECRET_TFVARS` can point to a gitignored tfvars file containing `entra_client_secret`; otherwise the client secret is prompted with hidden input.
+- `infra/set-entra-auth.ps1` requires `ENTRA_CLIENT_ID` (or `-CreateRegistration`) and `PREVAIQ_ADMIN_EMAILS`. `PREVAIQ_ACCESS_REQUEST_EMAIL` defaults to the first admin email. `PREVAIQ_ALLOWED_EMAILS` pre-approves API access. `PREVAIQ_ENTRA_SECRET_TFVARS` can point to a gitignored tfvars file containing `entra_client_secret`; otherwise the client secret is prompted with hidden input. With `-CreateRegistration`, a six-month credential is generated and stored in Key Vault without printing it. The script rolls out both images through `deploy.ps1`; it no longer updates app revisions independently.
+
+### Microsoft colleague access and administrator email
+
+Use a **dedicated** organizational Entra web registration. Do not convert a registration shared with other applications. Set `ENTRA_TENANT_ID=organizations` and `ENTRA_ALLOWED_TENANT_IDS` to a comma-separated list of explicitly verified tenants: the Microsoft corporate tenant and, when technical demo accounts are required, the existing sandbox tenant. Resolve the corporate tenant from its official OpenID discovery document and the sandbox tenant from the verified Azure directory context, not from an applicant's email suffix. `AZURE_TENANT_ID` remains the Azure subscription/registration-owning tenant; `PREVAIQ_ENTRA_AUTHORITY` is the separate sign-in authority.
+
+The dedicated enterprise app must not require prior sandbox user assignment. Microsoft corporate consent and Conditional Access policies still apply: external applications may require corporate administrator consent. Changing the demo cannot bypass those policies. Personal Microsoft accounts and tenants outside the explicit allowlist are rejected before requests or sessions are created.
+
+After successful eligible authentication, PrevaIQ stores a pending request. Only an administrator explicitly listed in `ACCESS_ADMIN_EMAILS` can approve or refuse it under **Administration > Access requests**. Account-name prefixes do not grant administration. Preapproval still requires an eligible tenant at sign-in.
+
+#### Technical administrator and user accounts
+
+There are two independent gates: **tenant eligibility**, then **application role/access**.
+An approved request does not override the tenant restriction. An account whose name contains
+`admin` is not automatically an Entra administrator.
+
+1. Verify the sandbox directory and the exact technical account UPNs in Entra.
+2. Preserve the corporate tenant in `ENTRA_ALLOWED_TENANT_IDS` and append the verified
+   sandbox tenant. Do not replace the allowlist with `common` or an unrestricted value.
+3. Preserve the existing administrator addresses in `ACCESS_ADMIN_EMAILS` and append
+   only the exact technical administrator UPN. This account can reach Administration
+   without waiting for someone else to approve its own request.
+4. Preauthorize each technical user in **Administration > Access requests**, or through
+   the API-key-protected internal `/authorize` endpoint. Approval grants user access only.
+5. Roll out configuration with `infra\deploy.ps1 -FrontendAccessSettings` (or the setup
+   helper's `-AllowedTenantIds` and `-AdminEmails`); do not manually update Container Apps.
+6. Sign in again using the full UPN, preferably in a private browser window to avoid
+   reusing a different Microsoft account. Conditional Access/MFA requirements still apply.
+
+Other accounts in an admitted tenant remain pending until explicitly approved.
+Keep environment-specific tenant IDs, technical account inventories and credentials out
+of committed configuration. Do not re-enable local password authentication on the hosted demo.
+
+Enable `accessEmailEnabled` (Bicep) / `access_email_enabled` (Terraform), with matching `accessRequestEmail` / `access_request_email` and `accessAdminUrl` / `access_admin_url`. Both IaC tools define the same Europe-resident ACS Email service, Azure-managed sender domain, dedicated Communication Services resource and resource-scoped custom sender role. Authentication uses managed identity; the app neither reads service keys nor accesses the administrator's mailbox. ACS requires the service write permission for Entra-authenticated submission; the custom role excludes key access, deletion and role management. Local-auth disabling is not exposed by the selected ACS resource API.
+
+For the existing Bicep-managed deployment, the standalone module can provision only these new resources without reapplying unrelated resources:
+
+```powershell
+$principal = az identity show -g <resource-group> -n <actual-app-identity> --query principalId -o tsv
+az deployment group create -g <resource-group> -n prevaiq-access-email `
+  --template-file infra\access-email.bicep --parameters identityPrincipalId=$principal
+```
+
+Use the deployment's `endpoint` and `senderAddress` outputs for `ACCESS_EMAIL_ENDPOINT` and `ACCESS_EMAIL_SENDER`, plus `ACCESS_REQUEST_EMAIL` and `ACCESS_ADMIN_URL` on the backend. Supply these as the `-EmailSettings` hashtable to `set-entra-auth.ps1` so configuration and images roll out together through `deploy.ps1`. Override `-IdentityName` / `-KeyVaultName` when the deployed environment still uses legacy resource names. Keep the feature enabled with the same values on later full infrastructure applies; do not apply Terraform to Bicep-managed resources.
+
+Repeated pending sign-ins retain the original request and do not send another email. Blob leases serialize mutations across replicas; local development uses a file lock. The dashboard is the source of truth even when email submission fails, and approve/refuse remain available. Historical records load without notification metadata. `submitted` means ACS accepted the message, **not** that it reached the inbox. `sending` can indicate an interrupted process; inspect logs and use the dashboard rather than repeatedly signing in to resend.
+
+Request emails use simple branded HTML with a **Review access requests** button and the administrator's contact address, plus a plain-text fallback. Approving or pre-authorizing an address persists the approval first, then sends an **access approved** email to that applicant with an **Open PrevaIQ** login button. The administrator configured in `ACCESS_REQUEST_EMAIL` is copied and used as the reply-to/contact address. No additional email credentials or environment variables are required. Repeating the same approval or preauthorization does not resend; a later refusal followed by a new approval is a new decision. Approval-notification status and timestamp appear separately from the original administrator request email in the access dashboard. Email failure never revokes an approved account. Email buttons open the application; they do not perform unauthenticated approval actions.
+
+No email can be triggered by a sign-in blocked on Microsoft's page before the application callback. The manual email link remains available for that case. Verify actual mailbox receipt and a real colleague's sign-in after deployment; never report a send API acceptance as confirmed delivery.
 
 ## Identities, roles, and networking
 

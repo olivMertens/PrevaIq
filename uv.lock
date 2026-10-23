@@ -564,6 +564,15 @@ wheels = [
 ]
 
 [[package]]
+name = "filelock"
+version = "4.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/a9/1af41b37c3279712b22cdc63aac78a52432202b6fe1f9666a2a3d2831fb4/filelock-4.2.0.tar.gz", hash = "sha256:7a60906c75227cf04d0c273afadc8219400f11aeb13cc69591d4f6cdc6c8036e", size = 569667, upload-time = "2026-10-22T15:12:31Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/a3/9bc26acff301fe1aaea1cc3d82a1d57e0a34df3e1cadbfa91ac2dbcdde5c/filelock-4.2.0-py3-none-any.whl", hash = "sha256:2ff5690882e8cdb00ef31fb3d01a3094c29f30985426c59495afb1733f3b7238", size = 135032, upload-time = "2026-10-21T20:57:23Z" },
+]
+
+[[package]]
 name = "flatbuffers"
 version = "25.12.19"
 source = { registry = "https://pypi.org/simple" }
@@ -2410,6 +2419,7 @@ dependencies = [
     { name = "azure-monitor-opentelemetry" },
     { name = "azure-storage-blob" },
     { name = "fastapi" },
+    { name = "filelock" },
     { name = "gunicorn" },
     { name = "markitdown", extra = ["az-content-understanding"] },
     { name = "mcp" },
@@ -2446,6 +2456,7 @@ requires-dist = [
     { name = "azure-storage-blob", specifier = ">=12.27.1" },
     { name = "black", marker = "extra == 'dev'" },
     { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "filelock", specifier = ">=3.16.0" },
     { name = "gunicorn", specifier = ">=21.0.0" },
     { name = "markitdown", extras = ["az-content-understanding"], specifier = ">=0.1.6" },
     { name = "mcp", specifier = ">=1.20.0,<2.0" },

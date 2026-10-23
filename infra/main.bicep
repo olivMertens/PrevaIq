@@ -52,6 +52,11 @@ param pgAdminPassword string
 @description('Wire the Web IQ key (Key Vault secret webiq-api-key) into the API app. Enable after running infra/set-webiq-secret.ps1.')
 param webIqSecretEnabled bool = false
 
+param accessEmailEnabled bool = false
+param accessEmailDataLocation string = 'Europe'
+param accessRequestEmail string = ''
+param accessAdminUrl string = ''
+
 @description('Create the Container Apps. First provisioning: false, build the images (deploy.ps1 -BuildOnly), then true.')
 param deployApps bool = true
 
@@ -71,6 +76,23 @@ param adminIpRanges array = []
 var prefix = '${projectName}-${environment}'
 var uniqueSuffix = uniqueString(resourceGroup().id, projectName)
 var dataContainerName = '${projectName}-data'
+
+module accessEmail 'access-email.bicep' = if (accessEmailEnabled) {
+  name: 'prevaiq-access-email'
+  params: {
+    projectName: projectName
+    environment: environment
+    identityPrincipalId: managedIdentity.properties.principalId
+    dataLocation: accessEmailDataLocation
+  }
+}
+
+var accessEmailEnv = accessEmailEnabled ? [
+  { name: 'ACCESS_EMAIL_ENDPOINT', value: accessEmail!.outputs.endpoint }
+  { name: 'ACCESS_EMAIL_SENDER', value: accessEmail!.outputs.senderAddress }
+  { name: 'ACCESS_REQUEST_EMAIL', value: accessRequestEmail }
+  { name: 'ACCESS_ADMIN_URL', value: accessAdminUrl }
+] : []
 
 // Public access stays on unless private networking is enabled without operator IPs.
 var publicAccess = !privateNetworkingEnabled || length(adminIpRanges) > 0
@@ -917,7 +939,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             { name: 'WEB_INTELLIGENCE_ENABLED', value: 'true' }
             { name: 'FOUNDRY_PROJECT_ENDPOINT', value: '${foundryAccount.properties.endpoint}/api/projects/${foundryProject.name}' }
             { name: 'WEB_INTELLIGENCE_AGENT_NAME', value: 'PrevaIQ-WebIntelligence' }
-          ], webIqEnv)
+          ], webIqEnv, accessEmailEnv)
         }
       ]
       scale: {
@@ -1003,3 +1025,5 @@ output postgresHost string = postgres.properties.fullyQualifiedDomainName
 output managedIdentityClientId string = managedIdentity.properties.clientId
 output keyVaultName string = keyVault.name
 output appInsightsConnectionString string = appInsights.properties.ConnectionString
+output accessEmailEndpoint string = accessEmailEnabled ? accessEmail!.outputs.endpoint : ''
+output accessEmailSender string = accessEmailEnabled ? accessEmail!.outputs.senderAddress : ''

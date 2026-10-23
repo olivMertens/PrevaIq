@@ -1,0 +1,45 @@
+<mxfile host="PrevaIQ" type="device">
+  <diagram id="prevaiq-access" name="Colleague access">
+    <mxGraphModel page="1" pageWidth="1500" pageHeight="470" background="#FFFFFF">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title" value="PrevaIQ - Microsoft and technical demo access / administrator approval" style="text;fontSize=22;fontColor=#17395C;" vertex="1" parent="1">
+          <mxGeometry x="35" y="20" width="1430" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="colleague" value="Microsoft / technical user&#10;Corporate or sandbox account" style="rounded=0;fillColor=#F5F7FA;strokeColor=#8A97A6;" vertex="1" parent="1">
+          <mxGeometry x="35" y="110" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="entra" value="Microsoft Entra ID&#10;Dedicated organizational app&#10;Verified tenant allowlist" style="rounded=0;fillColor=#F1F4FA;strokeColor=#17395C;" vertex="1" parent="1">
+          <mxGeometry x="335" y="110" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="frontend" value="Next.js callback&#10;State / issuer / audience / nonce&#10;Admin list / user approval" style="rounded=0;fillColor=#EFFAF8;strokeColor=#13867C;" vertex="1" parent="1">
+          <mxGeometry x="635" y="110" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="FastAPI access requests&#10;Persist before email submission&#10;Bounded send, no duplicate mail" style="rounded=0;fillColor=#EFFAF8;strokeColor=#13867C;" vertex="1" parent="1">
+          <mxGeometry x="935" y="110" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="blob" value="Azure Blob Storage&#10;Per-brand requests + notification&#10;Cross-replica lease" style="rounded=0;fillColor=#F1F4FA;strokeColor=#17395C;" vertex="1" parent="1">
+          <mxGeometry x="1235" y="110" width="230" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="email" value="Azure Communication Services&#10;Request + approval email&#10;Managed identity / Azure domain&#10;Accepted != delivered" style="rounded=0;fillColor=#EFFAF8;strokeColor=#13867C;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="935" y="320" width="220" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="admin" value="Administrator&#10;Email + authenticated dashboard&#10;Review / approve / refuse&#10;Requests survive email failures" style="rounded=0;fillColor=#F5F7FA;strokeColor=#8A97A6;" vertex="1" parent="1">
+          <mxGeometry x="1235" y="320" width="230" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="note" value="Entra/consent failures before callback cannot create a verified request.&#10;Personal and unrelated tenant accounts are rejected.&#10;Administration is explicitly allowlisted; approval grants user access only.&#10;Approved applicant receives a login email; administrator is copied.&#10;Manual email remains the fallback." style="text;fontSize=14;fontColor=#4A5868;" vertex="1" parent="1">
+          <mxGeometry x="35" y="300" width="820" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" source="colleague" target="entra" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" source="entra" target="frontend" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" source="frontend" target="api" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" source="api" target="blob" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" style="exitX=0.5;exitY=1;entryX=0.5;entryY=0;" source="api" target="email" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" source="email" target="admin" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" style="exitX=0.25;exitY=1;entryX=0.25;entryY=0;" source="blob" target="admin" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e8" style="exitX=0.75;exitY=0;entryX=0.75;entryY=1;" source="admin" target="blob" edge="1" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

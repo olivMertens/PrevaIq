@@ -11,6 +11,7 @@ dependencies = [
     "uvicorn[standard]>=0.32.0",
     "python-multipart>=0.0.12",
     "azure-storage-blob>=12.27.1",
+    "filelock>=3.16.0",
     "gunicorn>=21.0.0",
     "asyncpg>=0.31.0",
     "tiktoken>=0.12.0",

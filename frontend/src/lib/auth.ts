@@ -27,7 +27,7 @@ export function getUsers(): Map<string, string> {
 
 /** Session usernames of Entra users carry this prefix; they never get admin rights. */
 export const ENTRA_PREFIX = 'entra:';
-/** Entra administrators (prevaiq-admin* accounts or ACCESS_ADMIN_EMAILS). */
+/** Entra administrators explicitly listed in ACCESS_ADMIN_EMAILS. */
 export const ENTRA_ADMIN_PREFIX = 'entra-admin:';
 
 export function isEntraAdminEmail(email: string): boolean {
@@ -35,7 +35,7 @@ export function isEntraAdminEmail(email: string): boolean {
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  return email.startsWith('prevaiq-admin') || admins.includes(email);
+  return admins.includes(email);
 }
 
 export type SessionRole = 'admin' | 'user' | 'entra';

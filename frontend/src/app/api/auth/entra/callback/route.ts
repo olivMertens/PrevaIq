@@ -16,6 +16,10 @@ export async function GET(request: NextRequest) {
   const origin = publicOrigin(request);
   if (!cfg) return redirect(origin, '/login');
 
+  if (request.nextUrl.searchParams.has('error')) {
+    console.warn('Entra authorization was not completed');
+    return redirect(origin, '/login?error=entra');
+  }
   const code = request.nextUrl.searchParams.get('code');
   const state = request.nextUrl.searchParams.get('state');
   const cookieState = request.cookies.get(STATE_COOKIE)?.value;
@@ -23,7 +27,12 @@ export async function GET(request: NextRequest) {
     return redirect(origin, '/login?error=state');
   }
 
-  const user = await exchangeCode(cfg, origin, code, state).catch(() => null);
+  const user = await exchangeCode(cfg, origin, code, state).catch((error: unknown) => {
+    console.error('Entra exchange unavailable', {
+      type: error instanceof Error ? error.name : 'UnknownError',
+    });
+    return null;
+  });
   if (!user) return redirect(origin, '/login?error=entra');
   const isAdmin = isEntraAdminEmail(user.email);
 
@@ -40,7 +49,10 @@ export async function GET(request: NextRequest) {
       });
       return redirect(origin, req.ok ? '/access?state=pending' : '/access?state=error');
     }
-  } catch {
+  } catch (error: unknown) {
+    console.error('Access request service unavailable', {
+      type: error instanceof Error ? error.name : 'UnknownError',
+    });
     return redirect(origin, '/access?state=error');
   }
 

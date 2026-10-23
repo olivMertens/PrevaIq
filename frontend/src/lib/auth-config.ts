@@ -1,5 +1,8 @@
 export function isEntraEnabled(): boolean {
-  return !!(process.env.ENTRA_TENANT_ID && process.env.ENTRA_CLIENT_ID && process.env.ENTRA_CLIENT_SECRET);
+  const tenant = process.env.ENTRA_TENANT_ID;
+  const restricted = tenant !== 'organizations' && tenant !== 'common'
+    || !!process.env.ENTRA_ALLOWED_TENANT_IDS?.trim();
+  return !!(tenant && restricted && process.env.ENTRA_CLIENT_ID && process.env.ENTRA_CLIENT_SECRET);
 }
 
 /** Password login is an explicit development-only option, never a hosted fallback. */

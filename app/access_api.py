@@ -10,12 +10,27 @@ from __future__ import annotations
 from dataclasses import asdict
 from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from azure.core.exceptions import AzureError
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from app import access_requests
+from app.utils import setup_logging
 
-router = APIRouter(prefix="/api/internal/access", tags=["access"])
+logger = setup_logging()
+
+
+def storage_errors():
+    try:
+        yield
+    except (AzureError, OSError, TimeoutError, ValueError) as error:
+        logger.error("Access request storage unavailable: %s", type(error).__name__)
+        raise HTTPException(status_code=503, detail="access request storage unavailable") from error
+
+
+router = APIRouter(
+    prefix="/api/internal/access", tags=["access"], dependencies=[Depends(storage_errors)]
+)
 
 
 class AccessRequestBody(BaseModel):

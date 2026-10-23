@@ -43,6 +43,15 @@ flowchart TB
 
 ## Data flow
 
+### Microsoft colleague access
+
+![Microsoft colleague access and approval](architecture/prevaiq-access.png)
+
+[Editable source](architecture/prevaiq-access.drawio) and [standalone SVG](architecture/prevaiq-access.svg).
+This separate, icon-free schematic uses labeled rectangles, not substitute product logos; the existing Azure overview remains focused on document processing. Regenerate both exports with `python scripts/render_access_diagram.py`.
+
+The dedicated organizational Entra application authenticates Microsoft colleagues and authorized technical demo accounts. The callback validates the explicit corporate/sandbox tenant allowlist before administrator recognition, requests or sessions. An explicitly allowlisted administrator bypasses user approval; a technical account name alone grants no role. The API saves pending user requests in per-brand Blob Storage with a cross-replica lease, then submits one bounded ACS Email notification through managed identity. Notification failure never removes the request. Administrators review applicant email and approve/refuse in the existing dashboard. A new approval or preauthorization is persisted before sending a confirmation to the applicant with the administrator copied; its submission status is tracked separately. Both emails include simple HTML, a navigation button, the administrator contact and a plain-text fallback. Repeated approvals do not resend, and email failure never revokes access. Provider acceptance is not confirmed inbox delivery; sign-in blocked before callback cannot create a request. See [deployment configuration](deployment.md#microsoft-colleague-access-and-administrator-email).
+
 ```mermaid
 flowchart LR
     U["Upload"] --> R{"Routing"}
@@ -101,4 +110,3 @@ python scripts/eval_pipeline.py \
 ```
 
 Reports are written to `.tmp/eval/<timestamp>/` as `results.json` and `summary.md`. A variant rolls out only if quality, completeness, and citations are at least baseline, and latency, tokens, and cost stay within the agreed tolerance. The script calls real Azure services and can incur cost.
-

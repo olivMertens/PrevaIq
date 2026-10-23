@@ -1,13 +1,16 @@
 import { createHash, randomBytes } from 'crypto';
 import type { NextRequest } from 'next/server';
 import { getApiBaseUrl } from '@/lib/api-base-url';
+import { isEntraEnabled } from '@/lib/auth-config';
 
 /** Microsoft Entra ID (OIDC authorization code flow) for demo sign-in. */
 
 export const STATE_COOKIE = 'entra_state';
 export const CALLBACK_PATH = '/api/auth/entra/callback';
 
-type EntraConfig = { tenantId: string; clientId: string; clientSecret: string };
+type EntraConfig = {
+  tenantId: string; clientId: string; clientSecret: string; allowedTenantIds: string[];
+};
 
 export type EntraUser = { email: string; name: string | null };
 
@@ -15,8 +18,10 @@ export function entraConfig(): EntraConfig | null {
   const tenantId = process.env.ENTRA_TENANT_ID;
   const clientId = process.env.ENTRA_CLIENT_ID;
   const clientSecret = process.env.ENTRA_CLIENT_SECRET;
-  if (!tenantId || !clientId || !clientSecret) return null;
-  return { tenantId, clientId, clientSecret };
+  if (!isEntraEnabled() || !tenantId || !clientId || !clientSecret) return null;
+  const allowedTenantIds = (process.env.ENTRA_ALLOWED_TENANT_IDS || tenantId)
+    .split(',').map((value) => value.trim().toLowerCase()).filter(Boolean);
+  return { tenantId, clientId, clientSecret, allowedTenantIds };
 }
 
 /** Public origin of the frontend (Container Apps terminates TLS in front of Next.js). */
@@ -72,8 +77,12 @@ export async function exchangeCode(
       scope: 'openid profile email',
     }),
     cache: 'no-store',
+    signal: AbortSignal.timeout(15_000),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error('Entra code exchange failed', { status: res.status });
+    return null;
+  }
   const { id_token: idToken } = (await res.json()) as { id_token?: string };
   const payload = idToken?.split('.')[1];
   if (!payload) return null;
@@ -84,6 +93,12 @@ export async function exchangeCode(
   const issuer = `https://login.microsoftonline.com/${issuerTenant}/v2.0`;
   const now = Math.floor(Date.now() / 1000);
   if (claims.aud !== cfg.clientId || claims.iss !== issuer || claims.nonce !== nonceFor(state)) return null;
+  const tenant = typeof claims.tid === 'string' ? claims.tid.toLowerCase() : '';
+  if (!cfg.allowedTenantIds.includes(tenant)
+    || tenant === '9188040d-6c67-4c5b-b112-36a304b66dad') {
+    console.warn('Entra sign-in rejected: tenant is not eligible');
+    return null;
+  }
   if (typeof claims.exp !== 'number' || claims.exp < now) return null;
   // preferred_username (UPN) uses a domain verified by the user's tenant; the
   // optional `email` claim is not verified, so it is never used as identity.
@@ -103,5 +118,6 @@ export async function accessApi(
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     cache: 'no-store',
+    signal: AbortSignal.timeout(25_000),
   });
 }

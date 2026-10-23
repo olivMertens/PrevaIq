@@ -150,7 +150,7 @@ resource "azurerm_container_app" "api" {
       memory = "1Gi"
 
       dynamic "env" {
-        for_each = merge(local.api_env, local.fabric_env)
+        for_each = merge(local.api_env, local.fabric_env, local.access_email_env)
 
         content {
           name  = env.key

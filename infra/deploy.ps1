@@ -62,7 +62,10 @@ param(
     [string]$AgentPool = "",
     [string]$ChangedSince = "",
     [switch]$BuildOnly,
-    [string]$ApiFqdn = ""
+    [string]$ApiFqdn = "",
+    [hashtable]$FrontendAccessSettings = @{},
+    [hashtable]$BackendAccessSettings = @{},
+    [switch]$RotateAuthSecret
 )
 
 $ErrorActionPreference = "Stop"
@@ -147,10 +150,22 @@ if (-not $SkipFrontend -and -not $BuildOnly) {
         --query "properties.template.containers[0].env[].{name:name,value:value,secretRef:secretRef}" -o json
     if ($LASTEXITCODE -ne 0) { throw "Cannot read frontend authentication configuration." }
     $frontendAuthEnv = @($frontendEnvJson | ConvertFrom-Json)
+    foreach ($name in $FrontendAccessSettings.Keys) {
+        $frontendAuthEnv = @($frontendAuthEnv | Where-Object { $_.name -ne $name }) + @(
+            [pscustomobject]@{ name = $name; value = $FrontendAccessSettings[$name]; secretRef = $null }
+        )
+    }
     foreach ($name in @("ENTRA_TENANT_ID", "ENTRA_CLIENT_ID", "ENTRA_CLIENT_SECRET")) {
         $entry = @($frontendAuthEnv | Where-Object { $_.name -eq $name })
         if ($entry.Count -ne 1 -or (-not $entry[0].value -and -not $entry[0].secretRef)) {
             throw "Hosted sign-in requires $name. Configure Entra ID with infra\set-entra-auth.ps1 before deploying."
+        }
+        $authority = @($frontendAuthEnv | Where-Object { $_.name -eq "ENTRA_TENANT_ID" })[0].value
+        if ($authority -in @("organizations", "common")) {
+            $allowed = @($frontendAuthEnv | Where-Object { $_.name -eq "ENTRA_ALLOWED_TENANT_IDS" })
+            if ($allowed.Count -ne 1 -or -not $allowed[0].value) {
+                throw "Organizational sign-in requires ENTRA_ALLOWED_TENANT_IDS."
+            }
         }
     }
 }
@@ -425,6 +440,9 @@ if (-not $SkipBackend) {
         az containerapp update --name $API_APP --resource-group $RG --subscription $SUBSCRIPTION_ID --remove-env-vars BRAND_NAME -o none
     }
     
+    foreach ($name in $BackendAccessSettings.Keys) {
+        $backendModelEnvVarArgs += "$name=$($BackendAccessSettings[$name])"
+    }
     az containerapp update `
         --name $API_APP `
         --resource-group $RG `
@@ -451,9 +469,9 @@ if (-not $SkipFrontend) {
     
     # Preserve session signing for Entra, including an existing secret reference.
     $existingAuth = @($frontendAuthEnv | Where-Object { $_.name -eq "AUTH_SECRET" })
-    if ($existingAuth.Count -eq 1 -and $existingAuth[0].secretRef) {
+    if (-not $RotateAuthSecret -and $existingAuth.Count -eq 1 -and $existingAuth[0].secretRef) {
         $authSecretArg = "AUTH_SECRET=secretref:$($existingAuth[0].secretRef)"
-    } elseif ($existingAuth.Count -eq 1 -and $existingAuth[0].value) {
+    } elseif (-not $RotateAuthSecret -and $existingAuth.Count -eq 1 -and $existingAuth[0].value) {
         $authSecretArg = "AUTH_SECRET=$($existingAuth[0].value)"
     } else {
         Write-Host "    Generating new AUTH_SECRET..." -ForegroundColor Cyan
@@ -467,6 +485,9 @@ if (-not $SkipFrontend) {
         $authSecretArg,
         "LOCAL_AUTH_ENABLED=false"
     )
+    foreach ($name in $FrontendAccessSettings.Keys) {
+        $envVarArgs += "$name=$($FrontendAccessSettings[$name])"
+    }
     $legacyAuthNames = @(
         $frontendAuthEnv |
             Where-Object { $_.name -like "AUTH_USER*" -or $_.name -like "APPSETTING_AUTH_USER*" } |
