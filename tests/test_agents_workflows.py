@@ -251,6 +251,16 @@ def test_webiq_tool_scopes_key_and_tools(monkeypatch):
     assert not tool.is_connected
 
 
+def test_webiq_mcp_runtime_dependencies_are_installed():
+    # MAF MCP tools open sessions with the MCP v2 client and recover them with tenacity;
+    # with an older mcp or without tenacity every Web IQ call fails at connection time.
+    import mcp
+    import tenacity
+
+    assert hasattr(mcp, "Client")
+    assert tenacity.AsyncRetrying
+
+
 def test_web_tool_resolution_prefers_webiq_when_configured(monkeypatch):
     from app.agents.tools import resolve_web_tool, webiq_search
 

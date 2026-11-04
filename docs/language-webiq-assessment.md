@@ -49,8 +49,14 @@ This matches the Microsoft Web IQ MCP contract. The previous Foundry Agent Servi
 Missing Web IQ configuration is now explicit; it does not silently change providers.
 
 Use `infra/set-webiq-secret.ps1` to enter the new key without printing it or committing
-it. Then deploy through `infra/deploy.ps1` with Web IQ secret wiring enabled in the
+it. The script writes through Azure Resource Manager, so it also works when the Key Vault
+is private, and restarts the API revision that already maps `WEBIQ_API_KEY`. For a new
+environment, deploy through `infra/deploy.ps1` with Web IQ secret wiring enabled in the
 chosen IaC configuration.
+
+The MAF MCP tools require the MCP v2 client (`mcp>=2.2,<3`) and `tenacity`. With an older
+`mcp` or without `tenacity`, every Web IQ call fails before reaching the service and the
+agents report that web intelligence is temporarily unavailable.
 
 API-key authentication is the selected demo path. Microsoft recommends API keys for
 evaluation and Microsoft Entra ID for production workloads. A future production-hardening

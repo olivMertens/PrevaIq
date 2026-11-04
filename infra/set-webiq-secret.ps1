@@ -5,10 +5,14 @@
 
 .DESCRIPTION
     The key is read with Read-Host -AsSecureString and never echoed or added to shell history.
-    It is written only to a unique file under the gitignored .tmp directory for the Azure CLI
-    --file operation, then deleted in a finally block. Idempotent: creates the RBAC Key Vault
-    and role assignment only when missing.
-    Run deploy.ps1 afterwards so new revisions receive WEBIQ_API_KEY=secretref:webiq-api-key.
+    It is written through Azure Resource Manager (Microsoft.KeyVault/vaults/secrets), so it also
+    works when governance policies keep the Key Vault private (publicNetworkAccess=Disabled).
+    The request body exists only in a unique file under the gitignored .tmp directory and is
+    deleted in a finally block.
+    The Key Vault and identity are discovered from the API Container App unless specified; an
+    RBAC Key Vault is created only when it does not exist. Idempotent.
+    When the API already maps WEBIQ_API_KEY to the secret, its active revision is restarted to
+    load the key; otherwise run deploy.ps1 so new revisions receive WEBIQ_API_KEY.
 #>
 [CmdletBinding()]
 param(
@@ -16,8 +20,8 @@ param(
     [string]$TenantId = $env:AZURE_TENANT_ID,
     [string]$ResourceGroup = "rg-prevaiq-demo",
     [string]$ApiAppName = "ca-api-demo",
-    [string]$KeyVaultName = "kv-prevaiq-demo",
-    [string]$IdentityName = "id-prevaiq-demo",
+    [string]$KeyVaultName = "",
+    [string]$IdentityName = "",
     [string]$SecretName = "webiq-api-key"
 )
 $ErrorActionPreference = "Stop"
@@ -33,6 +37,20 @@ if (($SubscriptionId -and $account.id -ne $SubscriptionId) -or ($TenantId -and $
     throw "Wrong Azure context. Run: az account set --subscription $SubscriptionId"
 }
 
+# Reuse the resources the API already uses: deployments created before the prevaiq naming
+# keep their original Key Vault and identity names.
+$app = Invoke-Az containerapp show -n $ApiAppName -g $ResourceGroup -o json | ConvertFrom-Json
+if (-not $KeyVaultName) {
+    $vaultUrl = @($app.properties.configuration.secrets | Where-Object { $_.keyVaultUrl } |
+        Sort-Object { $_.name -ne $SecretName } | Select-Object -First 1).keyVaultUrl
+    $KeyVaultName = if ($vaultUrl) { ([uri]$vaultUrl).Host.Split(".")[0] } else { "kv-prevaiq-demo" }
+}
+if (-not $IdentityName) {
+    $identityId = @($app.identity.userAssignedIdentities.PSObject.Properties.Name) | Select-Object -First 1
+    $IdentityName = if ($identityId) { Split-Path $identityId -Leaf } else { "id-prevaiq-demo" }
+}
+Write-Host "Key Vault: $KeyVaultName - identity: $IdentityName" -ForegroundColor Cyan
+
 $location = Invoke-Az group show -n $ResourceGroup --query location -o tsv
 $exists = az keyvault show -n $KeyVaultName -g $ResourceGroup --query id -o tsv 2>$null
 if (-not $exists) {
@@ -43,47 +61,43 @@ if (-not $exists) {
 $vaultId = Invoke-Az keyvault show -n $KeyVaultName -g $ResourceGroup --query id -o tsv
 $vaultUri = Invoke-Az keyvault show -n $KeyVaultName -g $ResourceGroup --query properties.vaultUri -o tsv
 
-# The operator needs write access once; the app identity only reads.
-$me = Invoke-Az ad signed-in-user show --query id -o tsv
+# The app identity only reads; the operator writes through Azure Resource Manager.
 $identity = Invoke-Az identity show -n $IdentityName -g $ResourceGroup -o json | ConvertFrom-Json
-foreach ($assignment in @(
-        @{ Principal = $me; Type = "User"; Role = "Key Vault Secrets Officer" },
-        @{ Principal = $identity.principalId; Type = "ServicePrincipal"; Role = "Key Vault Secrets User" })) {
-    # No JMESPath with parentheses here: az.cmd routes arguments through cmd.exe.
-    $current = @(Invoke-Az role assignment list --assignee $assignment.Principal --scope $vaultId `
-        --role $assignment.Role -o json | ConvertFrom-Json)
-    if ($current.Count -eq 0) {
-        Invoke-Az role assignment create --assignee-object-id $assignment.Principal `
-            --assignee-principal-type $assignment.Type --role $assignment.Role --scope $vaultId -o none
-        Write-Host "Granted $($assignment.Role)." -ForegroundColor Green
-    }
+$current = @(Invoke-Az role assignment list --assignee $identity.principalId --scope $vaultId `
+    --role "Key Vault Secrets User" -o json | ConvertFrom-Json)
+if ($current.Count -eq 0) {
+    Invoke-Az role assignment create --assignee-object-id $identity.principalId `
+        --assignee-principal-type ServicePrincipal --role "Key Vault Secrets User" --scope $vaultId -o none
+    Write-Host "Granted Key Vault Secrets User to $IdentityName." -ForegroundColor Green
 }
 
 $secure = Read-Host "Web IQ API key (input hidden)" -AsSecureString
-$plain = [System.Net.NetworkCredential]::new("", $secure).Password
+$plain = [System.Net.NetworkCredential]::new("", $secure).Password.Trim()
 if ([string]::IsNullOrWhiteSpace($plain)) { throw "Empty key." }
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $tempDirectory = Join-Path $repoRoot ".tmp"
 New-Item -ItemType Directory -Path $tempDirectory -Force | Out-Null
-$tempFile = Join-Path $tempDirectory "webiq-key-$([guid]::NewGuid().ToString('N')).tmp"
+$tempFile = Join-Path $tempDirectory "webiq-key-$([guid]::NewGuid().ToString('N')).json"
 try {
-    # --file keeps the key off the az.cmd command line (visible to other processes).
-    [IO.File]::WriteAllText($tempFile, $plain, [Text.UTF8Encoding]::new($false))
-    $set = $false
-    for ($attempt = 1; $attempt -le 6 -and -not $set; $attempt++) {
-        az keyvault secret set --vault-name $KeyVaultName -n $SecretName --file $tempFile `
-            --encoding utf-8 -o none
-        if ($LASTEXITCODE -eq 0) { $set = $true } else {
-            Write-Host "Waiting for RBAC propagation (attempt $attempt/6)..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 30
-        }
-    }
-    if (-not $set) { throw "Could not write the secret (RBAC propagation can take ~5 min; rerun)." }
+    # --body @file keeps the key off the az.cmd command line (visible to other processes).
+    $body = @{ properties = @{ value = $plain } } | ConvertTo-Json -Compress
+    [IO.File]::WriteAllText($tempFile, $body, [Text.UTF8Encoding]::new($false))
+    Invoke-Az rest --method put --uri "https://management.azure.com$($vaultId)/secrets/$($SecretName)?api-version=2023-07-01" `
+        --body "@$tempFile" -o none
 } finally {
     Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
     $plain = $null
+    $body = $null
 }
 
 Invoke-Az containerapp secret set -n $ApiAppName -g $ResourceGroup `
     --secrets "$SecretName=keyvaultref:$($vaultUri)secrets/$SecretName,identityref:$($identity.id)" -o none
-Write-Host "ACA secret $SecretName now references Key Vault. Run deploy.ps1 to roll out WEBIQ_API_KEY." -ForegroundColor Green
+$mapped = @($app.properties.template.containers | ForEach-Object { $_.env } |
+    Where-Object { $_.name -eq "WEBIQ_API_KEY" -and $_.secretRef -eq $SecretName })
+if ($mapped.Count -gt 0) {
+    $revision = $app.properties.latestReadyRevisionName
+    Invoke-Az containerapp revision restart -n $ApiAppName -g $ResourceGroup --revision $revision -o none
+    Write-Host "Web IQ key stored; revision $revision restarted to load it." -ForegroundColor Green
+} else {
+    Write-Host "ACA secret $SecretName now references Key Vault. Run deploy.ps1 to roll out WEBIQ_API_KEY." -ForegroundColor Green
+}
