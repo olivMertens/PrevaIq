@@ -77,6 +77,8 @@ _LOCALIZATION_PROTECTED_KEYS = {
     "page",
     "pages",
     "usage",
+    # Exact Web IQ queries are an audit trail of what was searched, not prose.
+    "search_queries",
 }
 _NON_HUMAN_VALUE_KEYS = {
     "key",

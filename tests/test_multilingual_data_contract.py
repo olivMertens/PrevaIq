@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from copy import deepcopy
 from types import SimpleNamespace
 
@@ -148,6 +149,34 @@ def test_translation_preserves_shape_and_source_values(monkeypatch: pytest.Monke
     assert parsed["citations"] == [{"article": "Article L113-2", "quote": "Texte source"}]
     assert translated["llm_outputs"]["summary"]["raw"] == original["summary"]["raw"]
     assert original["summary"]["parsed"]["summary"].startswith("Le dossier")
+
+
+def test_translation_keeps_web_iq_queries_verbatim(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: list[dict] = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        sent.append(json.loads(messages[1]["content"]))
+        return {"content": '{"0":"The storm is not confirmed."}'}
+
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+    query = "météo Bordeaux 27 mars 2026 pluie vent orage"
+    payload = {
+        "fraud_analysis": {
+            "web_intelligence": {
+                "overall_assessment": "La tempête n'est pas confirmée.",
+                "search_queries": [query],
+            }
+        }
+    }
+
+    translated = translate_analysis_payload(
+        SimpleNamespace(openai=object()), payload, source_language="fr", target_language="en"
+    )
+
+    web = translated["fraud_analysis"]["web_intelligence"]
+    assert web["overall_assessment"] == "The storm is not confirmed."
+    assert web["search_queries"] == [query]
+    assert sent == [{"0": "La tempête n'est pas confirmée."}]
 
 
 def test_legacy_analysis_without_locale_is_treated_as_french(
