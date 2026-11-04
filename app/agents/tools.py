@@ -1572,6 +1572,64 @@ def _parse_json_robust(content: str | None) -> dict:
 
 WEBIQ_TOOLS = ("web", "news", "browse")
 _WEBIQ_MAX_CHARS = 12000
+# Web IQ throttles bursts (HTTP 429, surfaced by MCP as a generic error): identical
+# searches within a demo session reuse the previous result instead of the quota.
+_WEBIQ_CACHE_TTL_SECONDS = 1800
+_WEBIQ_CACHE_MAX_ENTRIES = 256
+_webiq_cache: dict[tuple[str, str, str], tuple[float, str]] = {}
+
+_FRENCH_MONTHS = (
+    "janvier", "février", "mars", "avril", "mai", "juin",
+    "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+)
+# Municipality after a French postcode, up to a separator ("33000 Bordeaux - cave" -> "Bordeaux").
+_POSTCODE_CITY_RE = re.compile(
+    r"\b\d{5}\s+([A-Za-zÀ-ÖØ-öø-ÿ'’][A-Za-zÀ-ÖØ-öø-ÿ'’\- ]*?)(?=\s*(?:[,;()—–\d]|\s-\s|$))"
+)
+
+
+def _search_place(lieu: str, adresse: str = "", ville: str = "") -> str:
+    """Municipality used in public-source searches; never the street address (personal data)."""
+    for value in (lieu, adresse, ville):
+        match = _POSTCODE_CITY_RE.search(value or "")
+        if match:
+            city = re.sub(r"\bcedex\b.*$", "", match.group(1), flags=re.I).strip(" -'’")
+            if city:
+                return city
+    ville = (ville or "").strip()
+    return ville if ville and not re.search(r"\d", ville) and len(ville) <= 60 else ""
+
+
+def _claim_search_place(app_md) -> str:
+    """Municipality of the claim from the extracted fields (see ``_search_place``)."""
+    return _search_place(
+        _get_ef_value(app_md, ["LieuSinistre"], ""),
+        _get_ef_value(app_md, ["AdresseAssure", "Adresse"], ""),
+        _get_ef_value(app_md, ["Ville", "Commune"], ""),
+    )
+
+
+def _french_date(value: str) -> tuple[str, str]:
+    """Return ("27 mars 2026", "mars 2026") for DD/MM/YYYY or ISO dates, ("", "") otherwise."""
+    text = (value or "").strip()
+    match = re.search(r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b", text)
+    if match:
+        day, month, year = int(match.group(1)), int(match.group(2)), match.group(3)
+    else:
+        match = re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b", text)
+        if not match:
+            return "", ""
+        year, month, day = match.group(1), int(match.group(2)), int(match.group(3))
+    if not (1 <= month <= 12 and 1 <= day <= 31):
+        return "", ""
+    month_name = _FRENCH_MONTHS[month - 1]
+    return f"{day} {month_name} {year}", f"{month_name} {year}"
+
+
+def _event_terms(nature: str, limit: int = 8) -> str:
+    """Compact search keywords for the declared event (no parentheses or separators)."""
+    words = re.sub(r"\([^)]*\)|[—–:/;,+]|\s-\s", " ", nature or "").split()
+    return " ".join(words[:limit])
 
 
 def create_webiq_tool(settings) -> Any | None:
@@ -1606,10 +1664,15 @@ async def webiq_search(query: str, news: bool = False, language: str = "en") -> 
     events, Argus/market prices, regulatory changes or news. Always cite the
     source URLs returned.
 
+    Build the query from the dossier context: event type + municipality + date
+    written out, in French for a claim in France (e.g. "tempête Bordeaux 27 mars 2026",
+    "arrêté catastrophe naturelle Albi octobre 2025"). Never put personal data in the
+    query: no names, street addresses, phone numbers, e-mails, or policy/claim numbers.
+
     Args:
-        query: Search query, e.g. "arrêté catastrophe naturelle inondation Nîmes juin 2026".
+        query: Search query without personal data, e.g. "arrêté catastrophe naturelle inondation Nîmes juin 2026".
         news: True to search recent news articles instead of web pages.
-        language: Requested presentation language (en, fr, or de).
+        language: Language of the query and results (en, fr, or de); fr for French sources.
 
     Returns:
         Source passages and URLs in the requested Web IQ search language.
@@ -1621,6 +1684,13 @@ async def webiq_search(query: str, news: bool = False, language: str = "en") -> 
     tool = create_webiq_tool(load_settings())
     if tool is None:
         return localized_message("webiq_not_configured", locale)
+    target = "webiq_news" if news else "webiq_web"
+    cache_key = (target, " ".join(query.split()).lower(), locale)
+    cached = _webiq_cache.get(cache_key)
+    if cached and time.monotonic() - cached[0] < _WEBIQ_CACHE_TTL_SECONDS:
+        logger.info("Web IQ %s cached (language=%s): %s", target, locale, query[:200])
+        return cached[1]
+    logger.info("Web IQ %s search (language=%s): %s", target, locale, query[:200])
     # Connect per call (~2-6 s) so questions that never search pay nothing.
     wanted = {
         "query": query,
@@ -1632,7 +1702,6 @@ async def webiq_search(query: str, news: bool = False, language: str = "en") -> 
     }
     try:
         async with tool:
-            target = "webiq_news" if news else "webiq_web"
             func = next(f for f in tool.functions if f.name == target)
             accepted = func.parameters().get("properties", {})
             result = await func.invoke(arguments={k: v for k, v in wanted.items() if k in accepted})
@@ -1650,7 +1719,13 @@ async def webiq_search(query: str, news: bool = False, language: str = "en") -> 
         )
     except (ValueError, AttributeError):
         pass  # keep the raw text when Web IQ changes its response shape
-    return text[:_WEBIQ_MAX_CHARS] or localized_message("webiq_no_results", locale)
+    text = text[:_WEBIQ_MAX_CHARS]
+    if not text:
+        return localized_message("webiq_no_results", locale)
+    if len(_webiq_cache) >= _WEBIQ_CACHE_MAX_ENTRIES:
+        _webiq_cache.pop(next(iter(_webiq_cache)))
+    _webiq_cache[cache_key] = (time.monotonic(), text)
+    return text
 
 
 def resolve_web_tool(settings):
@@ -1878,9 +1953,7 @@ async def _fraud_orchestrator(
         if not _web_intelligence_available(settings):
             return {}
         try:
-            lieu = _get_ef_value(app_md, ["LieuSinistre"], "")
-            adresse = _get_ef_value(app_md, ["AdresseAssure", "Adresse", "Ville"], "")
-            claim_location = f"{lieu}, {adresse}".strip(", ") if lieu or adresse else ""
+            claim_location = _claim_search_place(app_md)
             return await asyncio.to_thread(
                 _run_claim_web_intelligence,
                 settings,
@@ -2061,15 +2134,11 @@ def _fraud_orchestrator_sync(
         # Submit web intelligence (if enabled)
         web_intel_future = None
         if _web_intelligence_available(settings):
-            # Build precise location from multiple fields
-            lieu = _get_ef_value(app_md, ["LieuSinistre"], "")
-            adresse = _get_ef_value(app_md, ["AdresseAssure", "Adresse", "Ville"], "")
-            claim_location = f"{lieu}, {adresse}".strip(", ") if lieu or adresse else ""
             web_intel_future = executor.submit(
                 _run_claim_web_intelligence,
                 settings,
                 claim_date=claim_date,
-                claim_location=claim_location,
+                claim_location=_claim_search_place(app_md),
                 claim_nature=_get_ef_value(
                     app_md, ["NatureSinistre", "CauseOfLoss", "DescriptionSinistre"], ""
                 ),
@@ -2241,27 +2310,42 @@ def _run_webiq_intelligence(
 ) -> dict:
     """Branch D via Microsoft Web IQ: weather, Cat-Nat decrees and local news at the claim date.
 
-    Runs a few targeted Web IQ searches, then asks the fraud model to turn the
-    passages into the same structured result as the Foundry agent path.
+    ``claim_location`` is the municipality only. Runs targeted French searches (the
+    sources are French, region FR), then asks the fraud model to turn the passages into
+    the structured result, written in the requested language.
     """
     from ..openai_client import chat_completion
-    from ..languages import language_instruction, require_language
+    from ..languages import language_instruction, localized_message, require_language
 
     language = require_language(language)
 
     fraud_settings = settings.fraud_detection
-    place = claim_location or "France"
-    when = claim_date if claim_date and claim_date != "non spécifiée" else ""
-    nature = (claim_nature or claim_type or "sinistre")[:120]
+    place = (claim_location or "").strip()
+    if not place:
+        logger.info("Web IQ fraud branch skipped: no municipality in the claim")
+        return {
+            "event_verified": None,
+            "confidence": 0.0,
+            "findings": [],
+            "overall_assessment": localized_message("webiq_missing_location", language),
+            "source_urls": [],
+            "search_queries": [],
+            "provider": "webiq",
+            "skipped": "missing_location",
+        }
+    when, month = _french_date(claim_date)
+    if not when and claim_date and claim_date != "non spécifiée":
+        when = month = claim_date.strip()
+    nature = _event_terms(claim_nature) or "sinistre"
     queries = [
-        (f"météo {place} {when} tempête pluie vent Météo-France".strip(), False),
-        (f"arrêté catastrophe naturelle {place} {when}".strip(), False),
-        (f"{nature} {place} {when}".strip(), True),
+        (" ".join(filter(None, ["météo", place, when, "pluie vent orage"])), False),
+        (" ".join(filter(None, ["arrêté catastrophe naturelle", place, month])), False),
+        (" ".join(filter(None, [nature, place, when])), True),
     ]
 
     async def _search_all():
         return await asyncio.gather(
-            *(webiq_search(q, news=n, language=language) for q, n in queries)
+            *(webiq_search(q, news=n, language="fr") for q, n in queries)
         )
 
     started = time.perf_counter()
@@ -2315,6 +2399,7 @@ def _run_webiq_intelligence(
     if parsed.get("parse_error"):
         parsed = {"overall_assessment": corpus[:1500], "findings": []}
     parsed["source_urls"] = source_urls
+    parsed["search_queries"] = [q for q, _ in queries]
     parsed["provider"] = "webiq"
     logger.info(
         "Web IQ fraud branch completed: duration_ms=%d sources=%d",

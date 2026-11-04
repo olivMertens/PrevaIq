@@ -285,6 +285,13 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
           lines.push(`- ${url}`);
         }
       }
+      if (wi.search_queries && wi.search_queries.length > 0) {
+        lines.push('');
+        lines.push(`### ${t('report.searchQueries')}`);
+        for (const query of wi.search_queries) {
+          lines.push(`- ${query}`);
+        }
+      }
       lines.push('');
     }
 
@@ -724,6 +731,19 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
                                 </a>
                               ))}
                             </div>
+                          </div>
+                        )}
+                        {result.web_intelligence.search_queries && result.web_intelligence.search_queries.length > 0 && (
+                          <div className="mt-3 pt-2 border-t border-slate-100">
+                            <div className="text-[10px] text-slate-400 uppercase mb-1">{t('searchQueries')}</div>
+                            <ul className="space-y-0.5 text-[11px] text-slate-600">
+                              {result.web_intelligence.search_queries.map((query, i) => (
+                                <li key={i} className="flex items-start gap-1">
+                                  <Globe className="w-3 h-3 mt-0.5 text-slate-400 flex-shrink-0" />
+                                  <span>{query}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
                       </div>

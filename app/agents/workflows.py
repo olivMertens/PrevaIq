@@ -550,7 +550,11 @@ async def create_fraud_workflow(
     webintel_instructions = _role(
         "ROLE: Open-source intelligence analyst. Search public sources (Cat-Nat decrees, "
         "weather, Argus pricing, news) relevant to the declared event and cross-reference "
-        "them with the dossier. Always cite source URLs. Research only.",
+        "them with the dossier. Build each webiq_search query from the dossier: event type + "
+        "municipality + date written out, in French for a claim in France (e.g. 'tempête "
+        "Bordeaux 27 mars 2026'; 'arrêté catastrophe naturelle Albi octobre 2025'). Never put "
+        "personal data in a query (names, street addresses, phone numbers, e-mails, policy or "
+        "claim numbers). Always cite source URLs. Research only.",
         lang,
     )
     webintel_agent = _cached_agent(

@@ -2551,6 +2551,7 @@
     "eventVerified": "Événement confirmé par des sources publiques",
     "eventNotVerified": "Événement non confirmé par les sources disponibles",
     "eventUnknown": "Vérification en cours — résultats partiels",
+    "searchQueries": "Recherches effectuées",
     "sources": "Sources",
     "reasoningEffort": "Effort de raisonnement",
     "attentionItems": "Points d'attention pour le gestionnaire",
@@ -2618,6 +2619,7 @@
       "notConfirmed": "Non confirmé",
       "results": "Résultats",
       "source": "Source",
+      "searchQueries": "Recherches effectuées",
       "sources": "Sources",
       "generatedBy": "Rapport généré par{brand}—{date}"
     },

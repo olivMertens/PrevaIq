@@ -26,6 +26,7 @@ from openai import AsyncOpenAI
 from agent_framework import MCPStreamableHTTPTool
 from agent_framework.openai import OpenAIChatClient
 
+from app.agents import tools as agent_tools
 from app.agents import workflows as wf
 from app.agents.agents import (
     _agent_options,
@@ -35,8 +36,16 @@ from app.agents.agents import (
 )
 from app.agents.workflows import _contains_refusal, _resp_text, _sanitize_refusal
 from app.config import load_settings
+from app.languages import language_instruction, localized_message
 
 _MISSING = object()
+
+
+@pytest.fixture(autouse=True)
+def _clear_webiq_cache():
+    agent_tools._webiq_cache.clear()
+    yield
+    agent_tools._webiq_cache.clear()
 
 
 class _FakeResp:
@@ -362,6 +371,140 @@ def test_webiq_search_localizes_runtime_failures(monkeypatch, failure):
     result = asyncio.run(webiq_search("test", language="en"))
 
     assert result == "Web intelligence is temporarily unavailable."
+
+
+def test_webiq_search_caches_successful_results_only(monkeypatch):
+    from app.agents.tools import webiq_search
+
+    payload = {"webResults": [{"title": "Météo", "url": "https://example.test/m", "content": "x"}]}
+    calls = []
+
+    class _CountingFunction(_FakeWebIqFunction):
+        async def invoke(self, *, arguments):
+            calls.append(arguments["query"])
+            return await super().invoke(arguments=arguments)
+
+    good = _CountingFunction([SimpleNamespace(text=json.dumps(payload))])
+    monkeypatch.setattr("app.agents.tools.create_webiq_tool", lambda s: _FakeWebIqTool(good))
+    first = asyncio.run(webiq_search("météo Bordeaux 27 mars 2026", language="fr"))
+    second = asyncio.run(webiq_search("  Météo  Bordeaux 27 mars 2026 ", language="fr"))
+    assert first == second and "https://example.test/m" in first
+    assert len(calls) == 1
+
+    failing = _CountingFunction(PermissionError("throttled"))
+    monkeypatch.setattr("app.agents.tools.create_webiq_tool", lambda s: _FakeWebIqTool(failing))
+    for _ in range(2):
+        asyncio.run(webiq_search("arrêté catastrophe naturelle Albi", language="fr"))
+    assert calls[1:] == ["arrêté catastrophe naturelle Albi"] * 2
+
+
+@pytest.mark.parametrize(
+    ("lieu", "adresse", "ville", "expected"),
+    [
+        ("42 rue des Vignobles, 33000 Bordeaux - cave et sous-sol", "", "", "Bordeaux"),
+        ("10 Chemin de Falgarde, 81000 Albi — Cave + RDC", "", "", "Albi"),
+        ("Cave de la maison, 42 rue des Vignobles, 33000 Bordeaux", "", "", "Bordeaux"),
+        ("", "12 rue Paradis, 13001 Marseille 1er", "", "Marseille"),
+        ("", "", "33000 BORDEAUX CEDEX", "BORDEAUX"),
+        ("Autoroute A7, sortie 15", "", "Saint-Étienne", "Saint-Étienne"),
+        ("Autoroute A7, sortie 15", "", "", ""),
+    ],
+)
+def test_search_place_keeps_only_the_municipality(lieu, adresse, ville, expected):
+    assert agent_tools._search_place(lieu, adresse, ville) == expected
+
+
+def test_claim_search_place_reads_prefixed_extracted_fields():
+    app_md = SimpleNamespace(
+        extracted_fields={
+            "llm_extracted:LieuSinistre": {"value": "Cave, 42 rue des Vignobles"},
+            "cu_extracted:AdresseAssure": {"value": "42 rue des Vignobles, 33000 Bordeaux"},
+            "Ville": "Mérignac",
+        }
+    )
+
+    assert agent_tools._claim_search_place(app_md) == "Bordeaux"
+    assert agent_tools._claim_search_place(SimpleNamespace(extracted_fields={})) == ""
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("27/03/2026", ("27 mars 2026", "mars 2026")),
+        ("2025-10-28", ("28 octobre 2025", "octobre 2025")),
+        ("1/8/2025", ("1 août 2025", "août 2025")),
+        ("non spécifiée", ("", "")),
+        ("31/13/2026", ("", "")),
+    ],
+)
+def test_french_date_writes_dates_for_search(value, expected):
+    assert agent_tools._french_date(value) == expected
+
+
+def _fraud_settings():
+    return SimpleNamespace(
+        openai=SimpleNamespace(),
+        fraud_detection=SimpleNamespace(deployment_name="fraud", model_name="fraud-model"),
+    )
+
+
+def test_claim_web_intelligence_builds_contextual_french_queries(monkeypatch):
+    searches, prompts = [], []
+
+    async def fake_search(query, news=False, language="en"):
+        searches.append((query, news, language))
+        return f"### Résultat\nSource: https://example.test/{len(searches)}\nPassage"
+
+    def fake_completion(settings, messages, **kwargs):
+        prompts.append(messages)
+        return {"content": '{"event_verified": true, "findings": [], "overall_assessment": "ok"}'}
+
+    monkeypatch.setattr(agent_tools, "webiq_search", fake_search)
+    monkeypatch.setattr("app.openai_client.chat_completion", fake_completion)
+
+    result = agent_tools._run_webiq_intelligence(
+        _fraud_settings(),
+        claim_date="27/03/2026",
+        claim_location=agent_tools._search_place(
+            "42 rue des Vignobles, 33000 Bordeaux - cave et sous-sol",
+            "42 rue des Vignobles, 33000 Bordeaux",
+        ),
+        claim_nature="Dégâts des eaux - infiltration suite à tempête",
+        claim_type="habitation_claims",
+        declared_amount="4 500 €",
+        language="en",
+    )
+
+    assert searches == [
+        ("météo Bordeaux 27 mars 2026 pluie vent orage", False, "fr"),
+        ("arrêté catastrophe naturelle Bordeaux mars 2026", False, "fr"),
+        ("Dégâts des eaux infiltration suite à tempête Bordeaux 27 mars 2026", True, "fr"),
+    ]
+    assert not any("rue" in query or "42" in query for query, _, _ in searches)
+    assert result["search_queries"] == [query for query, _, _ in searches]
+    assert result["source_urls"] == [f"https://example.test/{i}" for i in (1, 2, 3)]
+    assert language_instruction("en") in prompts[0][0]["content"]
+
+
+def test_claim_web_intelligence_skips_search_without_municipality(monkeypatch):
+    async def forbidden_search(*args, **kwargs):
+        raise AssertionError("no generic web search without a municipality")
+
+    monkeypatch.setattr(agent_tools, "webiq_search", forbidden_search)
+
+    result = agent_tools._run_webiq_intelligence(
+        _fraud_settings(),
+        claim_date="29/01/2026",
+        claim_location="",
+        claim_nature="Collision / frottement latéral",
+        claim_type="automotive_claims",
+        declared_amount="non spécifié",
+        language="de",
+    )
+
+    assert result["skipped"] == "missing_location"
+    assert result["overall_assessment"] == localized_message("webiq_missing_location", "de")
+    assert result["source_urls"] == [] and result["event_verified"] is None
 
 
 # ── Workflow result-dict shape (UI data contract) ────────────────────────────

@@ -2551,6 +2551,7 @@
     "eventVerified": "Von öffentlichen Quellen bestätigtes Ereignis",
     "eventNotVerified": "Ereignis nicht durch verfügbare Quellen bestätigt",
     "eventUnknown": "Prüfung noch nicht abgeschlossen — Teilergebnisse",
+    "searchQueries": "Durchgeführte Suchen",
     "sources": "Quellen",
     "reasoningEffort": "Begründungsaufwand",
     "attentionItems": "Aufmerksamkeitspunkte für Case Manager",
@@ -2618,6 +2619,7 @@
       "notConfirmed": "Nicht bestätigt",
       "results": "Ergebnisse",
       "source": "Quelle",
+      "searchQueries": "Durchgeführte Suchen",
       "sources": "Quellen",
       "generatedBy": "Bericht generiert von{brand}—{date}"
     },

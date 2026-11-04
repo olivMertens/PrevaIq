@@ -106,6 +106,11 @@ _MESSAGES: Final = {
         "fr": "Aucun résultat web n'a été trouvé.",
         "de": "Es wurden keine Webergebnisse gefunden.",
     },
+    "webiq_missing_location": {
+        "en": "Web verification was not performed: the claim has no municipality to search.",
+        "fr": "Vérification web non effectuée : aucune commune du sinistre à rechercher.",
+        "de": "Keine Webprüfung durchgeführt: Für den Schaden ist keine Gemeinde angegeben.",
+    },
 }
 
 

@@ -1956,6 +1956,7 @@ export interface WebIntelligenceResult {
   confidence?: number | string;
   findings?: (WebIntelligenceFinding | string)[];
   source_urls?: string[];
+  search_queries?: string[];
   overall_assessment?: string;
   error?: string;
 }
