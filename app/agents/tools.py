@@ -1847,7 +1847,7 @@ async def _fraud_orchestrator(
     prompts = _load_fraud_prompts(settings.app.prompts_root, brand=settings.brand_name)
     if not prompts:
         return "Prompts de détection de fraude non disponibles."
-    from ..languages import language_instruction
+    from ..languages import language_instruction, localized_message
     for prompt_group in prompts.values():
         if isinstance(prompt_group, dict) and isinstance(prompt_group.get("system_prompt"), str):
             prompt_group["system_prompt"] += "\n\n" + language_instruction(language)
@@ -1889,7 +1889,10 @@ async def _fraud_orchestrator(
                     _load_file_bytes, settings, application_id, fname
                 )
                 if not file_bytes:
-                    return {"filename": fname, "error": "Impossible de charger le fichier"}
+                    return {
+                        "filename": fname,
+                        "error": localized_message("fraud_image_unavailable", language),
+                    }
                 result = await asyncio.to_thread(
                     _analyze_single_image,
                     settings,
@@ -2069,7 +2072,7 @@ def _fraud_orchestrator_sync(
     prompts = _load_fraud_prompts(settings.app.prompts_root, brand=settings.brand_name)
     if not prompts:
         return "Prompts de détection de fraude non disponibles."
-    from ..languages import language_instruction
+    from ..languages import language_instruction, localized_message
     for prompt_group in prompts.values():
         if isinstance(prompt_group, dict) and isinstance(prompt_group.get("system_prompt"), str):
             prompt_group["system_prompt"] += "\n\n" + language_instruction(language)
@@ -2109,7 +2112,10 @@ def _fraud_orchestrator_sync(
             file_bytes = _load_file_bytes(settings, application_id, fname)
             if not file_bytes:
                 vision_results.append(
-                    {"filename": fname, "error": "Impossible de charger le fichier"}
+                    {
+                        "filename": fname,
+                        "error": localized_message("fraud_image_unavailable", language),
+                    }
                 )
                 continue
             future = executor.submit(

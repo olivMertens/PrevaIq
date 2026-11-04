@@ -189,6 +189,11 @@ _MESSAGES: Final = {
         "fr": "Erreur d'analyse — résultat non structuré",
         "de": "Analysefehler — unstrukturiertes Ergebnis",
     },
+    "fraud_image_unavailable": {
+        "en": "The file could not be loaded",
+        "fr": "Impossible de charger le fichier",
+        "de": "Die Datei konnte nicht geladen werden",
+    },
 }
 
 

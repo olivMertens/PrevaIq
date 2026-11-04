@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -9,6 +10,8 @@ from fastapi.testclient import TestClient
 
 from app.agents import tools as agent_tools
 from app.claims import api as claims_api
+
+PROMPTS_ROOT = Path(__file__).resolve().parents[1] / "prompts"
 
 
 @pytest.fixture
@@ -95,3 +98,40 @@ def test_saved_fraud_analysis_is_healed_in_the_ui_language(client, monkeypatch):
     items = response.json()["overall_assessment"]["attention_items"]
     assert [item["label"] for item in items] == ["Image suspecte : toit.jpg"]
     assert client.get("/api/claims/APP-1/fraud-analysis?language=es").status_code == 400
+
+
+def test_missing_image_file_is_reported_in_the_ui_language(monkeypatch):
+    settings = SimpleNamespace(
+        fraud_detection=SimpleNamespace(enabled=True),
+        app=SimpleNamespace(storage_root="unused", prompts_root=str(PROMPTS_ROOT)),
+        brand_name="PrevaIQ",
+    )
+    app_md = SimpleNamespace(
+        id="APP-1",
+        files=[SimpleNamespace(filename="toit.jpg")],
+        persona="habitation_claims",
+        document_markdown="",
+        extracted_fields={},
+        customer_id=None,
+    )
+    monkeypatch.setattr("app.config.load_settings", lambda: settings)
+    monkeypatch.setattr("app.storage.load_application", lambda *_args, **_kwargs: app_md)
+    monkeypatch.setattr(agent_tools, "_load_file_bytes", lambda *_args: None)
+    monkeypatch.setattr(agent_tools, "get_application_summary", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr(agent_tools, "search_policies", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr(agent_tools, "_web_intelligence_available", lambda _settings: False)
+    monkeypatch.setattr(agent_tools, "_assess_overall_fraud", lambda *_args, **_kwargs: {})
+
+    result = json.loads(agent_tools._fraud_orchestrator_sync("APP-1", "", "", "medium", "de"))
+
+    assert result["image_analyses"] == [
+        {"filename": "toit.jpg", "error": "Die Datei konnte nicht geladen werden"}
+    ]
+
+
+def test_merge_prompt_uses_web_evidence_and_ignores_technical_errors():
+    prompts = agent_tools._load_fraud_prompts(str(PROMPTS_ROOT), brand="PrevaIQ")
+    system_prompt = prompts["overall_assessment"]["system_prompt"]
+
+    assert "Vérification web (Microsoft Web IQ)" in system_prompt
+    assert "n'est pas un indicateur de fraude" in system_prompt
