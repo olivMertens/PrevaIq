@@ -1180,7 +1180,7 @@ export default function ChatDrawer({
       {/* Floating Button - visible when drawer is closed */}
       <button
         onClick={onOpen}
-        className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-5 py-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all duration-300 group whitespace-nowrap ${
+        className={`fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-5 py-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 hover:shadow-xl transition-all duration-300 group whitespace-nowrap ${
           isOpen ? 'opacity-0 pointer-events-none translate-x-4' : 'opacity-100 translate-x-0'
         }`}
         title={t('askIQ')}

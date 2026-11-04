@@ -64,6 +64,13 @@ function normalizeFinding(f: unknown): { title: string; summary: string; sourceU
 interface FraudAnalysisPanelProps {
   applicationId: string;
   onFraudComplete?: (result: FraudAnalysisResponse) => void;
+  /** 'banner' (default) shows the inline trigger bar; 'headless' renders only the dialog, opened by the host. */
+  variant?: 'banner' | 'headless';
+  /** Controlled dialog visibility (optional). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  /** Background run status, so a host can show progress while the dialog is closed. */
+  onStatusChange?: (status: { isLoading: boolean; progress: number; error: string | null }) => void;
 }
 
 // Estimated duration in seconds per effort level (used for progress simulation)
@@ -75,14 +82,26 @@ const EFFORT_OPTIONS: { value: ReasoningEffort; icon: typeof Zap; time: string }
   { value: 'high', icon: Brain, time: '~3-5 min' },
 ];
 
-export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: FraudAnalysisPanelProps) {
+export default function FraudAnalysisPanel({
+  applicationId,
+  onFraudComplete,
+  variant = 'banner',
+  open,
+  onOpenChange,
+  onStatusChange,
+}: FraudAnalysisPanelProps) {
   const t = useTranslations('fraudAnalysis');
   const locale = useLocale();
   const [result, setResult] = useState<FraudAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [effort, setEffort] = useState<ReasoningEffort>('medium');
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const dialogOpen = open ?? internalOpen;
+  const setDialogOpen = useCallback(
+    (value: boolean) => (onOpenChange ? onOpenChange(value) : setInternalOpen(value)),
+    [onOpenChange],
+  );
   const [progress, setProgress] = useState(0);
   const [copied, setCopied] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -94,6 +113,10 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
   useEffect(() => {
     return () => { if (progressRef.current) clearInterval(progressRef.current); };
   }, []);
+
+  useEffect(() => {
+    onStatusChange?.({ isLoading, progress, error });
+  }, [isLoading, progress, error, onStatusChange]);
 
   // Load previously saved fraud analysis on mount (from application metadata)
   useEffect(() => {
@@ -146,7 +169,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
       setIsLoading(false);
       if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
     }
-  }, [applicationId, effort, locale]);
+  }, [applicationId, effort, locale, setDialogOpen]);
 
   const generateMarkdown = useCallback((): string => {
     if (!result) return '';
@@ -326,7 +349,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setDialogOpen(false); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [dialogOpen]);
+  }, [dialogOpen, setDialogOpen]);
 
   // Close on backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -347,6 +370,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
   return (
     <>
       {/* Compact inline trigger bar */}
+      {variant === 'banner' && (
       <div className="border-t border-slate-200 px-4 py-2.5 bg-slate-50">
         <div className="flex items-center gap-3">
           <Shield className="w-4 h-4 text-purple-600 flex-shrink-0" />
@@ -384,6 +408,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
           </div>
         )}
       </div>
+      )}
 
       {/* Dialog overlay */}
       {dialogOpen && (

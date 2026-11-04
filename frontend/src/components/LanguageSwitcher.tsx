@@ -41,7 +41,7 @@ export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'd
         <button
           key={loc.code}
           type="button"
-          aria-pressed={isLogin ? locale === loc.code : undefined}
+          aria-pressed={locale === loc.code}
           onClick={() => switchLocale(loc.code)}
           disabled={isPending}
           className={isLogin ? loginStyles.languageOption : clsx(
@@ -65,7 +65,7 @@ export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'd
                 ? 'Deutsch'
                 : 'English'}
         >
-          {!isLogin && <>{loc.flag} </>}{loc.label}
+          {!isLogin && <span className="hidden 2xl:inline" aria-hidden>{loc.flag} </span>}{loc.label}
         </button>
       ))}
     </div>

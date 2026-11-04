@@ -1992,3 +1992,23 @@ export async function getFraudAnalysis(claimId: string, locale?: string): Promis
     return null; // 404 — no saved analysis
   }
 }
+
+export type ApplicationDecision = 'approve' | 'approve_with_conditions' | 'defer' | 'decline';
+
+export interface ApplicationDecisionRequest {
+  decision: ApplicationDecision;
+  notes?: string;
+  conditions?: string;
+  risk_level?: string;
+}
+
+/** Record an adjuster/underwriter decision (also appended to the case action history). */
+export async function submitApplicationDecision(
+  applicationId: string,
+  body: ApplicationDecisionRequest,
+): Promise<{ decision: ApplicationDecision; message: string }> {
+  return apiFetch(`/api/applications/${applicationId}/decision`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}

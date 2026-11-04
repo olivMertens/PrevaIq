@@ -613,7 +613,7 @@
     "pipelineConfidence": "Confiance",
     "pipelineConfidenceUnavailable": "non scorée",
     "pipelineAttempts": "Candidats: {engines}",
-    "pipelineFallback": "Fallback: {reason}",
+    "pipelineFallback": "Mode de repli : {reason}",
     "pipelineReview": "Revue",
     "pipelineReviewRequired": "requise",
     "pipelineReviewAuto": "auto-validée",
@@ -631,7 +631,21 @@
       "analysis_budget_exhausted": "Budget d'analyse épuisé"
     },
     "disabled": "Désactivé",
-    "applicationLoadError": "Impossible de charger le dossier"
+    "applicationLoadError": "Impossible de charger le dossier",
+    "pipelineState": {
+      "ok": "OK",
+      "review": "Revue requise",
+      "problem": "Problème"
+    },
+    "pipelineHowRead": "Comment ce dossier a été lu",
+    "pipelineClose": "Fermer",
+    "pipelineReviewClears": "Enregistrer une décision clôt la revue.",
+    "fallbackReasons": {
+      "no_structured_fields_from_extraction": "aucun champ structuré par le lecteur de documents, champs lus par le modèle IA",
+      "cu_and_markitdown_failed": "Content Understanding et MarkItDown n'ont pas pu lire le fichier",
+      "low_quality_cu_output": "résultat de Content Understanding trop faible",
+      "below_quality_threshold": "qualité d'extraction sous le seuil"
+    }
   },
   "actions": {
     "cancel": "Annuler",
@@ -2665,14 +2679,6 @@
     "hideDamageAreas": "Masquer zones de dommages"
   },
   "nextAction": {
-    "emptyState": "Lancez l'analyse IA pour obtenir une recommandation d'action",
-    "validate": "Valider",
-    "justificationPlaceholder": "Justification (optionnel)...",
-    "justificationLabel": "Justification :",
-    "actionValidated": "Action validée",
-    "actionRejected": "Action rejetée",
-    "confidenceSuffix": "% confiance",
-    "alternativesCount": "{count} {count, plural, =1 {action alternative} other {actions alternatives}}",
     "labels": {
       "escalate_siu": "Transférer au SIU",
       "request_docs": "Demander pièces complémentaires",
@@ -2775,11 +2781,11 @@
           },
           {
             "title": "3. Observer le traitement IA (2-3 min)",
-            "detail": "① Extraction → Content Understanding / MarkItDown structure les champs et pièces jointes\n② Analyse multimodale → qualifie les photos de dégâts\n③ Analyse LLM + RAG → évalue le sinistre et cite les conditions applicables"
+            "detail": "① Extraction → Content Understanding / MarkItDown structure les champs et pièces jointes\n② Analyse multimodale → qualifie les photos de dégâts\n③ Analyse LLM + RAG → évalue le sinistre et cite les conditions applicables\n\nLa pastille « Pipeline IA » à côté du titre du dossier indique comment il a été lu : vert OK, orange revue requise, rouge problème. Cliquez dessus pour voir moteurs, modèle et budget."
           },
           {
             "title": "4. Analyse Anti-Fraude & Cat-Nat",
-            "detail": "Bouton \"Analyse Anti-Fraude\" → utilise la connexion MCP dédiée Microsoft Web IQ :\n• Vérifie l'arrêté Cat-Nat pour la commune + la date\n• Croise les déclarations avec les sources publiques\n• Étiquette contextuelle \"✓ Cat-Nat confirmée\" ou \"✗ non confirmée\"\n\nAttention : indicateurs de fraude + score global.",
+            "detail": "Cliquez sur la tuile « Risque de fraude » du bandeau de verdict, puis « Lancer l'analyse fraude » (ou « Ouvrir le rapport complet »). Elle utilise la connexion MCP dédiée Microsoft Web IQ :\n• Vérifie l'arrêté Cat-Nat pour la commune + la date\n• Croise la déclaration avec les sources publiques\n• Tuile Couverture : « Cat-Nat confirmée » ou « non confirmée »\n\n« Points d'attention » liste ensuite chaque signal une seule fois, le plus critique d'abord ; « Preuves » ouvre le justificatif.",
             "tip": "L'analyse web prend 30-60s. Les sources sont cliquables."
           },
           {
@@ -2789,7 +2795,7 @@
           },
           {
             "title": "6. Décision du gestionnaire",
-            "detail": "Approuver / Ajuster / Refuser avec notes.\nEx: \"Couvert Art. 3.2 CG Habitation, franchise 250€ déduite.\""
+            "detail": "Le bandeau de verdict affiche la recommandation IA et sa raison. « Valider » ouvre la décision préremplie ; « Autre décision » propose Approuver / Approuver sous conditions / Différer / Refuser, avec notes.\nEx : « Couvert Art. 3.2 CG Habitation, franchise 250 € déduite. »"
           }
         ]
       },
@@ -3122,5 +3128,244 @@
     "today": "Aujourd’hui",
     "reviewService": "Examiner : {service}",
     "reviewServiceWithStatus": "Examiner : {service} ({status})"
+  },
+  "caseCockpit": {
+    "dismiss": "Fermer",
+    "severity": {
+      "critical": "Critique",
+      "warning": "À vérifier",
+      "info": "Info"
+    },
+    "themes": {
+      "photos": "Photos",
+      "statement": "Déclaration",
+      "timeline": "Chronologie",
+      "cover": "Couverture",
+      "amount": "Montant",
+      "policy": "Contrat",
+      "fraud": "Fraude",
+      "documents": "Pièces",
+      "customer": "Client"
+    },
+    "sources": {
+      "photoAnalysis": "Analyse photo",
+      "declarationCheck": "Contrôle de la déclaration",
+      "fraudModel": "Modèle anti-fraude",
+      "webIq": "Web IQ",
+      "policy": "Conditions du contrat",
+      "rule": "Règle métier",
+      "fileDates": "Horodatage des fichiers",
+      "aiAnalysis": "Analyse IA"
+    },
+    "attention": {
+      "title": "Points d'attention",
+      "summary": "{shown} affichés · {total} constats détectés, doublons fusionnés",
+      "empty": "Rien à signaler : aucun point d'attention détecté.",
+      "notAnalyzed": "Lancez l'analyse IA pour voir les points d'attention.",
+      "evidence": "Preuves",
+      "evidenceFor": "Preuves : {title}",
+      "showMore": "Afficher {count} de plus",
+      "showLess": "Afficher moins",
+      "alsoFlagged": "Également signalé : {titles}",
+      "source": "Source",
+      "filtersLabel": "Filtrer par thème",
+      "filters": {
+        "all": "Tous",
+        "fraud": "Fraude",
+        "cover": "Couverture",
+        "amount": "Montant",
+        "documents": "Pièces",
+        "customer": "Client"
+      },
+      "density": {
+        "label": "Niveau de détail",
+        "essential": "Essentiel",
+        "detailed": "Détaillé"
+      }
+    },
+    "verdict": {
+      "label": "Verdict du dossier",
+      "recommendation": "Recommandation IA",
+      "why": "Pourquoi ?",
+      "validate": "Valider",
+      "otherDecision": "Autre décision",
+      "pending": "Pas encore de recommandation : lancez d'abord l'analyse IA.",
+      "analysisRunning": "Analyse IA en cours…",
+      "runAnalysis": "Lancer l'analyse IA",
+      "criticalReason": "{count, plural, one {# point critique} other {# points critiques}} à lever avant tout paiement.",
+      "decisionLabel": "Décision enregistrée",
+      "change": "Modifier la décision",
+      "lossDate": "Sinistre du {date}",
+      "contract": "Contrat {number}"
+    },
+    "kpi": {
+      "claimed": "Montant déclaré",
+      "expertNeeded": "Expertise requise au-delà de {threshold}",
+      "overclaim": "+{percent} % vs estimation IA",
+      "fraudRisk": "Risque de fraude",
+      "fraudNotRun": "Pas encore analysé",
+      "analyzing": "Analyse… {progress} %",
+      "fraudBar": "Score de risque de fraude : {score} sur 100",
+      "siuRecommended": "Transfert au SIU recommandé",
+      "cover": "Couverture",
+      "coverUnknown": "Pas encore vérifiée",
+      "eventConfirmed": "Événement confirmé par Web IQ",
+      "eventNotConfirmed": "Événement non confirmé par Web IQ",
+      "customer": "Client",
+      "customerUnknown": "Pas encore évalué",
+      "customerLevels": {
+        "calm": "Serein",
+        "moderate": "Modéré",
+        "stressed": "Tendu",
+        "critical": "Critique"
+      },
+      "score": "score {score}"
+    },
+    "steps": {
+      "title": "Prochaines étapes",
+      "progress": "{done}/{total} faites",
+      "recommended": "Recommandé",
+      "due": {
+        "today": "Pour aujourd'hui",
+        "tomorrow": "Pour demain",
+        "inDays": "Sous {days} jours"
+      },
+      "draft": "Rédiger le message",
+      "settlement": "Note de règlement",
+      "settlementBlocked": "bloquée tant qu'un transfert au SIU est recommandé",
+      "settlementLocked": "disponible quand toutes les étapes sont faites",
+      "empty": "Aucune étape proposée pour l'instant."
+    },
+    "updates": {
+      "title": "Dernières mises à jour",
+      "full": "Chronologie complète",
+      "new": "Nouveau",
+      "none": "Aucune activité pour l'instant.",
+      "bands": {
+        "LOW": "Risque faible",
+        "MODERATE": "Risque modéré",
+        "HIGH": "Risque élevé"
+      },
+      "kinds": {
+        "created": "Dossier créé avec {files, plural, one {# fichier} other {# fichiers}}",
+        "extraction": "{fields} champs extraits de {files, plural, one {# document} other {# documents}}",
+        "analysis": "Analyse IA terminée",
+        "analysisReview": "Analyse IA terminée, revue humaine requise",
+        "sentiment": "Ressenti client : {level} ({score}/100)",
+        "fraud": "Analyse fraude : {band} ({score} %)",
+        "fraudSiu": "Analyse fraude : {band} ({score} %), transfert au SIU recommandé",
+        "web": {
+          "confirmed": "Web IQ a confirmé l'événement ({sources, plural, one {# source} other {# sources}})",
+          "notConfirmed": "Web IQ n'a pas confirmé l'événement ({sources, plural, one {# source} other {# sources}})",
+          "unclear": "Vérification Web IQ non concluante",
+          "skipped": "Vérification Web IQ non effectuée"
+        },
+        "decision": "Décision enregistrée : {decision}"
+      }
+    },
+    "evidence": {
+      "title": "Pièces et photos",
+      "counts": "{documents, plural, one {# document} other {# documents}} · {photos, plural, one {# photo} other {# photos}}",
+      "all": "Toutes les pièces",
+      "noPhotos": "Aucune photo dans ce dossier.",
+      "open": "Ouvrir {name}",
+      "more": "Voir {count} photos de plus",
+      "badge": {
+        "authentic": "Authentique {score} %",
+        "doubtful": "Douteuse {score} %",
+        "suspicious": "Suspecte {score} %"
+      },
+      "documentCount": "{count, plural, one {# document} other {# documents}}"
+    },
+    "facts": {
+      "title": "Faits clés",
+      "allFields": "Les {count} champs",
+      "client360": "Client 360",
+      "linked": "Lié · ouvrir la fiche",
+      "notLinked": "Non lié",
+      "link": "Lier"
+    },
+    "drawer": {
+      "label": "Détails du dossier",
+      "close": "Fermer les détails",
+      "tabs": {
+        "summary": "Synthèse IA",
+        "fraud": "Fraude",
+        "web": "Vérification Web IQ",
+        "cover": "Couverture et montants",
+        "evidence": "Pièces",
+        "customer": "Client",
+        "timeline": "Chronologie",
+        "data": "Données extraites",
+        "pipeline": "Pipeline IA"
+      }
+    },
+    "decision": {
+      "title": "Enregistrer une décision",
+      "prefilled": "Prérempli à partir de la recommandation IA. Vérifiez avant de confirmer.",
+      "conditions": "Conditions",
+      "cancel": "Annuler",
+      "saving": "Enregistrement…"
+    },
+    "fraudTab": {
+      "none": "Pas encore d'analyse fraude.",
+      "run": "Lancer l'analyse fraude",
+      "openReport": "Ouvrir le rapport complet",
+      "running": "Analyse fraude en cours… {progress} %",
+      "analysedAt": "analysé le {date}",
+      "siuReason": "Motif SIU :",
+      "match": "Concordant",
+      "mismatch": "Non concordant"
+    },
+    "webTab": {
+      "none": "Pas encore de vérification Web IQ. Elle s'exécute avec l'analyse fraude.",
+      "verdict": {
+        "confirmed": "Événement confirmé par des sources publiques",
+        "notConfirmed": "Événement non confirmé par des sources publiques",
+        "unclear": "Vérification non concluante",
+        "skipped": "Vérification non effectuée"
+      },
+      "confidence": "confiance {value} %",
+      "findings": "Constats",
+      "searches": "Recherches effectuées",
+      "sources": "{count, plural, one {# source} other {# sources}}"
+    },
+    "coverTab": {
+      "amounts": "Montants",
+      "claimed": "Déclaré",
+      "aiEstimate": "Estimation IA",
+      "delta": "+{percent} %",
+      "deductible": "Franchise",
+      "checks": "Contrôles de couverture",
+      "guarantees": "Garanties concernées",
+      "aiCoverage": "Analyse de couverture IA",
+      "noCoverage": "Pas encore d'analyse de couverture."
+    },
+    "customerTab": {
+      "sentiment": "Ressenti du client",
+      "client360": "Client 360",
+      "openProfile": "Ouvrir la fiche Client 360",
+      "message": "Message au client"
+    },
+    "timelineTab": {
+      "label": "Chronologie du sinistre"
+    },
+    "dataTab": {
+      "insured": "Assuré et contrat",
+      "claim": "Sinistre"
+    },
+    "signals": {
+      "suspiciousPhotos": "{count, plural, one {# photo semble retouchée ou générée par IA} other {# photos semblent retouchées ou générées par IA}}",
+      "photoScore": "{file} : authenticité {score} %",
+      "photosUnchecked": "{count, plural, one {# photo n'a pas pu être vérifiée} other {# photos n'ont pas pu être vérifiées}}",
+      "statementMismatch": "La déclaration ne concorde pas avec les preuves",
+      "statementMismatchDetail": "Score de cohérence : {score} %",
+      "webSkipped": "Vérification Web IQ non effectuée",
+      "weatherNotConfirmed": "Événement déclaré non confirmé par des sources publiques",
+      "weatherConfirmed": "Événement déclaré confirmé par des sources publiques",
+      "webSources": "{count, plural, =0 {Aucune source publique trouvée} one {# source publique vérifiée} other {# sources publiques vérifiées}}",
+      "overclaim": "Montant déclaré supérieur à l'estimation IA",
+      "overclaimDetail": "{claimed} déclarés vs {recommended} estimés (+{percent} %)"
+    }
   }
 }

@@ -131,9 +131,10 @@ export default function DemoGuideModal() {
         className="flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors"
         style={{ color: brand.primary, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` }}
         title={t('openTitle')}
+        aria-label={t('openTitle')}
       >
-        <HelpCircle className="w-4 h-4" />
-        <span>{t('openBadge')}</span>
+        <HelpCircle className="w-4 h-4" aria-hidden />
+        <span className="hidden 2xl:inline">{t('openBadge')}</span>
       </button>
     );
   }

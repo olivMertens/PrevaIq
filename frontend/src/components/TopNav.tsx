@@ -105,10 +105,10 @@ export default function TopNav({
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
       {/* Top Bar */}
-      <div className="flex items-center justify-between gap-4 px-6 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3 xl:gap-x-4 xl:px-6">
         {/* Logo & Brand */}
-        <div className="flex min-w-0 items-center gap-5">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
+        <div className="flex min-w-[18rem] flex-1 items-center gap-3 md:min-w-0 xl:gap-5">
+          <Link href="/" className="flex flex-shrink-0 items-center gap-3">
             <BrandMark />
           </Link>
 
@@ -117,15 +117,16 @@ export default function TopNav({
 
           {/* Application Selector - Only in workbench view */}
           {showWorkbenchControls && applications.length > 0 && (
-            <div className="relative">
+            <div className="relative min-w-0">
               <button
                 onClick={() => setAppDropdownOpen(!appDropdownOpen)}
-                className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+                title={selectedApplication ? getAppDisplayTitle(selectedApplication) : undefined}
+                className="flex w-full min-w-0 max-w-[11rem] items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm lg:max-w-[15rem] xl:max-w-[22rem]"
               >
-                <span className="text-slate-700">
+                <span className="truncate text-slate-700">
                   {selectedApplication ? getAppDisplayTitle(selectedApplication) : t('selectApplication')}
                 </span>
-                <ChevronDown className={clsx('w-4 h-4 text-slate-400 transition-transform', appDropdownOpen && 'rotate-180')} />
+                <ChevronDown className={clsx('w-4 h-4 flex-shrink-0 text-slate-400 transition-transform', appDropdownOpen && 'rotate-180')} />
               </button>
 
               {appDropdownOpen && (
@@ -175,25 +176,29 @@ export default function TopNav({
           )}
         </div>
 
-        {/* Right Side Actions */}
-        <div className="flex min-w-0 flex-shrink items-center justify-end gap-2">
+        {/* Right Side Actions: labels collapse to icons below 2xl so nothing overlaps on laptop widths */}
+        <div className="ml-auto flex flex-shrink-0 items-center justify-end gap-1.5 2xl:gap-2">
           {/* Glossary Dropdown - Only in workbench view */}
           {showWorkbenchControls && <GlossaryDropdown />}
           
           <Link
             href="/customers"
-            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            aria-label={t('customer360')}
+            title={t('customer360')}
+            className="flex items-center gap-2 px-2.5 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors 2xl:px-3"
           >
-            <Users className="w-4 h-4" />
-            <span>{t('customer360')}</span>
+            <Users className="w-4 h-4" aria-hidden />
+            <span className="hidden 2xl:inline">{t('customer360')}</span>
           </Link>
           {canAdmin && (
           <Link
             href="/admin"
-            className="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            aria-label={t('admin')}
+            title={t('admin')}
+            className="flex items-center gap-2 px-2.5 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors 2xl:px-3"
           >
-            <Settings className="w-4 h-4" />
-            <span>{t('admin')}</span>
+            <Settings className="w-4 h-4" aria-hidden />
+            <span className="hidden 2xl:inline">{t('admin')}</span>
           </Link>
           )}
 
@@ -205,10 +210,10 @@ export default function TopNav({
 
           {/* Auth: username & logout */}
           {authEnabled && (
-            <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-200">
+            <div className="ml-1 flex items-center gap-2 border-l border-slate-200 pl-2 2xl:ml-2">
               {authUser && (
                 <span
-                  className="flex min-w-0 max-w-36 items-center gap-1.5 text-sm text-slate-500"
+                  className="hidden min-w-0 max-w-36 items-center gap-1.5 text-sm text-slate-500 2xl:flex"
                   title={authUser}
                 >
                   <User className="w-3.5 h-3.5" />
@@ -219,9 +224,10 @@ export default function TopNav({
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg transition-colors"
                 style={{ color: brand.primary, backgroundColor: `${brand.primary}0D` }}
-                title={t('signOut')}
+                title={authUser ? `${t('signOut')} (${authUser})` : t('signOut')}
+                aria-label={t('signOut')}
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4" aria-hidden />
               </button>
             </div>
           )}

@@ -599,7 +599,7 @@
     "riskAnalysisError": "Fehlerwiederholungsrisikoanalyse",
     "extractionAgentRunning": "Data Agent Extrahieren",
     "analysisAgentRunning": "Risk Agent Analyse",
-    "aiPipeline": "AI-Pipeline",
+    "aiPipeline": "KI-Pipeline",
     "pipelineModel": "Modell",
     "pipelineLlmModel": "LLM-Analyse",
     "pipelineContentUnderstanding": "Content Understanding",
@@ -621,17 +621,31 @@
     "pipelineBudget": "Haushalt",
     "pipelineBudgetValue": "{seconds} s · {tokens}-Token",
     "reviewReasons": {
-      "no_content": "Kein extrahierter Gehalt",
+      "no_content": "Kein Inhalt extrahiert",
       "low_extraction_quality": "Geringe Extraktionsqualität",
-      "unverified_llm_fields": "LLM-extrahierte Felder zur Überprüfung",
-      "low_confidence": "Niedriges Durchschnittsvertrauen",
-      "composite_conflict": "Verbunddokument zur Überprüfung",
-      "extraction_budget_exhausted": "Abbaubudget erschöpft",
+      "unverified_llm_fields": "Vom LLM extrahierte Felder prüfen",
+      "low_confidence": "Niedrige durchschnittliche Konfidenz",
+      "composite_conflict": "Zusammengesetztes Dokument prüfen",
+      "extraction_budget_exhausted": "Extraktionsbudget erschöpft",
       "analysis_errors": "Analysefehler",
       "analysis_budget_exhausted": "Analysebudget erschöpft"
     },
     "disabled": "Behinderte",
-    "applicationLoadError": "Vorgangsdetails konnten nicht geladen werden"
+    "applicationLoadError": "Vorgangsdetails konnten nicht geladen werden",
+    "pipelineState": {
+      "ok": "OK",
+      "review": "Prüfung nötig",
+      "problem": "Problem"
+    },
+    "pipelineHowRead": "So wurde dieser Fall gelesen",
+    "pipelineClose": "Schließen",
+    "pipelineReviewClears": "Mit dem Speichern einer Entscheidung ist die Prüfung abgeschlossen.",
+    "fallbackReasons": {
+      "no_structured_fields_from_extraction": "keine strukturierten Felder vom Dokumentleser, Felder vom KI-Modell gelesen",
+      "cu_and_markitdown_failed": "Content Understanding und MarkItDown konnten die Datei nicht lesen",
+      "low_quality_cu_output": "Ergebnis von Content Understanding zu schwach",
+      "below_quality_threshold": "Extraktionsqualität unter dem Schwellenwert"
+    }
   },
   "actions": {
     "cancel": "Stornierung",
@@ -1379,19 +1393,19 @@
   },
   "decisions": {
     "yourDecision": "Ihre Entscheidung:",
-    "approve": "Genehmigung",
-    "approve_with_conditions": "Genehmigen mit Bedingungen",
-    "defer": "Aufschub",
-    "decline": "Rückgang",
-    "submitDecision": "Vorlageentscheidung",
-    "decisionNotes": "Beschlussfassung",
-    "notesPlaceholder": "Begründung für Ihre Entscheidung (Audit Trail)",
-    "conditionsPlaceholder": "Vor der endgültigen Genehmigung erforderliche Bedingungen...",
-    "decisionRecorded": "Erfolgreich erfasste Entscheidung",
-    "decisionError": "Nichtaufzeichnung der Entscheidung",
-    "decisionSubmitted": "Entscheidung aufgezeichnet: {decision}",
-    "blockingIssues": "Kann nicht genehmigt werden: Blockierungsprobleme erkannt",
-    "blockingIssuesWarning": "Diese Anwendung hat Blockadeprobleme, die vor der Genehmigung gelöst werden müssen"
+    "approve": "Genehmigen",
+    "approve_with_conditions": "Unter Auflagen genehmigen",
+    "defer": "Zurückstellen",
+    "decline": "Ablehnen",
+    "submitDecision": "Entscheidung speichern",
+    "decisionNotes": "Notizen zur Entscheidung",
+    "notesPlaceholder": "Begründung Ihrer Entscheidung (Prüfpfad)",
+    "conditionsPlaceholder": "Bedingungen vor der endgültigen Genehmigung…",
+    "decisionRecorded": "Entscheidung gespeichert",
+    "decisionError": "Die Entscheidung konnte nicht gespeichert werden",
+    "decisionSubmitted": "Entscheidung gespeichert: {decision}",
+    "blockingIssues": "Genehmigung nicht möglich: blockierende Punkte erkannt",
+    "blockingIssuesWarning": "Dieser Fall hat blockierende Punkte, die vor der Genehmigung gelöst werden müssen"
   },
   "corrections": {
     "title": "Wenige Schuss Korrekturen",
@@ -2522,7 +2536,7 @@
     "recordsFound": "{count}-Datensatz(e) gefunden"
   },
   "fraudAnalysis": {
-    "title": "Betrugserkennungsanalyse",
+    "title": "Betrugsanalyse",
     "description": "Parallele Multi-Branch-Analyse: Bildauthentizität, Client-Kontext, Deklarationskonsistenz",
     "poweredBy": "GPT-5.4 Mini Vision + Reasoning",
     "analysisError": "Bildanalysefehler",
@@ -2532,12 +2546,12 @@
     "viewResults": "Sichtergebnisse",
     "analyzing": "Analysieren — Manipulation erkennen und Konsistenz überprüfen...",
     "riskScore": "Risiko-Score",
-    "siuReferral": "⚠ SIU Empfehlung empfohlen",
+    "siuReferral": "⚠ Übergabe an die SIU empfohlen",
     "imageAnalysis": "Authentizitätsanalyse des Bildes",
     "declarationCheck": "Erklärung vs. Beweisüberprüfung",
     "declarationConsistent": "Erklärung im Einklang mit visuellen Nachweisen",
     "declarationInconsistent": "Unstimmigkeiten zwischen Deklaration und Fotos",
-    "declared": "Angemeldet",
+    "declared": "Angegeben",
     "observed": "Beobachtet",
     "indicators": "Betrugsindikatoren",
     "authentic": "authentisch",
@@ -2554,7 +2568,7 @@
     "searchQueries": "Durchgeführte Suchen",
     "sources": "Quellen",
     "reasoningEffort": "Begründungsaufwand",
-    "attentionItems": "Aufmerksamkeitspunkte für Case Manager",
+    "attentionItems": "Prüfpunkte für die Sachbearbeitung",
     "copyMarkdown": "Bericht als Markdown kopieren",
     "copied": "Bericht kopiert!",
     "priority": {
@@ -2665,46 +2679,38 @@
     "hideDamageAreas": "Verstecken Sie Schadensbereiche"
   },
   "nextAction": {
-    "emptyState": "Führen Sie die KI-Analyse aus, um eine Handlungsempfehlung zu erhalten",
-    "validate": "Validat",
-    "justificationPlaceholder": "Begründung (fakultativ)",
-    "justificationLabel": "Begründung:",
-    "actionValidated": "Validierte Maßnahme",
-    "actionRejected": "Ablehnung",
-    "confidenceSuffix": "% Vertrauen",
-    "alternativesCount": "{count} {count, plural, =1 {alternative Aktion} other {alternative Aktionen}}",
     "labels": {
-      "escalate_siu": "Siehe SIU",
+      "escalate_siu": "An die SIU übergeben",
       "request_docs": "Zusätzliche Unterlagen anfordern",
-      "call_client": "Kontaktieren Sie den Versicherten",
-      "request_expertise": "Auftragsgutachten",
-      "approve_partial": "Teilgenehmigung",
-      "escalate_manager": "Eskalieren zum Manager",
-      "approve_with_expertise": "Orderexperte dann abrechnen",
-      "approve_direct": "Direkte Abwicklung",
-      "stp_approve": "Automatische Abwicklung",
-      "manual_review": "Manuelle Überprüfung",
-      "approve_standard": "Genehmigung des Vergleichs",
-      "request_info": "Mehr Informationen anfordern"
+      "call_client": "Versicherten kontaktieren",
+      "request_expertise": "Gutachten beauftragen",
+      "approve_partial": "Teilweise genehmigen",
+      "escalate_manager": "An Vorgesetzte eskalieren",
+      "approve_with_expertise": "Gutachten beauftragen, dann regulieren",
+      "approve_direct": "Direkt regulieren",
+      "stp_approve": "Automatische Regulierung",
+      "manual_review": "Manuelle Prüfung",
+      "approve_standard": "Regulierung genehmigen",
+      "request_info": "Weitere Informationen anfordern"
     },
     "reasoning": {
-      "siu_default": "Erhebliche Betrugsindikatoren ermittelt",
-      "request_docs": "Sammeln Sie zusätzliche Belege vor der Untersuchung",
-      "call_client": "Klärung der in der Erklärung festgestellten Unstimmigkeiten",
-      "request_expertise": "Betrugsrisiko {percent}% — Expertenbewertung vor Entscheidung erforderlich",
-      "approve_partial": "Bezahlen Sie einen Vorschuss auf die unbestrittenen Schäden",
-      "escalate_manager": "Komplexer Fall, der eine hierarchische Validierung erfordert",
-      "approve_with_expertise": "Menge {amount} € > 5.000 € – Gutachten verpflichtend",
-      "approve_direct": "Zulässig, wenn die Expertenbewertung bereits abgeschlossen und validiert wurde",
-      "stp_approve": "Betrag {amount} € innerhalb von Schwellenwerten, keine Betrugsindikatoren",
-      "manual_review": "Zusätzliche Überprüfung vor der Validierung",
-      "approve_standard": "Fall erfüllt die allgemeinen Bedingungen — Siedlung empfohlen",
-      "request_info": "Zusätzliche Informationen würden eine zuversichtlichere Entscheidung unterstützen"
+      "siu_default": "Erhebliche Betrugsindikatoren erkannt",
+      "request_docs": "Vor der Untersuchung zusätzliche Belege einholen",
+      "call_client": "Die in der Schadenmeldung erkannten Unstimmigkeiten klären",
+      "request_expertise": "Betrugsrisiko {percent} % — Gutachten vor der Entscheidung erforderlich",
+      "approve_partial": "Vorschuss auf die unbestrittenen Schäden zahlen",
+      "escalate_manager": "Komplexer Fall, der eine Freigabe durch Vorgesetzte erfordert",
+      "approve_with_expertise": "Betrag {amount} € > 5.000 € — Gutachten verpflichtend",
+      "approve_direct": "Zulässig, wenn das Gutachten bereits erstellt und geprüft wurde",
+      "stp_approve": "Konformer Fall — Betrag {amount} € innerhalb der Schwellenwerte, keine Betrugsindikatoren",
+      "manual_review": "Zusätzliche Prüfung vor der Freigabe",
+      "approve_standard": "Fall entspricht den Allgemeinen Bedingungen — Regulierung empfohlen",
+      "request_info": "Zusätzliche Informationen würden eine sicherere Entscheidung ermöglichen"
     }
   },
   "clientSentiment": {
     "title": "Kundenbindung",
-    "aiBadge": "A",
+    "aiBadge": "KI",
     "levels": {
       "critical": "Aufmerksamkeit erforderlich",
       "stressed": "Wachsamkeit",
@@ -2774,13 +2780,13 @@
             "tip": "PDF steht in assets/demo-prevaiq/property-claims/wine-cellar/."
           },
           {
-            "title": "3. AI Watch Verarbeitung (2-3 min)",
-            "detail": "1 Extraktionsmaschine → Content Understanding / MarkItDown strukturiert Felder und Anhänge\n2 Multimodale Analyse → Qualifizierung von Schadensfotos\n3 LLM-Analyse + RAG → wertet den Anspruch aus und zitiert anwendbare Richtlinien"
+            "title": "3. KI-Verarbeitung verfolgen (2–3 Min.)",
+            "detail": "① Extraktion → Content Understanding / MarkItDown strukturiert Felder und Anhänge\n② Multimodale Analyse → bewertet die Schadenfotos\n③ LLM-Analyse + RAG → bewertet den Schaden und zitiert die anwendbaren Bedingungen\n\nDie Anzeige „KI-Pipeline“ neben dem Falltitel zeigt, wie der Fall gelesen wurde: grün OK, orange Prüfung nötig, rot Problem. Ein Klick zeigt Engines, Modell und Budget."
           },
           {
-            "title": "4. Betrugsbekämpfung und Cat-Nat-Analyse",
-            "detail": "Die Schaltfläche \"Anti-Fraud Analysis\" verwendet die dedizierte Microsoft Web IQ MCP-Verbindung:\n• Überprüft Cat-Nat Dekret für Gemeinde + Datum\n• Querverweise mit öffentlichen Quellen\n• Kontextetikett \"✓ Cat-Nat bestätigt\" oder \"✗ nicht bestätigt\"\n\nHinweis: Betrugsindikatoren + Gesamtpunktzahl.",
-            "tip": "Web-Analyse dauert 30-60s. Quellen sind anklickbar."
+            "title": "4. Betrugs- und Cat-Nat-Analyse",
+            "detail": "Klicken Sie in der Fallbewertung auf die Kachel „Betrugsrisiko“, dann auf „Betrugsanalyse starten“ (oder „Vollständigen Bericht öffnen“). Sie nutzt die dedizierte Microsoft-Web-IQ-MCP-Verbindung:\n• Prüft das Cat-Nat-Dekret für Gemeinde + Datum\n• Gleicht die Schadenmeldung mit öffentlichen Quellen ab\n• Kachel Deckung: „Cat-Nat bestätigt“ oder „nicht bestätigt“\n\n„Zu beachten“ listet danach jedes Signal einmal auf, das kritischste zuerst; „Belege“ öffnet den Nachweis.",
+            "tip": "Die Web-Analyse dauert 30–60 s. Die Quellen sind anklickbar."
           },
           {
             "title": "5. Fragen Sie IQ (RAG Chat)",
@@ -2788,8 +2794,8 @@
             "tip": "Klicken Sie auf \"X Richtlinien referenziert\", um zitierte Artikel zu sehen."
           },
           {
-            "title": "6. Berichtigungsentscheidung",
-            "detail": "Genehmigen / Anpassen / Deny mit Notizen.\nBeispiel: \"Gedeckt nach Art. 3.2, 250 € Selbstbehalt angewendet.\""
+            "title": "6. Entscheidung der Sachbearbeitung",
+            "detail": "Die Fallbewertung zeigt die KI-Empfehlung und ihre Begründung. „Bestätigen“ öffnet die daraus vorausgefüllte Entscheidung; „Andere Entscheidung“ bietet Genehmigen / Unter Auflagen genehmigen / Zurückstellen / Ablehnen, mit Notizen.\nBeispiel: „Gedeckt nach Art. 3.2, 250 € Selbstbehalt angewendet.“"
           }
         ]
       },
@@ -2822,7 +2828,7 @@
           },
           {
             "title": "6. Autoforderungsentscheidung",
-            "detail": "Approve / Adjust / Deny.\nBeispiel: \"Gedeckt nach Auto-Bedingungen Art. 5.1, 150 € Selbstbehalt, Rückzahlung durch Dritte eingeleitet.\""
+            "detail": "Genehmigen / Anpassen / Ablehnen.\nBeispiel: \"Gedeckt nach Auto-Bedingungen Art. 5.1, 150 € Selbstbehalt, Rückzahlung durch Dritte eingeleitet.\""
           }
         ]
       },
@@ -3122,5 +3128,244 @@
     "today": "Heute",
     "reviewService": "Prüfen: {service}",
     "reviewServiceWithStatus": "Prüfen: {service} ({status})"
+  },
+  "caseCockpit": {
+    "dismiss": "Schließen",
+    "severity": {
+      "critical": "Kritisch",
+      "warning": "Prüfen",
+      "info": "Info"
+    },
+    "themes": {
+      "photos": "Fotos",
+      "statement": "Schadenmeldung",
+      "timeline": "Zeitablauf",
+      "cover": "Deckung",
+      "amount": "Betrag",
+      "policy": "Vertrag",
+      "fraud": "Betrug",
+      "documents": "Unterlagen",
+      "customer": "Kunde"
+    },
+    "sources": {
+      "photoAnalysis": "Fotoanalyse",
+      "declarationCheck": "Prüfung der Schadenmeldung",
+      "fraudModel": "Betrugsmodell",
+      "webIq": "Web IQ",
+      "policy": "Vertragsbedingungen",
+      "rule": "Geschäftsregel",
+      "fileDates": "Datei-Zeitstempel",
+      "aiAnalysis": "KI-Analyse"
+    },
+    "attention": {
+      "title": "Zu beachten",
+      "summary": "{shown} angezeigt · {total} Befunde erkannt, Duplikate zusammengeführt",
+      "empty": "Nichts zu beachten: kein Problem erkannt.",
+      "notAnalyzed": "Starten Sie die KI-Analyse, um die Prüfpunkte zu sehen.",
+      "evidence": "Belege",
+      "evidenceFor": "Belege für: {title}",
+      "showMore": "{count} weitere anzeigen",
+      "showLess": "Weniger anzeigen",
+      "alsoFlagged": "Ebenfalls gemeldet: {titles}",
+      "source": "Quelle",
+      "filtersLabel": "Nach Thema filtern",
+      "filters": {
+        "all": "Alle",
+        "fraud": "Betrug",
+        "cover": "Deckung",
+        "amount": "Betrag",
+        "documents": "Unterlagen",
+        "customer": "Kunde"
+      },
+      "density": {
+        "label": "Detailgrad",
+        "essential": "Wesentlich",
+        "detailed": "Ausführlich"
+      }
+    },
+    "verdict": {
+      "label": "Fallbewertung",
+      "recommendation": "KI-Empfehlung",
+      "why": "Warum?",
+      "validate": "Bestätigen",
+      "otherDecision": "Andere Entscheidung",
+      "pending": "Noch keine Empfehlung: Starten Sie zuerst die KI-Analyse.",
+      "analysisRunning": "KI-Analyse läuft…",
+      "runAnalysis": "KI-Analyse starten",
+      "criticalReason": "{count, plural, one {# kritischer Punkt} other {# kritische Punkte}} vor jeder Zahlung zu klären.",
+      "decisionLabel": "Entscheidung gespeichert",
+      "change": "Entscheidung ändern",
+      "lossDate": "Schaden vom {date}",
+      "contract": "Vertrag {number}"
+    },
+    "kpi": {
+      "claimed": "Geforderter Betrag",
+      "expertNeeded": "Gutachten erforderlich über {threshold}",
+      "overclaim": "+{percent} % ggü. KI-Schätzung",
+      "fraudRisk": "Betrugsrisiko",
+      "fraudNotRun": "Noch nicht analysiert",
+      "analyzing": "Analyse… {progress} %",
+      "fraudBar": "Betrugsrisiko: {score} von 100",
+      "siuRecommended": "Übergabe an die SIU empfohlen",
+      "cover": "Deckung",
+      "coverUnknown": "Noch nicht geprüft",
+      "eventConfirmed": "Ereignis von Web IQ bestätigt",
+      "eventNotConfirmed": "Ereignis von Web IQ nicht bestätigt",
+      "customer": "Kunde",
+      "customerUnknown": "Noch nicht bewertet",
+      "customerLevels": {
+        "calm": "Ruhig",
+        "moderate": "Mäßig",
+        "stressed": "Angespannt",
+        "critical": "Kritisch"
+      },
+      "score": "Wert {score}"
+    },
+    "steps": {
+      "title": "Nächste Schritte",
+      "progress": "{done}/{total} erledigt",
+      "recommended": "Empfohlen",
+      "due": {
+        "today": "Heute fällig",
+        "tomorrow": "Morgen fällig",
+        "inDays": "Fällig in {days} Tagen"
+      },
+      "draft": "Nachricht entwerfen",
+      "settlement": "Regulierungsnotiz",
+      "settlementBlocked": "gesperrt, solange eine Übergabe an die SIU empfohlen ist",
+      "settlementLocked": "verfügbar, sobald alle Schritte erledigt sind",
+      "empty": "Noch kein Schritt vorgeschlagen."
+    },
+    "updates": {
+      "title": "Letzte Aktualisierungen",
+      "full": "Vollständiger Zeitablauf",
+      "new": "Neu",
+      "none": "Noch keine Aktivität.",
+      "bands": {
+        "LOW": "Geringes Risiko",
+        "MODERATE": "Mäßiges Risiko",
+        "HIGH": "Hohes Risiko"
+      },
+      "kinds": {
+        "created": "Fall mit {files, plural, one {# Datei} other {# Dateien}} angelegt",
+        "extraction": "{fields} Felder aus {files, plural, one {# Dokument} other {# Dokumenten}} extrahiert",
+        "analysis": "KI-Analyse abgeschlossen",
+        "analysisReview": "KI-Analyse abgeschlossen, menschliche Prüfung erforderlich",
+        "sentiment": "Kundenstimmung: {level} ({score}/100)",
+        "fraud": "Betrugsanalyse: {band} ({score} %)",
+        "fraudSiu": "Betrugsanalyse: {band} ({score} %), Übergabe an die SIU empfohlen",
+        "web": {
+          "confirmed": "Web IQ hat das Ereignis bestätigt ({sources, plural, one {# Quelle} other {# Quellen}})",
+          "notConfirmed": "Web IQ hat das Ereignis nicht bestätigt ({sources, plural, one {# Quelle} other {# Quellen}})",
+          "unclear": "Web-IQ-Prüfung ohne eindeutiges Ergebnis",
+          "skipped": "Web-IQ-Prüfung nicht durchgeführt"
+        },
+        "decision": "Entscheidung gespeichert: {decision}"
+      }
+    },
+    "evidence": {
+      "title": "Belege",
+      "counts": "{documents, plural, one {# Dokument} other {# Dokumente}} · {photos, plural, one {# Foto} other {# Fotos}}",
+      "all": "Alle Belege",
+      "noPhotos": "Keine Fotos in diesem Fall.",
+      "open": "{name} öffnen",
+      "more": "{count} weitere Fotos anzeigen",
+      "badge": {
+        "authentic": "Echt {score} %",
+        "doubtful": "Zweifelhaft {score} %",
+        "suspicious": "Verdächtig {score} %"
+      },
+      "documentCount": "{count, plural, one {# Dokument} other {# Dokumente}}"
+    },
+    "facts": {
+      "title": "Eckdaten",
+      "allFields": "Alle {count} Felder",
+      "client360": "Client 360",
+      "linked": "Verknüpft · Profil öffnen",
+      "notLinked": "Nicht verknüpft",
+      "link": "Verknüpfen"
+    },
+    "drawer": {
+      "label": "Falldetails",
+      "close": "Details schließen",
+      "tabs": {
+        "summary": "KI-Zusammenfassung",
+        "fraud": "Betrug",
+        "web": "Web-IQ-Prüfung",
+        "cover": "Deckung und Beträge",
+        "evidence": "Belege",
+        "customer": "Kunde",
+        "timeline": "Zeitablauf",
+        "data": "Extrahierte Daten",
+        "pipeline": "KI-Pipeline"
+      }
+    },
+    "decision": {
+      "title": "Entscheidung erfassen",
+      "prefilled": "Aus der KI-Empfehlung vorausgefüllt. Prüfen Sie sie vor dem Bestätigen.",
+      "conditions": "Bedingungen",
+      "cancel": "Abbrechen",
+      "saving": "Wird gespeichert…"
+    },
+    "fraudTab": {
+      "none": "Noch keine Betrugsanalyse.",
+      "run": "Betrugsanalyse starten",
+      "openReport": "Vollständigen Bericht öffnen",
+      "running": "Betrugsanalyse läuft… {progress} %",
+      "analysedAt": "analysiert am {date}",
+      "siuReason": "Grund für die SIU:",
+      "match": "Übereinstimmend",
+      "mismatch": "Nicht übereinstimmend"
+    },
+    "webTab": {
+      "none": "Noch keine Web-IQ-Prüfung. Sie läuft mit der Betrugsanalyse.",
+      "verdict": {
+        "confirmed": "Ereignis durch öffentliche Quellen bestätigt",
+        "notConfirmed": "Ereignis durch öffentliche Quellen nicht bestätigt",
+        "unclear": "Prüfung ohne eindeutiges Ergebnis",
+        "skipped": "Prüfung nicht durchgeführt"
+      },
+      "confidence": "Konfidenz {value} %",
+      "findings": "Befunde",
+      "searches": "Durchgeführte Suchen",
+      "sources": "{count, plural, one {# Quelle} other {# Quellen}}"
+    },
+    "coverTab": {
+      "amounts": "Beträge",
+      "claimed": "Gefordert",
+      "aiEstimate": "KI-Schätzung",
+      "delta": "+{percent} %",
+      "deductible": "Selbstbehalt",
+      "checks": "Deckungsprüfungen",
+      "guarantees": "Betroffene Deckungen",
+      "aiCoverage": "KI-Deckungsbewertung",
+      "noCoverage": "Noch keine Deckungsbewertung."
+    },
+    "customerTab": {
+      "sentiment": "Kundenstimmung",
+      "client360": "Client 360",
+      "openProfile": "Client-360-Profil öffnen",
+      "message": "Nachricht an den Kunden"
+    },
+    "timelineTab": {
+      "label": "Schadenverlauf"
+    },
+    "dataTab": {
+      "insured": "Versicherter und Vertrag",
+      "claim": "Schaden"
+    },
+    "signals": {
+      "suspiciousPhotos": "{count, plural, one {# Foto wirkt bearbeitet oder KI-generiert} other {# Fotos wirken bearbeitet oder KI-generiert}}",
+      "photoScore": "{file}: Echtheit {score} %",
+      "photosUnchecked": "{count, plural, one {# Foto konnte nicht geprüft werden} other {# Fotos konnten nicht geprüft werden}}",
+      "statementMismatch": "Schadenmeldung passt nicht zu den Belegen",
+      "statementMismatchDetail": "Konsistenzwert: {score} %",
+      "webSkipped": "Web-IQ-Prüfung nicht durchgeführt",
+      "weatherNotConfirmed": "Gemeldetes Ereignis nicht durch öffentliche Quellen bestätigt",
+      "weatherConfirmed": "Gemeldetes Ereignis durch öffentliche Quellen bestätigt",
+      "webSources": "{count, plural, =0 {Keine öffentliche Quelle gefunden} one {# öffentliche Quelle geprüft} other {# öffentliche Quellen geprüft}}",
+      "overclaim": "Geforderter Betrag über der KI-Schätzung",
+      "overclaimDetail": "{claimed} gefordert ggü. {recommended} geschätzt (+{percent} %)"
+    }
   }
 }

@@ -20,6 +20,7 @@ import PolicySummaryPanel from '@/components/PolicySummaryPanel';
 import SouscriaContextPanel from '@/components/SouscriaContextPanel';
 import PolicyReportModal from '@/components/PolicyReportModal';
 import ChatDrawer from '@/components/ChatDrawer';
+import PipelineStatusPill from '@/components/case/PipelineStatusPill';
 import BodySystemDeepDiveModal from '@/components/BodySystemDeepDiveModal';
 import LifeHealthClaimsOverview from '@/components/claims/LifeHealthClaimsOverview';
 import PropertyCasualtyClaimsOverview from '@/components/claims/PropertyCasualtyClaimsOverview';
@@ -40,114 +41,6 @@ interface WorkbenchViewProps {
   applications: ApplicationListItem[];
   onBack: () => void;
   onSelectApp: (appId: string) => void;
-}
-
-function PipelineProvenanceStrip({
-  application,
-  t,
-}: {
-  application: ApplicationMetadata;
-  t: ReturnType<typeof useTranslations>;
-}) {
-  const provenance = application.extraction_provenance;
-  if (!provenance) return null;
-
-  const confidence = provenance.summary?.average_confidence;
-  const fieldCount = Object.keys(application.extracted_fields || {}).length || provenance.summary?.field_count || 0;
-  const confidenceLabel =
-    typeof confidence === 'number'
-      ? `${Math.round(confidence * 100)}%`
-      : fieldCount > 0
-        ? t('pipelineConfidenceUnavailable')
-        : '—';
-  const markitdownMode = provenance.markitdown?.enabled
-    ? t('pipelineMarkitdownEnabled', {
-      mode: provenance.markitdown.mode || 'local',
-      cu: provenance.markitdown.use_content_understanding ? ' + CU' : '',
-    })
-    : null;
-  const llmModel = provenance.openai?.model || provenance.openai?.deployment || '—';
-  const cuAnalyzer =
-    provenance.summary?.last_analyzer_id || provenance.content_understanding?.default_analyzer_id || '—';
-  const contentUnderstanding = [
-    cuAnalyzer,
-    provenance.content_understanding?.completion_deployment
-      ? `CU ${provenance.content_understanding.completion_deployment}`
-      : null,
-    provenance.content_understanding?.api_version,
-  ].filter(Boolean).join(' · ');
-  const extractionEngine = provenance.summary?.selected_engine || '—';
-  const attempts = provenance.summary?.attempted_engines?.join(', ');
-  const fallbackReason = provenance.summary?.fallback_reason;
-  const segments = provenance.segments || [];
-  const segmentDetail = segments
-    .map((segment) => `${segment.pages.join(',')}: ${segment.segment_type}`)
-    .join(' · ');
-
-  const review = application.orchestration?.review;
-  const reviewValue =
-    review?.status === 'reviewed'
-      ? t('pipelineReviewDone')
-      : review?.status === 'needs_review' || provenance.review_required
-        ? t('pipelineReviewRequired')
-        : review?.status === 'auto_ok'
-          ? t('pipelineReviewAuto')
-          : null;
-  const reviewDetail = review?.reasons
-    ?.map((reason) => t(`reviewReasons.${reason.code}`))
-    .join(' · ');
-  const stages = Object.values(application.orchestration?.stages || {});
-  const budgetValue = stages.length
-    ? t('pipelineBudgetValue', {
-      seconds: Math.round(stages.reduce((sum, s) => sum + (s.elapsed_seconds || 0), 0)),
-      tokens: stages.reduce((sum, s) => sum + (s.tokens_used || 0), 0),
-    })
-    : null;
-
-  const chips = [
-    {
-      label: t('pipelineExtractionEngine'),
-      value: extractionEngine,
-      detail: attempts ? t('pipelineAttempts', { engines: attempts }) : t('pipelineExtractionEngineHelp'),
-    },
-    { label: t('pipelineLlmModel'), value: llmModel },
-    { label: t('pipelineContentUnderstanding'), value: contentUnderstanding || '—' },
-    ...(markitdownMode ? [{ label: t('pipelineMarkitdown'), value: markitdownMode }] : []),
-    {
-      label: t('pipelineSegments'),
-      value: segments.length ? String(segments.length) : '—',
-      detail: segmentDetail || undefined,
-    },
-    ...(fieldCount > 0 ? [{ label: t('pipelineFields'), value: String(fieldCount) }] : []),
-    {
-      label: t('pipelineConfidence'),
-      value: confidenceLabel,
-      detail: fallbackReason ? t('pipelineFallback', { reason: fallbackReason }) : undefined,
-    },
-    ...(budgetValue ? [{ label: t('pipelineBudget'), value: budgetValue }] : []),
-    ...(reviewValue
-      ? [{ label: t('pipelineReview'), value: reviewValue, detail: reviewDetail || undefined }]
-      : []),
-  ].filter((chip) => chip.value && chip.value !== '—');
-
-  if (!chips.length) return null;
-
-  return (
-    <div className="border-b border-emerald-100 bg-emerald-50/70 px-6 py-3">
-      <div className="flex flex-wrap items-center gap-2 text-xs">
-        <span className="font-semibold text-emerald-900">{t('aiPipeline')}</span>
-        {chips.map((chip) => (
-          <span
-            key={chip.label}
-            title={chip.detail}
-            className="rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-emerald-800"
-          >
-            <span className="text-emerald-600">{chip.label}:</span> <span className="font-medium">{chip.value}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  );
 }
 
 export default function WorkbenchView({ 
@@ -390,20 +283,25 @@ export default function WorkbenchView({
           showWorkbenchControls={true}
         />
         
-        {/* Back Button / Breadcrumb */}
-        <div className="border-b border-slate-200 px-6 py-2 flex items-center bg-white/95 backdrop-blur-sm">
+        {/* Back Button / Breadcrumb + AI pipeline status */}
+        <div className="border-b border-slate-200 px-6 py-2 flex items-center gap-2 bg-white/95 backdrop-blur-sm">
             <button 
                 onClick={onBack}
-                className="flex items-center text-sm text-slate-500 hover:text-indigo-600 transition-colors"
+                className="flex flex-shrink-0 items-center text-sm text-slate-500 hover:text-indigo-600 transition-colors"
             >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 {tw('returnToDashboard')}
             </button>
-            <span className="mx-2 text-slate-300">/</span>
-            <span className="text-sm font-medium text-slate-700 truncate max-w-md">
+            <span className="text-slate-300" aria-hidden>/</span>
+            <span className="min-w-0 truncate text-sm font-medium text-slate-700" title={selectedApp ? getApplicationDisplayTitle(selectedApp, locale) : undefined}>
                 {selectedApp ? getApplicationDisplayTitle(selectedApp, locale) : tw('applicationDetails')}
             </span>
-             {loading && <span className="ml-3 text-xs text-slate-400 animate-pulse">{tw('loading')}</span>}
+             {loading && <span className="ml-1 text-xs text-slate-400 animate-pulse">{tw('loading')}</span>}
+            {selectedApp && (
+              <div className="ml-auto flex-shrink-0 pl-2">
+                <PipelineStatusPill application={selectedApp} />
+              </div>
+            )}
         </div>
       </div>
 
@@ -450,7 +348,6 @@ export default function WorkbenchView({
                    </div>
                    <span className="text-xs bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full font-medium flex-shrink-0">{tw('live')}</span>
                </div>
-               <PipelineProvenanceStrip application={selectedApp} t={tw} />
                {currentPersona === 'underwriting' && <PatientHeader application={selectedApp} />}
                {renderContent()}
             </>

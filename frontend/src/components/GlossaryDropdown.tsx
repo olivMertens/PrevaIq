@@ -137,9 +137,10 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
         onClick={handleToggle}
         className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
         title={t('title')}
+        aria-label={t('buttonLabel')}
       >
-        <Book className="w-4 h-4 text-indigo-600" />
-        <span className="hidden sm:inline text-slate-700">{t('buttonLabel')}</span>
+        <Book className="w-4 h-4 text-indigo-600" aria-hidden />
+        <span className="hidden 2xl:inline text-slate-700">{t('buttonLabel')}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

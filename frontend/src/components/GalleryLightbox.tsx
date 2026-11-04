@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 
 export interface GalleryItem {
@@ -27,6 +28,23 @@ interface GalleryLightboxProps {
 
 export default function GalleryLightbox({ items, currentIndex, onClose, onNavigate }: GalleryLightboxProps) {
   const t = useTranslations('gallery');
+
+  // Capture phase on window: the lightbox handles Escape before any panel underneath it.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        onClose();
+      } else if (event.key === 'ArrowLeft' && currentIndex > 0) {
+        onNavigate(currentIndex - 1);
+      } else if (event.key === 'ArrowRight' && currentIndex < items.length - 1) {
+        onNavigate(currentIndex + 1);
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [currentIndex, items.length, onClose, onNavigate]);
+
   if (items.length === 0) return null;
 
   const current = items[currentIndex];
@@ -35,7 +53,7 @@ export default function GalleryLightbox({ items, currentIndex, onClose, onNaviga
   const hasNext = currentIndex < items.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/85 flex flex-col" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] bg-black/85 flex flex-col" onClick={onClose} role="dialog" aria-modal="true" aria-label={current.filename}>
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 bg-black/40 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 text-white text-sm min-w-0">

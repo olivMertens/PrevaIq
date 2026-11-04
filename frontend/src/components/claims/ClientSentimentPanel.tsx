@@ -199,7 +199,7 @@ export default function ClientSentimentPanel({
         <span className="text-lg ml-0.5">{sentiment.emoji}</span>
         <span className={clsx('text-[11px] font-medium', sentiment.color)}>{tSentiment(`levels.${sentiment.label}`)}</span>
         <div className="ml-auto flex items-center gap-1.5">
-          {sentiment.isAI && <span className="text-[9px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium">IA</span>}
+          {sentiment.isAI && <span className="text-[9px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium">{tSentiment('aiBadge')}</span>}
           <div className="w-16 h-1.5 bg-white/60 rounded-full overflow-hidden">
             <div
               className={clsx(

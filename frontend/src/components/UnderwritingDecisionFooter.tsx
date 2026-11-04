@@ -5,6 +5,7 @@ import { CheckCircle, XCircle, AlertTriangle, Clock, MessageSquare, Send } from 
 import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import { useToast } from '@/lib/ToastProvider';
+import { submitApplicationDecision } from '@/lib/api';
 
 type DecisionType = 'approve' | 'approve_with_conditions' | 'defer' | 'decline' | null;
 
@@ -49,17 +50,12 @@ export default function UnderwritingDecisionFooter({
     if (!decision) return;
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/applications/${applicationId}/decision`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          decision,
-          notes: notes || undefined,
-          conditions: decision === 'approve_with_conditions' ? conditions : undefined,
-          risk_level: riskLevel,
-        }),
+      await submitApplicationDecision(applicationId, {
+        decision,
+        notes: notes || undefined,
+        conditions: decision === 'approve_with_conditions' ? conditions : undefined,
+        risk_level: riskLevel,
       });
-      if (!res.ok) throw new Error(`Failed: ${res.status}`);
       setSubmitted(true);
       addToast('success', t('decisionRecorded'));
       onDecisionSubmitted?.(decision);

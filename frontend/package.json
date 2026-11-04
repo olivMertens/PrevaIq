@@ -14,7 +14,8 @@
     "test:branding": "node --test tests/branding.test.js",
     "test:auth": "node --test tests/auth.test.js",
     "test:login": "node --test tests/login.test.js",
-    "test:i18n": "node --test tests/i18n.test.js"
+    "test:i18n": "node --test tests/i18n.test.js",
+    "test:cockpit": "node --test tests/cockpit.test.js"
   },
   "dependencies": {
     "clsx": "^2.1.1",

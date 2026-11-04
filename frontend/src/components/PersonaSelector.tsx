@@ -102,7 +102,7 @@ export default function PersonaSelector() {
         title={currentUILabel}
       >
         <IconComponent className="w-4 h-4 shrink-0" style={{ color: brand.primary }} />
-        <span className="hidden truncate text-slate-700 sm:block">{currentUILabel}</span>
+        <span className="hidden truncate text-slate-700 lg:block">{currentUILabel}</span>
         <ChevronDown 
           className={clsx(
             'w-4 h-4 shrink-0 text-slate-400 transition-transform',

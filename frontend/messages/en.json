@@ -631,7 +631,21 @@
       "analysis_budget_exhausted": "Analysis budget exhausted"
     },
     "disabled": "Disabled",
-    "applicationLoadError": "Failed to load application details"
+    "applicationLoadError": "Failed to load application details",
+    "pipelineState": {
+      "ok": "OK",
+      "review": "Review needed",
+      "problem": "Problem"
+    },
+    "pipelineHowRead": "How this case was read",
+    "pipelineClose": "Close",
+    "pipelineReviewClears": "Recording a decision completes the review.",
+    "fallbackReasons": {
+      "no_structured_fields_from_extraction": "no structured fields from the document reader, fields read by the AI model",
+      "cu_and_markitdown_failed": "Content Understanding and MarkItDown could not read the file",
+      "low_quality_cu_output": "Content Understanding output too weak",
+      "below_quality_threshold": "extraction quality below the threshold"
+    }
   },
   "actions": {
     "cancel": "Cancel",
@@ -2665,14 +2679,6 @@
     "hideDamageAreas": "Hide damage areas"
   },
   "nextAction": {
-    "emptyState": "Run the AI analysis to get an action recommendation",
-    "validate": "Validate",
-    "justificationPlaceholder": "Justification (optional)...",
-    "justificationLabel": "Justification:",
-    "actionValidated": "Action validated",
-    "actionRejected": "Action rejected",
-    "confidenceSuffix": "% confidence",
-    "alternativesCount": "{count} {count, plural, =1 {alternative action} other {alternative actions}}",
     "labels": {
       "escalate_siu": "Refer to SIU",
       "request_docs": "Request additional documents",
@@ -2775,11 +2781,11 @@
           },
           {
             "title": "3. Watch AI processing (2-3 min)",
-            "detail": "① Extraction engine → Content Understanding / MarkItDown structures fields and attachments\n② Multimodal analysis → qualifies damage photos\n③ LLM analysis + RAG → evaluates the claim and cites applicable policy terms"
+            "detail": "① Extraction engine → Content Understanding / MarkItDown structures fields and attachments\n② Multimodal analysis → qualifies damage photos\n③ LLM analysis + RAG → evaluates the claim and cites applicable policy terms\n\nThe \"AI pipeline\" pill next to the case title shows how the case was read: green OK, amber review needed, red problem. Click it for engines, model and budget."
           },
           {
             "title": "4. Anti-Fraud & Cat-Nat Analysis",
-            "detail": "\"Anti-Fraud Analysis\" button → uses the dedicated Microsoft Web IQ MCP connection:\n• Verifies Cat-Nat decree for municipality + date\n• Cross-references declarations with public sources\n• Context label \"✓ Cat-Nat confirmed\" or \"✗ not confirmed\"\n\nNote: fraud indicators + overall score.",
+            "detail": "Click the \"Fraud risk\" tile of the verdict bar, then \"Run fraud analysis\" (or \"Open full report\"). It uses the dedicated Microsoft Web IQ MCP connection:\n• Verifies the Cat-Nat decree for municipality + date\n• Cross-references the statement with public sources\n• Cover tile: \"Cat-Nat confirmed\" or \"not confirmed\"\n\n\"Needs your attention\" then lists each signal once, most critical first; \"Evidence\" opens the proof.",
             "tip": "Web analysis takes 30-60s. Sources are clickable."
           },
           {
@@ -2789,7 +2795,7 @@
           },
           {
             "title": "6. Adjuster decision",
-            "detail": "Approve / Adjust / Deny with notes.\nEx: \"Covered per Art. 3.2, €250 deductible applied.\""
+            "detail": "The verdict bar shows the AI recommendation and why. \"Validate\" opens the decision pre-filled from it; \"Other decision\" offers Approve / Approve with conditions / Defer / Decline, with notes.\nEx: \"Covered per Art. 3.2, €250 deductible applied.\""
           }
         ]
       },
@@ -3122,5 +3128,244 @@
     "today": "Today",
     "reviewService": "Review: {service}",
     "reviewServiceWithStatus": "Review: {service} ({status})"
+  },
+  "caseCockpit": {
+    "dismiss": "Dismiss",
+    "severity": {
+      "critical": "Critical",
+      "warning": "Warning",
+      "info": "Info"
+    },
+    "themes": {
+      "photos": "Photos",
+      "statement": "Statement",
+      "timeline": "Timeline",
+      "cover": "Cover",
+      "amount": "Amount",
+      "policy": "Policy",
+      "fraud": "Fraud",
+      "documents": "Documents",
+      "customer": "Customer"
+    },
+    "sources": {
+      "photoAnalysis": "Photo analysis",
+      "declarationCheck": "Statement check",
+      "fraudModel": "Fraud model",
+      "webIq": "Web IQ",
+      "policy": "Policy terms",
+      "rule": "Business rule",
+      "fileDates": "File timestamps",
+      "aiAnalysis": "AI analysis"
+    },
+    "attention": {
+      "title": "Needs your attention",
+      "summary": "{shown} shown · {total} findings detected, duplicates merged",
+      "empty": "Nothing needs your attention: no issue was detected.",
+      "notAnalyzed": "Run the AI analysis to see what needs your attention.",
+      "evidence": "Evidence",
+      "evidenceFor": "Evidence for: {title}",
+      "showMore": "Show {count} more",
+      "showLess": "Show less",
+      "alsoFlagged": "Also flagged: {titles}",
+      "source": "Source",
+      "filtersLabel": "Filter by topic",
+      "filters": {
+        "all": "All",
+        "fraud": "Fraud",
+        "cover": "Cover",
+        "amount": "Amount",
+        "documents": "Documents",
+        "customer": "Customer"
+      },
+      "density": {
+        "label": "Level of detail",
+        "essential": "Essential",
+        "detailed": "Detailed"
+      }
+    },
+    "verdict": {
+      "label": "Case verdict",
+      "recommendation": "AI recommendation",
+      "why": "Why?",
+      "validate": "Validate",
+      "otherDecision": "Other decision",
+      "pending": "No recommendation yet: run the AI analysis first.",
+      "analysisRunning": "AI analysis in progress…",
+      "runAnalysis": "Run AI analysis",
+      "criticalReason": "{count, plural, one {# critical point} other {# critical points}} to clear before any payment.",
+      "decisionLabel": "Decision recorded",
+      "change": "Change decision",
+      "lossDate": "Loss on {date}",
+      "contract": "Contract {number}"
+    },
+    "kpi": {
+      "claimed": "Claimed",
+      "expertNeeded": "Expert required above {threshold}",
+      "overclaim": "+{percent}% vs AI estimate",
+      "fraudRisk": "Fraud risk",
+      "fraudNotRun": "Not analysed yet",
+      "analyzing": "Analysing… {progress}%",
+      "fraudBar": "Fraud risk score: {score} out of 100",
+      "siuRecommended": "SIU referral recommended",
+      "cover": "Cover",
+      "coverUnknown": "Not checked yet",
+      "eventConfirmed": "Event confirmed by Web IQ",
+      "eventNotConfirmed": "Event not confirmed by Web IQ",
+      "customer": "Customer",
+      "customerUnknown": "Not assessed yet",
+      "customerLevels": {
+        "calm": "Calm",
+        "moderate": "Moderate",
+        "stressed": "Stressed",
+        "critical": "Critical"
+      },
+      "score": "score {score}"
+    },
+    "steps": {
+      "title": "Next steps",
+      "progress": "{done}/{total} done",
+      "recommended": "Recommended",
+      "due": {
+        "today": "Due today",
+        "tomorrow": "Due tomorrow",
+        "inDays": "Due in {days} days"
+      },
+      "draft": "Draft message",
+      "settlement": "Settlement note",
+      "settlementBlocked": "blocked while an SIU referral is recommended",
+      "settlementLocked": "available once every step is done",
+      "empty": "No step suggested yet."
+    },
+    "updates": {
+      "title": "Latest updates",
+      "full": "Full timeline",
+      "new": "New",
+      "none": "No activity yet.",
+      "bands": {
+        "LOW": "Low risk",
+        "MODERATE": "Moderate risk",
+        "HIGH": "High risk"
+      },
+      "kinds": {
+        "created": "Case created with {files, plural, one {# file} other {# files}}",
+        "extraction": "{fields} fields extracted from {files, plural, one {# document} other {# documents}}",
+        "analysis": "AI analysis completed",
+        "analysisReview": "AI analysis completed, human review needed",
+        "sentiment": "Customer sentiment: {level} ({score}/100)",
+        "fraud": "Fraud analysis: {band} ({score}%)",
+        "fraudSiu": "Fraud analysis: {band} ({score}%), SIU referral recommended",
+        "web": {
+          "confirmed": "Web IQ confirmed the event ({sources, plural, one {# source} other {# sources}})",
+          "notConfirmed": "Web IQ did not confirm the event ({sources, plural, one {# source} other {# sources}})",
+          "unclear": "Web IQ check inconclusive",
+          "skipped": "Web IQ check skipped"
+        },
+        "decision": "Decision recorded: {decision}"
+      }
+    },
+    "evidence": {
+      "title": "Evidence",
+      "counts": "{documents, plural, one {# document} other {# documents}} · {photos, plural, one {# photo} other {# photos}}",
+      "all": "All evidence",
+      "noPhotos": "No photos in this case.",
+      "open": "Open {name}",
+      "more": "Show {count} more photos",
+      "badge": {
+        "authentic": "Authentic {score}%",
+        "doubtful": "Doubtful {score}%",
+        "suspicious": "Suspicious {score}%"
+      },
+      "documentCount": "{count, plural, one {# document} other {# documents}}"
+    },
+    "facts": {
+      "title": "Key facts",
+      "allFields": "All {count} fields",
+      "client360": "Client 360",
+      "linked": "Linked · open profile",
+      "notLinked": "Not linked",
+      "link": "Link"
+    },
+    "drawer": {
+      "label": "Case details",
+      "close": "Close details",
+      "tabs": {
+        "summary": "AI summary",
+        "fraud": "Fraud",
+        "web": "Web IQ check",
+        "cover": "Cover & amounts",
+        "evidence": "Evidence",
+        "customer": "Customer",
+        "timeline": "Timeline",
+        "data": "Extracted data",
+        "pipeline": "AI pipeline"
+      }
+    },
+    "decision": {
+      "title": "Record a decision",
+      "prefilled": "Pre-filled from the AI recommendation. Review it before you confirm.",
+      "conditions": "Conditions",
+      "cancel": "Cancel",
+      "saving": "Saving…"
+    },
+    "fraudTab": {
+      "none": "No fraud analysis yet.",
+      "run": "Run fraud analysis",
+      "openReport": "Open full report",
+      "running": "Fraud analysis in progress… {progress}%",
+      "analysedAt": "analysed {date}",
+      "siuReason": "Why SIU:",
+      "match": "Matches",
+      "mismatch": "Does not match"
+    },
+    "webTab": {
+      "none": "No Web IQ check yet. It runs with the fraud analysis.",
+      "verdict": {
+        "confirmed": "Event confirmed by public sources",
+        "notConfirmed": "Event not confirmed by public sources",
+        "unclear": "Inconclusive check",
+        "skipped": "Check skipped"
+      },
+      "confidence": "confidence {value}%",
+      "findings": "Findings",
+      "searches": "Searches run",
+      "sources": "{count, plural, one {# source} other {# sources}}"
+    },
+    "coverTab": {
+      "amounts": "Amounts",
+      "claimed": "Claimed",
+      "aiEstimate": "AI estimate",
+      "delta": "+{percent}%",
+      "deductible": "Deductible",
+      "checks": "Coverage checks",
+      "guarantees": "Guarantees concerned",
+      "aiCoverage": "AI coverage assessment",
+      "noCoverage": "No coverage assessment yet."
+    },
+    "customerTab": {
+      "sentiment": "Customer sentiment",
+      "client360": "Client 360",
+      "openProfile": "Open the Client 360 profile",
+      "message": "Message to the customer"
+    },
+    "timelineTab": {
+      "label": "Claim timeline"
+    },
+    "dataTab": {
+      "insured": "Insured and policy",
+      "claim": "Claim"
+    },
+    "signals": {
+      "suspiciousPhotos": "{count, plural, one {# photo looks altered or AI-generated} other {# photos look altered or AI-generated}}",
+      "photoScore": "{file}: authenticity {score}%",
+      "photosUnchecked": "{count, plural, one {# photo could not be checked} other {# photos could not be checked}}",
+      "statementMismatch": "Statement does not match the evidence",
+      "statementMismatchDetail": "Consistency score: {score}%",
+      "webSkipped": "Web IQ check skipped",
+      "weatherNotConfirmed": "Declared event not confirmed by public sources",
+      "weatherConfirmed": "Declared event confirmed by public sources",
+      "webSources": "{count, plural, =0 {No public source found} one {# public source checked} other {# public sources checked}}",
+      "overclaim": "Claimed amount above the AI estimate",
+      "overclaimDetail": "{claimed} claimed vs {recommended} estimated (+{percent}%)"
+    }
   }
 }
