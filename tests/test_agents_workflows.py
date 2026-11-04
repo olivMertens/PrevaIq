@@ -413,6 +413,24 @@ def test_complet_runs_four_branches_concurrently_and_degrades(monkeypatch):
 
 
 @pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ('```json\n{"requires_human_review": true, "insured_name": "A"}\n```', True),
+        ("- requires_human_review: true", True),
+        ("> ⚠️ Step: timed out — `requires_human_review: true`.", True),
+        ("**requires_human_review**: TRUE", True),
+        ('{"requires_human_review": false}', False),
+        ("requires_human_review: true_positive_rate", False),
+        ("", False),
+    ],
+)
+def test_human_review_flag_is_detected_in_json_and_text(text, expected):
+    assert wf._requires_human_review(text) is expected
+    status = wf._result("express", [("DecisionAgent", text)])["status"]
+    assert status == ("needs_review" if expected else "completed")
+
+
+@pytest.mark.parametrize(
     ("language", "expected"),
     [
         ("en", "timed out"),

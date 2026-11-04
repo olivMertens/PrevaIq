@@ -68,6 +68,15 @@ def _resp_text(resp: Any) -> str:
     return val if isinstance(val, str) and val.strip() else ""
 
 
+# Agents emit the review flag as JSON (``"requires_human_review": true``), YAML or
+# Markdown (``requires_human_review: true``), depending on the requested language.
+_HUMAN_REVIEW_PATTERN = re.compile(r"requires_human_review['\"`*]*\s*:\s*['\"`*]*true\b", re.I)
+
+
+def _requires_human_review(text: str) -> bool:
+    return bool(text) and bool(_HUMAN_REVIEW_PATTERN.search(text))
+
+
 def _contains_refusal(text: str) -> bool:
     return bool(text) and bool(_REFUSAL_PATTERNS.search(text))
 
@@ -200,7 +209,7 @@ async def _run_step(
         span.set_attribute("workbenchiq.response_chars", len(text))
         span.set_attribute(
             "workbenchiq.requires_human_review",
-            "requires_human_review: true" in text,
+            _requires_human_review(text),
         )
         logger.info(
             "Workflow step %s completed in %d ms (response_chars=%d)",
@@ -309,7 +318,7 @@ def _role(text: str, lang: str) -> str:
 
 
 def _result(workflow: str, steps: list[tuple[str, str]]) -> dict[str, Any]:
-    needs_review = any("requires_human_review: true" in text for _, text in steps)
+    needs_review = any(_requires_human_review(text) for _, text in steps)
     return {
         "workflow": workflow,
         "status": "needs_review" if needs_review else "completed",
