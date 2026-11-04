@@ -60,3 +60,38 @@ def test_fraud_analysis_rejects_unsupported_language(client, monkeypatch):
 
     assert response.status_code == 400
     assert "Unsupported language" in response.json()["detail"]
+
+
+def test_fraud_analysis_localizes_image_errors(client, monkeypatch):
+    monkeypatch.setattr(
+        agent_tools,
+        "analyze_image_fraud",
+        lambda **_kwargs: json.dumps(
+            {"image_analyses": [{"filename": "toit.jpg", "error": "OpenAI API error 429"}]}
+        ),
+    )
+
+    response = client.post("/api/claims/APP-1/fraud-analysis?language=de")
+
+    assert response.json()["image_analyses"][0]["error"] == (
+        "Ratenlimit erreicht — bitte gleich erneut versuchen"
+    )
+
+
+def test_saved_fraud_analysis_is_healed_in_the_ui_language(client, monkeypatch):
+    saved = {
+        "application_id": "APP-1",
+        "image_analyses": [
+            {"filename": "toit.jpg", "authenticity_score": 0.2, "is_likely_authentic": False}
+        ],
+        "overall_assessment": {"overall_fraud_risk": "LOW", "risk_score": 0.0},
+    }
+    app_md = SimpleNamespace(id="APP-1", fraud_analysis=saved)
+    monkeypatch.setattr("app.storage.load_application", lambda *_args, **_kwargs: app_md)
+
+    response = client.get("/api/claims/APP-1/fraud-analysis?language=fr")
+
+    assert response.status_code == 200
+    items = response.json()["overall_assessment"]["attention_items"]
+    assert [item["label"] for item in items] == ["Image suspecte : toit.jpg"]
+    assert client.get("/api/claims/APP-1/fraud-analysis?language=es").status_code == 400

@@ -111,6 +111,84 @@ _MESSAGES: Final = {
         "fr": "Vérification web non effectuée : aucune commune du sinistre à rechercher.",
         "de": "Keine Webprüfung durchgeführt: Für den Schaden ist keine Gemeinde angegeben.",
     },
+    "fraud_siu_suspect_images": {
+        "en": "{count} suspicious image(s) — SIU review recommended.",
+        "fr": "{count} image(s) suspecte(s) — contrôle SIU recommandé.",
+        "de": "{count} verdächtige(s) Bild(er) — SIU-Prüfung empfohlen.",
+    },
+    "fraud_siu_suspect_images_declaration": {
+        "en": "{count} suspicious image(s) and an inconsistent declaration — SIU review recommended.",
+        "fr": "{count} image(s) suspecte(s) et déclaration incohérente — contrôle SIU recommandé.",
+        "de": (
+            "{count} verdächtige(s) Bild(er) und widersprüchliche Schadenmeldung — "
+            "SIU-Prüfung empfohlen."
+        ),
+    },
+    "fraud_siu_high_risk": {
+        "en": "High risk detected — SIU review recommended.",
+        "fr": "Risque élevé détecté — contrôle SIU recommandé.",
+        "de": "Hohes Risiko erkannt — SIU-Prüfung empfohlen.",
+    },
+    "fraud_siu_high_risk_declaration": {
+        "en": "High risk detected and an inconsistent declaration — SIU review recommended.",
+        "fr": "Risque élevé détecté et déclaration incohérente — contrôle SIU recommandé.",
+        "de": "Hohes Risiko erkannt und widersprüchliche Schadenmeldung — SIU-Prüfung empfohlen.",
+    },
+    "fraud_suspect_image_label": {
+        "en": "Suspicious image: {filename}",
+        "fr": "Image suspecte : {filename}",
+        "de": "Verdächtiges Bild: {filename}",
+    },
+    "fraud_suspect_image_detail": {
+        "en": "Authenticity score {score}% — manual review recommended.",
+        "fr": "Score d'authenticité {score} % — vérification manuelle recommandée.",
+        "de": "Echtheitswert {score} % — manuelle Prüfung empfohlen.",
+    },
+    "fraud_inconsistent_declaration_label": {
+        "en": "Inconsistent declaration",
+        "fr": "Déclaration incohérente",
+        "de": "Widersprüchliche Schadenmeldung",
+    },
+    "fraud_inconsistent_declaration_detail": {
+        "en": "Declaration/evidence consistency {score}% — discrepancies to investigate.",
+        "fr": "Concordance déclaration/preuves {score} % — écarts à instruire.",
+        "de": "Übereinstimmung Meldung/Belege {score} % — Abweichungen zu prüfen.",
+    },
+    "fraud_image_content_filter": {
+        "en": "Image rejected by the Azure content filter",
+        "fr": "Image rejetée par le filtre de contenu Azure",
+        "de": "Bild vom Azure-Inhaltsfilter abgelehnt",
+    },
+    "fraud_image_deployment_missing": {
+        "en": "Vision deployment not found — check FRAUD_VISION_DEPLOYMENT",
+        "fr": "Déploiement vision introuvable — vérifier FRAUD_VISION_DEPLOYMENT",
+        "de": "Vision-Deployment nicht gefunden — FRAUD_VISION_DEPLOYMENT prüfen",
+    },
+    "fraud_image_rate_limited": {
+        "en": "Rate limit reached — retry in a few moments",
+        "fr": "Limite de débit atteinte — réessayer dans quelques instants",
+        "de": "Ratenlimit erreicht — bitte gleich erneut versuchen",
+    },
+    "fraud_image_timeout": {
+        "en": "The analysis timed out",
+        "fr": "Délai d'attente dépassé pour l'analyse",
+        "de": "Zeitüberschreitung bei der Analyse",
+    },
+    "fraud_image_auth_error": {
+        "en": "Azure OpenAI authentication error",
+        "fr": "Erreur d'authentification Azure OpenAI",
+        "de": "Azure OpenAI-Authentifizierungsfehler",
+    },
+    "fraud_image_analysis_error": {
+        "en": "Image analysis error",
+        "fr": "Erreur d'analyse de l'image",
+        "de": "Fehler bei der Bildanalyse",
+    },
+    "fraud_image_unstructured": {
+        "en": "Analysis error — unstructured result",
+        "fr": "Erreur d'analyse — résultat non structuré",
+        "de": "Analysefehler — unstrukturiertes Ergebnis",
+    },
 }
 
 

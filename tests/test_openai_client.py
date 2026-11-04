@@ -94,3 +94,29 @@ def test_non_reasoning_model_not_floored(monkeypatch):
 
     assert captured["max_tokens"] == 512
     assert "max_completion_tokens" not in captured
+
+
+def test_truncated_reasoning_response_is_logged(monkeypatch, caplog):
+    """An answer starved by hidden reasoning must be visible in the logs, not silent."""
+
+    class FakeResponse:
+        status_code = 200
+
+        @staticmethod
+        def json():
+            return {
+                "choices": [{"message": {"content": ""}, "finish_reason": "length"}],
+                "usage": {
+                    "completion_tokens": 4000,
+                    "completion_tokens_details": {"reasoning_tokens": 4000},
+                },
+            }
+
+    monkeypatch.setattr(openai_client.requests, "post", lambda *_args, **_kwargs: FakeResponse())
+
+    with caplog.at_level("WARNING"):
+        result = openai_client._call_openai_endpoint("https://example", {}, {}, {}, "primary")
+
+    assert result["content"] == ""
+    assert "finish_reason=length" in caplog.text
+    assert "reasoning_tokens=4000" in caplog.text

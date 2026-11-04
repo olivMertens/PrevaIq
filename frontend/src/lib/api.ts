@@ -1984,9 +1984,10 @@ export async function runFraudAnalysis(
   });
 }
 
-export async function getFraudAnalysis(claimId: string): Promise<FraudAnalysisResponse | null> {
+export async function getFraudAnalysis(claimId: string, locale?: string): Promise<FraudAnalysisResponse | null> {
+  const params = new URLSearchParams({ language: resolveLocale(locale) });
   try {
-    return await apiFetch<FraudAnalysisResponse>(`/api/claims/${claimId}/fraud-analysis`);
+    return await apiFetch<FraudAnalysisResponse>(`/api/claims/${claimId}/fraud-analysis?${params.toString()}`);
   } catch {
     return null; // 404 — no saved analysis
   }

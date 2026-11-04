@@ -1857,10 +1857,19 @@ class FraudAnalysisResponse(BaseModel):
 
 
 @router.get("/{claim_id}/fraud-analysis", response_model=FraudAnalysisResponse)
-async def get_fraud_analysis(claim_id: str) -> FraudAnalysisResponse:
+async def get_fraud_analysis(
+    claim_id: str,
+    language: str = Query("en", description="Language of synthesized labels: en, fr, or de"),
+) -> FraudAnalysisResponse:
     """Get previously saved fraud analysis results for a claim."""
     from ..storage import load_application
     from ..agents.tools import _reconcile_fraud_assessment
+    from ..languages import UnsupportedLanguageError, require_language
+
+    try:
+        locale = require_language(language)
+    except UnsupportedLanguageError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     settings = load_settings()
     claim_id = _canonical_claim_id(claim_id)
     app_md = load_application(settings.app.storage_root, claim_id)
@@ -1868,7 +1877,7 @@ async def get_fraud_analysis(claim_id: str) -> FraudAnalysisResponse:
         raise HTTPException(status_code=404, detail="No fraud analysis found for this claim.")
     # Heal cached results saved before deterministic reconciliation existed so the
     # UI never shows an incoherent verdict (red dot / "Authentique") or a 0% score.
-    healed = _reconcile_fraud_assessment(app_md.fraud_analysis)
+    healed = _reconcile_fraud_assessment(app_md.fraud_analysis, locale)
     return FraudAnalysisResponse(**healed)
 
 
@@ -1888,7 +1897,7 @@ async def run_fraud_analysis(
     Merge (reasoning model): Cross-reference all branches for fraud assessment.
     """
     from ..agents.tools import analyze_image_fraud
-    from ..languages import UnsupportedLanguageError, require_language
+    from ..languages import UnsupportedLanguageError, localized_message, require_language
 
     settings = load_settings()
     claim_id = _canonical_claim_id(claim_id)
@@ -1939,25 +1948,25 @@ async def run_fraud_analysis(
             lower_err = raw_error.lower()
             # Classify known error types into user-friendly messages
             if "content_filter" in lower_err or "contentfilter" in lower_err or "responsibleai" in lower_err:
-                raw_error = "Image rejetée par le filtre de contenu Azure"
+                raw_error = localized_message("fraud_image_content_filter", locale)
             elif "404" in lower_err or "not_found" in lower_err or "deploymentnotfound" in lower_err:
-                raw_error = "Déploiement vision introuvable — vérifier FRAUD_VISION_DEPLOYMENT"
+                raw_error = localized_message("fraud_image_deployment_missing", locale)
             elif "429" in lower_err or "rate_limit" in lower_err or "ratelimit" in lower_err or "throttl" in lower_err:
-                raw_error = "Limite de débit atteinte — réessayer dans quelques instants"
+                raw_error = localized_message("fraud_image_rate_limited", locale)
             elif "timeout" in lower_err or "timed out" in lower_err:
-                raw_error = "Délai d'attente dépassé pour l'analyse"
+                raw_error = localized_message("fraud_image_timeout", locale)
             elif "401" in lower_err or "unauthorized" in lower_err or "authentication" in lower_err:
-                raw_error = "Erreur d'authentification Azure OpenAI"
+                raw_error = localized_message("fraud_image_auth_error", locale)
             else:
                 stripped = raw_error.strip()
                 if (stripped.startswith("'") or stripped.startswith('"')
                         or "\n" in stripped[:30] or stripped.startswith("{")):
                     # Log the actual error for debugging, show generic message
                     logger.warning("Image analysis raw error for %s: %s", img.get("filename", "?"), raw_error[:200])
-                    raw_error = "Erreur d'analyse de l'image"
+                    raw_error = localized_message("fraud_image_analysis_error", locale)
         # If parse_error flag is set but no explicit error, set generic error
         if not raw_error and img.get("parse_error"):
-            raw_error = "Erreur d'analyse — résultat non structuré"
+            raw_error = localized_message("fraud_image_unstructured", locale)
 
         # Extract authenticity_score robustly (could be float or str)
         score_raw = img.get("authenticity_score", 0.0)

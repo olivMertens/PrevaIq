@@ -109,12 +109,12 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
         }
       }).catch(() => {
         // Fallback: try claims endpoint (multimodal pipeline)
-        getFraudAnalysis(applicationId).then((saved) => {
+        getFraudAnalysis(applicationId, locale).then((saved) => {
           if (saved) { setResult(saved); onFraudComplete?.(saved); }
         }).catch(() => {});
       });
     });
-  }, [applicationId, onFraudComplete]);
+  }, [applicationId, locale, onFraudComplete]);
 
   const handleAnalyze = useCallback(async () => {
     setIsLoading(true);

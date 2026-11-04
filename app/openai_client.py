@@ -101,6 +101,16 @@ def _call_openai_endpoint(
         raise OpenAIClientError(f"Unexpected OpenAI response: {json.dumps(data)}") from exc
 
     usage = data.get("usage", {})
+    if choice.get("finish_reason") == "length":
+        # Reasoning models can spend the whole budget on hidden reasoning (empty answer).
+        logger.warning(
+            "OpenAI %s response truncated (finish_reason=length): completion_tokens=%s "
+            "reasoning_tokens=%s content_chars=%d",
+            endpoint_name,
+            usage.get("completion_tokens"),
+            (usage.get("completion_tokens_details") or {}).get("reasoning_tokens"),
+            len(content or ""),
+        )
     logger.debug("Successfully called %s endpoint", endpoint_name)
     return {"content": content, "usage": usage}
 

@@ -85,6 +85,16 @@ def _clamp01(value: float) -> float:
 # amber/red boundary (0.5) so a red dot never sits next to an "Authentique" verdict.
 _IMG_AUTHENTIC_MIN_SCORE = 0.5
 
+# Completion budget of the cross-check and merge calls, by reasoning effort. Hidden
+# reasoning shares max_completion_tokens with the ~1.5k-token JSON answer: measured merge
+# runs used up to 4k reasoning tokens at medium effort (and starved the answer at 4k) and
+# up to ~8k at high effort. Only consumed tokens are billed.
+_FRAUD_COMPLETION_TOKENS = {"low": 6000, "medium": 10000, "high": 16000}
+
+
+def _fraud_completion_tokens(reasoning_effort: str) -> int:
+    return _FRAUD_COMPLETION_TOKENS.get(reasoning_effort, _FRAUD_COMPLETION_TOKENS["medium"])
+
 
 def _fraud_risk_band(score: float) -> str:
     """Map a 0..1 fraud score to the LOW/MODERATE/HIGH band the workbench UI expects."""
@@ -95,7 +105,7 @@ def _fraud_risk_band(score: float) -> str:
     return "LOW"
 
 
-def _reconcile_fraud_assessment(data: Any) -> Any:
+def _reconcile_fraud_assessment(data: Any, language: str = "en") -> Any:
     """Deterministically reconcile fraud output so verdicts, the overall risk score
     and the risk band stay coherent with the underlying evidence.
 
@@ -115,9 +125,12 @@ def _reconcile_fraud_assessment(data: Any) -> Any:
       concerns exist. The model's own score/band is kept when it is already higher.
     * Synthesise an SIU referral and attention items when the reconciled risk is elevated
       but the model left them empty, so the case manager always has actionable context.
+      They are written in ``language`` (the UI language).
 
     The function is idempotent: re-running it on already-reconciled data is a no-op.
     """
+    from ..languages import localized_message
+
     if not isinstance(data, dict):
         return data
 
@@ -185,10 +198,12 @@ def _reconcile_fraud_assessment(data: Any) -> Any:
     if final_score >= 0.6 and not overall.get("siu_referral_recommended"):
         overall["siu_referral_recommended"] = True
         if not overall.get("siu_referral_reason"):
-            reason = f"{suspect_count} image(s) suspecte(s)" if suspect_count else "Risque élevé détecté"
+            key = "fraud_siu_suspect_images" if suspect_count else "fraud_siu_high_risk"
             if decl_inconsistent:
-                reason += " et déclaration incohérente"
-            overall["siu_referral_reason"] = reason + " — contrôle SIU recommandé."
+                key += "_declaration"
+            overall["siu_referral_reason"] = localized_message(key, language).format(
+                count=suspect_count
+            )
 
     existing_items = overall.get("attention_items")
     if not isinstance(existing_items, list) or not existing_items:
@@ -199,23 +214,23 @@ def _reconcile_fraud_assessment(data: Any) -> Any:
             img_score = _safe_float(img.get("authenticity_score"))
             synthesised.append(
                 {
-                    "label": f"Image suspecte : {img.get('filename', 'image')}",
+                    "label": localized_message("fraud_suspect_image_label", language).format(
+                        filename=img.get("filename", "image")
+                    ),
                     "priority": "high" if img_score < 0.35 else "medium",
-                    "detail": (
-                        f"Score d'authenticité {int(img_score * 100)}% — "
-                        "vérification manuelle recommandée."
+                    "detail": localized_message("fraud_suspect_image_detail", language).format(
+                        score=int(img_score * 100)
                     ),
                 }
             )
         if decl_inconsistent:
             synthesised.append(
                 {
-                    "label": "Déclaration incohérente",
+                    "label": localized_message("fraud_inconsistent_declaration_label", language),
                     "priority": "medium",
-                    "detail": (
-                        f"Concordance déclaration/preuves {int(decl_consistency * 100)}% — "
-                        "écarts à instruire."
-                    ),
+                    "detail": localized_message(
+                        "fraud_inconsistent_declaration_detail", language
+                    ).format(score=int(decl_consistency * 100)),
                 }
             )
         if synthesised:
@@ -1803,7 +1818,9 @@ def analyze_image_fraud(
         return raw_result
     if not isinstance(parsed, dict):
         return raw_result
-    return json.dumps(_reconcile_fraud_assessment(parsed), ensure_ascii=False, indent=2)
+    return json.dumps(
+        _reconcile_fraud_assessment(parsed, language), ensure_ascii=False, indent=2
+    )
 
 
 async def _fraud_orchestrator(
@@ -2557,7 +2574,7 @@ def _cross_check_declaration(
     raw = chat_completion(
         settings.openai,
         messages,
-        max_tokens=2000,
+        max_tokens=_fraud_completion_tokens(reasoning_effort),
         temperature=0.0,
         deployment_override=fraud_settings.deployment_name,
         model_override=fraud_settings.model_name,
@@ -2634,7 +2651,7 @@ def _assess_overall_fraud(
     raw = chat_completion(
         settings.openai,
         messages,
-        max_tokens=2000,
+        max_tokens=_fraud_completion_tokens(reasoning_effort),
         temperature=0.0,
         deployment_override=fraud_settings.deployment_name,
         model_override=fraud_settings.model_name,

@@ -10,8 +10,15 @@ overall score and the band coherent before they reach the workbench UI.
 from __future__ import annotations
 
 import copy
+import json
+from types import SimpleNamespace
 
+import pytest
+
+from app import openai_client
 from app.agents.tools import (
+    _assess_overall_fraud,
+    _cross_check_declaration,
     _fraud_risk_band,
     _reconcile_fraud_assessment,
     _safe_float,
@@ -120,6 +127,47 @@ def test_reconciliation_is_idempotent() -> None:
     once = _reconcile_fraud_assessment(_sample())
     twice = _reconcile_fraud_assessment(copy.deepcopy(once))
     assert once == twice
+
+
+def test_synthesised_items_follow_the_requested_language() -> None:
+    german = _reconcile_fraud_assessment(_sample(), "de")["overall_assessment"]
+    german_labels = [item["label"] for item in german["attention_items"]]
+    assert "Verdächtiges Bild: img_132943.jpg" in german_labels
+    assert "Widersprüchliche Schadenmeldung" in german_labels
+    assert german["siu_referral_reason"] == (
+        "3 verdächtige(s) Bild(er) und widersprüchliche Schadenmeldung — SIU-Prüfung empfohlen."
+    )
+
+    english = _reconcile_fraud_assessment(_sample())["overall_assessment"]
+    assert "Suspicious image: img_132943.jpg" in [i["label"] for i in english["attention_items"]]
+    serialized = json.dumps(english, ensure_ascii=False)
+    assert "suspecte" not in serialized and "incohérente" not in serialized
+
+
+@pytest.mark.parametrize(
+    ("effort", "budget"),
+    [("low", 6000), ("medium", 10000), ("high", 16000), ("unexpected", 10000)],
+)
+def test_reasoning_calls_leave_room_for_the_json_answer(monkeypatch, effort, budget) -> None:
+    """A 4k budget let hidden reasoning consume everything (finish_reason=length, empty
+    merge): the cross-check and merge budgets scale with the selected reasoning effort."""
+    budgets = []
+
+    def fake_chat_completion(_settings, _messages, **kwargs):
+        budgets.append(kwargs["max_tokens"])
+        return {"content": '{"summary": "ok"}'}
+
+    monkeypatch.setattr(openai_client, "chat_completion", fake_chat_completion)
+    settings = SimpleNamespace(openai=SimpleNamespace())
+    fraud_settings = SimpleNamespace(deployment_name="fraud", model_name="fraud-model")
+
+    merged = _assess_overall_fraud(settings, fraud_settings, {}, [], {}, reasoning_effort=effort)
+    checked = _cross_check_declaration(
+        settings, fraud_settings, {}, [], "Tempête", "sinistre", reasoning_effort=effort
+    )
+
+    assert merged == checked == {"summary": "ok"}
+    assert budgets == [budget, budget]
 
 
 def test_passthrough_for_non_dict() -> None:
