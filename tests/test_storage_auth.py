@@ -167,18 +167,16 @@ class TestAuthResolution:
         assert provider._resolved_auth == "DefaultAzureCredential"
 
     @patch("app.storage_providers.azure_blob.AzureBlobStorageProvider._ensure_container_exists")
-    def test_default_mode_dac_failure_raises(
+    def test_default_mode_dac_does_not_probe_storage(
         self, _ensure: MagicMock
     ) -> None:
-        """When DAC probe fails in default mode, raise ValueError (no fallback to key)."""
+        """DAC initialization stays lazy so temporary storage outages do not stop the API."""
         settings = _base_settings(
             azure_storage_auth_mode="default",
         )
 
         mock_dac_svc = _mock_blob_service()
-        # The probe now calls get_container_properties on the container client
         container_mock = mock_dac_svc.get_container_client.return_value
-        container_mock.get_container_properties.side_effect = Exception("DAC failed")
 
         with (
             patch("azure.identity.DefaultAzureCredential", return_value=MagicMock()),
@@ -186,10 +184,12 @@ class TestAuthResolution:
                 "azure.storage.blob.BlobServiceClient",
                 return_value=mock_dac_svc,
             ),
-            pytest.raises(ValueError, match="DefaultAzureCredential authentication failed"),
         ):
             from app.storage_providers.azure_blob import AzureBlobStorageProvider
-            AzureBlobStorageProvider(settings)
+            provider = AzureBlobStorageProvider(settings)
+
+        assert provider._resolved_auth == "DefaultAzureCredential"
+        container_mock.get_container_properties.assert_not_called()
 
     def test_no_credentials_at_all_raises(self) -> None:
         """When no account name is set in default mode, raise ValueError."""

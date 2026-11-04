@@ -167,23 +167,7 @@ class AzureBlobStorageProvider:
             credential=credential,
             **common_kwargs,
         )
-        # Probe connectivity – use a data-plane call that only needs
-        # "Storage Blob Data Contributor" (get_account_information requires
-        # the management-plane "Storage Account Contributor" role).
-        try:
-            container = client.get_container_client(
-                settings.azure_container_name
-            )
-            container.get_container_properties()
-        except Exception as exc:
-            raise ValueError(
-                f"DefaultAzureCredential authentication failed: {exc}. "
-                "Ensure the identity has the 'Storage Blob Data Contributor' "
-                "role on the storage account, or set "
-                "AZURE_STORAGE_AUTH_MODE=key to use account key."
-            ) from exc
-
-        logger.info("Authenticated via DefaultAzureCredential")
+        logger.info("Configured DefaultAzureCredential authentication")
         return client, cls._AUTH_LABEL_DAC
 
     # ------------------------------------------------------------------
