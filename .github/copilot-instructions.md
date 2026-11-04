@@ -45,6 +45,7 @@ PrevaIQ (technical name *WorkbenchIQ*) is a brand-agnostic, AI-powered insurance
 - `deploy.ps1` — Image build + Container Apps rollout (mandatory deploy path)
 - `deploy.sh` — CLI deployment script (infra + images); `--iac bicep|terraform` picks the infra tool
 - `set-webiq-secret.ps1` — Stores the Web IQ key in Key Vault
+- `enable-private-data-access.ps1` — Connects an existing deployment to private-only Storage/Key Vault (VNet, private endpoints, VNet Container Apps environment; `-MigrateWorkloads` recreates the API and jobs there). Use it when governance policies force `publicNetworkAccess=Disabled`; never re-enable public access
 
 ## Coding Conventions
 

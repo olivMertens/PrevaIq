@@ -143,6 +143,21 @@ if ($TenantId) {
     if ($LASTEXITCODE -ne 0 -or $actualTenant -ne $TenantId) { throw "Azure tenant does not match -TenantId." }
 }
 
+# Existing deployments may predate the IaC registry name; reuse the registry attached to the API.
+if (-not $PSBoundParameters.ContainsKey('AcrName') -and -not $BuildOnly) {
+    az acr show --name $ACR --subscription $SUBSCRIPTION_ID -o none 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $attachedRegistry = az containerapp show -n $API_APP -g $RG --subscription $SUBSCRIPTION_ID `
+            --query "properties.configuration.registries[0].server" -o tsv 2>$null
+        if ($LASTEXITCODE -eq 0 -and $attachedRegistry -match '^([a-z0-9]+)\.azurecr\.io$') {
+            $ACR = $Matches[1]
+            $ACR_SERVER = "$ACR.azurecr.io"
+            Write-Host "    Registry: $ACR_SERVER (attached to $API_APP)" -ForegroundColor Green
+        }
+    }
+    $global:LASTEXITCODE = 0
+}
+
 $backendModelEnvVarArgs = @()
 $frontendAuthEnv = @()
 if (-not $SkipFrontend -and -not $BuildOnly) {

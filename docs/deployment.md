@@ -55,6 +55,7 @@ Image deployment is identical for Bicep and Terraform.
 ```
 
 - Created resources use the same defaults with Bicep and Terraform: `environment=demo`, `projectName` / `project_name = prevaiq`, ACR `acrprevaiqdemo`, Container Apps `ca-api-demo` and `ca-frontend-demo`, images `prevaiq-api` and `prevaiq-frontend`, Foundry `ai-prevaiq-foundry`, project `ai-prevaiq-project`, and deployments `gpt-5.4-mini`, `gpt-5.4-nano`, `text-embedding-3-large`, and `text-embedding-3-small`.
+- When `-AcrName` is omitted and the default registry does not exist (for example a deployment created before the `prevaiq` naming), `deploy.ps1` reuses the registry already attached to the API Container App.
 - `BRAND_NAME` is baked into images with `--build-arg`; never set it through `az containerapp update --set-env-vars`.
 - The hosted demo uses Microsoft Entra ID only. Configure `ENTRA_TENANT_ID`, `ENTRA_CLIENT_ID`, and `ENTRA_CLIENT_SECRET` with `infra/set-entra-auth.ps1` before deployment. `deploy.ps1` checks that they exist before builds, preserves session signing, and removes old local-account variables `AUTH_USER*` / `APPSETTING_AUTH_USER*` without recreating them.
 - The username/password form is for development only. Enable it explicitly with `LOCAL_AUTH_ENABLED=true` and `npm run dev`, and configure `AUTH_USER_*` in `frontend/.env.local`. In production, these accounts and their old sessions are rejected even if the flag is enabled; missing Entra configuration never makes the site public.
@@ -144,6 +145,21 @@ The apps access Azure services through managed identity. Shared Storage keys, Fo
 - Default networking uses public endpoints protected by Entra ID and RBAC. PostgreSQL allows Azure services through `AllowAzureServices`, which Container Apps need until they run in a VNet.
 - Private networking is enabled the same way in both tools: `privateNetworkingEnabled = true` for Bicep or `private_networking_enabled = true` for Terraform. It creates a VNet, places the Container Apps environment in it, adds private endpoints and private DNS zones for Storage, Key Vault, AI Search, and Foundry, and switches PostgreSQL to private access without `AllowAzureServices`. Public access to these services is closed except for operator public IPs in `adminIpRanges` / `admin_ip_ranges`, which are needed because `deploy.ps1` and `set-webiq-secret.ps1` call the Foundry and Key Vault data planes from an operator workstation. ACR remains public and protected by RBAC for ACR Tasks builds.
 - With private networking, PostgreSQL is reachable only from the VNet. RAG scripts such as `scripts/setup_postgresql_rag.py` and `scripts/index_pdf_policies.py` need network access to the VNet through VPN, VM, or container. Foundry project connections to Storage and AI Search use trusted Azure services access, valid with restricted public access when `admin_ip_ranges` is set.
+
+### Existing deployment under private-only governance policies
+
+Governance policies such as MCAPS `StorageAccount_PublicNetwork_Modify` and `KeyVault_PublicNetwork_Modify` can force `publicNetworkAccess=Disabled` on an existing public-mode deployment. The API then returns `AuthorizationFailure` when it lists or uploads cases, and Key Vault references can no longer be resolved from a new environment. Do not re-enable public access or create policy exemptions; connect the data plane privately instead:
+
+```powershell
+.\infra\enable-private-data-access.ps1                    # VNet, private DNS, private endpoints, VNet environment (no downtime)
+.\infra\enable-private-data-access.ps1 -MigrateWorkloads  # recreate the jobs and the API in that environment
+.\infra\deploy.ps1                                        # rebuild the backend and the frontend against the new API URL
+```
+
+- The script mirrors the private-networking layout above (`vnet-<prefix>`, `snet-apps`, `snet-private-endpoints`, `privatelink.blob.core.windows.net`, `privatelink.vaultcore.azure.net`, `pe-storage-<prefix>`, `pe-vault-<prefix>`, `cae-<prefix>`) and discovers the Storage account, Key Vault, PostgreSQL server, jobs, and Log Analytics workspace from the API configuration. Every step is idempotent.
+- A Container Apps environment cannot gain VNet integration and an app cannot change environment, so `-MigrateWorkloads` deletes and recreates the API and the jobs of its environment with the same name, identity, registries, secrets, variables, ingress, and scale. Plan for a short API interruption. The definition, including secret values, is kept under the gitignored `.tmp/private-data-access/` folder until the workload is provisioned again.
+- The frontend keeps its environment, public URL, and Entra redirect URIs; only the API URL baked into the frontend changes, which `deploy.ps1` handles. PostgreSQL stays on public access with `AllowAzureServices`; the script starts it if governance automation stopped it, and the API reconnects automatically within 30 seconds once it is available.
+- The VNet environment adds private endpoints, private DNS zones, and an environment-managed load balancer with public IPs to the monthly cost.
 
 ## API authentication
 
