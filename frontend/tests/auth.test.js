@@ -352,3 +352,24 @@ test('corporate and sandbox access keeps tenant, approval and administrator gate
     });
   }
 });
+
+test('API base URL prefers the deployed API_URL over the frontend host', () => {
+  const frontendHost = 'ca-frontend-demo.old-env.swedencentral.azurecontainerapps.io';
+  const request = (host) => ({ headers: { get: (name) => (name === 'host' ? host : null) } });
+  const resolve = (env, host = frontendHost) =>
+    loadAuth(env).load('lib/api-base-url').getApiBaseUrl(request(host));
+
+  // The API can run in another Container Apps environment than the frontend.
+  assert.equal(
+    resolve({ API_URL: 'https://ca-api-demo.new-env.swedencentral.azurecontainerapps.io/' }),
+    'https://ca-api-demo.new-env.swedencentral.azurecontainerapps.io'
+  );
+  // Images built without API_URL keep the historical same-environment fallback.
+  assert.equal(
+    resolve({ API_URL: 'http://localhost:8000' }),
+    'https://ca-api-demo.old-env.swedencentral.azurecontainerapps.io'
+  );
+  assert.equal(resolve({}), 'https://ca-api-demo.old-env.swedencentral.azurecontainerapps.io');
+  assert.equal(resolve({}, 'localhost:3000'), 'http://localhost:8000');
+  assert.equal(resolve({ API_URL: 'http://localhost:8001' }, 'localhost:3000'), 'http://localhost:8001');
+});
