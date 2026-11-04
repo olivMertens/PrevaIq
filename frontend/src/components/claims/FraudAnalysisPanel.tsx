@@ -134,7 +134,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
     }, 500);
 
     try {
-      const data = await runFraudAnalysis(applicationId, undefined, effort);
+      const data = await runFraudAnalysis(applicationId, undefined, effort, locale);
       setResult(data);
       onFraudComplete?.(data);
       setProgress(100);
@@ -146,7 +146,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
       setIsLoading(false);
       if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
     }
-  }, [applicationId, effort]);
+  }, [applicationId, effort, locale]);
 
   const generateMarkdown = useCallback((): string => {
     if (!result) return '';

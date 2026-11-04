@@ -1878,6 +1878,7 @@ async def run_fraud_analysis(
     filename: Optional[str] = Query(None, description="Specific image to analyze"),
     declaration_text: Optional[str] = None,
     reasoning_effort: Optional[str] = Query("medium", description="Reasoning effort: low, medium, high"),
+    language: str = Query("en", description="Generated-content language: en, fr, or de"),
 ) -> FraudAnalysisResponse:
     """
     Run fraud analysis on claim images (parallel orchestrator pipeline).
@@ -1887,9 +1888,14 @@ async def run_fraud_analysis(
     Merge (reasoning model): Cross-reference all branches for fraud assessment.
     """
     from ..agents.tools import analyze_image_fraud
+    from ..languages import UnsupportedLanguageError, require_language
 
     settings = load_settings()
     claim_id = _canonical_claim_id(claim_id)
+    try:
+        locale = require_language(language)
+    except UnsupportedLanguageError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     if not settings.fraud_detection.enabled:
         raise HTTPException(
@@ -1906,6 +1912,7 @@ async def run_fraud_analysis(
             filename=filename or "",
             declaration_text=declaration_text or "",
             reasoning_effort=effort,
+            language=locale,
         )
     except Exception as exc:
         logger.error("Fraud analysis failed for %s: %s", claim_id, exc, exc_info=True)

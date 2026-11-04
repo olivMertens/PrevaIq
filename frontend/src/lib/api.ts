@@ -1974,12 +1974,12 @@ export async function runFraudAnalysis(
   claimId: string,
   filename?: string,
   reasoningEffort: 'low' | 'medium' | 'high' = 'medium',
+  locale?: string,
 ): Promise<FraudAnalysisResponse> {
-  const params = new URLSearchParams();
+  const params = new URLSearchParams({ language: resolveLocale(locale) });
   if (filename) params.set('filename', filename);
   params.set('reasoning_effort', reasoningEffort);
-  const qs = params.toString();
-  return apiFetch<FraudAnalysisResponse>(`/api/claims/${claimId}/fraud-analysis${qs ? `?${qs}` : ''}`, {
+  return apiFetch<FraudAnalysisResponse>(`/api/claims/${claimId}/fraud-analysis?${params.toString()}`, {
     method: 'POST',
   });
 }
