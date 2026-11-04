@@ -57,8 +57,8 @@ export default function AdminPage() {
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark compact />
             </Link>
-            <span className="text-slate-300 font-light select-none">|</span>
-            <h1 className="text-lg font-semibold text-slate-700">{t('title')}</h1>
+            <span className="hidden text-slate-300 font-light select-none sm:inline">|</span>
+            <h1 className="hidden text-lg font-semibold text-slate-700 sm:block">{t('title')}</h1>
 
             {/* Persona Selector — same position as portal */}
             <PersonaSelector />

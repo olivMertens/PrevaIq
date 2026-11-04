@@ -99,6 +99,16 @@ export default function DocumentsTab({
   };
 
   const acceptedFileTypes = fileCapabilities?.accept || getFallbackAcceptedFileTypes();
+  const formatGroupLabels: Record<string, string> = {
+    document: t('formatDocuments'),
+    image: t('formatImages'),
+    video: t('formatVideos'),
+    audio: t('formatAudio'),
+  };
+  const supportedFormatsSummary = Object.keys(fileCapabilities?.groups ?? {})
+    .map((group) => formatGroupLabels[group])
+    .filter(Boolean)
+    .join(' · ');
   const acceptedExtensions = new Set(
     acceptedFileTypes
       .split(',')
@@ -252,9 +262,7 @@ export default function DocumentsTab({
               <span> {t('orDragAndDrop')}</span>
             </div>
             <p className="text-xs text-slate-500">
-              {fileCapabilities
-                ? t('supportedFormatsSummary')
-                : isMultimodalPersona ? t('evidenceFilesDesc') : t('pdfOnly')}
+              {supportedFormatsSummary || (isMultimodalPersona ? t('evidenceFilesDesc') : t('pdfOnly'))}
             </p>
           </div>
         </div>

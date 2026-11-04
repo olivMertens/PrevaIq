@@ -12,6 +12,7 @@ import {
 import type { ApplicationListItem } from '@/lib/types';
 import type { ProcessingState } from './types';
 import { useLocale, useTranslations } from 'next-intl';
+import { getApplicationLoadErrorKey } from '@/lib/displayText';
 
 export function useDocumentProcessing(currentPersona: string) {
   const locale = useLocale();
@@ -30,12 +31,7 @@ export function useDocumentProcessing(currentPersona: string) {
       setError(null);
     } catch (err) {
       console.error('Failed to load applications', err);
-      const message = err instanceof Error ? err.message : '';
-      setError(
-        /AuthorizationFailure|not authorized to perform this operation/i.test(message)
-          ? t('processing.storageUnavailable')
-          : t('processing.loadApplicationsFailed')
-      );
+      setError(t(`processing.${getApplicationLoadErrorKey(err)}`));
     } finally {
       setLoading(false);
     }

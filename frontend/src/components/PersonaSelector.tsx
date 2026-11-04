@@ -97,13 +97,15 @@ export default function PersonaSelector() {
       {/* Selector Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+        className="flex max-w-48 items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
+        aria-label={currentUILabel}
+        title={currentUILabel}
       >
-        <IconComponent className="w-4 h-4" style={{ color: brand.primary }} />
-        <span className="text-slate-700">{currentUILabel}</span>
+        <IconComponent className="w-4 h-4 shrink-0" style={{ color: brand.primary }} />
+        <span className="hidden truncate text-slate-700 sm:block">{currentUILabel}</span>
         <ChevronDown 
           className={clsx(
-            'w-4 h-4 text-slate-400 transition-transform',
+            'w-4 h-4 shrink-0 text-slate-400 transition-transform',
             isOpen && 'rotate-180'
           )} 
         />
@@ -113,7 +115,7 @@ export default function PersonaSelector() {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-slate-200 py-2 z-20">
+          <div className="absolute right-0 top-full z-20 mt-2 w-[calc(100vw-2rem)] max-w-72 rounded-lg border border-slate-200 bg-white py-2 shadow-xl sm:left-0 sm:right-auto sm:w-72">
             {visibleGroups.map((group, groupIndex) => {
               const GroupIcon = group.icon;
               return (
@@ -144,7 +146,7 @@ export default function PersonaSelector() {
                         <PersonaIcon className="w-4 h-4 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{uiLabel}</span>
+                            <span className="truncate font-medium">{uiLabel}</span>
                             {currentPersona === persona.id && (
                               <Check className="w-3 h-3" />
                             )}

@@ -26,6 +26,7 @@ import DemoGuideModal from './DemoGuideModal';
 import BrandMark from './BrandMark';
 import StatusBadge from './landing/StatusBadge';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
+import { compactAuthIdentity } from '@/lib/displayText';
 
 interface TopNavProps {
   applications: ApplicationListItem[];
@@ -99,7 +100,7 @@ export default function TopNav({
   ].filter(item => !item.hidden);
 
   const selectedApplication = applications.find(a => a.id === selectedAppId);
-  const authUserLabel = authUser?.split('@')[0] || authUser;
+  const authUserLabel = compactAuthIdentity(authUser);
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">

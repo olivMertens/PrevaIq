@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
+const ts = require('typescript');
 const { parse } = require('@formatjs/icu-messageformat-parser');
 
 const root = path.resolve(__dirname, '..');
@@ -146,19 +148,26 @@ test('Ask IQ agent and workflow buttons preserve their API contracts', () => {
   assert.match(drawer, /language: locale/);
 });
 
-test('admin errors are concise, localized, and do not render raw service responses', () => {
-  const hook = fs.readFileSync(
-    path.join(root, 'src', 'components', 'admin', 'useDocumentProcessing.ts'),
-    'utf8'
-  );
-  const tab = fs.readFileSync(
-    path.join(root, 'src', 'components', 'admin', 'DocumentsTab.tsx'),
-    'utf8'
-  );
-  const nav = fs.readFileSync(path.join(root, 'src', 'components', 'TopNav.tsx'), 'utf8');
+test('admin errors and account identities are compacted by executable UI helpers', () => {
+  const filename = path.join(root, 'src', 'lib', 'displayText.ts');
+  const sourceModule = { exports: {} };
+  const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
+  });
+  vm.runInNewContext(outputText, { module: sourceModule, exports: sourceModule.exports }, { filename });
+  const { compactAuthIdentity, getApplicationLoadErrorKey } = sourceModule.exports;
 
-  assert.match(hook, /processing\.storageUnavailable/);
-  assert.doesNotMatch(tab, />\{error\}<\/div>/);
-  assert.match(tab, /applicationsUnavailable/);
-  assert.match(nav, /authUser\?\.split\('@'\)\[0\]/);
+  const rawError = new Error(
+    'AuthorizationFailure <?xml version="1.0"?><Error>This request is not authorized to perform this operation.</Error>'
+  );
+  assert.equal(getApplicationLoadErrorKey(rawError), 'storageUnavailable');
+  assert.equal(getApplicationLoadErrorKey(new Error('HTTP 500')), 'loadApplicationsFailed');
+  assert.equal(compactAuthIdentity('prevaiq-admin@example.test'), 'prevaiq-admin');
+  assert.equal(compactAuthIdentity(null), null);
+
+  for (const locale of ['en', 'fr', 'de']) {
+    const localized = messages(locale).admin.processing[getApplicationLoadErrorKey(rawError)];
+    assert.ok(localized.length < 110, `${locale} storage error should stay concise`);
+    assert.doesNotMatch(localized, /AuthorizationFailure|<\?xml|RequestId/);
+  }
 });
