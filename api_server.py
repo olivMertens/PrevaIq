@@ -219,13 +219,17 @@ async def startup_event():
     except Exception as _snap_exc:  # noqa: BLE001
         logger.warning("[CU-CONFIG] Failed to emit startup config snapshot: %s", _snap_exc)
 
+    app.state.database_ready = settings.database.backend != "postgresql"
     if settings.database.backend == "postgresql":
         try:
             await init_pool(settings.database)
+            app.state.database_ready = True
             logger.info("Database pool initialized (PostgreSQL)")
         except Exception as e:
-            logger.error("Failed to initialize database pool: %s", e)
-            raise
+            logger.error(
+                "Failed to initialize database pool; continuing in degraded mode: %s",
+                e,
+            )
 
     # Auto-seed Customer 360 data if no customers exist yet
     try:
