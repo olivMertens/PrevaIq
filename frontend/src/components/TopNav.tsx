@@ -99,6 +99,7 @@ export default function TopNav({
   ].filter(item => !item.hidden);
 
   const selectedApplication = applications.find(a => a.id === selectedAppId);
+  const authUserLabel = authUser?.split('@')[0] || authUser;
 
   return (
     <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
@@ -205,9 +206,12 @@ export default function TopNav({
           {authEnabled && (
             <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-200">
               {authUser && (
-                <span className="flex items-center gap-1.5 text-sm text-slate-500">
+                <span
+                  className="flex min-w-0 max-w-36 items-center gap-1.5 text-sm text-slate-500"
+                  title={authUser}
+                >
                   <User className="w-3.5 h-3.5" />
-                  {authUser}
+                  <span className="truncate">{authUserLabel}</span>
                 </span>
               )}
               <button

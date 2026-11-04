@@ -52,8 +52,8 @@ export default function AdminPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-slate-200">
-        <div className="max-w-7xl 2xl:max-w-[96rem] mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="max-w-7xl 2xl:max-w-[96rem] mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-4">
             <Link href="/" className="flex items-center gap-2.5">
               <BrandMark compact />
             </Link>
@@ -63,11 +63,11 @@ export default function AdminPage() {
             {/* Persona Selector — same position as portal */}
             <PersonaSelector />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: brand.dotColor }}></div>
-              <span className="text-sm text-slate-600">{t('backendConnected')}</span>
+              <span className="text-sm text-slate-600">{t('apiOnline')}</span>
             </div>
           </div>
         </div>
@@ -90,12 +90,12 @@ export default function AdminPage() {
       {/* Tab Navigation */}
       <div className="bg-white border-b border-slate-200">
         <div className="max-w-7xl 2xl:max-w-[96rem] mx-auto px-4">
-          <nav className="flex space-x-8">
+          <nav className="flex gap-5 overflow-x-auto">
             {tabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`shrink-0 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
                   activeTab === tab.id
                     ? ''
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'

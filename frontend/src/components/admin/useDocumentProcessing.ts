@@ -29,7 +29,13 @@ export function useDocumentProcessing(currentPersona: string) {
       setApplications(apps);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('processing.loadApplicationsFailed'));
+      console.error('Failed to load applications', err);
+      const message = err instanceof Error ? err.message : '';
+      setError(
+        /AuthorizationFailure|not authorized to perform this operation/i.test(message)
+          ? t('processing.storageUnavailable')
+          : t('processing.loadApplicationsFailed')
+      );
     } finally {
       setLoading(false);
     }

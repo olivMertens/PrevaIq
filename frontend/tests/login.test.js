@@ -75,7 +75,7 @@ function hooks(initial = []) {
   };
 }
 
-for (const locale of ['en', 'fr']) {
+for (const locale of ['en', 'fr', 'de']) {
   for (const theme of ['light', 'dark']) {
     for (const [entraEnabled, localAuthEnabled] of [[true, false], [true, true], [false, true], [false, false]]) {
       test(`login ${locale}/${theme}, Entra=${entraEnabled}, local=${localAuthEnabled}: composition, branding, links and provider gates`, () => {
@@ -99,7 +99,7 @@ for (const locale of ['en', 'fr']) {
         assert.equal(markup.includes('role="alert"'), !entraEnabled && !localAuthEnabled);
         assert.ok(markup.includes('href="mailto:demo@example.test?subject='));
         assert.ok(markup.includes('href="mailto:demo@example.test"'));
-        for (const key of ['splashTitle', 'splashLead', 'splashPoint1', 'splashPoint2', 'splashPoint3', 'splashPoint4', 'splashPoint5', 'splashFraudNotice']) {
+        for (const key of ['splashTitle', 'splashLead', 'splashPoint1', 'splashPoint2', 'splashPoint3', 'splashFraudNotice']) {
           assert.ok(markup.includes(messages[locale][key].replaceAll('&', '&amp;').replaceAll("'", '&#x27;')), key);
         }
       });
@@ -194,7 +194,7 @@ test('Nemo dimensions, control grouping, mobile breakpoints, theme and focus are
   const source = readFileSync(path.join(frontend, 'src/components/auth/login.module.css'), 'utf8');
   assert.match(source, /width: min\(1060px, 100%\)/);
   assert.match(source, /grid-template-columns: minmax\(0, 1\.05fr\) minmax\(360px, 0\.95fr\)/);
-  assert.match(source, /min-height: 650px/);
+  assert.match(source, /min-height: 560px/);
   assert.match(source, /\.top\s*\{[^}]*top: 16px;[^}]*right: 20px;[^}]*gap: 8px/s);
   assert.match(source, /\.login\[data-theme="dark"\]/);
   assert.match(source, /max-width: 800px/); assert.match(source, /max-width: 440px/);

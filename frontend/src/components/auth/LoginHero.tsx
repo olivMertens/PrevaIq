@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { FileSearch, GitBranch, ShieldAlert, ShieldCheck, UserCheck } from 'lucide-react';
+import { FileSearch, GitBranch, ShieldCheck } from 'lucide-react';
 import styles from './login.module.css';
 import BrandMark from '@/components/BrandMark';
 
@@ -9,8 +9,6 @@ const POINTS = [
   { key: 'splashPoint1', icon: FileSearch },
   { key: 'splashPoint2', icon: GitBranch },
   { key: 'splashPoint3', icon: ShieldCheck },
-  { key: 'splashPoint4', icon: UserCheck },
-  { key: 'splashPoint5', icon: ShieldAlert },
 ] as const;
 
 /** Branded splash panel of the sign-in screen. */

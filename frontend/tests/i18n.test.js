@@ -145,3 +145,20 @@ test('Ask IQ agent and workflow buttons preserve their API contracts', () => {
   assert.match(drawer, /agent_type: activeAgent/);
   assert.match(drawer, /language: locale/);
 });
+
+test('admin errors are concise, localized, and do not render raw service responses', () => {
+  const hook = fs.readFileSync(
+    path.join(root, 'src', 'components', 'admin', 'useDocumentProcessing.ts'),
+    'utf8'
+  );
+  const tab = fs.readFileSync(
+    path.join(root, 'src', 'components', 'admin', 'DocumentsTab.tsx'),
+    'utf8'
+  );
+  const nav = fs.readFileSync(path.join(root, 'src', 'components', 'TopNav.tsx'), 'utf8');
+
+  assert.match(hook, /processing\.storageUnavailable/);
+  assert.doesNotMatch(tab, />\{error\}<\/div>/);
+  assert.match(tab, /applicationsUnavailable/);
+  assert.match(nav, /authUser\?\.split\('@'\)\[0\]/);
+});
