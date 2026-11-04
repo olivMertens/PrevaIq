@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { 
   MessageSquare, 
   Plus, 
@@ -51,6 +51,7 @@ export default function ChatHistoryPanel({
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const t = useTranslations('chatHistory');
+  const locale = useLocale();
 
   const conversations = activeTab === 'app' ? appConversations : allConversations;
 
@@ -173,7 +174,7 @@ export default function ChatHistoryPanel({
     if (diffMins < 60) return t('minutesAgo', { count: diffMins });
     if (diffHours < 24) return t('hoursAgo', { count: diffHours });
     if (diffDays < 7) return t('daysAgo', { count: diffDays });
-    return date.toLocaleDateString();
+    return date.toLocaleDateString(locale);
   };
 
   // Collapsed state

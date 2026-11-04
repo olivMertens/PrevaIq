@@ -34,6 +34,7 @@ export default function CommunicationClientPanel({
 }: CommunicationClientPanelProps) {
   const t = useTranslations('claims');
   const tActions = useTranslations('communicationActions');
+  const tSentiment = useTranslations('clientSentiment.levels');
   const [dialogOpen, setDialogOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +66,7 @@ export default function CommunicationClientPanel({
           )}
           {severity !== 'normal' && (
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${tone.badgeBg} ${tone.badgeText}`}>
-              {tone.label}
+              {tSentiment(severity === 'warning' ? 'stressed' : severity === 'serene' ? 'calm' : severity)}
             </span>
           )}
           <button
@@ -93,7 +94,7 @@ export default function CommunicationClientPanel({
               </div>
               {severity !== 'normal' && (
                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${tone.badgeBg} ${tone.badgeText}`}>
-                  {tone.label}
+                  {tSentiment(severity === 'warning' ? 'stressed' : severity === 'serene' ? 'calm' : severity)}
                 </span>
               )}
               <button onClick={() => setDialogOpen(false)} title={tActions('close')} className="ml-auto p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">

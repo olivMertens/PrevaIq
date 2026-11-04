@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { CSSProperties, useState, useMemo } from 'react';
 import clsx from 'clsx';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
 
@@ -70,6 +70,7 @@ export default function ApplicationsList({
   onSelectApp,
 }: ApplicationsListProps) {
   const t = useTranslations('dashboard');
+  const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -189,9 +190,9 @@ export default function ApplicationsList({
                   <td className="px-6 py-4"><StatusBadge status={app.status} processingStatus={app.processing_status} /></td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-slate-500">
-                      <Calendar className="w-3.5 h-3.5" /><span>{new Date(app.created_at).toLocaleDateString()}</span>
+                      <Calendar className="w-3.5 h-3.5" /><span>{new Date(app.created_at).toLocaleDateString(locale)}</span>
                     </div>
-                    <div className="text-xs text-slate-400 mt-0.5">{new Date(app.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{new Date(app.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
                   <td className="px-6 py-4 text-slate-500 max-w-xs">
                     {app.external_reference ? (
@@ -242,7 +243,7 @@ export default function ApplicationsList({
               )}
               <div className="mt-auto pt-3 border-t border-slate-100 flex justify-between items-center text-sm text-slate-500 w-full">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{new Date(app.created_at).toLocaleDateString()}</span></div>
+                  <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /><span>{new Date(app.created_at).toLocaleDateString(locale)}</span></div>
                   {(app.file_count ?? 0) > 0 && (
                     <div className="flex items-center gap-1 text-xs text-slate-400"><Paperclip className="w-3 h-3" />{app.file_count}</div>
                   )}

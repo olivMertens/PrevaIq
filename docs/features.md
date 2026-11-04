@@ -36,14 +36,14 @@ PrevaIQ supports insurance workbenches, agents, and demo scenarios for claims, u
 ### Mortgage underwriting
 
 - **OSFI B-20 compliance**: automatic GDS/TDS/LTV calculations and stress testing.
-- **Property deep dive**: comparable property analysis through Bing grounding.
+- **Property deep dive**: comparable property analysis through the dedicated Microsoft Web IQ MCP connection.
 
 ### Customer 360
 
 - **Unified view**: cross-persona customer profile with realistic demo profiles.
 - **Risk correlations**: cross-product pattern detection.
 
-## Agent Framework (Microsoft Agent Framework 1.21)
+## Agent Framework (Microsoft Agent Framework 1.24)
 
 - **In-process agents** run in the API container on Azure OpenAI through the **Responses** API (`OpenAIChatClient`) with `reasoning effort=low`. Set `AGENTS_OPENAI_API=chat_completions` to roll back to Chat Completions.
 - **ChatAgent** provides conversational assistance with tools such as `search_policies`, `get_application_summary`, `get_glossary`, `query_fabric_data`, and `analyze_image_fraud`. UI badges reflect the tools actually called.
@@ -51,7 +51,7 @@ PrevaIQ supports insurance workbenches, agents, and demo scenarios for claims, u
 - **AnalysisAgent** performs prompt-based analysis with dynamic section selection.
 - **Multi-agent workflows** in `app/agents/workflows.py`: Express `[Extract ∥ Policy] -> Decision`, Complete `[Extract ∥ Analysis ∥ Fraud ∥ Policy] -> Risk`, and Fraud `[FraudDetector ∥ WebIntelligence] -> CrossChecker`. The case context is read once without an LLM; each agent has a timeout and branch-level degradation.
 - **HITL learning loop** stores reviewer corrections as few-shot examples in pgvector and injects relevant examples dynamically.
-- **Dependencies**: `agent-framework-core>=1.21` and `agent-framework-openai>=1.15`. Do not depend on the `agent-framework` metapackage.
+- **Dependencies**: `agent-framework-core>=1.24` and `agent-framework-openai>=1.18`. Do not depend on the `agent-framework` metapackage.
 
 ## Fraud detection
 
@@ -71,7 +71,7 @@ flowchart LR
     F --> R["Risk score<br/>LOW / MODERATE / HIGH<br/>SIU recommendation"]
 ```
 
-The web-intelligence branch for Cat-Nat, weather, and official decrees is optional. Bing web verification is disabled by default and runs only when `WEB_INTELLIGENCE_ENABLED=true` and `FOUNDRY_PROJECT_ENDPOINT` targets a Foundry agent (`PrevaIQ-WebIntelligence`) with Bing grounding. Without that setup, the anti-fraud pipeline runs on three branches: Vision, RAG, and reasoning. Cat-Nat detection still uses regex recognition and a manual verification task.
+The web-intelligence branch for Cat-Nat, weather, and official decrees uses the dedicated Microsoft Web IQ Streamable HTTP MCP connection (`web`, `news`, and `browse`). It runs only when `WEBIQ_API_KEY` is available; there is no Foundry/Bing fallback. Without that key, the anti-fraud pipeline runs on three branches: Vision, RAG, and reasoning, and chat reports that web search is not configured. Cat-Nat detection still uses regex recognition and a manual verification task.
 
 ## Next Best Action and customer communication
 
@@ -88,7 +88,7 @@ The web-intelligence branch for Cat-Nat, weather, and official decrees is option
 - **Content Understanding GA (2025-11-01)**: custom analyzers with `models.completion` and `models.embedding`, defaulting to `gpt-5.4-mini` and `text-embedding-3-large`, with confidence scoring.
 - **MarkItDown ingestion**: local conversion for `.doc`, `.xls`, `.ppt`, `.eml`, `.msg`, `.csv`, `.json`, `.xml`, `.html`, `.md`, and `.txt`, or conversion through Content Understanding.
 - **Policy RAG**: pgvector plus hybrid semantic and keyword search over enriched Markdown chunks containing source, analyzer, section, and fields. Policy PDFs are not shipped; put your own files in `assets/pdf/` and run `python scripts/index_pdf_policies.py --force`.
-- **Internationalisation**: next-intl FR and EN resources, with locale-aware print reports.
+- **Internationalisation**: next-intl EN, FR, and DE resources, with locale-aware print reports and localized derived analysis that preserves source-language OCR evidence.
 - **Responsive UI**: optimized for narrow mobile screens and ultra-wide displays.
 - **Audit trail**: decision traceability with justification.
 
@@ -165,5 +165,3 @@ flowchart LR
 | **Auto Claims** | Active | Multimodal vehicle claims with damage assessment, liability, and fraud detection over images, videos, and documents |
 | **Mortgage Underwriting** | Active | Canadian residential mortgage assessment with OSFI B-20 compliance, GDS/TDS/LTV calculations, and stress testing |
 | **Customer 360** | Active | Cross-persona customer journey timeline, risk correlations, and persona summary cards |
-
-

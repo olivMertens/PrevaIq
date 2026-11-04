@@ -16,7 +16,7 @@ import {
   Activity,
 } from 'lucide-react';
 import type { PersonaSummary } from '@/lib/customer360-types';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import Link from 'next/link';
 
@@ -59,6 +59,7 @@ const RISK_COLORS: Record<string, string> = {
 
 export default function PersonaSummaryCard({ summary }: PersonaSummaryCardProps) {
   const t = useTranslations('customer360');
+  const locale = useLocale();
   const [expanded, setExpanded] = useState(false);
   const theme = PERSONA_THEME[summary.persona] || PERSONA_THEME.underwriting;
   const PersonaIcon = theme.icon;
@@ -142,7 +143,7 @@ export default function PersonaSummaryCard({ summary }: PersonaSummaryCardProps)
                   <AppStatusIcon className={clsx('w-4 h-4 mt-0.5 shrink-0', appStatus.color)} />
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-medium text-slate-900">{app.title}</div>
-                    <div className="text-xs text-slate-500 mt-0.5">{formatDate(app.date)}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{formatDate(app.date, locale)}</div>
                     <div className="text-xs text-slate-600 mt-1 leading-relaxed">{app.summary}</div>
                   </div>
                 </div>
@@ -199,8 +200,8 @@ function getDecisionColor(decision: string): string {
   return 'text-slate-900';
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+function formatDate(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

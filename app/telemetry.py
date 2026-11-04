@@ -30,7 +30,7 @@ import os
 import re
 import time
 from contextlib import contextmanager
-from typing import Any, Iterator, Mapping
+from typing import Any, Generator, Mapping
 from urllib.parse import urlparse
 
 from .utils import setup_logging
@@ -44,9 +44,7 @@ _initialized = False
 # Path regex captures claim_id from routes like /claims/{claim_id}/... or
 # /claims/habitation/{claim_id}/... — anything between "/claims/" (optionally
 # followed by a known prefix) and the next "/" or end of path.
-_CLAIM_ID_RE = re.compile(
-    r"/claims/(?:habitation/|auto/)?(?P<cid>[A-Za-z0-9_-]+)(?:/|$)"
-)
+_CLAIM_ID_RE = re.compile(r"/claims/(?:habitation/|auto/)?(?P<cid>[A-Za-z0-9_-]+)(?:/|$)")
 
 _BAGGAGE_KEYS_TO_PROMOTE = ("claim.id", "brand")
 
@@ -87,7 +85,9 @@ def configure_telemetry() -> None:
 
     conn_str = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING")
     if not conn_str:
-        logger.info("Application Insights disabled: APPLICATIONINSIGHTS_CONNECTION_STRING is not set")
+        logger.info(
+            "Application Insights disabled: APPLICATIONINSIGHTS_CONNECTION_STRING is not set"
+        )
         return
 
     parts = _parse_connection_string(conn_str)
@@ -139,8 +139,10 @@ def configure_telemetry() -> None:
             OpenAIInstrumentor().instrument()
             logger.info("OpenAI SDK auto-instrumented with GenAI semantic conventions")
         except ImportError:
-            logger.warning("opentelemetry-instrumentation-openai-v2 not installed — "
-                           "OpenAI calls will not have GenAI spans in Foundry")
+            logger.warning(
+                "opentelemetry-instrumentation-openai-v2 not installed — "
+                "OpenAI calls will not have GenAI spans in Foundry"
+            )
 
         # Promote baggage entries (claim.id, brand) onto every emitted span,
         # so OpenAI/auto-instrumented spans can be grouped per dossier in KQL.
@@ -180,7 +182,9 @@ def _emit_connection_check_span(connection: Mapping[str, str]) -> None:
             trace_id,
         )
     else:
-        logger.warning("Application Insights connection check span was not recorded (no active tracing)")
+        logger.warning(
+            "Application Insights connection check span was not recorded (no active tracing)"
+        )
 
 
 def _register_baggage_span_processor() -> None:
@@ -193,7 +197,7 @@ def _register_baggage_span_processor() -> None:
     """
     try:
         from opentelemetry import baggage, trace
-        from opentelemetry.sdk.trace import SpanProcessor
+        from opentelemetry.sdk.trace import SpanProcessor, TracerProvider as SDKTracerProvider
 
         class _BaggageSpanProcessor(SpanProcessor):
             def on_start(self, span, parent_context=None):  # type: ignore[override]
@@ -216,7 +220,7 @@ def _register_baggage_span_processor() -> None:
                 return True
 
         provider = trace.get_tracer_provider()
-        if hasattr(provider, "add_span_processor"):
+        if isinstance(provider, SDKTracerProvider):
             provider.add_span_processor(_BaggageSpanProcessor())
             logger.info("Baggage span processor registered (keys=%s)", _BAGGAGE_KEYS_TO_PROMOTE)
     except Exception:
@@ -264,7 +268,10 @@ def install_claim_correlation_middleware(app) -> None:
                     span.set_attribute("brand", brand)
             if claim_id or brand:
                 logger.debug(
-                    "OTel correlation: path=%s claim.id=%s brand=%s", request.url.path, claim_id, brand
+                    "OTel correlation: path=%s claim.id=%s brand=%s",
+                    request.url.path,
+                    claim_id,
+                    brand,
                 )
 
             token = otel_context.attach(ctx)
@@ -282,6 +289,7 @@ def get_tracer(name: str = "workbenchiq"):
     """
     try:
         from opentelemetry import trace
+
         return trace.get_tracer(name)
     except ImportError:
         return None
@@ -304,7 +312,7 @@ def start_span(
     *,
     tracer_name: str = "workbenchiq.agents",
     kind: str = "internal",
-) -> Iterator[Any]:
+) -> Generator[Any, None, None]:
     """Open a span that is current for the duration of the ``with`` block.
 
     An exception leaving the block is recorded on the span and sets its ERROR status.
@@ -325,7 +333,9 @@ def start_span(
         yield span
 
 
-def record_span_error(span: Any, error: BaseException | str, *, error_type: str | None = None) -> None:
+def record_span_error(
+    span: Any, error: BaseException | str, *, error_type: str | None = None
+) -> None:
     """Flag ``span`` as failed for an error the caller handles itself (nothing is raised)."""
     if span is _NOOP_SPAN:
         return
@@ -351,5 +361,8 @@ def add_span_event(name: str, attributes: Mapping[str, Any] | None = None) -> No
     span = trace.get_current_span()
     if span.is_recording():
         span.add_event(
-            name, attributes={key: value for key, value in (attributes or {}).items() if value is not None}
+            name,
+            attributes={
+                key: value for key, value in (attributes or {}).items() if value is not None
+            },
         )

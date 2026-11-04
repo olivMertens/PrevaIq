@@ -13,9 +13,9 @@ export const metadata: Metadata = {
   title: brand.name,
   description: 'Poste de travail intelligent de traitement de documents pour l\'assurance',
   icons: {
-    icon: brand.favicon,
+    icon: { url: brand.favicon, type: 'image/svg+xml', sizes: 'any' },
     shortcut: brand.favicon,
-    apple: brand.favicon,
+    apple: { url: brand.icon, type: 'image/png', sizes: '240x240' },
   },
 };
 

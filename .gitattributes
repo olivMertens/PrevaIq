@@ -11,3 +11,10 @@
 *.pptx binary
 *.zip binary
 *.mp4 binary
+
+# Official brand SVG bytes are pinned; preserve original line endings on every OS.
+frontend/public/favicon.svg binary
+frontend/public/favicon-prevaiq.svg binary
+frontend/public/prevaiq-logo.svg binary
+assets/logos/icon-prevaiq.svg binary
+assets/logos/prevaiq-logo.svg binary

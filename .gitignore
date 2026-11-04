@@ -19,6 +19,10 @@ assets/*
 !assets/logos/logo-prevaiq.png
 !assets/logos/prevaiq-logo.svg
 !assets/logos/icon-prevaiq.svg
+!assets/logos/prevaiq_icon.png
+!assets/logos/prevaiq_icon_dark.png
+!assets/logos/prevaiq_logo.png
+!assets/logos/prevaiq_logo_dark.png
 !assets/pdf/
 !assets/pdf/.gitkeep
 !assets/pdf/**/*.pdf

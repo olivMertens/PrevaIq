@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import logging
 import re
 import threading
@@ -143,6 +144,11 @@ class ApplicationMetadata:
     batch_summaries: Optional[List[Dict[str, Any]]] = None  # Batch summaries for large docs UI
     # Controlled orchestration: per-stage budget trace + human-review status
     orchestration: Optional[Dict[str, Any]] = None
+    # Canonical derived analysis locale and localized projections. Raw OCR,
+    # extracted fields, citations and source documents are never stored here.
+    analysis_locale: Optional[str] = None
+    analysis_source_revision: Optional[str] = None
+    localized_analyses: Optional[Dict[str, Dict[str, Any]]] = None
 
 
 # =============================================================================
@@ -189,6 +195,19 @@ def load_file_content(stored_file: StoredFile) -> Optional[bytes]:
             logger.warning("File not found on filesystem: %s", path)
             return None
         return path.read_bytes()
+
+
+def save_application_file(root: str, app_id: str, filename: str, content: bytes) -> str:
+    """Save an internal application file without mutating application metadata."""
+    provider = _get_provider()
+    if provider:
+        return provider.save_file(app_id, filename, content)
+
+    files_dir = get_application_dir(root, app_id) / "files"
+    _ensure_dir(files_dir)
+    target_path = files_dir / filename
+    target_path.write_bytes(content)
+    return str(target_path)
 
 
 def load_file(root: str, app_id: str, filename: str) -> Optional[bytes]:
@@ -414,6 +433,72 @@ def _dict_to_metadata(data: Dict[str, Any]) -> ApplicationMetadata:
         document_stats=data.get("document_stats"),
         batch_summaries=data.get("batch_summaries"),
         orchestration=data.get("orchestration"),
+        analysis_locale=data.get("analysis_locale"),
+        analysis_source_revision=data.get("analysis_source_revision"),
+        localized_analyses=data.get("localized_analyses"),
+    )
+
+
+def canonical_analysis_payload(metadata: ApplicationMetadata) -> Dict[str, Any]:
+    """Return only persisted, derived analysis fields eligible for localization."""
+    return {
+        "llm_outputs": metadata.llm_outputs,
+        "risk_analysis": metadata.risk_analysis,
+        "fraud_analysis": metadata.fraud_analysis,
+        "sentiment_analysis": metadata.sentiment_analysis,
+        "context_labels": metadata.context_labels,
+        "context_tasks": metadata.context_tasks,
+    }
+
+
+def analysis_source_revision(metadata: ApplicationMetadata) -> str:
+    """Stable revision for the canonical derived analysis, excluding translation caches."""
+    encoded = json.dumps(
+        canonical_analysis_payload(metadata),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _localized_analysis_filename(revision: str, language: str) -> str:
+    return f".localized-analysis-{revision}-{language}.json"
+
+
+def load_localized_analysis_cache(
+    root: str,
+    app_id: str,
+    revision: str,
+    language: str,
+) -> Optional[Dict[str, Any]]:
+    """Load a revision-scoped presentation cache stored separately from metadata."""
+    content = load_file(root, app_id, _localized_analysis_filename(revision, language))
+    if content is None:
+        return None
+    try:
+        payload = json.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        logger.warning("Invalid localized analysis cache for %s (%s)", app_id, language)
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def save_localized_analysis_cache(
+    root: str,
+    app_id: str,
+    revision: str,
+    language: str,
+    payload: Dict[str, Any],
+) -> str:
+    """Persist a locale cache independently so it cannot overwrite canonical metadata."""
+    content = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return save_application_file(
+        root,
+        app_id,
+        _localized_analysis_filename(revision, language),
+        content,
     )
 
 
@@ -422,6 +507,10 @@ def save_application_metadata(root: str, metadata: ApplicationMetadata) -> None:
     provider = _get_provider()
     if not metadata.brand:
         metadata.brand = current_brand_name()
+    revision = analysis_source_revision(metadata)
+    if metadata.analysis_source_revision != revision:
+        metadata.analysis_source_revision = revision
+        metadata.localized_analyses = {}
     serializable = _metadata_to_dict(metadata)
 
     if provider:
@@ -652,7 +741,9 @@ def _metadata_matches_lookup(data: Dict[str, Any], lookup: str, storage_id: str)
     return False
 
 
-def _resolve_application_metadata(root: str, app_id: str) -> tuple[Optional[str], Optional[Dict[str, Any]]]:
+def _resolve_application_metadata(
+    root: str, app_id: str
+) -> tuple[Optional[str], Optional[Dict[str, Any]]]:
     """Resolve exact, short, or external-reference app lookups to metadata."""
     provider = _get_provider()
     current_brand = current_brand_name()
@@ -676,7 +767,9 @@ def _resolve_application_metadata(root: str, app_id: str) -> tuple[Optional[str]
         if len(matches) == 1:
             return matches[0]
         if len(matches) > 1:
-            logger.warning("Ambiguous application lookup %s matched %d dossiers", app_id, len(matches))
+            logger.warning(
+                "Ambiguous application lookup %s matched %d dossiers", app_id, len(matches)
+            )
         return None, None
 
     # Legacy local storage
@@ -708,7 +801,9 @@ def _resolve_application_metadata(root: str, app_id: str) -> tuple[Optional[str]
 
     if len(meta_paths) != 1:
         if len(meta_paths) > 1:
-            logger.warning("Ambiguous application lookup %s matched %d local dossiers", app_id, len(meta_paths))
+            logger.warning(
+                "Ambiguous application lookup %s matched %d local dossiers", app_id, len(meta_paths)
+            )
         return None, None
 
     resolved_id, resolved_meta_path = meta_paths[0]

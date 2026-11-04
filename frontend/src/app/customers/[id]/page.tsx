@@ -23,6 +23,7 @@ import PersonaSelector from '@/components/PersonaSelector';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
+import BrandMark from '@/components/BrandMark';
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -83,21 +84,7 @@ export default function CustomerDetailPage() {
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2.5">
-              <img
-                src={brand.logo}
-                alt={brand.logoAlt}
-                className="h-9 w-auto"
-              />
-              <span className="text-slate-300 font-light select-none">|</span>
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="flex-shrink-0">
-                <rect width="32" height="32" rx="8" fill="url(#giq-grad-cd)"/>
-                <text x="16" y="22" textAnchor="middle" fontFamily="system-ui, sans-serif" fontWeight="800" fontSize="16" fill="white">IQ</text>
-                <circle cx="26" cy="6" r="3" fill={brand.dotColor} opacity="0.9"/>
-                <defs><linearGradient id="giq-grad-cd" x1="0" y1="0" x2="32" y2="32"><stop offset="0%" stopColor={brand.gradientStart}/><stop offset="100%" stopColor={brand.gradientEnd}/></linearGradient></defs>
-              </svg>
-              <span className="font-bold text-lg tracking-tight">
-                <span className="text-slate-900">{brand.prefix}</span><span style={{ color: brand.primary }}>IQ</span>
-              </span>
+              <BrandMark compact />
             </Link>
 
             <PersonaSelector />

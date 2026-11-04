@@ -25,10 +25,6 @@ import { formatCurrency, formatNumber, formatSignedPercent } from './format';
 type SortField = 'sold_price' | 'sold_date' | 'distance_km';
 type SortDir = 'asc' | 'desc';
 
-const fmtEUR = formatCurrency;
-const fmtNum = formatNumber;
-const fmtPct = formatSignedPercent;
-
 export default function PropertyDeepDiveModal({
   isOpen,
   onClose,
@@ -38,6 +34,9 @@ export default function PropertyDeepDiveModal({
   const t = useTranslations('mortgageLabels');
   const tReport = useTranslations('mortgageLabels.report');
   const locale = useLocale();
+  const fmtEUR = (value: number | null | undefined) => formatCurrency(value, locale);
+  const fmtNum = (value: number | null | undefined, decimals = 0) => formatNumber(value, decimals, locale);
+  const fmtPct = (value: number | null | undefined) => formatSignedPercent(value, 1, locale);
   const modalRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -55,18 +54,18 @@ export default function PropertyDeepDiveModal({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getPropertyDeepDive(applicationId)
+    getPropertyDeepDive(applicationId, locale)
       .then((result) => {
         if (!cancelled) setData(result);
       })
       .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : 'Failed to load property analysis');
+        if (!cancelled) setError(err instanceof Error ? err.message : t('propertyAnalysisLoadFailed'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [isOpen, applicationId]);
+  }, [isOpen, applicationId, locale, t]);
 
   // Cleanup timeouts
   useEffect(() => {
@@ -98,12 +97,12 @@ export default function PropertyDeepDiveModal({
     if (timeoutRef.current) { clearTimeout(timeoutRef.current); timeoutRef.current = null; }
 
     setIsRerunning(true);
-    setRerunStatus(force ? 'Force re-running property analysis...' : 'Starting property analysis...');
+    setRerunStatus(force ? t('forceRerunningPropertyAnalysis') : t('startingPropertyAnalysis'));
 
     try {
-      const result = await runPropertyDeepDive(applicationId, force);
+      const result = await runPropertyDeepDive(applicationId, force, locale);
       setData(result);
-      setRerunStatus('Analysis complete!');
+      setRerunStatus(t('propertyAnalysisComplete'));
       timeoutRef.current = setTimeout(() => {
         setRerunStatus('');
         setIsRerunning(false);
@@ -111,14 +110,14 @@ export default function PropertyDeepDiveModal({
       }, 2000);
     } catch (err) {
       console.error('Failed to run property deep dive:', err);
-      setRerunStatus('Analysis failed. Please try again.');
+      setRerunStatus(t('propertyAnalysisFailed'));
       timeoutRef.current = setTimeout(() => {
         setRerunStatus('');
         setIsRerunning(false);
         timeoutRef.current = null;
       }, 3000);
     }
-  }, [isRerunning, applicationId]);
+  }, [isRerunning, applicationId, locale, t]);
 
   // Sorted comparables
   const sortedComps = useMemo(() => {
@@ -163,9 +162,8 @@ export default function PropertyDeepDiveModal({
   const handleExportFullReport = useCallback(() => {
     if (!data) return;
     const caseRef = applicationId;
-    const intlLocale = locale === 'en' ? 'en-US' : 'fr-FR';
-    const now = new Date().toLocaleString(intlLocale);
-    const htmlLang = locale === 'en' ? 'en' : 'fr';
+    const now = new Date().toLocaleString(locale);
+    const htmlLang = locale;
     const esc = (s: string | undefined | null) =>
       (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -264,7 +262,7 @@ ${sections.join('\n')}
             <span className="text-sm text-slate-500">— {applicationId}</span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-600 border border-emerald-100">
               <Sparkles className="w-3 h-3" />
-              AI Analysis
+              {t('aiAnalysis')}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -311,9 +309,9 @@ ${sections.join('\n')}
                 onClick={() => {
                   setError(null);
                   setLoading(true);
-                  getPropertyDeepDive(applicationId)
+                  getPropertyDeepDive(applicationId, locale)
                     .then(setData)
-                    .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load'))
+                    .catch((e) => setError(e instanceof Error ? e.message : t('loadFailed')))
                     .finally(() => setLoading(false));
                 }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
@@ -483,7 +481,7 @@ ${sections.join('\n')}
                       {data.mls_number && (
                         <div className="flex items-center gap-2 text-slate-500 text-xs">
                           <Search className="w-3 h-3 flex-shrink-0" />
-                          <span>MLS# {data.mls_number}</span>
+                          <span>{t('mlsNumber', { number: data.mls_number })}</span>
                         </div>
                       )}
                     </div>
@@ -556,16 +554,16 @@ ${sections.join('\n')}
                   <div className="bg-white rounded-lg border border-slate-200 p-4">
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-3">
                       <BarChart3 className="w-4 h-4 text-emerald-500" /> {t('comparableSales')}
-                      <span className="text-xs font-normal text-slate-400">({sortedComps.length} found)</span>
+                      <span className="text-xs font-normal text-slate-400">({t('comparablesFound', { count: sortedComps.length })})</span>
                     </h3>
 
                     {compStats && (
                       <div className="flex gap-4 mb-3">
                         <div className="text-xs text-slate-500">
-                          Avg Comp Price: <span className="font-medium text-slate-700">{fmtEUR(compStats.avg)}</span>
+                          {t('averageComparablePrice')}: <span className="font-medium text-slate-700">{fmtEUR(compStats.avg)}</span>
                         </div>
                         <div className="text-xs text-slate-500">
-                          Subject Variance:{' '}
+                          {t('subjectVariance')}:{' '}
                           <span className={`font-medium ${compStats.variance > 5 ? 'text-red-600' : compStats.variance < -5 ? 'text-green-600' : 'text-slate-700'}`}>
                             {compStats.variance >= 0 ? '+' : ''}{compStats.variance.toFixed(1)}%
                           </span>
@@ -621,11 +619,11 @@ ${sections.join('\n')}
                         <div className="text-sm font-semibold text-slate-800">{fmtEUR(data.price_trend.avg_price_current)}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500 mb-0.5">1 Year Ago</div>
+                        <div className="text-xs text-slate-500 mb-0.5">{t('oneYearAgo')}</div>
                         <div className="text-sm font-semibold text-slate-800">{fmtEUR(data.price_trend.avg_price_1yr_ago)}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500 mb-0.5">3 Years Ago</div>
+                        <div className="text-xs text-slate-500 mb-0.5">{t('threeYearsAgo')}</div>
                         <div className="text-sm font-semibold text-slate-800">{fmtEUR(data.price_trend.avg_price_3yr_ago)}</div>
                       </div>
                       <div>
@@ -636,7 +634,7 @@ ${sections.join('\n')}
                         </div>
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500 mb-0.5">3yr CAGR</div>
+                        <div className="text-xs text-slate-500 mb-0.5">{t('threeYearCagr')}</div>
                         <div className={`text-sm font-semibold flex items-center gap-1 ${data.price_trend.cagr_3yr_pct >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {fmtPct(data.price_trend.cagr_3yr_pct)}
                         </div>
@@ -644,7 +642,7 @@ ${sections.join('\n')}
                     </div>
                     <div className="mt-3 flex items-center gap-2">
                       <span className="text-xs text-slate-500">{t('trend')}</span>
-                      <TrendIndicator direction={data.price_trend.trend_direction} />
+                      <TrendIndicator direction={data.price_trend.trend_direction} t={t} />
                     </div>
                   </div>
                 )}
@@ -653,7 +651,7 @@ ${sections.join('\n')}
                 {groupedFeatures.size > 0 && (
                   <div className="bg-white rounded-lg border border-slate-200 p-4">
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-3">
-                      <Ruler className="w-4 h-4 text-emerald-500" /> Property Features
+                      <Ruler className="w-4 h-4 text-emerald-500" /> {t('propertyFeatures')}
                     </h3>
                     <div className="space-y-4">
                       {Array.from(groupedFeatures.entries()).map(([category, features]) => (
@@ -680,7 +678,7 @@ ${sections.join('\n')}
                 {data.appraisal_data_points && Object.keys(data.appraisal_data_points).length > 0 && (
                   <div className="bg-white rounded-lg border border-slate-200 p-4">
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-3">
-                      <Search className="w-4 h-4 text-emerald-500" /> MLS Data Points
+                      <Search className="w-4 h-4 text-emerald-500" /> {t('mlsDataPoints')}
                     </h3>
                     {data.mls_listing_url && (
                       <div className="mb-3">
@@ -690,7 +688,7 @@ ${sections.join('\n')}
                           rel="noopener noreferrer"
                           className="text-xs text-emerald-600 hover:text-emerald-700 underline"
                         >
-                          View MLS Listing →
+                          {t('viewMlsListing')} →
                         </a>
                       </div>
                     )}
@@ -773,24 +771,24 @@ function SortableHeader({
   );
 }
 
-function TrendIndicator({ direction }: { direction: 'up' | 'down' | 'stable' }) {
+function TrendIndicator({ direction, t }: { direction: 'up' | 'down' | 'stable'; t: (key: string) => string }) {
   if (direction === 'up') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
-        <TrendingUp className="w-3 h-3" /> Upward
+        <TrendingUp className="w-3 h-3" /> {t('trendUpward')}
       </span>
     );
   }
   if (direction === 'down') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">
-        <TrendingDown className="w-3 h-3" /> Downward
+        <TrendingDown className="w-3 h-3" /> {t('trendDownward')}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
-      <Minus className="w-3 h-3" /> Stable
+      <Minus className="w-3 h-3" /> {t('trendStable')}
     </span>
   );
 }

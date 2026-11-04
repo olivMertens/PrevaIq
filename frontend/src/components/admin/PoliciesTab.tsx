@@ -326,7 +326,7 @@ function AutomotivePolicyEditor({ formData, setFormData, showNewPolicyForm, t }:
         <textarea value={Array.isArray(formData.references) ? formData.references.join('\n') : ''}
           onChange={(e) => setFormData(prev => ({ ...prev, references: e.target.value.split('\n').filter(Boolean) }))}
           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm h-20"
-          placeholder={"One reference per line:\nNHTSA Guidelines Section 4.2\nInsurance Code 1234"} />
+          placeholder={tp('referencesPlaceholder')} />
       </div>
     </div>
   );

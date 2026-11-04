@@ -33,8 +33,7 @@ interface NoteDeReglementData {
 }
 
 function formatDate(date: Date, locale: string): string {
-  const intlLocale = locale === 'en' ? 'en-US' : 'fr-FR';
-  return date.toLocaleDateString(intlLocale, { day: '2-digit', month: 'long', year: 'numeric' });
+  return date.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
 function extractSummariesFromLLM(llmOutputs: Record<string, unknown>): string[] {
@@ -88,7 +87,7 @@ export function generateNoteDeReglement(
     ? summaries.map(s => `<li style="margin-bottom:8px;">${s.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('')
     : `<li style="color:#94a3b8;font-style:italic;">${t('analysisUnavailable')}</li>`;
 
-  const htmlLang = locale === 'en' ? 'en' : 'fr';
+  const htmlLang = locale;
 
   const html = `<!DOCTYPE html>
 <html lang="${htmlLang}">

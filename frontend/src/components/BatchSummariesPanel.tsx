@@ -81,7 +81,7 @@ export default function BatchSummariesPanel({ batchSummaries, onPageClick }: Bat
       });
     }
 
-    return sections.length > 0 ? sections : [{ title: 'Summary', content: summary, isHighRisk: false }];
+    return sections.length > 0 ? sections : [{ title: t('summary'), content: summary, isHighRisk: false }];
   };
 
   return (
@@ -92,10 +92,10 @@ export default function BatchSummariesPanel({ batchSummaries, onPageClick }: Bat
           <div className="flex items-center gap-2">
             <FileStack className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-semibold text-gray-900">
-              Document Insights by Section
+              {t('documentInsights')}
             </h2>
             <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 rounded-full">
-              {batchSummaries.length} batches
+              {t('batchCount', { count: batchSummaries.length })}
             </span>
           </div>
           <div className="flex gap-2">
@@ -103,14 +103,14 @@ export default function BatchSummariesPanel({ batchSummaries, onPageClick }: Bat
               onClick={expandAll}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
-              Expand All
+              {t('expandAll')}
             </button>
             <span className="text-gray-300">|</span>
             <button
               onClick={collapseAll}
               className="text-xs text-blue-600 hover:text-blue-800"
             >
-              Collapse All
+              {t('collapseAll')}
             </button>
           </div>
         </div>
@@ -146,17 +146,17 @@ export default function BatchSummariesPanel({ batchSummaries, onPageClick }: Bat
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900">
-                        Pages {batch.page_start} - {batch.page_end}
+                        {t('pageRange', { start: batch.page_start, end: batch.page_end })}
                       </span>
                       {hasHighRisk && (
                         <span className="flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded">
                           <AlertTriangle className="w-3 h-3" />
-                          Notable Findings
+                          {t('notableFindings')}
                         </span>
                       )}
                     </div>
                     <span className="text-xs text-gray-500">
-                      {batch.page_count} pages analyzed
+                      {t('pagesAnalyzed', { count: batch.page_count })}
                     </span>
                   </div>
                 </div>

@@ -13,6 +13,7 @@ import type { ApplicationListItem, ApplicationMetadata } from '@/lib/types';
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
+import BrandMark from './BrandMark';
 
 interface SidebarProps {
   applications: ApplicationListItem[];
@@ -41,12 +42,7 @@ export default function Sidebar({
       {/* Logo */}
       <div className="p-4 border-b border-slate-700">
         <Link href="/" className="flex items-center gap-2">
-          <img
-          src={brand.logo}
-          alt={brand.logoAlt}
-            className="h-8 w-auto brightness-0 invert"
-          />
-          <span className="font-semibold text-lg">{brand.name}</span>
+          <BrandMark compact surface="dark" />
         </Link>
       </div>
 

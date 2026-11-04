@@ -102,7 +102,7 @@ export default function PolicyReportModal({
     setError(null);
 
     try {
-      await runRiskAnalysis(application.id);
+      await runRiskAnalysis(application.id, 300000, 2000, locale);
 
       // Trigger reload of application data
       if (onRerunAnalysis) {
@@ -110,7 +110,7 @@ export default function PolicyReportModal({
       }
     } catch (err) {
       console.error('Risk analysis error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to run risk analysis');
+      setError(err instanceof Error ? err.message : t('riskAnalysisFailed'));
     } finally {
       setIsRunningRiskAnalysis(false);
     }
@@ -129,10 +129,9 @@ export default function PolicyReportModal({
   function generatePrintableReport(): string {
     const customerProfile = application.llm_outputs?.application_summary?.customer_profile?.parsed;
     const patientName = String(customerProfile?.full_name || customerProfile?.summary?.split('.')[0] || tReport('defaultInsuredName'));
-    const intlLocale = locale === 'en' ? 'en-US' : 'fr-FR';
-    const dateGenerated = new Date().toLocaleDateString(intlLocale);
+    const dateGenerated = new Date().toLocaleDateString(locale);
     const premium = riskAnalysis?.premium_recommendation;
-    const htmlLang = locale === 'en' ? 'en' : 'fr';
+    const htmlLang = locale;
 
     return `
       <!DOCTYPE html>
@@ -235,7 +234,7 @@ export default function PolicyReportModal({
                 {t('reportTitle')}
               </h2>
               <p className="text-sm text-slate-500">
-                Application {application.id.substring(0, 8)}
+                {t('applicationLabel', { id: application.id.substring(0, 8) })}
               </p>
             </div>
           </div>
@@ -450,7 +449,7 @@ export default function PolicyReportModal({
         <div className="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="text-sm text-slate-500">
             {application.risk_analysis?.timestamp 
-              ? tReport('lastAnalyzed', { date: new Date(application.risk_analysis.timestamp).toLocaleString(locale === 'en' ? 'en-US' : 'fr-FR') })
+              ? tReport('lastAnalyzed', { date: new Date(application.risk_analysis.timestamp).toLocaleString(locale) })
               : tReport('notAnalyzed')}
           </div>
           <div className="flex items-center gap-3">

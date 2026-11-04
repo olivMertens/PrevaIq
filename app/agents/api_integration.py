@@ -13,6 +13,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, Dict, List
 
 from ..config import Settings
+from ..languages import language_instruction, require_language
 from ..telemetry import record_span_error, start_span
 from ..utils import setup_logging
 from .errors import agent_response_text, agent_tools_called, translate_agent_error
@@ -49,8 +50,56 @@ def _framework_label() -> str:
 FRAMEWORK_LABEL = _framework_label()
 
 
-def _format_fraud_response(raw_output: str) -> str:
-    """Format fraud tool output into a readable chat response."""
+def _format_fraud_response(raw_output: str, language: str) -> str:
+    """Format fraud tool output into a readable localized chat response."""
+    locale = require_language(language)
+    labels = {
+        "en": {
+            "title": "Fraud photo analysis",
+            "photos": "Photos analyzed",
+            "risk": "Risk level",
+            "score": "Score",
+            "summary": "Summary",
+            "rationale": "Rationale",
+            "unavailable": "analysis unavailable",
+            "indicator": "indicator",
+            "severity": "severity",
+            "confidence": "confidence",
+            "suspicion": "suspicion score",
+            "findings": "Findings",
+            "consistency": "Declaration/photo consistency",
+        },
+        "fr": {
+            "title": "Analyse fraude photo",
+            "photos": "Photos analysées",
+            "risk": "Niveau de risque",
+            "score": "Score",
+            "summary": "Synthèse",
+            "rationale": "Justification",
+            "unavailable": "analyse indisponible",
+            "indicator": "indicateur",
+            "severity": "gravité",
+            "confidence": "confiance",
+            "suspicion": "score suspicion",
+            "findings": "Points relevés",
+            "consistency": "Cohérence déclaration/photos",
+        },
+        "de": {
+            "title": "Betrugsanalyse der Fotos",
+            "photos": "Analysierte Fotos",
+            "risk": "Risikostufe",
+            "score": "Bewertung",
+            "summary": "Zusammenfassung",
+            "rationale": "Begründung",
+            "unavailable": "Analyse nicht verfügbar",
+            "indicator": "Indikator",
+            "severity": "Schweregrad",
+            "confidence": "Konfidenz",
+            "suspicion": "Verdachtswert",
+            "findings": "Festgestellte Punkte",
+            "consistency": "Konsistenz von Meldung und Fotos",
+        },
+    }[locale]
     try:
         payload = json.loads(raw_output)
     except (TypeError, ValueError, json.JSONDecodeError):
@@ -59,28 +108,30 @@ def _format_fraud_response(raw_output: str) -> str:
     if not isinstance(payload, dict):
         return raw_output
 
-    parts: list[str] = ["## Analyse fraude photo"]
+    parts: list[str] = [f"## {labels['title']}"]
 
     image_analyses = payload.get("image_analyses") or []
     if image_analyses:
-        parts.append(f"- Photos analysées : {len(image_analyses)}")
+        parts.append(f"- {labels['photos']}: {len(image_analyses)}")
 
     overall = payload.get("overall_assessment") or {}
     if isinstance(overall, dict):
         risk_level = overall.get("fraud_risk_level") or overall.get("risk_level")
         score = overall.get("fraud_score") or overall.get("risk_score")
-        summary = overall.get("summary") or overall.get("overall_summary") or overall.get("assessment")
+        summary = (
+            overall.get("summary") or overall.get("overall_summary") or overall.get("assessment")
+        )
         rationale = overall.get("rationale") or overall.get("reasoning")
 
         if risk_level:
-            parts.append(f"- Niveau de risque : {risk_level}")
+            parts.append(f"- {labels['risk']}: {risk_level}")
         if score is not None:
-            parts.append(f"- Score : {score}")
+            parts.append(f"- {labels['score']}: {score}")
         if summary:
             parts.append("")
-            parts.append(f"Synthèse : {summary}")
+            parts.append(f"{labels['summary']}: {summary}")
         if rationale:
-            parts.append(f"Justification : {rationale}")
+            parts.append(f"{labels['rationale']}: {rationale}")
 
     suspicious_items: list[str] = []
     for item in image_analyses:
@@ -88,7 +139,7 @@ def _format_fraud_response(raw_output: str) -> str:
             continue
         filename = item.get("filename", "photo")
         if item.get("error"):
-            suspicious_items.append(f"- {filename} : analyse indisponible ({item['error']})")
+            suspicious_items.append(f"- {filename}: {labels['unavailable']} ({item['error']})")
             continue
 
         suspicion = item.get("manipulation_probability") or item.get("fraud_probability")
@@ -96,29 +147,33 @@ def _format_fraud_response(raw_output: str) -> str:
         indicator_lines: list[str] = []
         for indicator in indicators[:3]:
             if isinstance(indicator, dict):
-                label = indicator.get("type") or indicator.get("description") or "indicateur"
+                label = indicator.get("type") or indicator.get("description") or labels["indicator"]
                 severity = indicator.get("severity")
                 confidence = indicator.get("confidence")
                 description = indicator.get("description")
                 details = []
                 if severity:
-                    details.append(f"gravité {severity}")
+                    details.append(f"{labels['severity']} {severity}")
                 if confidence is not None:
-                    details.append(f"confiance {confidence}")
+                    details.append(f"{labels['confidence']} {confidence}")
                 if description and description != label:
                     details.append(description)
-                indicator_lines.append(f"  - {label}: {'; '.join(details)}" if details else f"  - {label}")
+                indicator_lines.append(
+                    f"  - {label}: {'; '.join(details)}" if details else f"  - {label}"
+                )
             else:
                 indicator_lines.append(f"  - {indicator}")
         summary_bits = []
         if suspicion is not None:
-            summary_bits.append(f"score suspicion {suspicion}")
-        suspicious_items.append(f"- {filename}{' (' + ', '.join(summary_bits) + ')' if summary_bits else ''}")
+            summary_bits.append(f"{labels['suspicion']} {suspicion}")
+        suspicious_items.append(
+            f"- {filename}{' (' + ', '.join(summary_bits) + ')' if summary_bits else ''}"
+        )
         suspicious_items.extend(indicator_lines)
 
     if suspicious_items:
         parts.append("")
-        parts.append("Points relevés :")
+        parts.append(f"{labels['findings']}:")
         parts.extend(suspicious_items[:5])
 
     declaration = payload.get("declaration_verification") or {}
@@ -126,11 +181,28 @@ def _format_fraud_response(raw_output: str) -> str:
         decl_summary = declaration.get("summary") or declaration.get("consistency_summary")
         if decl_summary:
             parts.append("")
-            parts.append(f"Cohérence déclaration/photos : {decl_summary}")
+            parts.append(f"{labels['consistency']}: {decl_summary}")
 
     if len(parts) == 1:
         return raw_output
     return "\n".join(parts)
+
+
+def _timeout_response(kind: str, language: str) -> str:
+    locale = require_language(language)
+    messages = {
+        "fraud": {
+            "en": "## Fraud analysis timeout\nThe photo analysis is taking longer than expected. Please try again or launch a full AI analysis.",
+            "fr": "## Délai dépassé pour l'analyse fraude\nL'analyse des photos prend plus de temps que prévu. Réessayez ou lancez une analyse IA complète.",
+            "de": "## Zeitüberschreitung bei der Betrugsanalyse\nDie Fotoanalyse dauert länger als erwartet. Versuchen Sie es erneut oder starten Sie eine vollständige KI-Analyse.",
+        },
+        "data": {
+            "en": "## Fabric Data Agent timeout\nThe Fabric Data Agent query timed out. Please try a more specific question.",
+            "fr": "## Délai dépassé pour Fabric Data Agent\nLa requête Fabric Data Agent a expiré. Posez une question plus précise.",
+            "de": "## Zeitüberschreitung beim Fabric Data Agent\nDie Abfrage ist abgelaufen. Stellen Sie eine präzisere Frage.",
+        },
+    }
+    return messages[kind][locale]
 
 
 async def agent_chat(
@@ -141,7 +213,7 @@ async def agent_chat(
     persona: str = "underwriting",
     agent_type: str = "auto",
     use_corrections: bool | None = True,
-    language: str = "fr",
+    language: str = "en",
     on_delta: Callable[[str], Awaitable[None]] | None = None,
 ) -> Dict[str, Any]:
     """Route chat to the appropriate agent based on agent_type pill.
@@ -154,20 +226,35 @@ async def agent_chat(
         dashboard→ DashboardAgent (KPIs, structured data)
         fraud    → Direct analyze_image_fraud call
     """
+    language = require_language(language)
     started = time.perf_counter()
     from .agents import (
-        create_chat_agent, create_analysis_agent, _create_agent, _get_chat_client, _agent_options,
+        create_chat_agent,
+        create_analysis_agent,
+        _create_agent,
+        _get_chat_client,
+        _agent_options,
     )
     from .tools import (
-        analyze_image_fraud, query_fabric_data, search_policies, resolve_web_tool,
-        get_glossary, get_application_summary, get_risk_analysis,
-        get_customer360_overview, get_extracted_fields,
+        analyze_image_fraud,
+        query_fabric_data,
+        search_policies,
+        resolve_web_tool,
+        get_glossary,
+        get_application_summary,
+        get_risk_analysis,
+        get_customer360_overview,
+        get_extracted_fields,
     )
 
     imports_ms = round((time.perf_counter() - started) * 1000, 1)
     logger.debug(
         "agent_chat: app_id=%s persona=%s agent_type=%s history=%d language=%s",
-        app_id, persona, agent_type, len(history or []), language,
+        app_id,
+        persona,
+        agent_type,
+        len(history or []),
+        language,
     )
 
     # Preload the dossier summary (blocking I/O) concurrently with agent creation,
@@ -214,13 +301,21 @@ async def agent_chat(
         )
 
     # ── Route based on agent_type ──
-    fraud_terms = {"fraude", "fraud", "truqu", "authentic", "authenticit", "manipul", "retouch", "faux"}
+    fraud_terms = {
+        "fraude",
+        "fraud",
+        "truqu",
+        "authentic",
+        "authenticit",
+        "manipul",
+        "retouch",
+        "faux",
+    }
     image_terms = {"photo", "photos", "image", "images", "png", "jpg", "jpeg", "capture"}
     lowered_message = message.lower()
-    looks_like_fraud = (
-        agent_type in {"fraud", "fraud_detection"}
-        or (any(term in lowered_message for term in fraud_terms)
-            and any(term in lowered_message for term in image_terms))
+    looks_like_fraud = agent_type in {"fraud", "fraud_detection"} or (
+        any(term in lowered_message for term in fraud_terms)
+        and any(term in lowered_message for term in image_terms)
     )
 
     agent = None
@@ -249,7 +344,8 @@ async def agent_chat(
                 "Tu utilises EXCLUSIVEMENT l'outil search_policies pour trouver les clauses pertinentes.\n"
                 "Cite toujours les articles, numéros de page et extraits exacts des CG.\n"
                 "Si une question sort du périmètre des polices d'assurance, dis-le clairement.\n"
-                f"Contexte : Persona={persona}, Dossier={app_id}."
+                f"Contexte : Persona={persona}, Dossier={app_id}.\n"
+                f"{language_instruction(language)}"
             ),
             tools=[search_policies, get_glossary, get_application_summary],
         )
@@ -257,15 +353,24 @@ async def agent_chat(
     elif agent_type == "analysis":
         # Analyse pill → Specialized AnalysisAgent
         agent_name = "AnalysisAgent"
-        tools_available = ["analyze_section", "list_available_analyses", "get_extracted_fields",
-                           "search_policies", "get_application_summary"]
+        tools_available = [
+            "analyze_section",
+            "list_available_analyses",
+            "get_extracted_fields",
+            "search_policies",
+            "get_application_summary",
+        ]
         agent = await create_analysis_agent(settings)
 
     elif agent_type == "dashboard":
         # KPIs pill → Dashboard/KPI agent
         agent_name = "DashboardAgent"
-        tools_available = ["get_application_summary", "get_risk_analysis",
-                           "get_customer360_overview", "get_extracted_fields"]
+        tools_available = [
+            "get_application_summary",
+            "get_risk_analysis",
+            "get_customer360_overview",
+            "get_extracted_fields",
+        ]
         agent = _create_agent(
             _get_chat_client(settings),
             name="DashboardAgent",
@@ -278,10 +383,15 @@ async def agent_chat(
                 "Format recommandé :\n"
                 "## KPIs Dossier\n"
                 "| Indicateur | Valeur |\n|---|---|\n| ... | ... |\n\n"
-                f"Contexte : Persona={persona}, Dossier={app_id}."
+                f"Contexte : Persona={persona}, Dossier={app_id}.\n"
+                f"{language_instruction(language)}"
             ),
-            tools=[get_application_summary, get_risk_analysis,
-                   get_customer360_overview, get_extracted_fields],
+            tools=[
+                get_application_summary,
+                get_risk_analysis,
+                get_customer360_overview,
+                get_extracted_fields,
+            ],
         )
 
     else:
@@ -301,11 +411,20 @@ async def agent_chat(
                 raise
         agent_name = "ChatAgent"
         tools_available = [
-            "search_policies", "get_application_summary", "get_glossary",
-            "query_fabric_data", "analyze_image_fraud",
-            "get_risk_analysis", "get_customer360_overview", "get_image_descriptions",
-            "get_confidence_scores", "get_file_list", "classify_documents",
-            "get_communications", "get_document_sentiment", "get_damage_areas_multimodal",
+            "search_policies",
+            "get_application_summary",
+            "get_glossary",
+            "query_fabric_data",
+            "analyze_image_fraud",
+            "get_risk_analysis",
+            "get_customer360_overview",
+            "get_image_descriptions",
+            "get_confidence_scores",
+            "get_file_list",
+            "classify_documents",
+            "get_communications",
+            "get_document_sentiment",
+            "get_damage_areas_multimodal",
             "get_page_reference",
         ]
         tools_available.append(resolve_web_tool(settings).__name__)
@@ -315,7 +434,10 @@ async def agent_chat(
     timings["setup_ms"] = round((time.perf_counter() - started) * 1000, 1)
     logger.debug(
         "agent_chat: agent=%s ready after %d ms (message_chars=%d, enriched_chars=%d, tools_available=%d)",
-        agent_name, (time.perf_counter() - started) * 1000, len(message), len(enriched_message),
+        agent_name,
+        (time.perf_counter() - started) * 1000,
+        len(message),
+        len(enriched_message),
         len(tools_available),
     )
 
@@ -343,38 +465,38 @@ async def agent_chat(
                             application_id=app_id,
                             declaration_text=message,
                             reasoning_effort="low",
+                            language=language,
                         ),
                         timeout=120,
                     )
-                    response_text = _format_fraud_response(str(result))
+                    response_text = _format_fraud_response(str(result), language)
                 except asyncio.TimeoutError:
                     logger.warning("Fraud photo analysis timed out for application %s", app_id)
                     record_span_error(tool_span, "timed out after 120s", error_type="timeout")
-                    response_text = (
-                        "## Fraud Analysis Timeout\n"
-                        "The photo analysis is taking longer than expected. "
-                        "Please try again or launch a full AI analysis."
-                    )
+                    response_text = _timeout_response("fraud", language)
         elif agent_type == "data":
             tools_called = ["query_fabric_data"]
             # Direct Fabric NL→SQL call — pass enriched message with dossier context
             with _tool_span("query_fabric_data") as tool_span:
                 try:
                     result = await asyncio.wait_for(
-                        asyncio.to_thread(query_fabric_data, question=enriched_message, persona=persona),
+                        asyncio.to_thread(
+                            query_fabric_data,
+                            question=enriched_message,
+                            persona=persona,
+                            language=language,
+                        ),
                         timeout=90,
                     )
                     response_text = str(result)
                 except asyncio.TimeoutError:
                     logger.warning("Fabric data query timed out for application %s", app_id)
                     record_span_error(tool_span, "timed out after 90s", error_type="timeout")
-                    response_text = (
-                        "## Fabric Data Agent Timeout\n"
-                        "The Fabric Data Agent query timed out. "
-                        "Please try a more specific question."
-                    )
+                    response_text = _timeout_response("data", language)
         else:
             # Agent loop (policy, analysis, dashboard, auto)
+            if agent is None:
+                raise RuntimeError(f"Agent {agent_name} was not initialized")
             try:
                 if on_delta is None:
                     result = await agent.run(enriched_message)
@@ -392,7 +514,9 @@ async def agent_chat(
                 usage = getattr(result, "usage_details", None) or {}
             except Exception as exc:
                 error = translate_agent_error(exc)
-                logger.exception("Agent invocation failed: code=%s request_id=%s", error.code, error.request_id)
+                logger.exception(
+                    "Agent invocation failed: code=%s request_id=%s", error.code, error.request_id
+                )
                 span.set_attribute("error.type", error.code)
                 span.set_attribute("workbenchiq.request_id", error.request_id)
                 raise error from exc
@@ -407,8 +531,15 @@ async def agent_chat(
         logger.info(
             "agent_chat done: agent=%s persona=%s app_id=%s duration_ms=%d tools_called=%s "
             "tokens_in=%s tokens_out=%s response_chars=%d timings_ms=%s",
-            agent_name, persona, app_id, (time.perf_counter() - started) * 1000, tools_called,
-            usage.get("input_token_count"), usage.get("output_token_count"), len(response_text), timings,
+            agent_name,
+            persona,
+            app_id,
+            (time.perf_counter() - started) * 1000,
+            tools_called,
+            usage.get("input_token_count"),
+            usage.get("output_token_count"),
+            len(response_text),
+            timings,
         )
 
     return {
@@ -429,16 +560,19 @@ async def agent_workflow(
     app_id: str,
     workflow_id: str,
     persona: str = "habitation_claims",
-    language: str = "fr",
+    language: str = "en",
 ) -> Dict[str, Any]:
     """Execute a named workflow on an application.
 
     Available workflows: express, complet, fraude.
     Returns structured result with step-by-step agent outputs.
     """
+    language = require_language(language)
     from .workflows import (
-        create_express_workflow, create_complet_workflow,
-        create_fraud_workflow, WORKFLOWS,
+        create_express_workflow,
+        create_complet_workflow,
+        create_fraud_workflow,
+        WORKFLOWS,
     )
 
     if workflow_id not in WORKFLOWS:
@@ -461,7 +595,11 @@ async def agent_workflow(
         },
     ) as span:
         logger.info(
-            "Workflow %s started: app_id=%s persona=%s language=%s", workflow_id, app_id, persona, language
+            "Workflow %s started: app_id=%s persona=%s language=%s",
+            workflow_id,
+            app_id,
+            persona,
+            language,
         )
         try:
             if workflow_id == "express":
@@ -475,15 +613,26 @@ async def agent_workflow(
         except Exception as exc:
             error = translate_agent_error(exc)
             logger.exception(
-                "Workflow %s failed: code=%s request_id=%s", workflow_id, error.code, error.request_id
+                "Workflow %s failed: code=%s request_id=%s",
+                workflow_id,
+                error.code,
+                error.request_id,
             )
             span.set_attribute("error.type", error.code)
             span.set_attribute("workbenchiq.request_id", error.request_id)
             raise error from exc
 
+        status = str(result.get("status", "unknown"))
+        span.set_attribute("workbenchiq.workflow.status", status)
+        span.set_attribute("workbenchiq.workflow.steps", len(result.get("steps", [])))
+        span.set_attribute("workbenchiq.requires_human_review", status == "needs_review")
         logger.info(
-            "Workflow %s completed: app_id=%s steps=%d duration_ms=%d",
-            workflow_id, app_id, len(result.get("steps", [])), (time.perf_counter() - started) * 1000,
+            "Workflow %s completed: app_id=%s status=%s steps=%d duration_ms=%d",
+            workflow_id,
+            app_id,
+            status,
+            len(result.get("steps", [])),
+            (time.perf_counter() - started) * 1000,
         )
 
     return result

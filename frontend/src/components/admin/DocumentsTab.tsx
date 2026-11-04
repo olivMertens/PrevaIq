@@ -3,7 +3,7 @@
 import { CSSProperties, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { getFileFormatCapabilities } from '@/lib/api';
 import { brand } from '@/lib/brand';
 import type { FileFormatCapabilities } from '@/lib/types';
@@ -42,6 +42,7 @@ export default function DocumentsTab({
   addToast,
 }: DocumentsTabProps) {
   const t = useTranslations('adminPanel');
+  const locale = useLocale();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [externalRef, setExternalRef] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -338,7 +339,7 @@ export default function DocumentsTab({
                       <StatusBadge status={app.status} processingStatus={app.processing_status} />
                     </div>
                     {app.external_reference && <p className="text-sm text-slate-500">{t('ref')} {app.external_reference}</p>}
-                    {app.created_at && <p className="text-xs text-slate-400">{t('created')} {new Date(app.created_at).toLocaleDateString()}</p>}
+                    {app.created_at && <p className="text-xs text-slate-400">{t('created')} {new Date(app.created_at).toLocaleDateString(locale)}</p>}
                   </div>
                   <div className="flex items-center gap-2">
                     {/* Resume tracking */}

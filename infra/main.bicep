@@ -935,10 +935,8 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             // Azure AI Search (corrections index)
             { name: 'AZURE_SEARCH_ENDPOINT', value: 'https://${searchService.name}.search.windows.net' }
             { name: 'AZURE_SEARCH_INDEX_NAME', value: 'corrections' }
-            // Web Intelligence Agent (Foundry Agent Service + Bing WebSearch)
-            { name: 'WEB_INTELLIGENCE_ENABLED', value: 'true' }
+            // Foundry project is used by the Fabric Data Agent connection only.
             { name: 'FOUNDRY_PROJECT_ENDPOINT', value: '${foundryAccount.properties.endpoint}/api/projects/${foundryProject.name}' }
-            { name: 'WEB_INTELLIGENCE_AGENT_NAME', value: 'PrevaIQ-WebIntelligence' }
           ], webIqEnv, accessEmailEnv)
         }
       ]

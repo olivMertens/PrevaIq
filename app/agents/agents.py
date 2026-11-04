@@ -20,6 +20,7 @@ from agent_framework.observability import OBSERVABILITY_SETTINGS
 from agent_framework.openai import OpenAIChatClient, OpenAIChatCompletionClient
 
 from ..config import Settings, load_settings
+from ..languages import language_instruction, require_language
 from ..telemetry import start_span
 from ..utils import setup_logging
 from .tools import (
@@ -59,21 +60,32 @@ def _agent_options(
 ) -> dict[str, Any]:
     _, model = settings.openai.get_deployment(tier)
     supported = {
-        "gpt-5", "gpt-5-mini", "gpt-5-nano",
-        "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.5",
+        "gpt-5",
+        "gpt-5-mini",
+        "gpt-5-nano",
+        "gpt-5.4",
+        "gpt-5.4-mini",
+        "gpt-5.4-nano",
+        "gpt-5.5",
     }
     if model not in supported:
         return {}
     effort = effort or settings.openai.reasoning_effort
     if effort not in {"none", "minimal", "low", "medium", "high"}:
-        raise ValueError("Unsupported agent reasoning effort; use none, minimal, low, medium or high")
+        raise ValueError(
+            "Unsupported agent reasoning effort; use none, minimal, low, medium or high"
+        )
     if settings.foundry.agents_openai_api == "chat_completions":
         return {"reasoning_effort": effort}
     return {"reasoning": {"effort": effort}}
 
 
 def _create_agent(
-    client, *, name: str, instructions: str, tools: list | None = None,
+    client,
+    *,
+    name: str,
+    instructions: str,
+    tools: list | None = None,
     default_options: dict[str, Any] | None = None,
 ) -> Agent:
     """Create an Agent with optional tools."""
@@ -89,7 +101,10 @@ def _create_agent(
     logger.debug(
         "Agent created: name=%s tools=%s",
         name,
-        [getattr(tool, "name", None) or getattr(tool, "__name__", type(tool).__name__) for tool in tools or ()],
+        [
+            getattr(tool, "name", None) or getattr(tool, "__name__", type(tool).__name__)
+            for tool in tools or ()
+        ],
     )
     return agent
 
@@ -140,12 +155,16 @@ async def _build_few_shot_block(
             )
         if not examples:
             logger.debug(
-                "Few-shot enrichment: no relevant correction (persona=%s, agent_type=%s)", persona, agent_type
+                "Few-shot enrichment: no relevant correction (persona=%s, agent_type=%s)",
+                persona,
+                agent_type,
             )
             return ""
         logger.debug(
             "Few-shot enrichment: %d correction(s) injected (persona=%s, agent_type=%s)",
-            len(examples), persona, agent_type,
+            len(examples),
+            persona,
+            agent_type,
         )
 
         lines = []
@@ -191,7 +210,7 @@ CHAT_AGENT_INSTRUCTIONS = """Tu es un assistant expert en assurance pour {brand}
 
 **Outils disponibles — Données métier** :
 11. `query_fabric_data` — Données chiffrées (statistiques, montants, historiques)
-12. `web_search` (ou `webiq_search` via Microsoft Web IQ) — Faits publics (Cat-Nat, météo, Argus, actualités) ; toujours citer les URL sources
+12. `webiq_search` (Microsoft Web IQ) — Faits publics (Cat-Nat, météo, Argus, actualités) ; toujours citer les URL sources
 
 **Outils disponibles — Communications & Sentiment** :
 13. `get_communications` — Emails/SMS générés pour le dossier
@@ -269,8 +288,11 @@ def _get_chat_client(
     """
     openai = settings.openai
     cache_key = (
-        openai.endpoint, openai.use_azure_ad, openai.api_key,
-        openai.get_deployment(tier), openai.chat_api_version or openai.api_version,
+        openai.endpoint,
+        openai.use_azure_ad,
+        openai.api_key,
+        openai.get_deployment(tier),
+        openai.chat_api_version or openai.api_version,
         settings.foundry.agents_openai_api,
     )
     cached = _CHAT_CLIENT_CACHE.get(cache_key)
@@ -284,9 +306,14 @@ def _get_chat_client(
     logger.info(
         "Agent chat client created: tier=%s deployment=%s model=%s api=%s auth=%s endpoint=%s "
         "maf_instrumentation=%s maf_sensitive_data=%s",
-        tier, deployment, model, settings.foundry.agents_openai_api,
-        "azure_ad" if openai.use_azure_ad else "api_key", urlparse(openai.endpoint).netloc,
-        OBSERVABILITY_SETTINGS.enable_instrumentation, OBSERVABILITY_SETTINGS.enable_sensitive_data,
+        tier,
+        deployment,
+        model,
+        settings.foundry.agents_openai_api,
+        "azure_ad" if openai.use_azure_ad else "api_key",
+        urlparse(openai.endpoint).netloc,
+        OBSERVABILITY_SETTINGS.enable_instrumentation,
+        OBSERVABILITY_SETTINGS.enable_sensitive_data,
     )
     return client
 
@@ -361,7 +388,9 @@ def _build_chat_client(
     Uses Azure AD authentication via DefaultAzureCredential.
     """
     from azure.identity import (
-        DefaultAzureCredential, ManagedIdentityCredential, get_bearer_token_provider,
+        DefaultAzureCredential,
+        ManagedIdentityCredential,
+        get_bearer_token_provider,
     )
     from openai import AsyncAzureOpenAI, DefaultAsyncHttpxClient
 
@@ -403,7 +432,10 @@ def _build_chat_client(
             api_version=api_version,
             azure_ad_token_provider=token_provider,
             http_client=DefaultAsyncHttpxClient(
-                event_hooks={"request": [_http_request_started], "response": [_http_response_received]}
+                event_hooks={
+                    "request": [_http_request_started],
+                    "response": [_http_response_received],
+                }
             ),
             max_retries=1,
             timeout=90.0,
@@ -438,7 +470,7 @@ async def create_chat_agent(
     persona: str = "underwriting",
     current_query: str | None = None,
     use_corrections: bool = True,
-    language: str = "fr",
+    language: str = "en",
 ) -> Agent:
     """Create the ChatAgent (Phase 1) — interactive Q&A with tool use.
 
@@ -449,7 +481,7 @@ async def create_chat_agent(
     if settings is None:
         settings = load_settings()
 
-    lang_instr = "Répondre en français" if language == "fr" else "ALWAYS respond in English"
+    lang_instr = language_instruction(require_language(language))
     instructions = instructions_override or CHAT_AGENT_INSTRUCTIONS.format(
         brand=settings.brand_name, language_instruction=lang_instr
     )

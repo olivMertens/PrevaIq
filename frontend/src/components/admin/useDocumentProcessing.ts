@@ -11,8 +11,11 @@ import {
 } from '@/lib/api';
 import type { ApplicationListItem } from '@/lib/types';
 import type { ProcessingState } from './types';
+import { useLocale, useTranslations } from 'next-intl';
 
 export function useDocumentProcessing(currentPersona: string) {
+  const locale = useLocale();
+  const t = useTranslations('admin');
   const [applications, setApplications] = useState<ApplicationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,16 +29,16 @@ export function useDocumentProcessing(currentPersona: string) {
       setApplications(apps);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load applications');
+      setError(err instanceof Error ? err.message : t('processing.loadApplicationsFailed'));
     } finally {
       setLoading(false);
     }
-  }, [currentPersona]);
+  }, [currentPersona, t]);
 
   // Load applications on mount and when persona changes
   useEffect(() => {
     loadApplications();
-  }, [loadApplications]);
+  }, [loadApplications, t]);
 
   const pollForProcessingCompletion = useCallback((appId: string) => {
     if (pollingAppIdRef.current === appId) return;
@@ -49,26 +52,26 @@ export function useDocumentProcessing(currentPersona: string) {
       if (pollingAppIdRef.current !== appId) return;
       pollCount++;
       if (pollCount > maxPolls) {
-        setProcessing({ step: 'error', message: 'Processing timed out.', appId });
+        setProcessing({ step: 'error', message: t('processing.timedOut'), appId });
         pollingAppIdRef.current = null;
         return;
       }
 
       try {
-        const status = await getApplication(appId);
+        const status = await getApplication(appId, locale);
 
         if (status.processing_status === 'extracting') {
-          setProcessing({ step: 'extracting', message: 'Data Agent extracting documents...', appId });
+          setProcessing({ step: 'extracting', message: t('processing.extracting'), appId });
           setTimeout(poll, pollInterval);
         } else if (status.processing_status === 'analyzing') {
-          setProcessing({ step: 'analyzing', message: 'Risk Agent analyzing case...', appId });
+          setProcessing({ step: 'analyzing', message: t('processing.analyzing'), appId });
           setTimeout(poll, pollInterval);
         } else if (status.processing_status === 'error') {
-          setProcessing({ step: 'error', message: status.processing_error || 'Agent encountered an error', appId });
+          setProcessing({ step: 'error', message: status.processing_error || t('processing.agentError'), appId });
           pollingAppIdRef.current = null;
           await loadApplications();
         } else if (!status.processing_status) {
-          setProcessing({ step: 'complete', message: 'All agents complete!', appId });
+          setProcessing({ step: 'complete', message: t('processing.complete'), appId });
           pollingAppIdRef.current = null;
           await loadApplications();
           setTimeout(() => setProcessing({ step: 'idle', message: '' }), 3000);
@@ -78,9 +81,9 @@ export function useDocumentProcessing(currentPersona: string) {
       }
     };
 
-    setProcessing({ step: 'extracting', message: 'Reconnecting to agents...', appId });
+    setProcessing({ step: 'extracting', message: t('processing.reconnecting'), appId });
     setTimeout(poll, pollInterval);
-  }, [loadApplications]);
+  }, [loadApplications, locale, t]);
 
   const handleUploadAndProcess = useCallback(async (
     files: File[],
@@ -90,20 +93,20 @@ export function useDocumentProcessing(currentPersona: string) {
     if (files.length === 0) return;
 
     try {
-      setProcessing({ step: 'uploading', message: 'Uploading files...' });
+      setProcessing({ step: 'uploading', message: t('processing.uploading') });
       const app = await createApplication(files, externalRef || undefined, currentPersona);
 
       const processingMode = useLargeDocMode === 'on' ? 'large_document'
         : useLargeDocMode === 'off' ? 'standard'
         : undefined;
-      await startProcessing(app.id, processingMode);
+      await startProcessing(app.id, processingMode, locale);
       pollForProcessingCompletion(app.id);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Processing failed';
+      const msg = err instanceof Error ? err.message : t('processing.failed');
       setProcessing({ step: 'error', message: msg });
       throw err; // let caller handle toast
     }
-  }, [currentPersona, pollForProcessingCompletion]);
+  }, [currentPersona, locale, pollForProcessingCompletion, t]);
 
   const handleReprocess = useCallback(async (
     appId: string,
@@ -112,26 +115,28 @@ export function useDocumentProcessing(currentPersona: string) {
   ) => {
     try {
       if (step === 'extract') {
-        setProcessing({ step: 'extracting', message: 'Data Agent starting extraction...', appId });
-        await startProcessing(appId);
+        setProcessing({ step: 'extracting', message: t('processing.startingExtraction'), appId });
+        await startProcessing(appId, undefined, locale);
       } else if (step === 'prompts-only') {
         setProcessing({
           step: 'analyzing',
-          message: sections?.length ? `Analysis Agent running: ${sections.join(', ')}...` : 'Analysis Agents running all skills...',
+          message: sections?.length
+            ? t('processing.runningSections', { sections: sections.join(', ') })
+            : t('processing.runningAllSkills'),
           appId,
         });
-        await runUnderwritingAnalysis(appId, sections, true);
+        await runUnderwritingAnalysis(appId, sections, true, locale);
       } else {
-        setProcessing({ step: 'analyzing', message: 'Risk Agent starting analysis...', appId });
-        await runUnderwritingAnalysis(appId, undefined, true);
+        setProcessing({ step: 'analyzing', message: t('processing.startingAnalysis'), appId });
+        await runUnderwritingAnalysis(appId, undefined, true, locale);
       }
       pollForProcessingCompletion(appId);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Reprocessing failed';
+      const msg = err instanceof Error ? err.message : t('processing.reprocessingFailed');
       setProcessing({ step: 'error', message: msg });
       throw err;
     }
-  }, [pollForProcessingCompletion]);
+  }, [locale, pollForProcessingCompletion, t]);
 
   const handleDeleteApp = useCallback(async (appId: string) => {
     await deleteApplication(appId);

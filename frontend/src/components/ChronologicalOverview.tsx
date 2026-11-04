@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { ApplicationMetadata } from '@/lib/types';
 import { brand, isWorkbenchSystem } from '@/lib/brand';
@@ -47,13 +47,12 @@ function parseDate(text: string): Date | null {
   return null;
 }
 
-function formatDateDisplay(date: Date | null): { date: string; year: string } {
+function formatDateDisplay(date: Date | null, locale: string): { date: string; year: string } {
   if (!date) {
     return { date: 'N/A', year: '' };
   }
   
-  const months = ['Janv', 'Fév', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
-  const month = months[date.getMonth()];
+  const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(date).replace(/\.$/, '');
   const day = date.getDate().toString().padStart(2, '0');
   const year = date.getFullYear().toString();
   
@@ -72,7 +71,7 @@ function getStringValue(field: any): string {
   return '';
 }
 
-function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[] {
+function buildTimelineFromData(application: ApplicationMetadata, locale: string, t: (key: string) => string): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const fields = application.extracted_fields || {};
   
@@ -84,18 +83,17 @@ function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[
   const llmOtherFindings = application.llm_outputs?.medical_summary?.other_medical_findings?.parsed as any;
   if (llmOtherFindings?.conditions && Array.isArray(llmOtherFindings.conditions)) {
     llmOtherFindings.conditions.forEach((condition: any, idx: number) => {
-      const name = condition.name || 'Pathologie inconnue';
+      const name = condition.name || t('unknownCondition');
       const onset = condition.onset || '';
       const status = condition.status || '';
       const details = condition.details || '';
       
-      // Translate status values to French
-      const statusFr = status === 'Ongoing' ? 'En cours' : status === 'Resolved' ? 'Résolu' : status === 'active' ? 'Actif' : status === 'monitoring' ? 'Suivi' : status;
-      const title = `${name}${statusFr ? ' (' + statusFr + ')' : ''}`;
-      const fullDetails = `${name}\nDébut : ${onset}\nÉtat : ${statusFr}\nDétails : ${details}`;
+      const statusLabel = status === 'Ongoing' ? t('statusOngoing') : status === 'Resolved' ? t('statusResolved') : status === 'active' ? t('statusActive') : status === 'monitoring' ? t('statusMonitoring') : status;
+      const title = `${name}${statusLabel ? ' (' + statusLabel + ')' : ''}`;
+      const fullDetails = `${name}\n${t('onsetLabel')} ${onset}\n${t('statusLabel')} ${statusLabel}\n${t('detailsLabel')} ${details}`;
       
       const parsedDate = parseDate(onset);
-      const displayDate = formatDateDisplay(parsedDate);
+      const displayDate = formatDateDisplay(parsedDate, locale);
       
       entries.push({
         date: displayDate.date,
@@ -114,7 +112,7 @@ function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[
       const conditions = String(medicalField.value).split(';').map(s => s.trim()).filter(Boolean);
       conditions.forEach((condition, idx) => {
         const parsedDate = parseDate(condition);
-        const displayDate = formatDateDisplay(parsedDate);
+        const displayDate = formatDateDisplay(parsedDate, locale);
         entries.push({
           date: displayDate.date,
           year: displayDate.year,
@@ -139,16 +137,16 @@ function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[
         // Handle nested valueObject structure from Azure Content Understanding
         const surgery = item.valueObject || item;
         
-        const procedure = getStringValue(surgery.procedure) || 'Procédure inconnue';
+        const procedure = getStringValue(surgery.procedure) || t('unknownProcedure');
         const date = getStringValue(surgery.date) || '';
         const reason = getStringValue(surgery.reason) || '';
         const outcome = getStringValue(surgery.outcome) || '';
         
         const title = `${procedure}${reason ? ' - ' + reason : ''}`;
-        const details = `${procedure}\nDate : ${date}\nMotif : ${reason}\nRésultat : ${outcome}`;
+        const details = `${procedure}\n${t('dateLabel')} ${date}\n${t('reasonLabel')} ${reason}\n${t('outcomeLabel')} ${outcome}`;
         
         const parsedDate = parseDate(date);
-        const displayDate = formatDateDisplay(parsedDate);
+        const displayDate = formatDateDisplay(parsedDate, locale);
         
         entries.push({
           date: displayDate.date,
@@ -166,7 +164,7 @@ function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[
       const surgeries = String(surgeryField.value).split(';').map(s => s.trim()).filter(Boolean);
       surgeries.forEach((surgery) => {
         const parsedDate = parseDate(surgery);
-        const displayDate = formatDateDisplay(parsedDate);
+        const displayDate = formatDateDisplay(parsedDate, locale);
         entries.push({
           date: displayDate.date,
           year: displayDate.year,
@@ -191,16 +189,16 @@ function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[
         // Handle nested valueObject structure from Azure Content Understanding
         const test = item.valueObject || item;
         
-        const testType = getStringValue(test.testType) || 'Examen inconnu';
+        const testType = getStringValue(test.testType) || t('unknownTest');
         const date = getStringValue(test.date) || '';
         const reason = getStringValue(test.reason) || '';
         const result = getStringValue(test.result) || '';
         
         const title = `${testType}${result ? ' - ' + result : ''}`;
-        const details = `${testType}\nDate : ${date}\nMotif : ${reason}\nRésultat : ${result}`;
+        const details = `${testType}\n${t('dateLabel')} ${date}\n${t('reasonLabel')} ${reason}\n${t('resultLabel')} ${result}`;
         
         const parsedDate = parseDate(date);
-        const displayDate = formatDateDisplay(parsedDate);
+        const displayDate = formatDateDisplay(parsedDate, locale);
         
         entries.push({
           date: displayDate.date,
@@ -218,7 +216,7 @@ function buildTimelineFromData(application: ApplicationMetadata): TimelineEntry[
       const tests = String(diagField.value).split(';').map(s => s.trim()).filter(Boolean);
       tests.forEach((test) => {
         const parsedDate = parseDate(test);
-        const displayDate = formatDateDisplay(parsedDate);
+        const displayDate = formatDateDisplay(parsedDate, locale);
         entries.push({
           date: displayDate.date,
           year: displayDate.year,
@@ -249,7 +247,7 @@ function buildDocumentsFromData(application: ApplicationMetadata): { name: strin
 /**
  * Merge persisted action_history into timeline entries.
  */
-function mergeActionHistory(entries: TimelineEntry[], application: ApplicationMetadata): void {
+function mergeActionHistory(entries: TimelineEntry[], application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string): void {
   if (!application.action_history) return;
   for (const action of application.action_history) {
     const actionDate = new Date(action.at);
@@ -261,12 +259,12 @@ function mergeActionHistory(entries: TimelineEntry[], application: ApplicationMe
       if (s === 'Email') return '✉️ Email';
       return s;
     }).join(' · ');
-    const d = formatDateDisplay(actionDate);
+    const d = formatDateDisplay(actionDate, locale);
     entries.push({
       date: d.date,
       year: d.year,
       title: action.label,
-      description: badges ? `Systèmes : ${badges}` : action.source,
+      description: badges ? t('systems', { systems: badges }) : action.source,
       color: action.performed === 'HITL' ? 'red' : 'green',
       details: badges ? `Action · ${badges}` : `Action · ${action.source}`,
       sortDate: actionDate.getTime(),
@@ -278,7 +276,7 @@ function mergeActionHistory(entries: TimelineEntry[], application: ApplicationMe
  * Build timeline entries from LLM outputs generically — works for any persona.
  * Falls back to extracted fields timeline events if no LLM outputs.
  */
-function buildGenericTimeline(application: ApplicationMetadata): TimelineEntry[] {
+function buildGenericTimeline(application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const llm = application.llm_outputs || {};
   const fields = application.extracted_fields || {};
@@ -286,7 +284,7 @@ function buildGenericTimeline(application: ApplicationMetadata): TimelineEntry[]
 
   // For habitation/claims personas, build a coherent claims narrative
   if (persona.includes('habitation') || persona.includes('property')) {
-    return buildHabitationTimeline(application);
+    return buildHabitationTimeline(application, locale, t);
   }
 
   // 1. Extract events from LLM outputs (any persona)
@@ -304,7 +302,7 @@ function buildGenericTimeline(application: ApplicationMetadata): TimelineEntry[]
           const title = evt.event || evt.description || evt.title || `${section} — ${subsection}`;
           const details = evt.description || evt.details || evt.rationale || '';
           const parsedDate = parseDate(date);
-          const displayDate = formatDateDisplay(parsedDate);
+          const displayDate = formatDateDisplay(parsedDate, locale);
           entries.push({
             date: displayDate.date,
             year: displayDate.year,
@@ -342,7 +340,7 @@ function buildGenericTimeline(application: ApplicationMetadata): TimelineEntry[]
       if (!name.toLowerCase().includes('date')) continue;
       const parsedDate = parseDate(String(val.value));
       if (parsedDate) {
-        const displayDate = formatDateDisplay(parsedDate);
+        const displayDate = formatDateDisplay(parsedDate, locale);
         entries.push({
           date: displayDate.date,
           year: displayDate.year,
@@ -357,7 +355,7 @@ function buildGenericTimeline(application: ApplicationMetadata): TimelineEntry[]
   }
 
   // Merge persisted action_history
-  mergeActionHistory(entries, application);
+  mergeActionHistory(entries, application, locale, t);
 
   // Sort chronologically (oldest first)
   entries.sort((a, b) => (b.sortDate || 0) - (a.sortDate || 0));
@@ -369,7 +367,7 @@ function buildGenericTimeline(application: ApplicationMetadata): TimelineEntry[]
  * Build a coherent claims timeline for habitation persona.
  * Creates narrative events from extracted fields with proper dates.
  */
-function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntry[] {
+function buildHabitationTimeline(application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const fields = application.extracted_fields || {};
   const llm = application.llm_outputs || {};
@@ -409,24 +407,24 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
 
   // 1. Incident
   if (incidentDate && natureSinistre) {
-    const d = formatDateDisplay(incidentDate);
+    const d = formatDateDisplay(incidentDate, locale);
     entries.push({
       date: d.date, year: d.year,
-      title: `Sinistre : ${natureSinistre}`,
-      description: `Sinistre ${natureSinistre} survenu${lieu ? ' — ' + lieu : ''}`,
+      title: t('claimEventTitle', { nature: natureSinistre }),
+      description: lieu ? t('claimEventLocation', { nature: natureSinistre, location: lieu }) : t('claimEvent', { nature: natureSinistre }),
       color: 'red',
-      details: description || `Sinistre de type ${natureSinistre} survenu le ${dateSinistre}${lieu ? ' à ' + lieu : ''}`,
+      details: description || (lieu ? t('claimEventDetailsLocation', { nature: natureSinistre, date: dateSinistre, location: lieu }) : t('claimEventDetails', { nature: natureSinistre, date: dateSinistre })),
       sortDate: incidentDate.getTime(),
     });
   }
 
   // 2. Constatation des dégâts (day after incident)
   if (dayAfter && description) {
-    const d = formatDateDisplay(dayAfter);
+    const d = formatDateDisplay(dayAfter, locale);
     entries.push({
       date: d.date, year: d.year,
-      title: 'Constatation des dégâts',
-      description: `${nomAssure || 'L\'assuré'} constate les dommages`,
+      title: t('damageObserved'),
+      description: t('damageObservedBy', { name: nomAssure || t('insured') }),
       color: 'orange',
       details: description.substring(0, 300),
       sortDate: dayAfter.getTime(),
@@ -437,11 +435,11 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
   if (mesures) {
     const mesuresDate = dayAfter || incidentDate;
     if (mesuresDate) {
-      const d = formatDateDisplay(mesuresDate);
+      const d = formatDateDisplay(mesuresDate, locale);
       entries.push({
         date: d.date, year: d.year,
-        title: 'Mesures conservatoires prises',
-        description: 'Interventions d\'urgence réalisées',
+        title: t('protectiveMeasures'),
+        description: t('emergencyInterventions'),
         color: 'yellow',
         details: mesures,
         sortDate: mesuresDate.getTime() + 1,
@@ -452,13 +450,13 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
   // 4. Déclaration de sinistre (2 days after or creation date) 
   if (twoDaysAfter || createdDate) {
     const declDate = twoDaysAfter || createdDate;
-    const d = formatDateDisplay(declDate);
+    const d = formatDateDisplay(declDate, locale);
     entries.push({
       date: d.date, year: d.year,
-      title: 'Déclaration de sinistre',
-      description: `Déclaration envoyée à l'assureur${contrat ? ' — contrat ' + contrat : ''}`,
+      title: t('claimDeclaration'),
+      description: contrat ? t('declarationSentContract', { contract: contrat }) : t('declarationSent'),
       color: 'blue',
-      details: `Déclaration de sinistre habitation${contrat ? '\nContrat : ' + contrat : ''}${montant ? '\nMontant estimé : ' + montant + ' €' : ''}`,
+      details: t('declarationDetails', { contract: contrat || '—', amount: montant || '—' }),
       sortDate: declDate.getTime(),
     });
   }
@@ -466,28 +464,30 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
   // 5. Estimation des dommages
   if (montant) {
     const estimDate = twoDaysAfter || createdDate;
-    const d = formatDateDisplay(estimDate);
+    const d = formatDateDisplay(estimDate, locale);
     const numMontant = Number(String(montant).replace(/[^\d.,]/g, '').replace(',', '.'));
-    const montantDisplay = isNaN(numMontant) ? montant : numMontant.toLocaleString('fr-FR') + ' €';
+    const montantDisplay = isNaN(numMontant)
+      ? montant
+      : new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(numMontant);
     entries.push({
       date: d.date, year: d.year,
-      title: `Estimation des dommages : ${montantDisplay}`,
-      description: `Montant total estimé des dommages${franchise ? ' — franchise : ' + franchise : ''}`,
+      title: t('damageEstimate', { amount: montantDisplay }),
+      description: franchise ? t('damageEstimateDeductible', { deductible: franchise }) : t('damageEstimateTotal'),
       color: 'purple',
-      details: `Montant estimé : ${montantDisplay}${franchise ? '\nFranchise applicable : ' + franchise : ''}${tiers ? '\nTiers impliqué : ' + tiers : ''}`,
+      details: t('damageEstimateDetails', { amount: montantDisplay, deductible: franchise || '—', thirdParty: tiers || '—' }),
       sortDate: (estimDate?.getTime() || 0) + 2,
     });
   }
 
   // 6. Upload / Réception du dossier (application creation date)
   {
-    const d = formatDateDisplay(createdDate);
+    const d = formatDateDisplay(createdDate, locale);
     entries.push({
       date: d.date, year: d.year,
-      title: 'Réception du dossier',
-      description: `Dossier reçu et enregistré dans ${brand.name} — traitement IA lancé`,
+      title: t('fileReceived'),
+      description: t('fileReceivedDescription', { brand: brand.name }),
       color: 'green',
-      details: `Dossier créé le ${createdDate.toLocaleDateString('fr-FR')}\nFichiers : ${(application.files || []).map(f => f.filename).join(', ')}`,
+      details: t('fileReceivedDetails', { date: createdDate.toLocaleDateString(locale), files: (application.files || []).map(f => f.filename).join(', ') }),
       sortDate: createdDate.getTime(),
     });
   }
@@ -496,10 +496,10 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
   if (urgence && (urgence.toLowerCase().includes('elev') || urgence.toLowerCase().includes('élev') || urgence.toLowerCase().includes('critique'))) {
     entries.push({
       date: '', year: '',
-      title: `⚠ Niveau d'urgence : ${urgence}`,
-      description: 'Dossier prioritaire — traitement accéléré requis',
+      title: t('urgencyLevel', { level: urgence }),
+      description: t('priorityFile'),
       color: 'red',
-      details: `Niveau d'urgence classifié : ${urgence}`,
+      details: t('urgencyDetails', { level: urgence }),
       sortDate: (incidentDate?.getTime() || createdDate.getTime()) - 1,
     });
   }
@@ -511,10 +511,10 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
       const parsed = output?.parsed;
       if (!parsed?.summary) continue;
       const sectionLabel = section.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-      const d = formatDateDisplay(createdDate);
+      const d = formatDateDisplay(createdDate, locale);
       entries.push({
         date: d.date, year: d.year,
-        title: `Analyse IA : ${sectionLabel}`,
+        title: t('aiAnalysis', { section: sectionLabel }),
         description: String(parsed.summary).substring(0, 80),
         color: 'green',
         details: String(parsed.summary),
@@ -524,7 +524,7 @@ function buildHabitationTimeline(application: ApplicationMetadata): TimelineEntr
   }
 
   // Merge persisted action_history
-  mergeActionHistory(entries, application);
+  mergeActionHistory(entries, application, locale, t);
 
   // Sort chronologically (oldest first)
   entries.sort((a, b) => (a.sortDate || 0) - (b.sortDate || 0));
@@ -576,13 +576,16 @@ export default function ChronologicalOverview({ application, fullWidth, persona 
   const [activeTab, setActiveTab] = useState<'items' | 'documents'>('items');
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const t = useTranslations('chronological');
+  const locale = useLocale();
 
   const labels = getPersonaLabels(persona || application.persona, t);
   const isMedicalPersona = !persona?.includes('habitation') && !persona?.includes('property') && !persona?.includes('mortgage') &&
     !application.persona?.includes('habitation') && !application.persona?.includes('property') && !application.persona?.includes('mortgage');
 
   // Use medical-specific builder for underwriting, generic for everything else
-  const timelineItems = isMedicalPersona ? buildTimelineFromData(application) : buildGenericTimeline(application);
+  const timelineItems = isMedicalPersona
+    ? buildTimelineFromData(application, locale, t)
+    : buildGenericTimeline(application, locale, t);
   const documents = buildDocumentsFromData(application);
 
   const colorClasses: Record<string, string> = {

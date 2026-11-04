@@ -13,7 +13,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Query, Request, UploadFile, WebSocket
+from fastapi import (
+    BackgroundTasks,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    WebSocket,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -21,6 +31,12 @@ from pydantic import BaseModel
 from app.brands import DEFAULT_BRAND, get_brand_profile, get_current_brand_profile
 from app.agents.errors import AgentServiceError
 from app.config import load_settings, validate_settings
+from app.languages import (
+    UnsupportedLanguageError,
+    language_instruction,
+    localized_message,
+    require_language,
+)
 from app.database.settings import DatabaseSettings
 from app.database.pool import init_pool
 from app.telemetry import configure_telemetry, install_claim_correlation_middleware
@@ -75,6 +91,7 @@ allowed_origins = [
 
 # Add Azure frontend URL(s) from environment variable if configured
 import os
+
 azure_frontend_url = os.getenv("FRONTEND_URL")
 if azure_frontend_url:
     allowed_origins.append(azure_frontend_url)
@@ -111,6 +128,7 @@ async def auth_and_health_middleware(request: Request, call_next):
     expected_key = os.getenv("API_KEY") or None
     if expected_key:
         import hmac
+
         provided = request.headers.get("x-api-key") or request.query_params.get("api_key") or ""
         if not provided or not hmac.compare_digest(provided, expected_key):
             return JSONResponse(
@@ -128,22 +146,24 @@ app.include_router(access_api_router)
 
 try:
     from app.claims.api import router as claims_api_router
+
     app.include_router(claims_api_router)
     logger.info("Claims API router registered")
 except ImportError as e:
     logger.warning("Claims API router not available: %s", e)
+
 
 # Initialize storage provider and database pool on startup
 @app.on_event("startup")
 async def startup_event():
     """Initialize application components on startup."""
     from app.storage_providers import init_storage_provider, StorageSettings
+
     try:
         storage_settings = StorageSettings.from_env()
         init_storage_provider(storage_settings)
         logger.info(
-            "Storage provider initialized: backend=%s  auth_mode=%s  "
-            "allow_create_container=%s",
+            "Storage provider initialized: backend=%s  auth_mode=%s  allow_create_container=%s",
             storage_settings.backend.value,
             storage_settings.azure_storage_auth_mode,
             storage_settings.azure_storage_allow_create_container,
@@ -210,10 +230,14 @@ async def startup_event():
     # Auto-seed Customer 360 data if no customers exist yet
     try:
         from app.customer360 import list_customers as _list_all_customers
+
         existing = _list_all_customers(settings.app.storage_root)
         if not existing:
-            logger.info("No customers found — auto-seeding Customer 360 data for %s...", settings.brand_name)
+            logger.info(
+                "No customers found — auto-seeding Customer 360 data for %s...", settings.brand_name
+            )
             from app.seed_data_customers import create_brand_customers
+
             _link_apps_to_customers(settings.app.storage_root)
             count = create_brand_customers(settings.app.storage_root)
             logger.info("Auto-seeded %d customers on startup", count)
@@ -263,7 +287,7 @@ class ApplicationListItem(BaseModel):
 class AnalyzeRequest(BaseModel):
     sections: Optional[List[str]] = None
     processing_mode: Optional[str] = None  # 'auto', 'standard', or 'large_document'
-    language: Optional[str] = None  # UI locale (fr/en) — controls LLM response language
+    language: Optional[str] = None  # UI locale (en/fr/de) — controls LLM response language
 
 
 class ChatMessage(BaseModel):
@@ -278,10 +302,14 @@ class ChatRequest(BaseModel):
     history: Optional[List[ChatMessage]] = None
     application_id: Optional[str] = None
     conversation_id: Optional[str] = None  # If provided, continues existing conversation
-    persona: Optional[str] = None  # Persona for RAG context (underwriting, life_health_claims, automotive_claims, property_casualty_claims)
-    agent_type: Optional[str] = "auto"  # UI routing hint (auto, data, policy, analysis, dashboard, fraud)
+    persona: Optional[str] = (
+        None  # Persona for RAG context (underwriting, life_health_claims, automotive_claims, property_casualty_claims)
+    )
+    agent_type: Optional[str] = (
+        "auto"  # UI routing hint (auto, data, policy, analysis, dashboard, fraud)
+    )
     use_corrections: Optional[bool] = True  # Enable/disable few-shot corrections injection
-    language: Optional[str] = "en"  # UI locale (fr/en) — controls agent response language
+    language: Optional[str] = "en"  # UI locale (en/fr/de) — controls agent response language
 
 
 class ConversationSummary(BaseModel):
@@ -306,6 +334,7 @@ class Conversation(BaseModel):
 # =============================================================================
 # Mortgage Underwriting API Models
 # =============================================================================
+
 
 class MortgageBorrowerInfo(BaseModel):
     first_name: Optional[str] = None
@@ -336,6 +365,7 @@ class MortgageAnalyzeRequest(BaseModel):
     income: Optional[MortgageIncomeInfo] = None
     property: Optional[MortgagePropertyInfo] = None
     loan: Optional[MortgageLoanInfo] = None
+    language: Optional[str] = "en"
 
 
 class MortgageQueryRequest(BaseModel):
@@ -352,7 +382,7 @@ class MortgageChatRequest(BaseModel):
     query: str
     persona: Optional[str] = "mortgage_underwriting"
     stream: Optional[bool] = False
-    language: Optional[str] = "en"  # UI locale (fr/en) — controls LLM response language
+    language: Optional[str] = "en"  # UI locale (en/fr/de) — controls LLM response language
 
 
 class DecisionRequest(BaseModel):
@@ -370,10 +400,7 @@ def application_to_dict(app_md: ApplicationMetadata) -> dict:
         "external_reference": app_md.external_reference,
         "status": app_md.status,
         "persona": app_md.persona,
-        "files": [
-            {"filename": f.filename, "path": f.path, "url": f.url}
-            for f in app_md.files
-        ],
+        "files": [{"filename": f.filename, "path": f.path, "url": f.url} for f in app_md.files],
         "document_markdown": app_md.document_markdown,
         "markdown_pages": app_md.markdown_pages,
         "cu_raw_result_path": app_md.cu_raw_result_path,
@@ -402,6 +429,23 @@ def application_to_dict(app_md: ApplicationMetadata) -> dict:
     }
 
 
+def localized_application_to_dict(
+    settings: Any,
+    app_md: ApplicationMetadata,
+    language: str,
+) -> dict:
+    """Project derived analysis into a locale while leaving source data untouched."""
+    from app.processing import localized_analysis_payload
+
+    locale = require_language(language)
+    payload = application_to_dict(app_md)
+    localized = localized_analysis_payload(settings, app_md, locale)
+    payload.update(localized)
+    payload["analysis_language"] = locale
+    payload["analysis_source_revision"] = app_md.analysis_source_revision
+    return payload
+
+
 # ============================================================================
 # Background Processing Helpers
 # ============================================================================
@@ -422,6 +466,7 @@ async def stream_processing_progress(app_id: str, request: Request):
     extracting, file-extracted, analyzing, completed, error.
     Client connects once and receives events until processing completes.
     """
+
     async def event_generator():
         last_status = None
         last_progress = None
@@ -444,11 +489,16 @@ async def stream_processing_progress(app_id: str, request: Request):
                 try:
                     app_md = load_application(load_settings().app.storage_root, app_id)
                     if app_md:
-                        status = app_md.processing_status or ("completed" if app_md.status == "completed" else "idle")
+                        status = app_md.processing_status or (
+                            "completed" if app_md.status == "completed" else "idle"
+                        )
                         if status != last_status:
                             last_status = status
                             yield f"data: {json.dumps({'status': status, 'app_status': app_md.status})}\n\n"
-                        if status in (None, "completed", "error") and app_md.status in ("completed", "error"):
+                        if status in (None, "completed", "error") and app_md.status in (
+                            "completed",
+                            "error",
+                        ):
                             idle_count += 1
                             if idle_count >= 2:
                                 yield f"data: {json.dumps({'status': 'done'})}\n\n"
@@ -478,9 +528,18 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
 
     ef = app_md.extracted_fields or {}
     # Extract insured name from extracted fields
-    name_fields = ["NomAssure", "AssuréNom", "NomSouscripteur", "InsuredName",
-                   "ApplicantName", "PatientName", "assure", "beneficiaire",
-                   "emprunteur", "Conducteur"]
+    name_fields = [
+        "NomAssure",
+        "AssuréNom",
+        "NomSouscripteur",
+        "InsuredName",
+        "ApplicantName",
+        "PatientName",
+        "assure",
+        "beneficiaire",
+        "emprunteur",
+        "Conducteur",
+    ]
     insured_name = ""
     for target in name_fields:
         entry = ef.get(target)
@@ -490,7 +549,9 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
                     entry = fv
                     break
         if entry:
-            insured_name = str(entry.get("value", entry) if isinstance(entry, dict) else entry).strip()
+            insured_name = str(
+                entry.get("value", entry) if isinstance(entry, dict) else entry
+            ).strip()
             if insured_name:
                 break
 
@@ -498,7 +559,13 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
         return
 
     try:
-        from app.customer360 import list_customers, load_customer_journey, save_customer_journey, CustomerJourneyEvent
+        from app.customer360 import (
+            list_customers,
+            load_customer_journey,
+            save_customer_journey,
+            CustomerJourneyEvent,
+        )
+
         customers = list_customers(storage_root)
         name_parts = [p.lower() for p in insured_name.split() if len(p) > 2]
         if not name_parts:
@@ -506,7 +573,7 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
 
         matched_customer = None
         for c in customers:
-            c_name = (c.name if hasattr(c, 'name') else c.get("name", "")).lower()
+            c_name = (c.name if hasattr(c, "name") else c.get("name", "")).lower()
             # Strict match: ALL name parts (≥3 chars) must appear in customer name
             matches = sum(1 for p in name_parts if p in c_name)
             if len(name_parts) >= 2 and matches == len(name_parts):
@@ -516,15 +583,23 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
         if not matched_customer:
             return
 
-        customer_id = matched_customer.id if hasattr(matched_customer, 'id') else matched_customer.get("id", "")
+        customer_id = (
+            matched_customer.id
+            if hasattr(matched_customer, "id")
+            else matched_customer.get("id", "")
+        )
         if not customer_id:
             return
 
         # Set external_reference on the application
         app_md.external_reference = customer_id
         save_application_metadata(storage_root, app_md)
-        logger.info("Auto-affiliated app %s to customer %s (matched name: %s)",
-                     app_md.id, customer_id, insured_name)
+        logger.info(
+            "Auto-affiliated app %s to customer %s (matched name: %s)",
+            app_md.id,
+            customer_id,
+            insured_name,
+        )
 
         # Add journey event to the customer
         existing_events = load_customer_journey(storage_root, customer_id)
@@ -539,7 +614,9 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
             "underwriting": ("souscription", "Souscription"),
             "mortgage_underwriting": ("demande_pret", "Demande prêt immobilier"),
         }
-        event_type, title_prefix = persona_event_map.get(app_md.persona or "", ("dossier", "Dossier"))
+        event_type, title_prefix = persona_event_map.get(
+            app_md.persona or "", ("dossier", "Dossier")
+        )
 
         # Try to get nature from extracted fields
         nature = ""
@@ -551,14 +628,18 @@ def _try_auto_affiliate_customer(app_md: ApplicationMetadata, storage_root: str)
                         n_entry = fv
                         break
             if n_entry:
-                nature = str(n_entry.get("value", n_entry) if isinstance(n_entry, dict) else n_entry).strip()
+                nature = str(
+                    n_entry.get("value", n_entry) if isinstance(n_entry, dict) else n_entry
+                ).strip()
                 if nature:
                     break
 
         title = f"{title_prefix} — {nature}" if nature else title_prefix
 
         new_event = CustomerJourneyEvent(
-            date=app_md.created_at[:10] if app_md.created_at else datetime.now(UTC).strftime("%Y-%m-%d"),
+            date=app_md.created_at[:10]
+            if app_md.created_at
+            else datetime.now(UTC).strftime("%Y-%m-%d"),
             persona=app_md.persona or "",
             application_id=app_md.id,
             event_type=event_type,
@@ -592,9 +673,12 @@ async def run_extraction_background(app_id: str, language: Optional[str] = None)
         # the user-facing processing_error even if loading settings later fails.
         diag_ctx: Dict[str, Any] = {
             "brand": os.getenv("BRAND_NAME", "?"),
-            "cu_completion": os.getenv("AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT") or "<default:gpt-5.4-mini>",
-            "cu_embedding": os.getenv("AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT") or "<default:text-embedding-3-large>",
-            "cu_api_version": os.getenv("AZURE_CONTENT_UNDERSTANDING_API_VERSION") or "<default:2025-11-01>",
+            "cu_completion": os.getenv("AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT")
+            or "<default:gpt-5.4-mini>",
+            "cu_embedding": os.getenv("AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT")
+            or "<default:text-embedding-3-large>",
+            "cu_api_version": os.getenv("AZURE_CONTENT_UNDERSTANDING_API_VERSION")
+            or "<default:2025-11-01>",
             "analyzer_id": None,
             "persona": None,
             "file_count": 0,
@@ -657,7 +741,7 @@ async def run_extraction_background(app_id: str, language: Optional[str] = None)
             app_md = await asyncio.to_thread(
                 run_content_understanding_for_files, settings, app_md, language=language
             )
-            
+
             # Update status and save
             app_md.processing_status = None
             app_md.processing_error = None
@@ -703,11 +787,21 @@ async def run_extraction_background(app_id: str, language: Optional[str] = None)
                 pass
 
 
-async def run_analysis_background(app_id: str, sections: Optional[List[str]] = None, processing_mode: Optional[str] = None, language: Optional[str] = None):
+async def run_analysis_background(
+    app_id: str,
+    sections: Optional[List[str]] = None,
+    processing_mode: Optional[str] = None,
+    language: Optional[str] = None,
+):
     """Run analysis in background and update status."""
+    language = require_language(language)
     async with _processing_semaphore:
         try:
-            logger.info("Starting background analysis for application %s (mode: %s)", app_id, processing_mode or "auto")
+            logger.info(
+                "Starting background analysis for application %s (mode: %s)",
+                app_id,
+                processing_mode or "auto",
+            )
             settings = load_settings()
             app_md = load_application(settings.app.storage_root, app_id)
             if not app_md:
@@ -731,7 +825,7 @@ async def run_analysis_background(app_id: str, sections: Optional[List[str]] = N
                 processing_mode_override=processing_mode,
                 language=language,
             )
-            
+
             # Update status and save
             app_md.processing_status = None
             app_md.processing_error = None
@@ -740,10 +834,13 @@ async def run_analysis_background(app_id: str, sections: Optional[List[str]] = N
             # Generate context labels + tasks from analysis output
             try:
                 from app.processing import generate_context_labels, generate_context_tasks
+
                 app_md.context_labels = generate_context_labels(app_md)
                 app_md.context_tasks = generate_context_tasks(app_md)
             except Exception:
-                logger.debug("Context label generation failed in re-analysis for %s", app_id, exc_info=True)
+                logger.debug(
+                    "Context label generation failed in re-analysis for %s", app_id, exc_info=True
+                )
 
             save_application_metadata(settings.app.storage_root, app_md)
 
@@ -773,7 +870,9 @@ async def run_analysis_background(app_id: str, sections: Optional[List[str]] = N
                                     break
                 if app_md.fraud_analysis:
                     fa_oa = app_md.fraud_analysis.get("overall_assessment", {})
-                    context_parts.append(f"\nFraude: {fa_oa.get('overall_fraud_risk', 'N/A')} ({round(fa_oa.get('risk_score', 0) * 100)}%)")
+                    context_parts.append(
+                        f"\nFraude: {fa_oa.get('overall_fraud_risk', 'N/A')} ({round(fa_oa.get('risk_score', 0) * 100)}%)"
+                    )
                 context_parts.append(f"\nPersona: {app_md.persona}")
                 context_parts.append(f"Fichiers: {len(app_md.files or [])}")
 
@@ -784,26 +883,40 @@ async def run_analysis_background(app_id: str, sections: Optional[List[str]] = N
                     "Réponds en JSON: {score:int 0-100, level:calm|moderate|stressed|critical, "
                     "suggestedTone:empathetic|standard|formal, daysSinceClaim:int|null, "
                     "contextSummary:str, factors:[str], suggestions:[str]}"
+                    f"\n{language_instruction(language)}"
                 )
                 raw = chat_completion(
                     settings.openai,
-                    [{"role": "system", "content": sentiment_prompt},
-                     {"role": "user", "content": "\n".join(context_parts)}],
-                    max_tokens=600, temperature=0.1, response_format="json_object",
+                    [
+                        {"role": "system", "content": sentiment_prompt},
+                        {"role": "user", "content": "\n".join(context_parts)},
+                    ],
+                    max_tokens=600,
+                    temperature=0.1,
+                    response_format="json_object",
                 )
                 content = raw.get("content", "")
                 if content:
                     sa = _json.loads(content)
                     app_md.sentiment_analysis = {
-                        **sa, "agent": f"Sentiment Agent ({brand})",
+                        **sa,
+                        "agent": f"Sentiment Agent ({brand})",
                         "computed_at": datetime.now(UTC).isoformat(),
                     }
                     save_application_metadata(settings.app.storage_root, app_md)
-                    logger.info("Sentiment re-computed after analysis for %s: score=%s", app_id, sa.get("score"))
+                    logger.info(
+                        "Sentiment re-computed after analysis for %s: score=%s",
+                        app_id,
+                        sa.get("score"),
+                    )
             except Exception as se:
                 logger.warning("Sentiment re-computation failed for %s: %s", app_id, se)
 
-            logger.info("Background analysis completed for application %s (mode: %s)", app_id, app_md.processing_mode)
+            logger.info(
+                "Background analysis completed for application %s (mode: %s)",
+                app_id,
+                app_md.processing_mode,
+            )
 
         except Exception as e:
             logger.error("Background analysis failed for %s: %s", app_id, e, exc_info=True)
@@ -819,11 +932,17 @@ async def run_analysis_background(app_id: str, sections: Optional[List[str]] = N
                 pass
 
 
-async def run_extract_and_analyze_background(app_id: str, processing_mode: Optional[str] = None, language: Optional[str] = None):
+async def run_extract_and_analyze_background(
+    app_id: str, processing_mode: Optional[str] = None, language: Optional[str] = None
+):
     """Run both extraction and analysis in background."""
-    logger.info("Starting full background processing for application %s (mode: %s)", app_id, processing_mode or "auto")
+    logger.info(
+        "Starting full background processing for application %s (mode: %s)",
+        app_id,
+        processing_mode or "auto",
+    )
     await run_extraction_background(app_id, language=language)
-    
+
     # Check if extraction succeeded before continuing
     settings = load_settings()
     app_md = load_application(settings.app.storage_root, app_id)
@@ -832,7 +951,11 @@ async def run_extract_and_analyze_background(app_id: str, processing_mode: Optio
         # that stops frontend polling between extraction and analysis
         app_md.processing_status = "analyzing"
         save_application_metadata(settings.app.storage_root, app_md)
-        await run_analysis_background(app_id, processing_mode=processing_mode)
+        await run_analysis_background(
+            app_id,
+            processing_mode=processing_mode,
+            language=language,
+        )
     else:
         logger.warning("Skipping analysis for %s - extraction failed or no content", app_id)
 
@@ -896,6 +1019,7 @@ PERSONA_CHAT_CONFIG = {
 # Persona APIs
 # ============================================================================
 
+
 @app.get("/api/personas")
 async def get_personas():
     """List all available personas."""
@@ -919,7 +1043,9 @@ async def get_persona(persona_id: str):
             "icon": config.icon,
             "color": config.color,
             "enabled": config.enabled,
-            "prompt_sections": list(config.default_prompts.keys()) if config.default_prompts else [],
+            "prompt_sections": list(config.default_prompts.keys())
+            if config.default_prompts
+            else [],
         }
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -935,11 +1061,11 @@ async def get_applications(
     limit: Optional[int] = None,
 ):
     """List all applications, optionally filtered by persona.
-    
+
     Supports optional pagination:
     - Without page/limit: Returns all applications (backward compatible)
     - With page/limit: Returns paginated response with metadata
-    
+
     Query Parameters:
         persona: Filter by persona ID
         page: Page number (1-indexed, requires limit)
@@ -948,7 +1074,7 @@ async def get_applications(
     try:
         settings = load_settings()
         apps = list_applications(settings.app.storage_root, persona=persona)
-        
+
         # Convert to response items
         PROTECTED_APP_IDS = {"f6001447", "259db12b"}
         items = [
@@ -966,19 +1092,19 @@ async def get_applications(
             )
             for a in apps
         ]
-        
+
         # If pagination params provided, return paginated response
         if page is not None and limit is not None:
             if page < 1:
                 page = 1
             if limit < 1:
                 limit = 10
-            
+
             total = len(items)
             start = (page - 1) * limit
             end = start + limit
             paginated_items = items[start:end]
-            
+
             return {
                 "items": paginated_items,
                 "page": page,
@@ -986,7 +1112,7 @@ async def get_applications(
                 "total": total,
                 "hasMore": end < total,
             }
-        
+
         # No pagination - return full list (backward compatible)
         return items
     except Exception as e:
@@ -995,7 +1121,7 @@ async def get_applications(
 
 
 @app.get("/api/applications/{app_id}")
-async def get_application(app_id: str):
+async def get_application(app_id: str, language: str = "en"):
     """Get detailed application metadata."""
     try:
         settings = load_settings()
@@ -1008,6 +1134,7 @@ async def get_application(app_id: str):
         if app_md.status in ("extracted", "completed") and not app_md.context_labels:
             try:
                 from app.processing import generate_context_labels, generate_context_tasks
+
                 labels = generate_context_labels(app_md)
                 tasks = generate_context_tasks(app_md)
                 if labels:
@@ -1020,7 +1147,8 @@ async def get_application(app_id: str):
             except Exception as label_err:
                 logger.warning("Lazy context label generation failed for %s: %s", app_id, label_err)
 
-        payload = application_to_dict(app_md)
+        locale = require_language(language)
+        payload = await asyncio.to_thread(localized_application_to_dict, settings, app_md, locale)
 
         # Enrich with live Souscr'IA front-office context when this dossier
         # originated from a Souscr'IA conversation (external_reference == thread_id).
@@ -1039,6 +1167,8 @@ async def get_application(app_id: str):
         return payload
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Failed to load application %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1068,45 +1198,51 @@ async def get_application_souscria_context(app_id: str):
 @app.delete("/api/applications/{app_id}")
 async def delete_application_endpoint(app_id: str):
     """Delete an application and all its associated files.
-    
+
     This permanently removes the application, uploaded files, and all
     processing results. This action cannot be undone.
     Protected demo applications cannot be deleted.
     """
     # Demo applications that must never be deleted
     PROTECTED_APP_IDS = {"f6001447", "259db12b"}
-    
+
     if app_id in PROTECTED_APP_IDS:
         raise HTTPException(
-            status_code=403,
-            detail="Ce dossier est protégé (démo). Il ne peut pas être supprimé."
+            status_code=403, detail="Ce dossier est protégé (démo). Il ne peut pas être supprimé."
         )
-    
+
     from app.storage import delete_application
-    
+
     try:
         settings = load_settings()
-        
+
         # Check if application exists first
         app_md = load_application(settings.app.storage_root, app_id)
         if not app_md:
             raise HTTPException(status_code=404, detail="Dossier introuvable")
-        
+
         # Delete the application
         success = delete_application(settings.app.storage_root, app_id)
         if not success:
             raise HTTPException(status_code=500, detail="Échec de la suppression du dossier")
-        
+
         # Clean up journey events referencing this app in Customer 360
         if app_md.external_reference:
             try:
                 from app.customer360 import load_customer_journey, save_customer_journey
+
                 events = load_customer_journey(settings.app.storage_root, app_md.external_reference)
                 cleaned = [e for e in events if e.application_id != app_id]
                 if len(cleaned) < len(events):
-                    save_customer_journey(settings.app.storage_root, app_md.external_reference, cleaned)
-                    logger.info("Removed %d journey event(s) for deleted app %s from customer %s",
-                                len(events) - len(cleaned), app_id, app_md.external_reference)
+                    save_customer_journey(
+                        settings.app.storage_root, app_md.external_reference, cleaned
+                    )
+                    logger.info(
+                        "Removed %d journey event(s) for deleted app %s from customer %s",
+                        len(events) - len(cleaned),
+                        app_id,
+                        app_md.external_reference,
+                    )
             except Exception as je:
                 logger.warning("Failed to clean journey events for deleted app %s: %s", app_id, je)
 
@@ -1161,6 +1297,7 @@ async def submit_application_decision(app_id: str, body: DecisionRequest):
         pg_updated = False
         try:
             from app.multimodal.repository import ClaimsMediaRepository
+
             repo = ClaimsMediaRepository()
             pg_updated = await repo.update_adjuster_decision(
                 claim_id=app_id,
@@ -1175,6 +1312,7 @@ async def submit_application_decision(app_id: str, body: DecisionRequest):
         ai_rec = None
         try:
             from app.agents.validation import validate_decision
+
             if app_md.llm_outputs:
                 # Try claim assessment recommendation first, then risk analysis
                 ai_rec = app_md.llm_outputs.get("overall_recommendation")
@@ -1226,6 +1364,7 @@ async def submit_application_decision(app_id: str, body: DecisionRequest):
         # Sync decision columns to applications_summary for Fabric CDC
         try:
             from app.database.pool import get_pool
+
             pool = await get_pool()
             async with pool.acquire() as conn:
                 await conn.execute(
@@ -1238,10 +1377,17 @@ async def submit_application_decision(app_id: str, body: DecisionRequest):
                     settings.brand_name,
                 )
         except Exception as pg_sync_err:
-            logger.debug("applications_summary decision sync skipped for %s: %s", app_id, pg_sync_err)
+            logger.debug(
+                "applications_summary decision sync skipped for %s: %s", app_id, pg_sync_err
+            )
 
-        logger.info("Decision '%s' recorded for application %s (pg=%s, action_history=%d)",
-                     body.decision, app_id, pg_updated, len(app_md.action_history))
+        logger.info(
+            "Decision '%s' recorded for application %s (pg=%s, action_history=%d)",
+            body.decision,
+            app_id,
+            pg_updated,
+            len(app_md.action_history),
+        )
         return {
             "application_id": app_id,
             "decision": body.decision,
@@ -1262,6 +1408,7 @@ async def get_validation_stats(persona: Optional[str] = None):
     """Return aggregated decision validation statistics."""
     try:
         from app.agents.validation import get_divergence_stats
+
         stats = await get_divergence_stats(persona)
         return stats
     except Exception as e:
@@ -1272,24 +1419,24 @@ async def get_validation_stats(persona: Optional[str] = None):
 @app.get("/api/applications/{app_id}/files/{filename:path}")
 async def get_application_file(app_id: str, filename: str, request: Request):
     """Serve a file from an application's files directory.
-    
+
     Supports HTTP Range requests for video/audio streaming.
     """
     from fastapi.responses import Response
-    
+
     try:
         settings = load_settings()
-        
+
         # Security: prevent path traversal
         if ".." in filename or filename.startswith("/"):
             raise HTTPException(status_code=403, detail="Accès refusé")
-        
+
         # Load file using storage provider (supports both local and Azure Blob)
         file_content = load_file(settings.app.storage_root, app_id, filename)
-        
+
         if file_content is None:
             raise HTTPException(status_code=404, detail="Fichier introuvable")
-        
+
         # Determine media type from filename
         suffix = Path(filename).suffix.lower()
         media_types = {
@@ -1309,17 +1456,17 @@ async def get_application_file(app_id: str, filename: str, request: Request):
         }
         media_type = media_types.get(suffix, "application/octet-stream")
         total_size = len(file_content)
-        
+
         # Base headers for all file types
         headers = {
             "Accept-Ranges": "bytes",
             "Content-Length": str(total_size),
         }
-        
+
         if suffix == ".pdf":
-            headers["Content-Disposition"] = f"inline; filename=\"{filename}\""
+            headers["Content-Disposition"] = f'inline; filename="{filename}"'
             headers["X-Content-Type-Options"] = "nosniff"
-        
+
         # Handle Range requests (required for video/audio streaming)
         range_header = request.headers.get("range")
         if range_header:
@@ -1328,22 +1475,22 @@ async def get_application_file(app_id: str, filename: str, request: Request):
                 start = int(range_spec[0]) if range_spec[0] else 0
                 end = int(range_spec[1]) if range_spec[1] else total_size - 1
                 end = min(end, total_size - 1)
-                
+
                 if start >= total_size:
                     raise HTTPException(status_code=416, detail="Plage non satisfaisable")
-                
+
                 headers["Content-Range"] = f"bytes {start}-{end}/{total_size}"
                 headers["Content-Length"] = str(end - start + 1)
-                
+
                 return Response(
-                    content=file_content[start:end + 1],
+                    content=file_content[start : end + 1],
                     status_code=206,
                     media_type=media_type,
                     headers=headers,
                 )
             except (ValueError, IndexError):
                 pass  # Invalid range, fall through to full response
-        
+
         return Response(
             content=file_content,
             media_type=media_type,
@@ -1403,7 +1550,9 @@ async def create_application(
             persona=persona or "underwriting",  # Default to underwriting for backward compat
         )
 
-        logger.info("Created application %s with %d files for persona %s", app_id, len(files), persona)
+        logger.info(
+            "Created application %s with %d files for persona %s", app_id, len(files), persona
+        )
         return application_to_dict(app_md)
 
     except HTTPException:
@@ -1468,12 +1617,15 @@ async def add_files_to_application(
 
         logger.info(
             "Added %d files to application %s (total: %d)",
-            len(new_stored), app_id, len(app_md.files),
+            len(new_stored),
+            app_id,
+            len(app_md.files),
         )
 
         # Auto-trigger processing in background
         if auto_process:
             import asyncio
+
             asyncio.create_task(_process_background(app_id))
 
         return {
@@ -1498,6 +1650,7 @@ async def _process_background(app_id: str):
     Fraud analysis is NOT auto-triggered (requires explicit user action).
     Emits SSE progress events via _processing_progress dict.
     """
+
     def _emit(status: str, **extra):
         _processing_progress[app_id] = {"status": status, "app_id": app_id, **extra}
 
@@ -1510,16 +1663,24 @@ async def _process_background(app_id: str):
         total_files = len(app_md.files)
         app_md.processing_status = "extracting"
         save_application_metadata(settings.app.storage_root, app_md)
-        _emit("extracting", total_files=total_files, files_done=0,
-              message=f"Extraction de {total_files} fichier(s)…")
+        _emit(
+            "extracting",
+            total_files=total_files,
+            files_done=0,
+            message=f"Extraction de {total_files} fichier(s)…",
+        )
 
         # Step 1: Content Understanding extraction (incremental — skips already-extracted files)
         from app.processing import run_content_understanding_for_files, run_underwriting_prompts
 
         # Count already-extracted files to report accurate progress
-        already_done = sum(1 for f in app_md.files if getattr(f, 'extracted', False))
-        _emit("extracting", total_files=total_files, files_done=already_done,
-              message=f"Extraction : {already_done}/{total_files} fichier(s)")
+        already_done = sum(1 for f in app_md.files if getattr(f, "extracted", False))
+        _emit(
+            "extracting",
+            total_files=total_files,
+            files_done=already_done,
+            message=f"Extraction : {already_done}/{total_files} fichier(s)",
+        )
 
         await asyncio.to_thread(run_content_understanding_for_files, settings, app_md)
 
@@ -1527,14 +1688,19 @@ async def _process_background(app_id: str):
         app_md.status = "extracted"
         app_md.processing_status = "analyzing"
         save_application_metadata(settings.app.storage_root, app_md)
-        _emit("analyzing", total_files=total_files, files_done=total_files,
-              message="Analyse IA en cours…")
+        _emit(
+            "analyzing",
+            total_files=total_files,
+            files_done=total_files,
+            message="Analyse IA en cours…",
+        )
 
         # Step 2: LLM analysis (damage, liability, payout, risk)
         await asyncio.to_thread(run_underwriting_prompts, settings, app_md)
 
         # Step 2b: Generate context labels + tasks from analysis output
         from app.processing import generate_context_labels, generate_context_tasks
+
         app_md.context_labels = generate_context_labels(app_md)
         app_md.context_tasks = generate_context_tasks(app_md)
 
@@ -1569,7 +1735,9 @@ async def _process_background(app_id: str):
                                 break
             if app_md.fraud_analysis:
                 fa_oa = app_md.fraud_analysis.get("overall_assessment", {})
-                context_parts.append(f"\nFraude: {fa_oa.get('overall_fraud_risk', 'N/A')} ({round(fa_oa.get('risk_score', 0) * 100)}%)")
+                context_parts.append(
+                    f"\nFraude: {fa_oa.get('overall_fraud_risk', 'N/A')} ({round(fa_oa.get('risk_score', 0) * 100)}%)"
+                )
             context_parts.append(f"\nPersona: {app_md.persona}")
             context_parts.append(f"Fichiers: {len(app_md.files or [])}")
 
@@ -1583,15 +1751,20 @@ async def _process_background(app_id: str):
             )
             raw = chat_completion(
                 settings.openai,
-                [{"role": "system", "content": system_prompt},
-                 {"role": "user", "content": "\n".join(context_parts)}],
-                max_tokens=600, temperature=0.1, response_format="json_object",
+                [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": "\n".join(context_parts)},
+                ],
+                max_tokens=600,
+                temperature=0.1,
+                response_format="json_object",
             )
             content = raw.get("content", "")
             if content:
                 sa = _json.loads(content)
                 app_md.sentiment_analysis = {
-                    **sa, "agent": f"Sentiment Agent ({brand})",
+                    **sa,
+                    "agent": f"Sentiment Agent ({brand})",
                     "computed_at": datetime.now(UTC).isoformat(),
                 }
                 logger.info("Sentiment updated for %s: score=%s", app_id, sa.get("score"))
@@ -1620,13 +1793,14 @@ async def _process_background(app_id: str):
 @app.post("/api/applications/{app_id}/extract")
 async def extract_content(app_id: str, background: bool = False, language: Optional[str] = None):
     """Run Content Understanding extraction on an application.
-    
+
     Args:
         app_id: Application ID
         background: If True, start extraction in background and return immediately.
                    Client should poll GET /api/applications/{app_id} for status.
     """
     try:
+        language = require_language(language)
         settings = load_settings()
         app_md = load_application(settings.app.storage_root, app_id)
         if not app_md:
@@ -1637,44 +1811,48 @@ async def extract_content(app_id: str, background: bool = False, language: Optio
             if app_md.processing_status in ("extracting", "analyzing"):
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Application is already being processed: {app_md.processing_status}"
+                    detail=f"Application is already being processed: {app_md.processing_status}",
                 )
-            
+
             # Start background task and return immediately
             task = asyncio.create_task(run_extraction_background(app_id, language=language))
             task.add_done_callback(_handle_task_exception)
-            
+
             # Update status immediately so client sees it
             app_md.processing_status = "extracting"
             app_md.processing_error = None
             save_application_metadata(settings.app.storage_root, app_md)
-            
+
             logger.info("Started background extraction for application %s", app_id)
             return {
                 **application_to_dict(app_md),
-                "message": "Extraction lanc\u00e9e en arri\u00e8re-plan. Interrogez GET /api/applications/{app_id} pour le statut."
+                "message": localized_message("analysis_started", language),
             }
-        
+
         # Synchronous mode (backward compatible)
         # Run content understanding in thread pool to avoid blocking event loop
         app_md = await asyncio.to_thread(
             run_content_understanding_for_files, settings, app_md, language=language
         )
-        
+
         logger.info("Extraction completed for application %s", app_id)
         return application_to_dict(app_md)
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Extraction failed for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/applications/{app_id}/analyze")
-async def analyze_application(app_id: str, request: AnalyzeRequest = None, background: bool = False):
+async def analyze_application(
+    app_id: str, request: AnalyzeRequest = None, background: bool = False
+):
     """Run underwriting prompts analysis on an application.
-    
+
     Args:
         app_id: Application ID
         request: Optional request with sections to analyze
@@ -1710,35 +1888,36 @@ async def analyze_application(app_id: str, request: AnalyzeRequest = None, backg
                 logger.info("Built document_markdown from existing data for %s", app_id)
             else:
                 raise HTTPException(
-                    status_code=400,
-                    detail="Aucun contenu disponible. Lancez l'extraction d'abord."
+                    status_code=400, detail="Aucun contenu disponible. Lancez l'extraction d'abord."
                 )
 
         sections_to_run = request.sections if request else None
         processing_mode = request.processing_mode if request else None
-        language = request.language if request else None
+        language = require_language(request.language if request else None)
 
         if background:
             # Check if already processing
             if app_md.processing_status in ("extracting", "analyzing"):
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Application is already being processed: {app_md.processing_status}"
+                    detail=f"Application is already being processed: {app_md.processing_status}",
                 )
-            
+
             # Start background task and return immediately
-            task = asyncio.create_task(run_analysis_background(app_id, sections_to_run, processing_mode, language))
+            task = asyncio.create_task(
+                run_analysis_background(app_id, sections_to_run, processing_mode, language)
+            )
             task.add_done_callback(_handle_task_exception)
-            
+
             # Update status immediately so client sees it
             app_md.processing_status = "analyzing"
             app_md.processing_error = None
             save_application_metadata(settings.app.storage_root, app_md)
-            
+
             logger.info("Started background analysis for application %s", app_id)
             return {
                 **application_to_dict(app_md),
-                "message": "Analyse lanc\u00e9e en arri\u00e8re-plan. Interrogez GET /api/applications/{app_id} pour le statut."
+                "message": localized_message("analysis_started", language),
             }
 
         # Synchronous mode (backward compatible)
@@ -1754,10 +1933,12 @@ async def analyze_application(app_id: str, request: AnalyzeRequest = None, backg
         )
 
         logger.info("Analysis completed for application %s", app_id)
-        return application_to_dict(app_md)
+        return localized_application_to_dict(settings, app_md, language)
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Analysis failed for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1820,20 +2001,30 @@ async def analyze_sentiment(app_id: str, force: bool = False):
             fa = app_md.fraud_analysis
             oa = fa.get("overall_assessment", {})
             context_parts.append("\n=== ANALYSE ANTI-FRAUDE ===")
-            context_parts.append(f"Risque fraude: {oa.get('overall_fraud_risk', 'N/A')} ({round(oa.get('risk_score', 0) * 100)}%)")
+            context_parts.append(
+                f"Risque fraude: {oa.get('overall_fraud_risk', 'N/A')} ({round(oa.get('risk_score', 0) * 100)}%)"
+            )
             if oa.get("siu_referral_recommended"):
                 context_parts.append("⚠ Renvoi SIU recommandé")
             for item in oa.get("attention_items", [])[:3]:
-                context_parts.append(f"- [{item.get('priority', '')}] {item.get('label', '')}: {item.get('detail', '')}")
+                context_parts.append(
+                    f"- [{item.get('priority', '')}] {item.get('label', '')}: {item.get('detail', '')}"
+                )
             dv = fa.get("declaration_verification", {})
             if dv.get("consistency_score") is not None:
-                context_parts.append(f"Concordance déclaration: {round(dv['consistency_score'] * 100)}%")
+                context_parts.append(
+                    f"Concordance déclaration: {round(dv['consistency_score'] * 100)}%"
+                )
 
         # Files info
         n_files = len(app_md.files or [])
         context_parts.append(f"\n=== FICHIERS ({n_files} pièces) ===")
         for f in (app_md.files or [])[:8]:
-            name = f.original_name if hasattr(f, "original_name") else (f.get("original_name", "") if isinstance(f, dict) else str(f))
+            name = (
+                f.original_name
+                if hasattr(f, "original_name")
+                else (f.get("original_name", "") if isinstance(f, dict) else str(f))
+            )
             context_parts.append(f"- {name}")
 
         context_parts.append(f"\nPersona: {app_md.persona}")
@@ -1873,7 +2064,10 @@ async def analyze_sentiment(app_id: str, force: bool = False):
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Analyse le contexte client de ce dossier et recommande le ton d'accompagnement :\n\n{dossier_context}"},
+            {
+                "role": "user",
+                "content": f"Analyse le contexte client de ce dossier et recommande le ton d'accompagnement :\n\n{dossier_context}",
+            },
         ]
 
         raw = chat_completion(
@@ -1889,6 +2083,7 @@ async def analyze_sentiment(app_id: str, force: bool = False):
             raise ValueError("Réponse vide du Sentiment Agent")
 
         import json
+
         result = json.loads(content)
 
         # Validate and normalize
@@ -1907,7 +2102,12 @@ async def analyze_sentiment(app_id: str, force: bool = False):
         # Persist in application metadata
         app_md.sentiment_analysis = sentiment_data
         save_application_metadata(settings.app.storage_root, app_md)
-        logger.info("Sentiment analysis stored for %s: score=%d level=%s", app_id, sentiment_data["score"], sentiment_data["level"])
+        logger.info(
+            "Sentiment analysis stored for %s: score=%d level=%s",
+            app_id,
+            sentiment_data["score"],
+            sentiment_data["level"],
+        )
 
         return sentiment_data
 
@@ -1937,6 +2137,10 @@ async def generate_communication(app_id: str, body: dict):
 
     channel = body.get("channel", "email")
     tone = body.get("tone", "auto")
+    try:
+        language = require_language(body.get("language"))
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     if channel not in ("email", "sms", "letter"):
         raise HTTPException(status_code=400, detail=f"Invalid channel: {channel}")
@@ -2020,15 +2224,19 @@ async def generate_communication(app_id: str, body: dict):
             oa = fa.get("overall_assessment", {})
             risk_score = oa.get("risk_score", 0)
             fraud_risk_high = risk_score > 0.7
-            context_parts.append(f"\n=== FRAUDE ===")
-            context_parts.append(f"Risque: {oa.get('overall_fraud_risk', 'N/A')} ({round(risk_score * 100)}%)")
+            context_parts.append("\n=== FRAUDE ===")
+            context_parts.append(
+                f"Risque: {oa.get('overall_fraud_risk', 'N/A')} ({round(risk_score * 100)}%)"
+            )
             if oa.get("siu_referral_recommended"):
                 context_parts.append("⚠ SIU recommandé")
 
         # Sentiment
         if sa:
-            context_parts.append(f"\n=== SENTIMENT CLIENT ===")
-            context_parts.append(f"Score: {sa.get('score', 50)}/100 — Niveau: {sa.get('level', 'moderate')}")
+            context_parts.append("\n=== SENTIMENT CLIENT ===")
+            context_parts.append(
+                f"Score: {sa.get('score', 50)}/100 — Niveau: {sa.get('level', 'moderate')}"
+            )
             context_parts.append(f"Ton recommandé: {sa.get('suggestedTone', 'standard')}")
             for factor in sa.get("factors", [])[:4]:
                 context_parts.append(f"- {factor}")
@@ -2041,13 +2249,17 @@ async def generate_communication(app_id: str, body: dict):
 
         # Load communication prompts
         import os
-        prompts_path = os.path.join(os.path.dirname(__file__), "prompts", "communication-prompts.json")
+
+        prompts_path = os.path.join(
+            os.path.dirname(__file__), "prompts", "communication-prompts.json"
+        )
         with open(prompts_path, "r", encoding="utf-8") as f:
             comm_prompts = _json.load(f)
 
         brand_profile = get_current_brand_profile()
         brand = brand_profile.brand_name
         system_prompt = comm_prompts["system_prompt"].replace("{brand}", brand)
+        system_prompt += "\n\n" + language_instruction(language)
         channel_desc = comm_prompts["channels"].get(channel, "").replace("{brand}", brand)
 
         # Brand-specific INSURER contact details — these MUST appear in the
@@ -2059,22 +2271,24 @@ async def generate_communication(app_id: str, body: dict):
 
         # Build user prompt
         user_prompt = (
-            f"Génère une communication {channel.upper()} pour ce dossier.\n\n"
-            f"Canal: {channel} — {channel_desc}\n"
-            f"Ton demandé: {tone}\n"
-            f"Nom du destinataire: {recipient_name}\n"
-            f"Référence dossier: {contrat or app_id[:12]}\n"
-            f"Montant estimé: {montant or 'N/A'}\n\n"
-            f"=== COORDONNÉES ASSUREUR (à utiliser dans le message) ===\n"
-            f"Téléphone service sinistres: {insurer_phone}\n"
-            f"Email service sinistres: {insurer_email}\n"
-            f"Espace assuré: {insurer_portal}\n"
+            f"Generate a {channel.upper()} communication for this application.\n\n"
+            f"Channel: {channel} — {channel_desc}\n"
+            f"Requested tone: {tone}\n"
+            f"Recipient name: {recipient_name}\n"
+            f"Application reference: {contrat or app_id[:12]}\n"
+            f"Estimated amount: {montant or 'N/A'}\n\n"
+            f"=== INSURER CONTACT DETAILS (use in the message) ===\n"
+            f"Claims telephone: {insurer_phone}\n"
+            f"Claims email: {insurer_email}\n"
+            f"Policyholder portal: {insurer_portal}\n"
             f"Signature: {insurer_signature}\n"
-            f"⚠ RAPPEL: N'utilise JAMAIS le téléphone/email de l'assuré comme contact assureur. "
-            f"Utilise UNIQUEMENT les coordonnées ci-dessus.\n"
+            "Never use the policyholder's telephone/e-mail as the insurer contact. "
+            "Use only the insurer details above.\n"
         )
         if fraud_risk_high:
-            user_prompt += "\n⚠ ATTENTION: Risque fraude élevé — NE PAS mentionner la fraude. Rester factuel et respectueux.\n"
+            user_prompt += (
+                "\nHigh fraud risk: do not mention fraud. Remain factual and respectful.\n"
+            )
 
         user_prompt += f"\n{dossier_context}"
 
@@ -2105,6 +2319,7 @@ async def generate_communication(app_id: str, body: dict):
         sentiment_level = sa.get("level", "moderate")
 
         response = {
+            "language": language,
             "channel": channel,
             "tone": tone,
             "subject": result.get("subject"),
@@ -2120,7 +2335,10 @@ async def generate_communication(app_id: str, body: dict):
 
         logger.info(
             "Communication generated for %s: channel=%s tone=%s body_len=%d",
-            app_id, channel, tone, len(response["body"]),
+            app_id,
+            channel,
+            tone,
+            len(response["body"]),
         )
 
         return response
@@ -2135,14 +2353,14 @@ async def generate_communication(app_id: str, body: dict):
 @app.post("/api/applications/{app_id}/analyze/deep-dive")
 async def analyze_deep_dive(app_id: str, background: bool = False, force: bool = False):
     """Run only the 5 deep-dive subsections within medical_summary.
-    
+
     This is an incremental re-analysis that:
     1. Detects which deep-dive subsections are missing or have errors
     2. Runs only those subsections (or all 5 if force=True)
     3. Merges results with existing llm_outputs
-    
+
     Useful for adding deep dive to applications analyzed before the feature existed.
-    
+
     Args:
         app_id: Application ID
         background: If True, run in background and return immediately
@@ -2175,29 +2393,35 @@ async def analyze_deep_dive(app_id: str, background: bool = False, force: bool =
             if parts:
                 app_md.document_markdown = "\n".join(parts)
                 save_application_metadata(settings.app.storage_root, app_md)
-                logger.info("Built document_markdown from existing data for %s (%d chars)", app_id, len(app_md.document_markdown))
+                logger.info(
+                    "Built document_markdown from existing data for %s (%d chars)",
+                    app_id,
+                    len(app_md.document_markdown),
+                )
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail="Aucun contenu disponible. Lancez l'extraction (Relancer IA) d'abord."
+                    detail="Aucun contenu disponible. Lancez l'extraction (Relancer IA) d'abord.",
                 )
 
         # Deep dive subsections
         deep_dive_keys = [
             "body_system_review",
-            "pending_investigations", 
+            "pending_investigations",
             "last_office_visit",
             "abnormal_labs",
             "latest_vitals",
         ]
-        
+
         # Check which are missing or have errors
         existing_ms = app_md.llm_outputs.get("medical_summary", {}) if app_md.llm_outputs else {}
-        
+
         if force:
             missing = list(deep_dive_keys)
             errored = []
-            logger.info("Force re-run requested — running all 5 deep dive subsections for %s", app_id)
+            logger.info(
+                "Force re-run requested — running all 5 deep dive subsections for %s", app_id
+            )
         else:
             missing = []
             errored = []
@@ -2206,34 +2430,40 @@ async def analyze_deep_dive(app_id: str, background: bool = False, force: bool =
                     missing.append(k)
                 else:
                     # Also treat subsections with error data as needing re-run
-                    parsed = (existing_ms[k] or {}).get("parsed") if isinstance(existing_ms[k], dict) else None
+                    parsed = (
+                        (existing_ms[k] or {}).get("parsed")
+                        if isinstance(existing_ms[k], dict)
+                        else None
+                    )
                     if isinstance(parsed, dict) and "_error" in parsed:
                         errored.append(k)
                         missing.append(k)
-        
+
         if not missing:
             logger.info("All deep dive subsections already present for %s", app_id)
             return {
                 **application_to_dict(app_md),
-                "message": "Toutes les sous-sections deep dive sont d\u00e9j\u00e0 pr\u00e9sentes. Aucune r\u00e9-analyse n\u00e9cessaire."
+                "message": "Toutes les sous-sections deep dive sont d\u00e9j\u00e0 pr\u00e9sentes. Aucune r\u00e9-analyse n\u00e9cessaire.",
             }
-        
+
         if errored:
-            logger.info("Deep dive subsections with errors that will be re-run for %s: %s", app_id, errored)
-        
+            logger.info(
+                "Deep dive subsections with errors that will be re-run for %s: %s", app_id, errored
+            )
+
         logger.info("Running deep dive for %s: %d subsections missing", app_id, len(missing))
-        
+
         # Build subsections_to_run list from missing subsections only (incremental)
         subsections_to_run = [("medical_summary", k) for k in missing]
-        
+
         if background:
             # Check if already processing
             if app_md.processing_status in ("extracting", "analyzing"):
                 raise HTTPException(
                     status_code=409,
-                    detail=f"Application is already being processed: {app_md.processing_status}"
+                    detail=f"Application is already being processed: {app_md.processing_status}",
                 )
-            
+
             # Start background task
             async def run_deep_dive_bg():
                 try:
@@ -2255,19 +2485,19 @@ async def analyze_deep_dive(app_id: str, background: bool = False, force: bool =
                     app_md.processing_status = "error"
                     app_md.processing_error = str(e)
                     save_application_metadata(settings.app.storage_root, app_md)
-            
+
             task = asyncio.create_task(run_deep_dive_bg())
             task.add_done_callback(_handle_task_exception)
-            
+
             app_md.processing_status = "analyzing"
             app_md.processing_error = None
             save_application_metadata(settings.app.storage_root, app_md)
-            
+
             return {
                 **application_to_dict(app_md),
-                "message": f"Deep dive started for {len(deep_dive_keys)} subsections. Poll GET /api/applications/{{app_id}} for status."
+                "message": f"Deep dive started for {len(deep_dive_keys)} subsections. Poll GET /api/applications/{{app_id}} for status.",
             }
-        
+
         # Synchronous mode
         app_md = await asyncio.to_thread(
             run_underwriting_prompts,
@@ -2296,11 +2526,11 @@ async def reset_application_status(app_id: str):
         app_md = load_application(settings.app.storage_root, app_id)
         if not app_md:
             raise HTTPException(status_code=404, detail="Dossier introuvable")
-        
+
         app_md.processing_status = None
         app_md.processing_error = None
         save_application_metadata(settings.app.storage_root, app_md)
-        
+
         logger.info("Reset processing status for application %s", app_id)
         return {"message": "Statut de traitement r\u00e9initialis\u00e9", "id": app_id}
     except HTTPException:
@@ -2310,17 +2540,22 @@ async def reset_application_status(app_id: str):
 
 
 @app.post("/api/applications/{app_id}/process")
-async def process_application(app_id: str, processing_mode: Optional[str] = Query(None)):
+async def process_application(
+    app_id: str,
+    processing_mode: Optional[str] = Query(None),
+    language: str = Query("en"),
+):
     """Start full processing (extraction + analysis) in background.
-    
+
     This is the recommended endpoint for new uploads. It starts both
     extraction and analysis as background tasks and returns immediately.
     Client should poll GET /api/applications/{app_id} to check status.
-    
+
     Args:
         app_id: Application ID
         processing_mode: 'auto', 'standard', or 'large_document' (default: auto)
-    
+        language: Requested generated-content language (`en`, `fr`, or `de`)
+
     The processing_status field will be:
     - 'extracting': Currently running content extraction
     - 'analyzing': Extraction done, running analysis
@@ -2328,6 +2563,7 @@ async def process_application(app_id: str, processing_mode: Optional[str] = Quer
     - 'error': Processing failed (check processing_error for details)
     """
     try:
+        language = require_language(language)
         settings = load_settings()
         app_md = load_application(settings.app.storage_root, app_id)
         if not app_md:
@@ -2337,32 +2573,40 @@ async def process_application(app_id: str, processing_mode: Optional[str] = Quer
         if app_md.processing_status in ("extracting", "analyzing"):
             raise HTTPException(
                 status_code=409,
-                detail=f"Application is already being processed: {app_md.processing_status}"
+                detail=localized_message("analysis_in_progress", language),
             )
-        
+
         # Start background task for full processing
-        task = asyncio.create_task(run_extract_and_analyze_background(app_id, processing_mode))
+        task = asyncio.create_task(
+            run_extract_and_analyze_background(app_id, processing_mode, language)
+        )
         task.add_done_callback(_handle_task_exception)
-        
+
         # Update status immediately so client sees it
         app_md.processing_status = "extracting"
         app_md.processing_error = None
         save_application_metadata(settings.app.storage_root, app_md)
-        
-        logger.info("Started background processing for application %s (mode: %s)", app_id, processing_mode or "auto")
+
+        logger.info(
+            "Started background processing for application %s (mode: %s)",
+            app_id,
+            processing_mode or "auto",
+        )
         return {
             **application_to_dict(app_md),
-            "message": "Traitement lanc\u00e9 en arri\u00e8re-plan. Interrogez GET /api/applications/{app_id} pour le statut."
+            "message": localized_message("processing_started", language),
         }
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Failed to start processing for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def _risk_analysis_background(app_id: str):
+async def _risk_analysis_background(app_id: str, language: str = "en"):
     """Run policy-based risk analysis in the background.
 
     Runs the (blocking) LLM call off the event loop and persists the result to
@@ -2380,7 +2624,12 @@ async def _risk_analysis_background(app_id: str):
             logger.warning("Risk analysis background: application %s not found", app_id)
             return
         # run_risk_analysis mutates app_md, clears processing_status and saves on success.
-        await asyncio.to_thread(run_risk_analysis, settings, app_md)
+        await asyncio.to_thread(
+            run_risk_analysis,
+            settings,
+            app_md,
+            require_language(language),
+        )
         logger.info("Risk analysis completed for application %s", app_id)
     except Exception as e:
         logger.error("Risk analysis failed for %s: %s", app_id, e, exc_info=True)
@@ -2407,7 +2656,7 @@ def _log_task_exception(task: "asyncio.Task") -> None:
 
 
 @app.post("/api/applications/{app_id}/risk-analysis", status_code=202)
-async def run_application_risk_analysis(app_id: str):
+async def run_application_risk_analysis(app_id: str, language: str = "en"):
     """Start policy-based risk analysis on an already-analyzed application.
 
     This is a separate operation from extraction/summarization. It applies
@@ -2423,6 +2672,10 @@ async def run_application_risk_analysis(app_id: str):
     - Application must have completed extraction and analysis
     - LLM outputs must be present
     """
+    try:
+        language = require_language(language)
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     settings = load_settings()
     app_md = load_application(settings.app.storage_root, app_id)
     if not app_md:
@@ -2430,14 +2683,12 @@ async def run_application_risk_analysis(app_id: str):
 
     if not app_md.llm_outputs:
         raise HTTPException(
-            status_code=400,
-            detail="No analysis outputs found. Run standard analysis first."
+            status_code=400, detail="No analysis outputs found. Run standard analysis first."
         )
 
     if app_md.persona != "underwriting":
         raise HTTPException(
-            status_code=400,
-            detail="Risk analysis is only available for underwriting applications."
+            status_code=400, detail="Risk analysis is only available for underwriting applications."
         )
 
     # Reject concurrent runs so double-clicks / multiple UI surfaces don't
@@ -2445,7 +2696,7 @@ async def run_application_risk_analysis(app_id: str):
     if app_md.processing_status in ("extracting", "analyzing"):
         raise HTTPException(
             status_code=409,
-            detail="Une analyse est d\u00e9j\u00e0 en cours pour ce dossier."
+            detail=localized_message("analysis_in_progress", language),
         )
 
     # Mark as analyzing and persist BEFORE returning so the client's first poll
@@ -2454,18 +2705,18 @@ async def run_application_risk_analysis(app_id: str):
     app_md.processing_error = None
     save_application_metadata(settings.app.storage_root, app_md)
 
-    task = asyncio.create_task(_risk_analysis_background(app_id))
+    task = asyncio.create_task(_risk_analysis_background(app_id, language))
     task.add_done_callback(_log_task_exception)
 
     return {
         "application_id": app_id,
         "status": "analyzing",
-        "message": "Analyse de risque lanc\u00e9e",
+        "message": localized_message("analysis_started", language),
     }
 
 
 @app.get("/api/applications/{app_id}/risk-analysis")
-async def get_application_risk_analysis(app_id: str):
+async def get_application_risk_analysis(app_id: str, language: str = "en"):
     """Get the risk analysis results for an application."""
     try:
         settings = load_settings()
@@ -2475,17 +2726,23 @@ async def get_application_risk_analysis(app_id: str):
 
         if not app_md.risk_analysis:
             raise HTTPException(
-                status_code=404,
-                detail="No risk analysis found. Run risk analysis first."
+                status_code=404, detail="No risk analysis found. Run risk analysis first."
             )
 
+        locale = require_language(language)
+        from app.processing import localized_analysis_payload
+
+        translated = await asyncio.to_thread(localized_analysis_payload, settings, app_md, locale)
         return {
             "application_id": app_id,
-            "risk_analysis": app_md.risk_analysis,
+            "risk_analysis": translated["risk_analysis"],
+            "language": locale,
         }
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Failed to get risk analysis for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -2536,13 +2793,16 @@ async def file_format_capabilities(persona: Optional[str] = Query(None)):
 # Prompt Catalog APIs
 # ============================================================================
 
+
 class PromptUpdateRequest(BaseModel):
     """Request model for updating a single prompt."""
+
     text: str
 
 
 class PromptsUpdateRequest(BaseModel):
     """Request model for bulk prompt updates."""
+
     prompts: dict
 
 
@@ -2564,17 +2824,16 @@ async def get_prompt(section: str, subsection: str, persona: str = "underwriting
     try:
         settings = load_settings()
         prompts = load_prompts(settings.app.prompts_root, persona)
-        
+
         if section not in prompts:
             raise HTTPException(status_code=404, detail=f"Section '{section}' not found")
         if subsection not in prompts[section]:
-            raise HTTPException(status_code=404, detail=f"Subsection '{subsection}' not found in section '{section}'")
-        
-        return {
-            "section": section,
-            "subsection": subsection,
-            "text": prompts[section][subsection]
-        }
+            raise HTTPException(
+                status_code=404,
+                detail=f"Subsection '{subsection}' not found in section '{section}'",
+            )
+
+        return {"section": section, "subsection": subsection, "text": prompts[section][subsection]}
     except HTTPException:
         raise
     except Exception as e:
@@ -2583,24 +2842,26 @@ async def get_prompt(section: str, subsection: str, persona: str = "underwriting
 
 
 @app.put("/api/prompts/{section}/{subsection}")
-async def update_prompt(section: str, subsection: str, request: PromptUpdateRequest, persona: str = "underwriting"):
+async def update_prompt(
+    section: str, subsection: str, request: PromptUpdateRequest, persona: str = "underwriting"
+):
     """Update a specific prompt."""
     try:
         settings = load_settings()
         prompts = load_prompts(settings.app.prompts_root, persona)
-        
+
         if section not in prompts:
             prompts[section] = {}
-        
+
         prompts[section][subsection] = request.text
         save_prompts(settings.app.prompts_root, prompts, persona)
-        
+
         logger.info("Updated prompt %s/%s for persona %s", section, subsection, persona)
         return {
             "section": section,
             "subsection": subsection,
             "text": request.text,
-            "message": "Prompt mis \u00e0 jour"
+            "message": "Prompt mis \u00e0 jour",
         }
     except Exception as e:
         logger.error("Failed to update prompt %s/%s: %s", section, subsection, e, exc_info=True)
@@ -2613,14 +2874,14 @@ async def delete_prompt(section: str, subsection: str, persona: str = "underwrit
     try:
         settings = load_settings()
         prompts = load_prompts(settings.app.prompts_root, persona)
-        
+
         if section in prompts and subsection in prompts[section]:
             del prompts[section][subsection]
             # Remove section if empty
             if not prompts[section]:
                 del prompts[section]
             save_prompts(settings.app.prompts_root, prompts, persona)
-            
+
         logger.info("Deleted prompt %s/%s for persona %s", section, subsection, persona)
         return {"message": f"Prompt {section}/{subsection} deleted"}
     except Exception as e:
@@ -2629,30 +2890,32 @@ async def delete_prompt(section: str, subsection: str, persona: str = "underwrit
 
 
 @app.post("/api/prompts/{section}/{subsection}")
-async def create_prompt(section: str, subsection: str, request: PromptUpdateRequest, persona: str = "underwriting"):
+async def create_prompt(
+    section: str, subsection: str, request: PromptUpdateRequest, persona: str = "underwriting"
+):
     """Create a new prompt."""
     try:
         settings = load_settings()
         prompts = load_prompts(settings.app.prompts_root, persona)
-        
+
         if section not in prompts:
             prompts[section] = {}
-        
+
         if subsection in prompts[section]:
             raise HTTPException(
-                status_code=409, 
-                detail=f"Prompt '{section}/{subsection}' already exists. Use PUT to update."
+                status_code=409,
+                detail=f"Prompt '{section}/{subsection}' already exists. Use PUT to update.",
             )
-        
+
         prompts[section][subsection] = request.text
         save_prompts(settings.app.prompts_root, prompts, persona)
-        
+
         logger.info("Created prompt %s/%s for persona %s", section, subsection, persona)
         return {
             "section": section,
             "subsection": subsection,
             "text": request.text,
-            "message": "Prompt cr\u00e9\u00e9"
+            "message": "Prompt cr\u00e9\u00e9",
         }
     except HTTPException:
         raise
@@ -2681,6 +2944,7 @@ from app.glossary import (
 
 class GlossaryTermRequest(BaseModel):
     """Request model for adding/updating a glossary term."""
+
     abbreviation: str
     meaning: str
     context: Optional[str] = None
@@ -2690,18 +2954,21 @@ class GlossaryTermRequest(BaseModel):
 
 class GlossaryCategoryRequest(BaseModel):
     """Request model for adding/updating a category."""
+
     id: str
     name: str
 
 
 class GlossaryCategoryUpdateRequest(BaseModel):
     """Request model for updating a category name."""
+
     name: str
 
 
 # =============================================================================
 # Policy PDF Assets — brand-aware
 # =============================================================================
+
 
 def _get_policy_pdfs(brand: str = DEFAULT_BRAND.brand_name) -> dict:
     """Return metadata for the policy PDFs shipped for the given brand (existing files only)."""
@@ -2740,13 +3007,15 @@ async def list_policy_pdfs():
     result = []
     for key, info in policy_pdfs.items():
         pdf_path = Path("assets/pdf") / info["filename"]
-        result.append({
-            "id": key,
-            "title": info["title"],
-            "filename": info["filename"],
-            "url": f"/api/policy-pdfs/{key}",
-            "available": pdf_path.exists(),
-        })
+        result.append(
+            {
+                "id": key,
+                "title": info["title"],
+                "filename": info["filename"],
+                "url": f"/api/policy-pdfs/{key}",
+                "available": pdf_path.exists(),
+            }
+        )
     return result
 
 
@@ -2768,7 +3037,7 @@ async def get_policy_pdf(pdf_id: str):
         path=str(pdf_path),
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f"inline; filename=\"{info['filename']}\"",
+            "Content-Disposition": f'inline; filename="{info["filename"]}"',
             "X-Content-Type-Options": "nosniff",
         },
     )
@@ -2804,7 +3073,7 @@ async def get_persona_glossary(persona: str):
 async def search_persona_glossary(
     persona: str,
     q: str = Query(..., description="Search query"),
-    category: Optional[str] = Query(None, description="Filter by category ID")
+    category: Optional[str] = Query(None, description="Filter by category ID"),
 ):
     """Search for terms matching a query."""
     try:
@@ -2822,9 +3091,7 @@ async def create_glossary_category(persona: str, request: GlossaryCategoryReques
     try:
         settings = load_settings()
         category = add_category(
-            settings.app.prompts_root,
-            persona,
-            {"id": request.id, "name": request.name}
+            settings.app.prompts_root, persona, {"id": request.id, "name": request.name}
         )
         return {"category": category, "message": "Cat\u00e9gorie cr\u00e9\u00e9e"}
     except ValueError as e:
@@ -2836,18 +3103,13 @@ async def create_glossary_category(persona: str, request: GlossaryCategoryReques
 
 @app.put("/api/glossary/{persona}/categories/{category_id}")
 async def update_glossary_category(
-    persona: str,
-    category_id: str,
-    request: GlossaryCategoryUpdateRequest
+    persona: str, category_id: str, request: GlossaryCategoryUpdateRequest
 ):
     """Update a category name."""
     try:
         settings = load_settings()
         category = update_category(
-            settings.app.prompts_root,
-            persona,
-            category_id,
-            {"name": request.name}
+            settings.app.prompts_root, persona, category_id, {"name": request.name}
         )
         return {"category": category, "message": "Cat\u00e9gorie mise \u00e0 jour"}
     except ValueError as e:
@@ -2872,11 +3134,7 @@ async def delete_glossary_category(persona: str, category_id: str):
 
 
 @app.post("/api/glossary/{persona}/terms/{category_id}")
-async def create_glossary_term(
-    persona: str,
-    category_id: str,
-    request: GlossaryTermRequest
-):
+async def create_glossary_term(persona: str, category_id: str, request: GlossaryTermRequest):
     """Add a new term to a category."""
     try:
         settings = load_settings()
@@ -2888,8 +3146,8 @@ async def create_glossary_term(
                 "abbreviation": request.abbreviation,
                 "meaning": request.meaning,
                 "context": request.context,
-                "examples": request.examples
-            }
+                "examples": request.examples,
+            },
         )
         return {"term": term, "message": "Terme cr\u00e9\u00e9"}
     except ValueError as e:
@@ -2900,11 +3158,7 @@ async def create_glossary_term(
 
 
 @app.put("/api/glossary/{persona}/terms/{abbreviation}")
-async def update_glossary_term(
-    persona: str,
-    abbreviation: str,
-    request: GlossaryTermRequest
-):
+async def update_glossary_term(persona: str, abbreviation: str, request: GlossaryTermRequest):
     """Update an existing term."""
     try:
         settings = load_settings()
@@ -2915,13 +3169,8 @@ async def update_glossary_term(
             updates["examples"] = request.examples
         if request.category_id is not None:
             updates["category_id"] = request.category_id
-        
-        term = update_term(
-            settings.app.prompts_root,
-            persona,
-            abbreviation,
-            updates
-        )
+
+        term = update_term(settings.app.prompts_root, persona, abbreviation, updates)
         return {"term": term, "message": "Terme mis \u00e0 jour"}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -2950,7 +3199,7 @@ async def get_formatted_glossary(
     max_terms: int = Query(100, ge=1, le=500),
     categories: Optional[str] = Query(None, description="Comma-separated category IDs"),
     format_type: str = Query("markdown", pattern="^(markdown|list)$"),
-    include_headers: bool = Query(False)
+    include_headers: bool = Query(False),
 ):
     """Get glossary formatted for prompt injection."""
     try:
@@ -2962,7 +3211,7 @@ async def get_formatted_glossary(
             max_terms=max_terms,
             categories=category_list,
             format_type=format_type,
-            include_category_headers=include_headers
+            include_category_headers=include_headers,
         )
         return {"formatted": formatted}
     except Exception as e:
@@ -2974,8 +3223,10 @@ async def get_formatted_glossary(
 # Content Understanding Analyzer APIs
 # ============================================================================
 
+
 class AnalyzerCreateRequest(BaseModel):
     """Request model for creating a custom analyzer."""
+
     analyzer_id: Optional[str] = None
     persona: Optional[str] = None
     description: Optional[str] = "Custom analyzer for document extraction"
@@ -2987,7 +3238,7 @@ async def get_analyzer_status(persona: Optional[str] = "underwriting"):
     """Get the current status of the custom analyzer for the specified persona."""
     try:
         settings = load_settings()
-        
+
         # Get persona-specific analyzer ID
         try:
             persona_config = get_persona_config(persona)
@@ -2995,7 +3246,7 @@ async def get_analyzer_status(persona: Optional[str] = "underwriting"):
         except ValueError:
             # Fallback to default if persona not found
             custom_analyzer_id = settings.content_understanding.custom_analyzer_id
-        
+
         try:
             analyzer = get_analyzer(settings.content_understanding, custom_analyzer_id)
             return {
@@ -3014,8 +3265,14 @@ async def get_analyzer_status(persona: Optional[str] = "underwriting"):
                 },
                 "persona": persona,
             }
-        except (requests.exceptions.Timeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as timeout_err:
-            logger.warning("Timeout checking analyzer status for %s: %s", custom_analyzer_id, timeout_err)
+        except (
+            requests.exceptions.Timeout,
+            requests.exceptions.ReadTimeout,
+            requests.exceptions.ConnectTimeout,
+        ) as timeout_err:
+            logger.warning(
+                "Timeout checking analyzer status for %s: %s", custom_analyzer_id, timeout_err
+            )
             return {
                 "analyzer_id": custom_analyzer_id,
                 "exists": None,
@@ -3081,7 +3338,7 @@ async def create_custom_analyzer(request: AnalyzerCreateRequest = None):
         settings = load_settings()
         persona_id = request.persona if request and request.persona else "underwriting"
         media_type = request.media_type if request and request.media_type else "document"
-        
+
         # Get the analyzer_id from persona config if not explicitly provided
         if request and request.analyzer_id:
             analyzer_id = request.analyzer_id
@@ -3098,9 +3355,13 @@ async def create_custom_analyzer(request: AnalyzerCreateRequest = None):
             except ValueError:
                 # Fallback to default if persona not found
                 analyzer_id = settings.content_understanding.custom_analyzer_id
-        
-        description = request.description if request and request.description else f"Custom {persona_id} {media_type} analyzer for extraction with confidence scores"
-        
+
+        description = (
+            request.description
+            if request and request.description
+            else f"Custom {persona_id} {media_type} analyzer for extraction with confidence scores"
+        )
+
         result = create_or_update_custom_analyzer(
             settings.content_understanding,
             analyzer_id=analyzer_id,
@@ -3108,7 +3369,7 @@ async def create_custom_analyzer(request: AnalyzerCreateRequest = None):
             description=description,
             media_type=media_type,
         )
-        
+
         logger.info("Created/updated custom %s analyzer: %s", media_type, analyzer_id)
         return {
             "message": f"Analyzer '{analyzer_id}' created/updated successfully",
@@ -3125,9 +3386,9 @@ async def delete_custom_analyzer(analyzer_id: str):
     """Delete a custom analyzer."""
     try:
         settings = load_settings()
-        
+
         success = delete_analyzer(settings.content_understanding, analyzer_id)
-        
+
         if success:
             logger.info("Deleted analyzer: %s", analyzer_id)
             return {"message": f"Analyzer '{analyzer_id}' deleted successfully"}
@@ -3146,7 +3407,7 @@ async def list_analyzers():
     try:
         settings = load_settings()
         default_id = settings.content_understanding.analyzer_id
-        
+
         analyzers = [
             {
                 "id": default_id,
@@ -3156,84 +3417,116 @@ async def list_analyzers():
                 "persona": None,
             },
         ]
-        
+
         # Get all persona configurations
         personas = list_personas()
-        
+
         # Helper function to check and add an analyzer
-        def add_analyzer(analyzer_id: str, persona_id: str, persona_name: str, media_type: str = "document"):
+        def add_analyzer(
+            analyzer_id: str, persona_id: str, persona_name: str, media_type: str = "document"
+        ):
             """Check if analyzer exists and add to list."""
             try:
                 custom_analyzer = get_analyzer(settings.content_understanding, analyzer_id)
                 if custom_analyzer:
-                    analyzers.append({
-                        "id": analyzer_id,
-                        "type": "custom",
-                        "media_type": media_type,
-                        "description": custom_analyzer.get("description", f"Custom {persona_name} {media_type} analyzer"),
-                        "exists": True,
-                        "persona": persona_id,
-                        "persona_name": persona_name,
-                    })
+                    analyzers.append(
+                        {
+                            "id": analyzer_id,
+                            "type": "custom",
+                            "media_type": media_type,
+                            "description": custom_analyzer.get(
+                                "description", f"Custom {persona_name} {media_type} analyzer"
+                            ),
+                            "exists": True,
+                            "persona": persona_id,
+                            "persona_name": persona_name,
+                        }
+                    )
                 else:
-                    analyzers.append({
+                    analyzers.append(
+                        {
+                            "id": analyzer_id,
+                            "type": "custom",
+                            "media_type": media_type,
+                            "description": f"Custom {persona_name} {media_type} analyzer (not created yet)",
+                            "exists": False,
+                            "persona": persona_id,
+                            "persona_name": persona_name,
+                        }
+                    )
+            except (
+                requests.exceptions.Timeout,
+                requests.exceptions.ReadTimeout,
+                requests.exceptions.ConnectTimeout,
+            ) as timeout_err:
+                logger.warning(
+                    "Timeout checking custom analyzer %s for persona %s: %s",
+                    analyzer_id,
+                    persona_id,
+                    timeout_err,
+                )
+                analyzers.append(
+                    {
                         "id": analyzer_id,
                         "type": "custom",
                         "media_type": media_type,
-                        "description": f"Custom {persona_name} {media_type} analyzer (not created yet)",
-                        "exists": False,
+                        "description": f"Custom {persona_name} {media_type} analyzer (status unknown - timeout)",
+                        "exists": None,
                         "persona": persona_id,
                         "persona_name": persona_name,
-                    })
-            except (requests.exceptions.Timeout, requests.exceptions.ReadTimeout, requests.exceptions.ConnectTimeout) as timeout_err:
-                logger.warning("Timeout checking custom analyzer %s for persona %s: %s", analyzer_id, persona_id, timeout_err)
-                analyzers.append({
-                    "id": analyzer_id,
-                    "type": "custom",
-                    "media_type": media_type,
-                    "description": f"Custom {persona_name} {media_type} analyzer (status unknown - timeout)",
-                    "exists": None,
-                    "persona": persona_id,
-                    "persona_name": persona_name,
-                    "error": f"Request timeout ({timeout_err})",
-                })
+                        "error": f"Request timeout ({timeout_err})",
+                    }
+                )
             except requests.exceptions.ConnectionError as conn_err:
-                logger.warning("Connection error checking custom analyzer %s for persona %s: %s", analyzer_id, persona_id, conn_err)
-                analyzers.append({
-                    "id": analyzer_id,
-                    "type": "custom",
-                    "media_type": media_type,
-                    "description": f"Custom {persona_name} {media_type} analyzer (status unknown - connection error)",
-                    "exists": None,
-                    "persona": persona_id,
-                    "persona_name": persona_name,
-                    "error": "Cannot connect to Azure Content Understanding service",
-                })
-        
+                logger.warning(
+                    "Connection error checking custom analyzer %s for persona %s: %s",
+                    analyzer_id,
+                    persona_id,
+                    conn_err,
+                )
+                analyzers.append(
+                    {
+                        "id": analyzer_id,
+                        "type": "custom",
+                        "media_type": media_type,
+                        "description": f"Custom {persona_name} {media_type} analyzer (status unknown - connection error)",
+                        "exists": None,
+                        "persona": persona_id,
+                        "persona_name": persona_name,
+                        "error": "Cannot connect to Azure Content Understanding service",
+                    }
+                )
+
         # Check each persona's custom analyzers
         for persona in personas:
             if not persona.get("enabled", True):
                 continue  # Skip disabled personas
-                
+
             persona_id = persona["id"]
             try:
                 persona_config = get_persona_config(persona_id)
-                
+
                 # Add document analyzer
-                add_analyzer(persona_config.custom_analyzer_id, persona_id, persona["name"], "document")
-                
+                add_analyzer(
+                    persona_config.custom_analyzer_id, persona_id, persona["name"], "document"
+                )
+
                 # Add image analyzer if configured (multimodal personas)
                 if persona_config.image_analyzer_id:
-                    add_analyzer(persona_config.image_analyzer_id, persona_id, persona["name"], "image")
-                
+                    add_analyzer(
+                        persona_config.image_analyzer_id, persona_id, persona["name"], "image"
+                    )
+
                 # Add video analyzer if configured (multimodal personas)
                 if persona_config.video_analyzer_id:
-                    add_analyzer(persona_config.video_analyzer_id, persona_id, persona["name"], "video")
-                    
+                    add_analyzer(
+                        persona_config.video_analyzer_id, persona_id, persona["name"], "video"
+                    )
+
             except Exception as e:
                 logger.warning("Error processing persona %s: %s", persona_id, e)
                 continue
-        
+
         return {"analyzers": analyzers}
     except Exception as e:
         logger.error("Failed to list analyzers: %s", e, exc_info=True)
@@ -3244,23 +3537,25 @@ async def list_analyzers():
 # Underwriting Policy Endpoints
 # =============================================================================
 
+
 @app.get("/api/policies")
 async def get_policies(persona: str = "underwriting"):
     """Get policies for the specified persona.
-    
+
     - For 'underwriting' persona: Returns underwriting policies from life-health-underwriting-policies.json
     - For 'automotive_claims' persona: Returns automotive claims policies from automotive-claims-policies.json
     - For 'life_health_claims': Returns both processing policies AND plan benefits from unified file
     - For other claims personas: Returns claims policies from their respective files
     """
     from app.underwriting_policies import load_policies as load_underwriting_policies
-    
+
     try:
         settings = load_settings()
-        
+
         # Special handling for automotive claims
         if persona == "automotive_claims":
             from app.claims.policies import ClaimsPolicyLoader
+
             loader = ClaimsPolicyLoader()
             loader.load_policies("prompts/automotive-claims-policies.json")
             policies = [
@@ -3281,8 +3576,7 @@ async def get_policies(persona: str = "underwriting"):
                         for c in p.criteria
                     ],
                     "modifying_factors": [
-                        {"factor": mf.factor, "impact": mf.impact}
-                        for mf in p.modifying_factors
+                        {"factor": mf.factor, "impact": mf.impact} for mf in p.modifying_factors
                     ],
                     "references": p.references,
                 }
@@ -3294,32 +3588,35 @@ async def get_policies(persona: str = "underwriting"):
                 "persona": persona,
                 "type": "automotive_claims",
             }
-        
+
         # Life & Health Claims - load from unified file with both policies and plan benefits
         if persona == "life_health_claims":
             import json
+
             policy_file = Path(settings.app.prompts_root) / "life-health-claims-policies.json"
             if policy_file.exists():
                 with open(policy_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                
+
                 policies = []
-                
+
                 # Add processing policies
                 for policy in data.get("policies", []):
                     policies.append(policy)
-                
+
                 # Add plan benefits as policies
                 for plan_name, plan_data in data.get("plan_benefits", {}).items():
-                    policies.append({
-                        "id": f"PLAN-{plan_name.replace(' ', '-').upper()}",
-                        "name": plan_name,
-                        "category": "plan_benefits",
-                        "subcategory": plan_data.get("plan_type", "Unknown"),
-                        "description": f"{plan_data.get('plan_type', '')} plan with {plan_data.get('network', 'standard')} network",
-                        **plan_data,
-                    })
-                
+                    policies.append(
+                        {
+                            "id": f"PLAN-{plan_name.replace(' ', '-').upper()}",
+                            "name": plan_name,
+                            "category": "plan_benefits",
+                            "subcategory": plan_data.get("plan_type", "Unknown"),
+                            "description": f"{plan_data.get('plan_type', '')} plan with {plan_data.get('network', 'standard')} network",
+                            **plan_data,
+                        }
+                    )
+
                 return {
                     "policies": policies,
                     "total": len(policies),
@@ -3334,14 +3631,15 @@ async def get_policies(persona: str = "underwriting"):
                     "type": "life_health_claims",
                     "error": "Policy file not found",
                 }
-        
+
         # Check if this is another claims persona (property_casualty_claims, etc.)
         is_claims_persona = "claims" in persona.lower()
         is_mortgage_persona = persona in ("mortgage", "mortgage_underwriting")
-        
+
         if is_mortgage_persona:
             # Load mortgage underwriting policies (HCSF / internal bank rules)
             from app.underwriting_policies import load_policies_for_persona
+
             policies_data = load_policies_for_persona(settings.app.prompts_root, persona)
             policies = policies_data.get("policies", [])
             return {
@@ -3353,6 +3651,7 @@ async def get_policies(persona: str = "underwriting"):
         elif is_claims_persona:
             # Load from persona-specific policy file
             from app.underwriting_policies import load_policies_for_persona
+
             policies_data = load_policies_for_persona(settings.app.prompts_root, persona)
             policies = policies_data.get("policies", [])
             return {
@@ -3379,13 +3678,13 @@ async def get_policies(persona: str = "underwriting"):
 @app.get("/api/policies/{policy_id}")
 async def get_policy_by_id(policy_id: str, persona: str = "underwriting"):
     """Get a specific policy by ID for the specified persona.
-    
+
     Supports both policy IDs (e.g., FRD-001) and criteria IDs (e.g., FRD-001-B).
     For criteria IDs, returns the parent policy with the matching criteria highlighted.
     """
     import json
     from pathlib import Path
-    
+
     # Mapping of personas to their policy files
     PERSONA_POLICY_FILES = {
         "underwriting": "prompts/life-health-underwriting-policies.json",
@@ -3395,28 +3694,30 @@ async def get_policy_by_id(policy_id: str, persona: str = "underwriting"):
         "mortgage_underwriting": "prompts/mortgage-underwriting-policies.json",
         "mortgage": "prompts/mortgage-underwriting-policies.json",
     }
-    
+
     try:
         # Get the policy file for this persona
         policy_file = PERSONA_POLICY_FILES.get(persona.lower())
         if not policy_file:
             # Fall back to underwriting
             policy_file = PERSONA_POLICY_FILES["underwriting"]
-        
+
         policy_path = Path(policy_file)
         if not policy_path.exists():
-            raise HTTPException(status_code=404, detail=f"Policy file not found for persona: {persona}")
-        
+            raise HTTPException(
+                status_code=404, detail=f"Policy file not found for persona: {persona}"
+            )
+
         with open(policy_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
+
         policies = data.get("policies", [])
-        
+
         # First, try to find an exact policy match
         for policy in policies:
             if policy.get("id") == policy_id:
                 return policy
-        
+
         # If not found, search within criteria (for criteria IDs like FRD-001-B)
         for policy in policies:
             for criteria in policy.get("criteria", []):
@@ -3426,9 +3727,9 @@ async def get_policy_by_id(policy_id: str, persona: str = "underwriting"):
                     result["matched_criteria_id"] = policy_id
                     result["matched_criteria"] = criteria
                     return result
-        
+
         raise HTTPException(status_code=404, detail=f"Policy not found: {policy_id}")
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -3440,11 +3741,11 @@ async def get_policy_by_id(policy_id: str, persona: str = "underwriting"):
 async def get_policies_by_category(category: str):
     """Get all policies in a specific category."""
     from app.underwriting_policies import get_policies_by_category as get_by_category
-    
+
     try:
         settings = load_settings()
         policies = get_by_category(settings.app.prompts_root, category)
-        
+
         return {
             "category": category,
             "policies": policies,
@@ -3459,11 +3760,12 @@ async def get_policies_by_category(category: str):
 # Background RAG Indexing Helpers
 # =============================================================================
 
+
 async def _background_reindex_policy(settings, policy_id: str):
     """Background task to reindex a policy after create/update."""
     try:
         from app.rag.indexer import PolicyIndexer
-        
+
         logger.info("Background reindexing policy: %s", policy_id)
         indexer = PolicyIndexer(settings=settings)
         await indexer.reindex_policy(policy_id)
@@ -3476,7 +3778,7 @@ async def _background_delete_policy_chunks(settings, policy_id: str):
     """Background task to delete policy chunks after policy deletion."""
     try:
         from app.rag.repository import PolicyChunkRepository
-        
+
         logger.info("Deleting chunks for policy: %s", policy_id)
         repo = PolicyChunkRepository(schema=settings.database.schema or "workbenchiq")
         deleted = await repo.delete_chunks_by_policy(policy_id)
@@ -3487,6 +3789,7 @@ async def _background_delete_policy_chunks(settings, policy_id: str):
 
 class PolicyCreateRequest(BaseModel):
     """Request model for creating a policy."""
+
     id: str
     category: str
     subcategory: str
@@ -3499,6 +3802,7 @@ class PolicyCreateRequest(BaseModel):
 
 class PolicyUpdateRequest(BaseModel):
     """Request model for updating a policy."""
+
     category: Optional[str] = None
     subcategory: Optional[str] = None
     name: Optional[str] = None
@@ -3512,23 +3816,21 @@ class PolicyUpdateRequest(BaseModel):
 async def create_policy(request: PolicyCreateRequest):
     """Create a new underwriting policy."""
     from app.underwriting_policies import add_policy
-    
+
     try:
         settings = load_settings()
         policy_data = request.model_dump()
         result = add_policy(settings.app.prompts_root, policy_data)
-        
+
         logger.info("Created policy %s", request.id)
-        
+
         # Trigger background reindex if PostgreSQL is enabled
         if settings.database.backend == "postgresql":
             import asyncio
+
             asyncio.create_task(_background_reindex_policy(settings, request.id))
-        
-        return {
-            "message": "Police cr\u00e9\u00e9e",
-            "policy": result["policy"]
-        }
+
+        return {"message": "Police cr\u00e9\u00e9e", "policy": result["policy"]}
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
@@ -3540,24 +3842,22 @@ async def create_policy(request: PolicyCreateRequest):
 async def update_policy_endpoint(policy_id: str, request: PolicyUpdateRequest):
     """Update an existing underwriting policy."""
     from app.underwriting_policies import update_policy
-    
+
     try:
         settings = load_settings()
         # Only include non-None values in the update
         update_data = {k: v for k, v in request.model_dump().items() if v is not None}
         result = update_policy(settings.app.prompts_root, policy_id, update_data)
-        
+
         logger.info("Updated policy %s", policy_id)
-        
+
         # Trigger background reindex if PostgreSQL is enabled
         if settings.database.backend == "postgresql":
             import asyncio
+
             asyncio.create_task(_background_reindex_policy(settings, policy_id))
-        
-        return {
-            "message": "Police mise \u00e0 jour",
-            "policy": result["policy"]
-        }
+
+        return {"message": "Police mise \u00e0 jour", "policy": result["policy"]}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
@@ -3569,18 +3869,19 @@ async def update_policy_endpoint(policy_id: str, request: PolicyUpdateRequest):
 async def delete_policy_endpoint(policy_id: str):
     """Delete an underwriting policy."""
     from app.underwriting_policies import delete_policy
-    
+
     try:
         settings = load_settings()
         result = delete_policy(settings.app.prompts_root, policy_id)
-        
+
         logger.info("Deleted policy %s", policy_id)
-        
+
         # Delete from RAG index if PostgreSQL is enabled
         if settings.database.backend == "postgresql":
             import asyncio
+
             asyncio.create_task(_background_delete_policy_chunks(settings, policy_id))
-        
+
         return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -3593,9 +3894,10 @@ async def delete_policy_endpoint(policy_id: str):
 # Feedback API Endpoints
 # =============================================================================
 
+
 class FeedbackPayload(BaseModel):
-    agent_type: str         # 'risk' | 'police' | 'data' | 'data_agent' | 'chat'
-    feedback_type: str      # 'positive' | 'negative' | 'correction'
+    agent_type: str  # 'risk' | 'police' | 'data' | 'data_agent' | 'chat'
+    feedback_type: str  # 'positive' | 'negative' | 'correction'
     original_query: Optional[str] = None
     agent_response: Optional[str] = None
     correction: Optional[str] = None
@@ -3618,9 +3920,13 @@ async def submit_feedback(payload: FeedbackPayload, background_tasks: Background
     valid_agent_types = {"risk", "police", "data", "data_agent", "chat"}
     valid_feedback_types = {"positive", "negative", "correction"}
     if payload.agent_type not in valid_agent_types:
-        raise HTTPException(status_code=400, detail=f"Invalid agent_type. Must be one of: {valid_agent_types}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid agent_type. Must be one of: {valid_agent_types}"
+        )
     if payload.feedback_type not in valid_feedback_types:
-        raise HTTPException(status_code=400, detail=f"Invalid feedback_type. Must be one of: {valid_feedback_types}")
+        raise HTTPException(
+            status_code=400, detail=f"Invalid feedback_type. Must be one of: {valid_feedback_types}"
+        )
 
     feedback_id = await insert_feedback_event(
         agent_type=payload.agent_type,
@@ -3635,7 +3941,9 @@ async def submit_feedback(payload: FeedbackPayload, background_tasks: Background
     )
 
     if feedback_id is None:
-        raise HTTPException(status_code=503, detail="Base de données indisponible pour le stockage des retours")
+        raise HTTPException(
+            status_code=503, detail="Base de données indisponible pour le stockage des retours"
+        )
 
     return {"status": "ok", "feedback_id": feedback_id}
 
@@ -3702,21 +4010,23 @@ async def corrections_impact():
 # Chat API Endpoints
 # =============================================================================
 
+
 @app.post("/api/applications/{app_id}/chat")
 async def chat_with_application(app_id: str, request: ChatRequest):
     """Chat about an application using the Agent Framework with tool-calling."""
     try:
         settings = load_settings()
-        
+
         # Load application data first to get its persona
         app_md = load_application(settings.app.storage_root, app_id)
         if not app_md:
             raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
-        
+
         # Determine persona - prefer request, then app's persona, then default to underwriting
         persona = request.persona or app_md.persona or "underwriting"
-        
+
         from app.agents.api_integration import agent_chat
+
         history_dicts = None
         if request.history:
             history_dicts = [{"role": m.role, "content": m.content} for m in request.history]
@@ -3728,12 +4038,14 @@ async def chat_with_application(app_id: str, request: ChatRequest):
             persona,
             agent_type=request.agent_type or "auto",
             use_corrections=request.use_corrections,
-            language=request.language or "en",
+            language=require_language(request.language),
         )
         return result
-    
+
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except AgentServiceError as exc:
         logger.error("Chat failed: code=%s request_id=%s", exc.code, exc.request_id)
         raise HTTPException(status_code=exc.status_code, detail=exc.public_detail()) from exc
@@ -3760,7 +4072,7 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
             raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
 
         _body = body or {}
-        language = _body.get("language", "en")
+        language = require_language(_body.get("language"))
         agent = _body.get("agent", "auto")
 
         # Build a compact, structured context for the LLM
@@ -3768,7 +4080,9 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
         tasks = app_md.context_tasks or []
         decision = None
         if isinstance(app_md.llm_outputs, dict):
-            decision = app_md.llm_outputs.get("decision") or app_md.llm_outputs.get("recommandation")
+            decision = app_md.llm_outputs.get("decision") or app_md.llm_outputs.get(
+                "recommandation"
+            )
         summary_text = None
         if isinstance(app_md.llm_outputs, dict):
             summary_text = (
@@ -3800,25 +4114,24 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
 
         brand = settings.brand_name
         system_prompt = (
-            f"Tu génères des questions suggérées pour le chat conversationnel {brand}IQ. "
-            "Ces questions seront affichées comme des pastilles cliquables sous la zone de saisie. "
-            "Elles doivent aider un gestionnaire d'assurance à explorer rapidement le dossier ouvert.\n\n"
-            "RÈGLES STRICTES :\n"
-            "- 3 à 4 suggestions maximum, courtes (≤ 12 mots), formulées comme des questions ou ordres directs.\n"
-            "- Spécifiques AU DOSSIER : exploite les labels, tâches, statut et persona fournis.\n"
-            "- Pas de redondance : chaque suggestion doit ouvrir un angle distinct (couverture, pièces, fraude, recours, conformité, etc.).\n"
-            f"- Ton professionnel, jargon assurance {brand} accepté (CG, IRSI, HCSF, Cat-Nat, LTV, franchise…).\n"
-            f"- Langue : {language}.\n"
-            "- Si le dossier n'a pas encore été analysé (status pending/processing), propose des questions sur l'avancement.\n"
-            "- Si une décision a été prise, propose des questions sur les prochaines étapes.\n\n"
-            "Réponds UNIQUEMENT en JSON valide :\n"
+            f"Generate suggested questions for the {brand}IQ conversational chat. "
+            "They are clickable pills that help an insurance handler explore the open application.\n\n"
+            "STRICT RULES:\n"
+            "- Return 3 to 4 short suggestions (at most 12 words), as questions or direct commands.\n"
+            "- Make them application-specific using the supplied labels, tasks, status and persona.\n"
+            "- Each suggestion must cover a distinct angle (coverage, evidence, fraud, recovery, compliance).\n"
+            f"- Professional tone; preserve insurance terms such as CG, IRSI, HCSF, Cat-Nat, LTV and franchise.\n"
+            "- For pending/processing applications, ask about progress.\n"
+            "- If a decision exists, ask about next steps.\n"
+            f"- {language_instruction(language)}\n\n"
+            "Return valid JSON only:\n"
             '{ "suggestions": ["question 1", "question 2", "question 3"] }'
         )
 
         user_prompt = (
-            "Contexte du dossier (JSON) :\n"
+            "Application context (JSON):\n"
             f"{json.dumps(dossier_ctx, ensure_ascii=False)}\n\n"
-            "Génère 3 à 4 questions suggérées adaptées."
+            "Generate 3 to 4 suitable suggested questions."
         )
 
         from app.openai_client import chat_completion
@@ -3858,20 +4171,26 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
             if len(cleaned) >= 4:
                 break
 
-        return {"suggestions": cleaned, "source": "llm" if cleaned else "empty"}
+        if not cleaned:
+            raise RuntimeError("Suggested-question generation returned no valid suggestions.")
+        return {"suggestions": cleaned, "source": "llm", "language": language}
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        logger.warning("Chat suggestions failed for %s: %s", app_id, e)
-        # Soft-fail: frontend has a deterministic fallback
-        return {"suggestions": [], "source": "error", "error": str(e)}
+        logger.error("Chat suggestions failed for %s: %s", app_id, e, exc_info=True)
+        raise HTTPException(
+            status_code=502, detail="Suggested questions could not be generated."
+        ) from e
 
 
 @app.get("/api/workflows")
 async def list_workflows():
     """List available sinistre processing workflows."""
     from app.agents.workflows import WORKFLOWS
+
     settings = load_settings()
     return {"workflows": list(WORKFLOWS.values()), "brand": settings.brand_name}
 
@@ -3891,10 +4210,13 @@ async def run_workflow(app_id: str, workflow_id: str, body: dict | None = None):
 
         _body = body or {}
         effective_persona = _body.get("persona") or app_md.persona or "habitation_claims"
-        language = _body.get("language", "en")
+        language = require_language(_body.get("language"))
 
         from app.agents.api_integration import agent_workflow
-        result = await agent_workflow(settings, app_id, workflow_id, effective_persona, language=language)
+
+        result = await agent_workflow(
+            settings, app_id, workflow_id, effective_persona, language=language
+        )
 
         if "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
@@ -3903,6 +4225,8 @@ async def run_workflow(app_id: str, workflow_id: str, body: dict | None = None):
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Workflow %s failed for %s: %s", workflow_id, app_id, e, exc_info=True)
         if isinstance(e, AgentServiceError):
@@ -3914,6 +4238,7 @@ async def run_workflow(app_id: str, workflow_id: str, body: dict | None = None):
 # Agent Framework API Endpoints
 # =============================================================================
 
+
 @app.get("/api/agents/status")
 async def get_agent_status():
     """Return Agent Framework status, agents and workflows actually wired in the backend."""
@@ -3921,25 +4246,41 @@ async def get_agent_status():
     from app.agents.workflows import WORKFLOWS
 
     settings = load_settings()
-    web_tools = ["webiq_web", "webiq_news", "webiq_browse"] if settings.webiq.enabled else ["web_search"]
+    web_tools = (
+        ["webiq_web", "webiq_news", "webiq_browse"]
+        if settings.webiq.enabled
+        else ["webiq_search (configuration required)"]
+    )
     return {
         "enabled": True,
         "framework": FRAMEWORK_LABEL,
         "agents": [
             {
                 "name": "ChatAgent",
-                "description": "Interactive Q&A with policy search, dossier context and web grounding",
-                "tools": ["search_policies", "get_application_summary", "get_glossary",
-                          "query_fabric_data", "analyze_image_fraud", *web_tools],
+                "description": "Interactive Q&A with policy search, dossier context and Web IQ",
+                "tools": [
+                    "search_policies",
+                    "get_application_summary",
+                    "get_glossary",
+                    "query_fabric_data",
+                    "analyze_image_fraud",
+                    *web_tools,
+                ],
             },
             {
                 "name": "AnalysisAgent",
                 "description": "Prompt-based document analysis with dynamic section selection",
-                "tools": ["analyze_section", "list_available_analyses", "get_extracted_fields", "search_policies"],
+                "tools": [
+                    "analyze_section",
+                    "list_available_analyses",
+                    "get_extracted_fields",
+                    "search_policies",
+                ],
             },
         ],
         "workflows": [
-            {"id": w["id"], "pattern": w["pattern"], "agents": w["agents"]} for w in WORKFLOWS.values()
+            {"id": w["id"], "pattern": w["pattern"], "agents": w["agents"]}
+            for w in WORKFLOWS.values()
         ],
     }
 
@@ -3947,6 +4288,7 @@ async def get_agent_status():
 # =============================================================================
 # Conversation History API Endpoints
 # =============================================================================
+
 
 def get_conversations_dir(storage_root: str) -> Path:
     """Get the conversations directory path."""
@@ -3982,7 +4324,7 @@ def list_conversations(storage_root: str, app_id: str) -> List[dict]:
     conv_dir = get_app_conversations_dir(storage_root, app_id)
     if not conv_dir.exists():
         return []
-    
+
     conversations = []
     for conv_file in conv_dir.glob("*.json"):
         try:
@@ -3998,19 +4340,21 @@ def list_conversations(storage_root: str, app_id: str) -> List[dict]:
                         if len(msg.get("content", "")) > 100:
                             preview += "..."
                         break
-            
-            conversations.append({
-                "id": conv["id"],
-                "application_id": conv.get("application_id", app_id),
-                "title": conv.get("title", "Untitled Conversation"),
-                "created_at": conv.get("created_at", ""),
-                "updated_at": conv.get("updated_at", ""),
-                "message_count": len(messages),
-                "preview": preview,
-            })
+
+            conversations.append(
+                {
+                    "id": conv["id"],
+                    "application_id": conv.get("application_id", app_id),
+                    "title": conv.get("title", "Untitled Conversation"),
+                    "created_at": conv.get("created_at", ""),
+                    "updated_at": conv.get("updated_at", ""),
+                    "message_count": len(messages),
+                    "preview": preview,
+                }
+            )
         except Exception as e:
             logger.error("Failed to read conversation file %s: %s", conv_file, e)
-    
+
     # Sort by updated_at descending
     conversations.sort(key=lambda c: c.get("updated_at", ""), reverse=True)
     return conversations
@@ -4043,9 +4387,9 @@ async def get_all_conversations(limit: int = 50):
     try:
         settings = load_settings()
         storage_root = Path(settings.app.storage_root)
-        
+
         all_conversations = []
-        
+
         # Iterate through all application directories
         if storage_root.exists():
             # Check for conversations in data/conversations/ (legacy)
@@ -4056,7 +4400,7 @@ async def get_all_conversations(limit: int = 50):
                         app_id = app_dir.name
                         convs = list_conversations(settings.app.storage_root, app_id)
                         all_conversations.extend(convs)
-            
+
             # Check for conversations in data/applications/*/conversations/
             applications_dir = storage_root / "applications"
             if applications_dir.exists():
@@ -4077,25 +4421,29 @@ async def get_all_conversations(limit: int = 50):
                                                 if len(msg.get("content", "")) > 100:
                                                     preview += "..."
                                                 break
-                                    
-                                    all_conversations.append({
-                                        "id": conv["id"],
-                                        "application_id": app_id,
-                                        "title": conv.get("title", "Untitled Conversation"),
-                                        "created_at": conv.get("created_at", ""),
-                                        "updated_at": conv.get("updated_at", ""),
-                                        "message_count": len(messages),
-                                        "preview": preview,
-                                    })
+
+                                    all_conversations.append(
+                                        {
+                                            "id": conv["id"],
+                                            "application_id": app_id,
+                                            "title": conv.get("title", "Untitled Conversation"),
+                                            "created_at": conv.get("created_at", ""),
+                                            "updated_at": conv.get("updated_at", ""),
+                                            "message_count": len(messages),
+                                            "preview": preview,
+                                        }
+                                    )
                                 except Exception as e:
-                                    logger.error("Failed to read conversation file %s: %s", conv_file, e)
-        
+                                    logger.error(
+                                        "Failed to read conversation file %s: %s", conv_file, e
+                                    )
+
         # Sort by updated_at descending (most recent first)
         all_conversations.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-        
+
         # Apply limit
         all_conversations = all_conversations[:limit]
-        
+
         return {"conversations": all_conversations}
     except Exception as e:
         logger.error("Failed to list all conversations: %s", e, exc_info=True)
@@ -4123,7 +4471,9 @@ async def delete_conversation(app_id: str, conversation_id: str):
     """Delete a conversation."""
     try:
         settings = load_settings()
-        conv_file = get_app_conversations_dir(settings.app.storage_root, app_id) / f"{conversation_id}.json"
+        conv_file = (
+            get_app_conversations_dir(settings.app.storage_root, app_id) / f"{conversation_id}.json"
+        )
         if not conv_file.exists():
             raise HTTPException(status_code=404, detail="Conversation introuvable")
         conv_file.unlink()
@@ -4181,22 +4531,27 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
     from datetime import datetime
     from time import perf_counter
     import uuid
-    
+
     started = perf_counter()
     try:
         settings = load_settings()
         now = datetime.utcnow().isoformat() + "Z"
-        
+
         # Load application first to get its persona
         app_md = await asyncio.to_thread(load_application, settings.app.storage_root, app_id)
         if not app_md:
             raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
-        
+
         # Determine persona - use from request, then app's persona, then default
         persona = request.persona or app_md.persona or "underwriting"
-        logger.info("Conversation for app %s using persona: %s (request=%s, app=%s)", 
-                    app_id, persona, request.persona, app_md.persona)
-        
+        logger.info(
+            "Conversation for app %s using persona: %s (request=%s, app=%s)",
+            app_id,
+            persona,
+            request.persona,
+            app_md.persona,
+        )
+
         # Load or create conversation
         if request.conversation_id:
             conversation = await asyncio.to_thread(
@@ -4215,7 +4570,7 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
                 "messages": [],
                 "persona": persona,
             }
-        
+
         # Add user message
         user_message = {
             "role": "user",
@@ -4224,12 +4579,15 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
         }
         conversation["messages"].append(user_message)
         conversation["updated_at"] = now
-        
+
         # Use Agent Framework with tool-calling
         from app.agents.api_integration import agent_chat
+
         history_dicts = None
         if len(conversation["messages"]) > 1:
-            history_dicts = [{"role": m["role"], "content": m["content"]} for m in conversation["messages"][:-1]]
+            history_dicts = [
+                {"role": m["role"], "content": m["content"]} for m in conversation["messages"][:-1]
+            ]
         load_ms = round((perf_counter() - started) * 1000, 1)
         result = await agent_chat(
             settings,
@@ -4239,10 +4597,10 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
             persona,
             agent_type=request.agent_type or "auto",
             use_corrections=request.use_corrections,
-            language=request.language or "en",
+            language=require_language(request.language),
             **({"on_delta": on_delta} if on_delta is not None else {}),
         )
-        
+
         # Save agent response into conversation
         assistant_message = {
             "role": "assistant",
@@ -4258,7 +4616,7 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
         timings["conversation_save_ms"] = round((perf_counter() - save_started) * 1000, 1)
         timings["request_ms"] = round((perf_counter() - started) * 1000, 1)
         logger.info("conversation done: app_id=%s timings_ms=%s", app_id, timings)
-        
+
         return {
             "conversation_id": conversation["id"],
             "response": result["response"],
@@ -4266,7 +4624,7 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
             "title": conversation["title"],
             "agent": result.get("agent"),
         }
-    
+
     except HTTPException:
         raise
     except AgentServiceError as exc:
@@ -4281,10 +4639,12 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
 # Health Check API Endpoints
 # =============================================================================
 
+
 @app.get("/api/health/database")
 async def health_check_database():
     """Database health check endpoint."""
     from app.database.pool import get_pool
+
     settings = load_settings()
     if settings.database.backend != "postgresql":
         return {"status": "skipped", "message": "Backend PostgreSQL non utilis\u00e9."}
@@ -4300,6 +4660,7 @@ async def health_check_database():
 # =============================================================================
 # RAG Indexing API Endpoints
 # =============================================================================
+
 
 class ReindexRequest(BaseModel):
     force: bool = True  # Whether to delete existing chunks first
@@ -4320,42 +4681,41 @@ async def reindex_all_policies(
 ):
     """
     Reindex all policies for a specific persona's RAG search.
-    
+
     Supported personas:
     - underwriting: Life & health underwriting policies
     - life_health_claims: Health claims processing policies
     - automotive_claims: Automotive claims policies
     - property_casualty_claims: P&C claims policies
-    
+
     This will:
     1. Load all policies from the persona's JSON file
     2. Chunk them into searchable segments
     3. Generate embeddings via Azure OpenAI
     4. Store in PostgreSQL with pgvector
-    
+
     Use force=True (default) to delete existing chunks before reindexing.
     """
     settings = load_settings()
-    
+
     # Check if RAG is enabled
     if settings.database.backend != "postgresql":
         return ReindexResponse(
             status="skipped",
-            error="PostgreSQL backend not configured. Set DATABASE_BACKEND=postgresql."
+            error="PostgreSQL backend not configured. Set DATABASE_BACKEND=postgresql.",
         )
-    
+
     try:
         from app.rag.persona_indexer import get_indexer_for_persona, persona_supports_rag
-        
+
         if not persona_supports_rag(persona):
             return ReindexResponse(
-                status="error",
-                error=f"Persona '{persona}' does not support RAG indexing."
+                status="error", error=f"Persona '{persona}' does not support RAG indexing."
             )
-        
+
         indexer = await get_indexer_for_persona(persona, settings)
         metrics = await indexer.index_policies(force_reindex=request.force)
-        
+
         return ReindexResponse(
             status=metrics.get("status", "unknown"),
             policies_indexed=metrics.get("policies_indexed"),
@@ -4371,29 +4731,23 @@ async def reindex_all_policies(
 async def reindex_single_policy(policy_id: str):
     """
     Reindex a single policy by ID.
-    
+
     Useful after editing a policy in the UI.
     """
     settings = load_settings()
-    
+
     if settings.database.backend != "postgresql":
-        return ReindexResponse(
-            status="skipped",
-            error="PostgreSQL backend not configured."
-        )
-    
+        return ReindexResponse(status="skipped", error="PostgreSQL backend not configured.")
+
     try:
         from app.rag.indexer import PolicyIndexer
-        
+
         indexer = PolicyIndexer(settings=settings)
         metrics = await indexer.reindex_policy(policy_id)
-        
+
         if metrics.get("status") == "skipped":
-            return ReindexResponse(
-                status="not_found",
-                error=f"Policy '{policy_id}' not found."
-            )
-        
+            return ReindexResponse(status="not_found", error=f"Policy '{policy_id}' not found.")
+
         return ReindexResponse(
             status=metrics.get("status", "unknown"),
             policies_indexed=metrics.get("policies_indexed"),
@@ -4411,7 +4765,7 @@ async def get_index_stats(
 ):
     """
     Get statistics about the current policy index for a persona.
-    
+
     Supported personas:
     - underwriting: Life & health underwriting policies
     - life_health_claims: Health claims processing policies
@@ -4419,16 +4773,19 @@ async def get_index_stats(
     - property_casualty_claims: P&C claims policies
     """
     settings = load_settings()
-    
+
     if settings.database.backend != "postgresql":
         return {"status": "skipped", "error": "PostgreSQL backend not configured."}
-    
+
     try:
         from app.rag.persona_indexer import get_index_stats_for_persona, persona_supports_rag
-        
+
         if not persona_supports_rag(persona):
-            return {"status": "error", "error": f"Persona '{persona}' does not support RAG indexing."}
-        
+            return {
+                "status": "error",
+                "error": f"Persona '{persona}' does not support RAG indexing.",
+            }
+
         stats = await get_index_stats_for_persona(persona, settings)
         return stats
     except Exception as e:
@@ -4440,11 +4797,12 @@ async def get_index_stats(
 # Claims Policy Admin Endpoints (Deprecated - use /api/admin/policies/* with persona param)
 # ============================================================================
 
+
 @app.post("/api/admin/claims-policies/reindex", response_model=ReindexResponse)
 async def reindex_all_claims_policies(request: ReindexRequest = ReindexRequest()):
     """
     [DEPRECATED] Reindex automotive claims policies.
-    
+
     Use POST /api/admin/policies/reindex?persona=automotive_claims instead.
     This endpoint is maintained for backwards compatibility.
     """
@@ -4456,7 +4814,7 @@ async def reindex_all_claims_policies(request: ReindexRequest = ReindexRequest()
 async def get_claims_index_stats():
     """
     [DEPRECATED] Get automotive claims policy index stats.
-    
+
     Use GET /api/admin/policies/index-stats?persona=automotive_claims instead.
     This endpoint is maintained for backwards compatibility.
     """
@@ -4468,11 +4826,12 @@ async def get_claims_index_stats():
 # Mortgage Underwriting API Endpoints
 # =============================================================================
 
+
 @app.post("/api/mortgage/analyze")
 async def mortgage_analyze(request: MortgageAnalyzeRequest):
     """
     Analyze a mortgage application against French HCSF / internal bank policies.
-    
+
     Returns:
         - ratios: GDS, TDS, LTV calculations
         - decision: APPROVE, DECLINE, or REFER
@@ -4484,9 +4843,9 @@ async def mortgage_analyze(request: MortgageAnalyzeRequest):
         if not request.borrower or not request.income or not request.property or not request.loan:
             raise HTTPException(
                 status_code=422,
-                detail="Missing required fields: borrower, income, property, and loan are required"
+                detail="Missing required fields: borrower, income, property, and loan are required",
             )
-        
+
         # Build case data for mortgage processing
         case_data = {
             "application_id": request.application_id,
@@ -4495,18 +4854,19 @@ async def mortgage_analyze(request: MortgageAnalyzeRequest):
             "property": request.property.model_dump() if request.property else {},
             "loan": request.loan.model_dump() if request.loan else {},
         }
-        
+
         # Calculate ratios using mortgage calculator
         from app.mortgage.calculator import MortgageCalculator
+
         calculator = MortgageCalculator()
-        
+
         purchase_price = case_data["property"].get("purchase_price", 0)
         loan_amount = case_data["loan"].get("amount", 0)
         down_payment = purchase_price - loan_amount
         annual_income = case_data["income"].get("annual_salary", 0)
         amortization = case_data["loan"].get("amortization_years", 25)
         rate = case_data["loan"].get("rate", 5.25) / 100
-        
+
         # Calculate housing costs (simplified - PITI)
         monthly_payment = calculator.compute_mortgage_payment(
             principal=loan_amount,
@@ -4515,17 +4875,17 @@ async def mortgage_analyze(request: MortgageAnalyzeRequest):
         )
         property_tax_monthly = purchase_price * 0.01 / 12  # Estimate 1% annual
         heating_monthly = 150  # Estimate
-        
+
         total_housing_cost = monthly_payment + property_tax_monthly + heating_monthly
         monthly_income = annual_income / 12
-        
+
         # Calculate ratios
         gds = total_housing_cost / monthly_income if monthly_income > 0 else 0
         tds = gds  # Simplified - would add other debts
         ltv = loan_amount / purchase_price if purchase_price > 0 else 0
-        
+
         ratios = {"gds": round(gds, 4), "tds": round(tds, 4), "ltv": round(ltv, 4)}
-        
+
         # Build case for policy evaluation
         case_for_eval = {
             "ratios": ratios,
@@ -4540,17 +4900,18 @@ async def mortgage_analyze(request: MortgageAnalyzeRequest):
                 "loan_type": "insured" if ltv > 0.80 else "conventional",
             },
         }
-        
+
         # Evaluate against policies
         from app.mortgage.policy_engine import MortgagePolicyEvaluator, RecommendationEngine
+
         evaluator = MortgagePolicyEvaluator()
         findings = evaluator.evaluate_all(case_for_eval)
-        
+
         # Generate recommendation
         recommendation_engine = RecommendationEngine()
         recommendation = recommendation_engine.generate_recommendation(findings)
-        
-        return {
+
+        response = {
             "application_id": request.application_id,
             "ratios": ratios,
             "decision": recommendation.decision,
@@ -4567,9 +4928,24 @@ async def mortgage_analyze(request: MortgageAnalyzeRequest):
             "conditions": recommendation.conditions,
             "reasons": recommendation.reasons,
         }
-        
+        language = require_language(request.language)
+        if language != "fr":
+            from app.processing import translate_analysis_payload
+
+            response = await asyncio.to_thread(
+                translate_analysis_payload,
+                load_settings(),
+                response,
+                source_language="fr",
+                target_language=language,
+            )
+        response["language"] = language
+        return response
+
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Mortgage analysis failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -4583,7 +4959,7 @@ async def mortgage_upload(
 ):
     """
     Upload a document for mortgage application processing.
-    
+
     Supported doc_types:
         - application: Mortgage application form
         - paystub: Pay stub for income verification
@@ -4593,10 +4969,10 @@ async def mortgage_upload(
     """
     try:
         settings = load_settings()
-        
+
         # Read file content
         content = await file.read()
-        
+
         # Store the file
         file_data = [{"name": file.filename, "content": content}]
         stored_files = save_uploaded_files(
@@ -4605,7 +4981,7 @@ async def mortgage_upload(
             file_data,
             public_base_url=settings.app.public_files_base_url,
         )
-        
+
         # Return basic response (full extraction would use Content Understanding)
         return {
             "doc_id": f"{application_id}-{doc_type}-001",
@@ -4615,7 +4991,7 @@ async def mortgage_upload(
             "extracted_fields": {},  # Would be populated by document processor
             "status": "uploaded",
         }
-        
+
     except Exception as e:
         logger.error("Mortgage upload failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -4625,20 +5001,20 @@ async def mortgage_upload(
 async def mortgage_query(request: MortgageQueryRequest):
     """
     Query mortgage policies using RAG.
-    
+
     Returns relevant policy excerpts and sources for the query.
     """
     try:
         from app.rag.service import RAGService
-        
+
         rag_service = RAGService(persona="mortgage_underwriting")
         await rag_service.initialize()
-        
+
         result = await rag_service.query(
             user_query=request.query,
             top_k=5,
         )
-        
+
         return {
             "answer": result.context,
             "sources": [
@@ -4651,7 +5027,7 @@ async def mortgage_query(request: MortgageQueryRequest):
             ],
             "query": request.query,
         }
-        
+
     except Exception as e:
         logger.error("Mortgage query failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -4663,27 +5039,33 @@ async def list_mortgage_applications():
     try:
         settings = load_settings()
         apps = list_applications(settings.app.storage_root)
-        
+
         # Filter to mortgage persona (match both 'mortgage' and 'mortgage_underwriting')
-        mortgage_personas = {'mortgage', 'mortgage_underwriting'}
+        mortgage_personas = {"mortgage", "mortgage_underwriting"}
         mortgage_apps = [
-            app for app in apps
-            if (app.get('persona') if isinstance(app, dict) else getattr(app, 'persona', None)) in mortgage_personas
+            app
+            for app in apps
+            if (app.get("persona") if isinstance(app, dict) else getattr(app, "persona", None))
+            in mortgage_personas
         ]
-        
+
         return {
             "applications": [
                 {
                     "id": app.get("id") if isinstance(app, dict) else app.id,
-                    "created_at": app.get("created_at") if isinstance(app, dict) else app.created_at,
+                    "created_at": app.get("created_at")
+                    if isinstance(app, dict)
+                    else app.created_at,
                     "status": app.get("status") if isinstance(app, dict) else app.status,
-                    "external_reference": app.get("external_reference") if isinstance(app, dict) else app.external_reference,
+                    "external_reference": app.get("external_reference")
+                    if isinstance(app, dict)
+                    else app.external_reference,
                 }
                 for app in mortgage_apps
             ],
             "count": len(mortgage_apps),
         }
-        
+
     except Exception as e:
         logger.error("Failed to list mortgage applications: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -4691,7 +5073,7 @@ async def list_mortgage_applications():
 
 def _get_field_value(extracted_fields: dict, field_name: str, default=None):
     """Extract a field value from extracted_fields dictionary.
-    
+
     Keys are formatted as 'filename:FieldName', so we search for any key ending with the field name.
     Returns the first match found, or default if not found.
     """
@@ -4766,27 +5148,33 @@ async def get_mortgage_application(app_id: str):
     try:
         settings = load_settings()
         app_md = load_application(settings.app.storage_root, app_id)
-        
+
         if not app_md:
             raise HTTPException(status_code=404, detail="Dossier introuvable")
-        
+
         # Get base application data
         base_data = application_to_dict(app_md)
-        
+
         # Extract data from extracted_fields (format: "filename:FieldName" -> {value, confidence, ...})
         ef = app_md.extracted_fields or {}
-        
+
         # Helper to safely get a value from a field_data entry
         def _safe_field_value(field_data):
             """Extract value from field_data, handling dict, float, str, etc."""
             if isinstance(field_data, dict):
                 return field_data.get("value")
             return field_data
-        
+
         llm_outputs = app_md.llm_outputs or {}
-        app_summary = llm_outputs.get("application_summary", {}) if isinstance(llm_outputs, dict) else {}
-        borrower_profile = app_summary.get("borrower_profile", {}) if isinstance(app_summary, dict) else {}
-        profile_parsed = borrower_profile.get("parsed", {}) if isinstance(borrower_profile, dict) else {}
+        app_summary = (
+            llm_outputs.get("application_summary", {}) if isinstance(llm_outputs, dict) else {}
+        )
+        borrower_profile = (
+            app_summary.get("borrower_profile", {}) if isinstance(app_summary, dict) else {}
+        )
+        profile_parsed = (
+            borrower_profile.get("parsed", {}) if isinstance(borrower_profile, dict) else {}
+        )
 
         field_aliases = {
             "BorrowerName": ["emprunteur"],
@@ -4817,7 +5205,7 @@ async def get_mortgage_application(app_id: str):
                     return alias_value
 
             return default
-        
+
         # Build borrower info
         borrower_name = get_field("BorrowerName", profile_parsed.get("summary") or "Unknown")
         co_borrower_name = get_field("CoBorrowerName")
@@ -4830,7 +5218,7 @@ async def get_mortgage_application(app_id: str):
                     credit_score.strip().lower(),
                     0,
                 )
-        
+
         borrower = {
             "name": borrower_name,
             "co_borrower_name": co_borrower_name,
@@ -4839,7 +5227,7 @@ async def get_mortgage_application(app_id: str):
             "employer_name": get_field("EmployerName"),
             "occupation": get_field("OccupationTitle"),
         }
-        
+
         # Build income info - sum up all base salaries and annual incomes
         base_salary_b1 = _parse_currency(get_field("BaseSalary"))  # First occurrence
         # Look for B1 and B2 salaries specifically
@@ -4850,7 +5238,7 @@ async def get_mortgage_application(app_id: str):
                 b1_salary = _parse_currency(_safe_field_value(field_data))
             elif "B2" in key and ":BaseSalary" in key:
                 b2_salary = _parse_currency(_safe_field_value(field_data))
-        
+
         # Use T4 annual income if available for more accuracy
         b1_annual = 0.0
         b2_annual = 0.0
@@ -4859,31 +5247,35 @@ async def get_mortgage_application(app_id: str):
                 b1_annual = _parse_currency(_safe_field_value(field_data))
             elif "T4_B2" in key and ":AnnualIncome" in key:
                 b2_annual = _parse_currency(_safe_field_value(field_data))
-        
+
         # Use T4 income if available, otherwise use base salary
         primary_income = b1_annual if b1_annual > 0 else b1_salary
         secondary_income = b2_annual if b2_annual > 0 else b2_salary
         total_annual_income = primary_income + secondary_income
         if total_annual_income <= 0:
-            hh_income = profile_parsed.get("household_income") if isinstance(profile_parsed, dict) else None
+            hh_income = (
+                profile_parsed.get("household_income") if isinstance(profile_parsed, dict) else None
+            )
             if isinstance(hh_income, (int, float)) and hh_income > 0:
                 total_annual_income = float(hh_income) * 12
             else:
                 monthly_income_raw = _parse_currency(get_field("HouseholdIncome", 0))
                 if monthly_income_raw > 0:
                     total_annual_income = monthly_income_raw * 12
-        
+
         income = {
             "primary_borrower_income": primary_income,
             "co_borrower_income": secondary_income,
             "total_annual_income": total_annual_income,
             "monthly_income": total_annual_income / 12 if total_annual_income else 0,
         }
-        
+
         # Build property info
-        purchase_price = _parse_currency(get_field("PurchasePrice", profile_parsed.get("property_value", 0)))
+        purchase_price = _parse_currency(
+            get_field("PurchasePrice", profile_parsed.get("property_value", 0))
+        )
         appraised_value = _parse_currency(get_field("AppraisedValue", purchase_price))
-        
+
         property_info = {
             "address": get_field("PropertyAddress", "Adresse non renseignée"),
             "purchase_price": purchase_price,
@@ -4891,9 +5283,11 @@ async def get_mortgage_application(app_id: str):
             "property_type": get_field("PropertyType", "single_family"),
             "occupancy": get_field("PropertyOccupancy", "owner_occupied"),
         }
-        
+
         # Build loan info
-        loan_amount = _parse_currency(get_field("RequestedLoanAmount", profile_parsed.get("loan_amount", 0)))
+        loan_amount = _parse_currency(
+            get_field("RequestedLoanAmount", profile_parsed.get("loan_amount", 0))
+        )
         down_payment = _parse_currency(get_field("DownPaymentAmount", 0))
         if down_payment <= 0 and purchase_price > loan_amount > 0:
             down_payment = purchase_price - loan_amount
@@ -4903,10 +5297,12 @@ async def get_mortgage_application(app_id: str):
                 amortization = int(amortization)
             except ValueError:
                 amortization = 25
-        
+
         contract_rate = _parse_percentage(get_field("ContractRate", 5.25))
-        qualifying_rate = _parse_percentage(get_field("QualifyingRate", max(contract_rate + 2, 5.25)))
-        
+        qualifying_rate = _parse_percentage(
+            get_field("QualifyingRate", max(contract_rate + 2, 5.25))
+        )
+
         loan = {
             "amount": loan_amount,
             "down_payment": down_payment,
@@ -4916,10 +5312,10 @@ async def get_mortgage_application(app_id: str):
             "qualifying_rate": qualifying_rate,
             "term": get_field("RateTerm", "5 years Fixed"),
         }
-        
+
         # Build liabilities info - use extracted values when available, fall back to estimates
         other_debts_monthly = _parse_currency(get_field("OtherDebtsMonthly", 0))
-        
+
         # Property taxes: prefer extracted value, else estimate ~1% annually
         extracted_property_tax = _parse_currency(get_field("PropertyTaxesAnnual", 0))
         if extracted_property_tax > 0:
@@ -4930,11 +5326,11 @@ async def get_mortgage_application(app_id: str):
                 property_taxes_monthly = extracted_property_tax_monthly
             else:
                 property_taxes_monthly = purchase_price * 0.01 / 12 if purchase_price else 0
-        
+
         # Heating: prefer extracted value, else standard assumption
         extracted_heating = _parse_currency(get_field("HeatingMonthly", 0))
         heating_monthly = extracted_heating if extracted_heating > 0 else 150
-        
+
         # Condo fees: prefer extracted value, else estimate if property type is condo
         extracted_condo_fees = _parse_currency(get_field("CondoFeesMonthly", 0))
         if extracted_condo_fees > 0:
@@ -4943,14 +5339,14 @@ async def get_mortgage_application(app_id: str):
             condo_fees = 500
         else:
             condo_fees = 0
-        
+
         liabilities = {
             "property_taxes_monthly": property_taxes_monthly,
             "heating_monthly": heating_monthly,
             "condo_fees_monthly": condo_fees,
             "other_debts_monthly": other_debts_monthly,
         }
-        
+
         # Calculate mortgage payment (monthly)
         def calc_monthly_payment(principal: float, annual_rate: float, amort_years: int) -> float:
             if principal <= 0 or annual_rate <= 0:
@@ -4959,49 +5355,63 @@ async def get_mortgage_application(app_id: str):
             n_payments = amort_years * 12
             if monthly_rate == 0:
                 return principal / n_payments
-            return principal * (monthly_rate * (1 + monthly_rate)**n_payments) / ((1 + monthly_rate)**n_payments - 1)
-        
+            return (
+                principal
+                * (monthly_rate * (1 + monthly_rate) ** n_payments)
+                / ((1 + monthly_rate) ** n_payments - 1)
+            )
+
         monthly_payment_contract = calc_monthly_payment(loan_amount, contract_rate, amortization)
         monthly_payment_stress = calc_monthly_payment(loan_amount, qualifying_rate, amortization)
-        
+
         # Calculate ratios
         monthly_income = income["monthly_income"]
-        
+
         # GDS = (PITH) / Gross Monthly Income
-        pith = monthly_payment_contract + property_taxes_monthly + heating_monthly + (condo_fees * 0.5)  # 50% of condo fees
+        pith = (
+            monthly_payment_contract + property_taxes_monthly + heating_monthly + (condo_fees * 0.5)
+        )  # 50% of condo fees
         gds = (pith / monthly_income * 100) if monthly_income > 0 else 0
-        
+
         # TDS = (PITH + Other Debts) / Gross Monthly Income
         tds = ((pith + other_debts_monthly) / monthly_income * 100) if monthly_income > 0 else 0
-        
+
         # LTV = Loan Amount / Lesser of (Purchase Price, Appraised Value)
-        lesser_value = min(purchase_price, appraised_value) if appraised_value > 0 else purchase_price
+        lesser_value = (
+            min(purchase_price, appraised_value) if appraised_value > 0 else purchase_price
+        )
         ltv = (loan_amount / lesser_value * 100) if lesser_value > 0 else 0
-        
+
         ratios = {
             "gds": round(gds, 2),
             "tds": round(tds, 2),
             "ltv": round(ltv, 2),
             "monthly_payment": round(monthly_payment_contract, 2),
         }
-        
+
         # Stress test ratios (using MQR qualifying rate)
-        pith_stress = monthly_payment_stress + property_taxes_monthly + heating_monthly + (condo_fees * 0.5)
+        pith_stress = (
+            monthly_payment_stress + property_taxes_monthly + heating_monthly + (condo_fees * 0.5)
+        )
         gds_stress = (pith_stress / monthly_income * 100) if monthly_income > 0 else 0
-        tds_stress = ((pith_stress + other_debts_monthly) / monthly_income * 100) if monthly_income > 0 else 0
-        
+        tds_stress = (
+            ((pith_stress + other_debts_monthly) / monthly_income * 100)
+            if monthly_income > 0
+            else 0
+        )
+
         stress_ratios = {
             "gds": round(gds_stress, 2),
             "tds": round(tds_stress, 2),
             "qualifying_rate": qualifying_rate,
             "monthly_payment_stressed": round(monthly_payment_stress, 2),
         }
-        
+
         # Determine decision based on French HCSF / internal bank rules
         # Taux d'effort max: 35%, Taux d'endettement max: 35%, LTV max: 90%
         findings = []
         risk_signals = []
-        
+
         # Helper to get source citation for a field
         def get_field_citation(field_name: str) -> dict:
             for key, field_data in ef.items():
@@ -5011,125 +5421,171 @@ async def get_mortgage_application(app_id: str):
                         "confidence": field_data.get("confidence"),
                     }
             return {}
-        
+
         if gds_stress > 35:
-            findings.append({
-                "type": "warning",
-                "severity": "fail",
-                "rule_id": "HCSF-EFFORT-001",
-                "message": f"Taux d'effort sous sensibilit\u00e9 ({gds_stress:.1f}%) d\u00e9passe la limite HCSF de 35%",
-                "category": "Taux d'effort",
-                "sources": ["Avis d'imposition / Bulletin de salaire", "Demande de pr\u00eat"],
-                "evidence": {"calculated_value": round(gds_stress, 2), "limit": 35},
-            })
-            risk_signals.append({"level": "high", "category": "income", "message": "Taux d'effort au-dessus de la limite HCSF"})
+            findings.append(
+                {
+                    "type": "warning",
+                    "severity": "fail",
+                    "rule_id": "HCSF-EFFORT-001",
+                    "message": f"Taux d'effort sous sensibilit\u00e9 ({gds_stress:.1f}%) d\u00e9passe la limite HCSF de 35%",
+                    "category": "Taux d'effort",
+                    "sources": ["Avis d'imposition / Bulletin de salaire", "Demande de pr\u00eat"],
+                    "evidence": {"calculated_value": round(gds_stress, 2), "limit": 35},
+                }
+            )
+            risk_signals.append(
+                {
+                    "level": "high",
+                    "category": "income",
+                    "message": "Taux d'effort au-dessus de la limite HCSF",
+                }
+            )
         elif gds_stress > 32:
-            findings.append({
-                "type": "info",
-                "severity": "warning",
-                "rule_id": "HCSF-EFFORT-001",
-                "message": f"Taux d'effort sous sensibilit\u00e9 ({gds_stress:.1f}%) proche de la limite HCSF de 35%",
-                "category": "Taux d'effort",
-                "evidence": {"calculated_value": round(gds_stress, 2), "limit": 35},
-            })
+            findings.append(
+                {
+                    "type": "info",
+                    "severity": "warning",
+                    "rule_id": "HCSF-EFFORT-001",
+                    "message": f"Taux d'effort sous sensibilit\u00e9 ({gds_stress:.1f}%) proche de la limite HCSF de 35%",
+                    "category": "Taux d'effort",
+                    "evidence": {"calculated_value": round(gds_stress, 2), "limit": 35},
+                }
+            )
         else:
-            findings.append({
-                "type": "success",
-                "severity": "pass",
-                "rule_id": "HCSF-EFFORT-001",
-                "message": f"Taux d'effort sous sensibilit\u00e9 ({gds_stress:.1f}%) dans la limite HCSF de 35%",
-                "category": "Taux d'effort",
-                "evidence": {"calculated_value": round(gds_stress, 2), "limit": 35},
-            })
-            
+            findings.append(
+                {
+                    "type": "success",
+                    "severity": "pass",
+                    "rule_id": "HCSF-EFFORT-001",
+                    "message": f"Taux d'effort sous sensibilit\u00e9 ({gds_stress:.1f}%) dans la limite HCSF de 35%",
+                    "category": "Taux d'effort",
+                    "evidence": {"calculated_value": round(gds_stress, 2), "limit": 35},
+                }
+            )
+
         if tds_stress > 35:
-            findings.append({
-                "type": "warning",
-                "severity": "fail",
-                "rule_id": "HCSF-ENDETT-001",
-                "message": f"Taux d'endettement sous sensibilit\u00e9 ({tds_stress:.1f}%) d\u00e9passe la limite HCSF de 35%",
-                "category": "Taux d'endettement",
-                "sources": ["Relev\u00e9s bancaires", "Demande de pr\u00eat"],
-                "evidence": {"calculated_value": round(tds_stress, 2), "limit": 35},
-            })
-            risk_signals.append({"level": "high", "category": "debt", "message": "Taux d'endettement au-dessus de la limite HCSF"})
+            findings.append(
+                {
+                    "type": "warning",
+                    "severity": "fail",
+                    "rule_id": "HCSF-ENDETT-001",
+                    "message": f"Taux d'endettement sous sensibilit\u00e9 ({tds_stress:.1f}%) d\u00e9passe la limite HCSF de 35%",
+                    "category": "Taux d'endettement",
+                    "sources": ["Relev\u00e9s bancaires", "Demande de pr\u00eat"],
+                    "evidence": {"calculated_value": round(tds_stress, 2), "limit": 35},
+                }
+            )
+            risk_signals.append(
+                {
+                    "level": "high",
+                    "category": "debt",
+                    "message": "Taux d'endettement au-dessus de la limite HCSF",
+                }
+            )
         elif tds_stress > 33:
-            findings.append({
-                "type": "info",
-                "severity": "warning",
-                "rule_id": "HCSF-ENDETT-001",
-                "message": f"Taux d'endettement sous sensibilit\u00e9 ({tds_stress:.1f}%) proche de la limite HCSF de 35%",
-                "category": "Taux d'endettement",
-                "evidence": {"calculated_value": round(tds_stress, 2), "limit": 35},
-            })
+            findings.append(
+                {
+                    "type": "info",
+                    "severity": "warning",
+                    "rule_id": "HCSF-ENDETT-001",
+                    "message": f"Taux d'endettement sous sensibilit\u00e9 ({tds_stress:.1f}%) proche de la limite HCSF de 35%",
+                    "category": "Taux d'endettement",
+                    "evidence": {"calculated_value": round(tds_stress, 2), "limit": 35},
+                }
+            )
         else:
-            findings.append({
-                "type": "success",
-                "severity": "pass",
-                "rule_id": "HCSF-ENDETT-001",
-                "message": f"Taux d'endettement sous sensibilit\u00e9 ({tds_stress:.1f}%) dans la limite HCSF de 35%",
-                "category": "Taux d'endettement",
-                "evidence": {"calculated_value": round(tds_stress, 2), "limit": 35},
-            })
-            
+            findings.append(
+                {
+                    "type": "success",
+                    "severity": "pass",
+                    "rule_id": "HCSF-ENDETT-001",
+                    "message": f"Taux d'endettement sous sensibilit\u00e9 ({tds_stress:.1f}%) dans la limite HCSF de 35%",
+                    "category": "Taux d'endettement",
+                    "evidence": {"calculated_value": round(tds_stress, 2), "limit": 35},
+                }
+            )
+
         if ltv > 90:
-            findings.append({
-                "type": "warning",
-                "severity": "warning",
-                "rule_id": "BANK-LTV-001",
-                "message": f"LTV ({ltv:.1f}%) d\u00e9passe 90% \u2014 assurance emprunteur renforc\u00e9e n\u00e9cessaire",
-                "category": "LTV",
-                "sources": ["Compromis de vente", "Demande de pr\u00eat"],
-                "evidence": {"calculated_value": round(ltv, 2), "limit": 90},
-            })
-            risk_signals.append({"level": "medium", "category": "ltv", "message": "LTV \u00e9lev\u00e9 \u2014 garantie renforc\u00e9e"})
+            findings.append(
+                {
+                    "type": "warning",
+                    "severity": "warning",
+                    "rule_id": "BANK-LTV-001",
+                    "message": f"LTV ({ltv:.1f}%) d\u00e9passe 90% \u2014 assurance emprunteur renforc\u00e9e n\u00e9cessaire",
+                    "category": "LTV",
+                    "sources": ["Compromis de vente", "Demande de pr\u00eat"],
+                    "evidence": {"calculated_value": round(ltv, 2), "limit": 90},
+                }
+            )
+            risk_signals.append(
+                {
+                    "level": "medium",
+                    "category": "ltv",
+                    "message": "LTV \u00e9lev\u00e9 \u2014 garantie renforc\u00e9e",
+                }
+            )
         else:
-            findings.append({
-                "type": "success",
-                "severity": "pass",
-                "rule_id": "BANK-LTV-001",
-                "message": f"LTV ({ltv:.1f}%) dans la limite interne de 90%",
-                "category": "LTV",
-                "evidence": {"calculated_value": round(ltv, 2), "limit": 90},
-            })
-        
+            findings.append(
+                {
+                    "type": "success",
+                    "severity": "pass",
+                    "rule_id": "BANK-LTV-001",
+                    "message": f"LTV ({ltv:.1f}%) dans la limite interne de 90%",
+                    "category": "LTV",
+                    "evidence": {"calculated_value": round(ltv, 2), "limit": 90},
+                }
+            )
+
         # Score crédit (FICP / Banque de France equivalent)
         credit_citation = get_field_citation("CreditScore")
         if credit_score < 620:
-            findings.append({
-                "type": "warning",
-                "severity": "warning",
-                "rule_id": "BANK-CREDIT-001",
-                "message": f"Score cr\u00e9dit ({credit_score}) sous le seuil interne (620)",
-                "category": "Cr\u00e9dit",
-                "source_file": credit_citation.get("source_file"),
-                "confidence": credit_citation.get("confidence"),
-                "evidence": {"calculated_value": credit_score, "limit": 620},
-            })
-            risk_signals.append({"level": "medium", "category": "credit", "message": "Score cr\u00e9dit \u00e0 examiner (FICP / incidents)"})
+            findings.append(
+                {
+                    "type": "warning",
+                    "severity": "warning",
+                    "rule_id": "BANK-CREDIT-001",
+                    "message": f"Score cr\u00e9dit ({credit_score}) sous le seuil interne (620)",
+                    "category": "Cr\u00e9dit",
+                    "source_file": credit_citation.get("source_file"),
+                    "confidence": credit_citation.get("confidence"),
+                    "evidence": {"calculated_value": credit_score, "limit": 620},
+                }
+            )
+            risk_signals.append(
+                {
+                    "level": "medium",
+                    "category": "credit",
+                    "message": "Score cr\u00e9dit \u00e0 examiner (FICP / incidents)",
+                }
+            )
         elif credit_score >= 740:
-            findings.append({
-                "type": "success",
-                "severity": "pass",
-                "rule_id": "BANK-CREDIT-001",
-                "message": f"Excellent profil de cr\u00e9dit ({credit_score})",
-                "category": "Cr\u00e9dit",
-                "source_file": credit_citation.get("source_file"),
-                "confidence": credit_citation.get("confidence"),
-                "evidence": {"calculated_value": credit_score, "limit": 620},
-            })
+            findings.append(
+                {
+                    "type": "success",
+                    "severity": "pass",
+                    "rule_id": "BANK-CREDIT-001",
+                    "message": f"Excellent profil de cr\u00e9dit ({credit_score})",
+                    "category": "Cr\u00e9dit",
+                    "source_file": credit_citation.get("source_file"),
+                    "confidence": credit_citation.get("confidence"),
+                    "evidence": {"calculated_value": credit_score, "limit": 620},
+                }
+            )
         else:
-            findings.append({
-                "type": "success",
-                "severity": "pass",
-                "rule_id": "BANK-CREDIT-001",
-                "message": f"Profil de cr\u00e9dit ({credit_score}) satisfaisant",
-                "category": "Cr\u00e9dit",
-                "source_file": credit_citation.get("source_file"),
-                "confidence": credit_citation.get("confidence"),
-                "evidence": {"calculated_value": credit_score, "limit": 620},
-            })
-            
+            findings.append(
+                {
+                    "type": "success",
+                    "severity": "pass",
+                    "rule_id": "BANK-CREDIT-001",
+                    "message": f"Profil de cr\u00e9dit ({credit_score}) satisfaisant",
+                    "category": "Cr\u00e9dit",
+                    "source_file": credit_citation.get("source_file"),
+                    "confidence": credit_citation.get("confidence"),
+                    "evidence": {"calculated_value": credit_score, "limit": 620},
+                }
+            )
+
         # Determine overall decision (French thresholds)
         if gds_stress > 35 or tds_stress > 35:
             decision = "DECLINE"
@@ -5137,11 +5593,11 @@ async def get_mortgage_application(app_id: str):
             decision = "REFER"
         else:
             decision = "APPROVE"
-        
+
         # Get LLM analysis data
         llm_outputs = app_md.llm_outputs or {}
         app_summary = llm_outputs.get("application_summary", {})
-        
+
         # Extract LLM-calculated ratios if available
         ratio_calc = app_summary.get("ratio_calculation", {})
         if ratio_calc:
@@ -5156,12 +5612,12 @@ async def get_mortgage_application(app_id: str):
                         if isinstance(calc_entry, (int, float)):
                             return calc_entry
                         return None
-                    
+
                     gds_val = _extract_calc_value(calcs.get("GDS"))
                     tds_val = _extract_calc_value(calcs.get("TDS"))
                     ltv_val = _extract_calc_value(calcs.get("LTV"))
                     ltv_pct = _extract_calc_value(calcs.get("LTV_percent"))
-                    
+
                     if gds_val is not None:
                         ratios["gds"] = gds_val
                     if tds_val is not None:
@@ -5171,7 +5627,7 @@ async def get_mortgage_application(app_id: str):
                     elif ltv_val is not None:
                         # Convert ratio to percentage if needed
                         ratios["ltv"] = ltv_val * 100 if ltv_val < 1 else ltv_val
-                    
+
                     # Update stress ratios from LLM
                     stress_calc = calcs.get("stress_test")
                     if isinstance(stress_calc, dict):
@@ -5181,7 +5637,7 @@ async def get_mortgage_application(app_id: str):
                             stress_ratios["gds"] = stress_gds
                         if stress_tds is not None:
                             stress_ratios["tds"] = stress_tds
-        
+
         # Get risk assessment from LLM
         risk_data = app_summary.get("risk_assessment", {})
         if isinstance(risk_data, dict):
@@ -5196,12 +5652,14 @@ async def get_mortgage_application(app_id: str):
                 if isinstance(aggregate, dict):
                     for category, level in aggregate.items():
                         if isinstance(level, str) and "low" not in level.lower():
-                            risk_signals.append({
-                                "level": "high" if "high" in level.lower() else "medium",
-                                "category": category,
-                                "message": f"{category.replace('_', ' ').title()}: {level}"
-                            })
-        
+                            risk_signals.append(
+                                {
+                                    "level": "high" if "high" in level.lower() else "medium",
+                                    "category": category,
+                                    "message": f"{category.replace('_', ' ').title()}: {level}",
+                                }
+                            )
+
         # Get recommendation from LLM
         recommendation = app_summary.get("recommendation", {})
         if isinstance(recommendation, dict):
@@ -5217,21 +5675,23 @@ async def get_mortgage_application(app_id: str):
                     decision = "REFER"
                 elif decision not in ("APPROVE", "DECLINE", "REFER"):
                     decision = "REFER"
-            
+
             rationale = rec_parsed.get("RATIONALE", {})
             conditions = rec_parsed.get("CONDITIONS", [])
-            
+
             # Add conditions as findings
             if isinstance(conditions, list):
                 for condition in conditions:
                     if isinstance(condition, str):
-                        findings.append({
-                            "type": "condition",
-                            "severity": "warning",
-                            "category": "Conditions",
-                            "message": condition,
-                        })
-        
+                        findings.append(
+                            {
+                                "type": "condition",
+                                "severity": "warning",
+                                "category": "Conditions",
+                                "message": condition,
+                            }
+                        )
+
         # Build AI narrative from recommendation rationale
         narrative_parts = []
         if rec_parsed and isinstance(rec_parsed, dict) and not rec_parsed.get("_error"):
@@ -5243,23 +5703,29 @@ async def get_mortgage_application(app_id: str):
                     for detail in details[:5]:  # Limit to 5
                         if isinstance(detail, str):
                             narrative_parts.append(f"• {detail}")
-                
-                refs = rationale.get("OSFI_B20_References", []) or rationale.get("HCSF_References", [])
+
+                refs = rationale.get("OSFI_B20_References", []) or rationale.get(
+                    "HCSF_References", []
+                )
                 if isinstance(refs, list) and refs:
                     narrative_parts.append("")
-                    narrative_parts.append(f"**Conformité HCSF :** {len(refs)} contrôles de politique réussis")
-        
+                    narrative_parts.append(
+                        f"**Conformité HCSF :** {len(refs)} contrôles de politique réussis"
+                    )
+
         narrative = "\n".join(narrative_parts) if narrative_parts else None
-        
+
         # Count policy checks from HCSF references
         policy_checks_count = 0
         if rec_parsed and isinstance(rec_parsed, dict) and not rec_parsed.get("_error"):
             rationale_obj = rec_parsed.get("RATIONALE", {})
             if isinstance(rationale_obj, dict):
-                refs = rationale_obj.get("OSFI_B20_References", []) or rationale_obj.get("HCSF_References", [])
+                refs = rationale_obj.get("OSFI_B20_References", []) or rationale_obj.get(
+                    "HCSF_References", []
+                )
                 if isinstance(refs, list):
                     policy_checks_count = len(refs)
-        
+
         # Merge mortgage-specific data with base data
         return {
             **base_data,
@@ -5297,12 +5763,16 @@ async def get_mortgage_application(app_id: str):
                     "uploaded_at": app_md.created_at,
                     "status": "processed" if ef else "pending",
                     "url": f"/api/applications/{app_id}/files/{f.filename}",
-                    "fields_extracted": len([k for k in ef.keys() if f.filename.split('.')[0] in k]) if ef else 0,
+                    "fields_extracted": len([k for k in ef.keys() if f.filename.split(".")[0] in k])
+                    if ef
+                    else 0,
                 }
                 for f in app_md.files
-            ] if app_md.files else [],
+            ]
+            if app_md.files
+            else [],
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -5316,7 +5786,7 @@ async def create_mortgage_application(request: MortgageApplicationCreate):
     try:
         settings = load_settings()
         app_id = str(uuid.uuid4())[:8]
-        
+
         # Create application metadata
         app_md = new_metadata(
             settings.app.storage_root,
@@ -5324,10 +5794,10 @@ async def create_mortgage_application(request: MortgageApplicationCreate):
             files=[],
             persona="mortgage_underwriting",
         )
-        
+
         logger.info("Created mortgage application %s", app_id)
         return application_to_dict(app_md)
-        
+
     except Exception as e:
         logger.error("Failed to create mortgage application: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -5337,21 +5807,22 @@ async def create_mortgage_application(request: MortgageApplicationCreate):
 async def chat_endpoint(request: MortgageChatRequest):
     """
     General chat endpoint supporting multiple personas.
-    
+
     For mortgage_underwriting persona, uses HCSF / internal bank policies as context.
     """
     try:
         from app.openai_client import chat_completion
-        
+
         # Get persona-specific context
         persona = request.persona or "mortgage_underwriting"
         policies_context = ""
-        
+
         if persona == "mortgage_underwriting":
             # Load mortgage policies
             try:
                 import json
                 from pathlib import Path
+
                 policy_path = Path("prompts/mortgage-underwriting-policies.json")
                 if policy_path.exists():
                     with open(policy_path) as f:
@@ -5360,18 +5831,16 @@ async def chat_endpoint(request: MortgageChatRequest):
                     policies_context = json.dumps(policies.get("policies", [])[:5], indent=2)
             except Exception as e:
                 logger.warning("Failed to load mortgage policies: %s", e)
-        
+
         # Build system prompt
         config = PERSONA_CHAT_CONFIG.get(persona, PERSONA_CHAT_CONFIG["underwriting"])
-        language = (request.language or "en").lower()
-        language_directive = (
-            "Respond in English." if language == "en" else "Répondez en français."
-        )
-        system_prompt = f"""You are an {config['role']}.
+        language = require_language(request.language)
+        language_directive = language_instruction(language)
+        system_prompt = f"""You are an {config["role"]}.
 
-You have access to the following {config['context_type']}:
+You have access to the following {config["context_type"]}:
 
-{policies_context[:8000] if policies_context else 'No policies loaded.'}
+{policies_context[:8000] if policies_context else "No policies loaded."}
 
 When answering questions:
 1. Reference specific policies when applicable
@@ -5387,19 +5856,21 @@ When answering questions:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": request.query},
         ]
-        
+
         response = await asyncio.to_thread(
             chat_completion,
             settings.openai,
             messages,
         )
-        
+
         return {
             "response": response,
             "persona": persona,
             "query": request.query,
         }
-        
+
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Chat failed: %s", e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -5409,8 +5880,9 @@ When answering questions:
 # Property Deep Dive endpoints
 # ---------------------------------------------------------------------------
 
+
 @app.get("/api/mortgage/applications/{app_id}/property-deep-dive")
-async def get_property_deep_dive(app_id: str):
+async def get_property_deep_dive(app_id: str, language: str = "en"):
     """Run property deep dive analysis for a mortgage application."""
     try:
         from app.mortgage.property_deep_dive import PropertyDeepDiveEngine
@@ -5433,11 +5905,13 @@ async def get_property_deep_dive(app_id: str):
                 detail="Property address not found in application data.",
             )
 
+        language = require_language(language)
         engine = PropertyDeepDiveEngine(
             property_address=address,
             purchase_price=purchase_price,
             property_type=property_type or "single_family_detached",
             appraised_value=appraised_value,
+            language=language,
         )
 
         result = await asyncio.to_thread(engine.analyze)
@@ -5445,13 +5919,15 @@ async def get_property_deep_dive(app_id: str):
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Property deep dive failed for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/mortgage/applications/{app_id}/property-deep-dive")
-async def run_property_deep_dive(app_id: str, force: bool = False):
+async def run_property_deep_dive(app_id: str, force: bool = False, language: str = "en"):
     """Run (or force re-run) property deep dive analysis for a mortgage application."""
     try:
         from app.mortgage.property_deep_dive import PropertyDeepDiveEngine
@@ -5474,11 +5950,13 @@ async def run_property_deep_dive(app_id: str, force: bool = False):
                 detail="Property address not found in application data.",
             )
 
+        language = require_language(language)
         engine = PropertyDeepDiveEngine(
             property_address=address,
             purchase_price=purchase_price,
             property_type=property_type or "single_family_detached",
             appraised_value=appraised_value,
+            language=language,
         )
 
         result = await asyncio.to_thread(engine.analyze)
@@ -5486,6 +5964,8 @@ async def run_property_deep_dive(app_id: str, force: bool = False):
 
     except HTTPException:
         raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error("Property deep dive (POST) failed for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -5545,6 +6025,7 @@ async def get_customer_360_view(customer_id: str):
         logger.warning("Souscr'IA acquisition enrichment failed for %s: %s", customer_id, sc_err)
 
     from dataclasses import asdict
+
     return asdict(view)
 
 
@@ -5565,7 +6046,11 @@ async def create_customer(body: dict):
     # Generate next brand-prefixed customer ID
     id_prefix = f"{get_current_brand_profile().brand_key[:3].upper()}-"
     existing = list_customers(settings.app.storage_root)
-    existing_ids = [int(c.id.split("-")[1]) for c in existing if c.id.startswith(id_prefix) and c.id.split("-")[1].isdigit()]
+    existing_ids = [
+        int(c.id.split("-")[1])
+        for c in existing
+        if c.id.startswith(id_prefix) and c.id.split("-")[1].isdigit()
+    ]
     next_id = max(existing_ids, default=0) + 1
     customer_id = f"{id_prefix}{next_id:03d}"
 
@@ -5585,6 +6070,7 @@ async def create_customer(body: dict):
     logger.info("Created customer %s: %s", customer_id, name)
 
     from dataclasses import asdict
+
     return asdict(profile)
 
 
@@ -5605,6 +6091,7 @@ async def affiliate_application(app_id: str, body: dict):
         raise HTTPException(status_code=404, detail="Application non trouvée.")
 
     from app.customer360 import load_customer_profile
+
     profile = load_customer_profile(settings.app.storage_root, customer_id)
     if not profile:
         raise HTTPException(status_code=404, detail=f"Client {customer_id} non trouvé.")
@@ -5617,7 +6104,11 @@ async def affiliate_application(app_id: str, body: dict):
     _try_auto_affiliate_customer(app_md, settings.app.storage_root)
 
     logger.info("Affiliated app %s to customer %s", app_id, customer_id)
-    return {"message": f"Dossier affilié au client {profile.name}", "customer_id": customer_id, "customer_name": profile.name}
+    return {
+        "message": f"Dossier affilié au client {profile.name}",
+        "customer_id": customer_id,
+        "customer_name": profile.name,
+    }
 
 
 @app.post("/api/customers/seed")
@@ -5626,24 +6117,27 @@ async def seed_customer_360_data():
     settings = load_settings()
     try:
         from app.seed_data_customers import create_brand_customers
-        
+
         # Link existing apps to customer IDs via external_reference
         _link_apps_to_customers(settings.app.storage_root)
-        
+
         # Seed customer profiles and journeys (discovers real app IDs)
         customer_count = create_brand_customers(settings.app.storage_root)
-        
+
         # Try to seed rich application data (only available in dev, not in Docker)
         app_count = 0
         try:
             from scripts.seed_customer360 import seed_applications
+
             app_count = seed_applications(settings.app.storage_root)
         except ImportError:
-            logger.info("scripts.seed_customer360 not available (Docker) — skipping application seeding")
-        
+            logger.info(
+                "scripts.seed_customer360 not available (Docker) — skipping application seeding"
+            )
+
         return {
             "status": "ok",
-            "message": f"Seeded {customer_count} customer profiles and {app_count} applications"
+            "message": f"Seeded {customer_count} customer profiles and {app_count} applications",
         }
     except Exception as e:
         logger.error("Failed to seed customer 360 data: %s", e, exc_info=True)
@@ -5689,7 +6183,9 @@ def _remediate_external_references(storage_root: str):
                 fixed += 1
             elif app_md.external_reference != old_ref:
                 # Strict matcher found a DIFFERENT customer → already saved by _try_auto_affiliate
-                logger.info("Remediated app %s: %s → %s", app_id, old_ref, app_md.external_reference)
+                logger.info(
+                    "Remediated app %s: %s → %s", app_id, old_ref, app_md.external_reference
+                )
                 fixed += 1
             else:
                 # Same match — affiliation was correct, restore silently
@@ -5730,7 +6226,9 @@ def _link_apps_to_customers(storage_root: str):
             if app_id in app_to_customer:
                 app_md.external_reference = app_to_customer[app_id]
                 save_application_metadata(storage_root, app_md)
-                logger.info("Linked app %s to customer %s (seed map)", app_id, app_to_customer[app_id])
+                logger.info(
+                    "Linked app %s to customer %s (seed map)", app_id, app_to_customer[app_id]
+                )
             else:
                 # Priority 2: name-matching against Customer 360 profiles
                 _try_auto_affiliate_customer(app_md, storage_root)
@@ -5742,6 +6240,7 @@ def _link_apps_to_customers(storage_root: str):
 def main():
     """Entry point for the API server."""
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 

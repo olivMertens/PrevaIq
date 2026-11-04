@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import type { RiskSignal, MortgageFinding } from './MortgageWorkbench';
 import ConfidenceIndicator from '../ConfidenceIndicator';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useToast } from '@/lib/ToastProvider';
 
 interface RiskPanelProps {
@@ -36,6 +36,7 @@ export default function RiskPanel({
   policyChecksCount = 0,
 }: RiskPanelProps) {
   const t = useTranslations('mortgageLabels');
+  const locale = useLocale();
   const { addToast } = useToast();
   const [isEditingNarrative, setIsEditingNarrative] = useState(false);
   const [narrativeText, setNarrativeText] = useState(narrative || t('defaultNarrative'));
@@ -117,16 +118,20 @@ export default function RiskPanel({
       if (f.category === 'ratio' && f.evidence?.calculated_value && f.evidence?.limit) {
         const diff = f.evidence.calculated_value - f.evidence.limit;
         if (f.rule_id?.includes('GDS') || f.rule_id?.includes('EFFORT')) {
-          factors.push(`Réduire les charges de logement ou augmenter les revenus pour abaisser le taux d'effort de ${(diff * 100).toFixed(1)} pts`);
+          factors.push(t('changeFactors.reduceHousingCosts', {
+            points: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(diff * 100),
+          }));
         } else if (f.rule_id?.includes('TDS') || f.rule_id?.includes('ENDETTEMENT')) {
-          factors.push(`Solder d'autres crédits pour abaisser le taux d'endettement de ${(diff * 100).toFixed(1)} pts`);
+          factors.push(t('changeFactors.payOffDebt', {
+            points: new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(diff * 100),
+          }));
         }
       }
     });
 
     if (factors.length === 0) {
-      factors.push('Fournir des justificatifs complémentaires pour vérifier les revenus');
-      factors.push('Envisager un co-emprunteur avec un meilleur profil de crédit');
+      factors.push(t('changeFactors.verifyIncome'));
+      factors.push(t('changeFactors.addCoBorrower'));
     }
 
     return factors;

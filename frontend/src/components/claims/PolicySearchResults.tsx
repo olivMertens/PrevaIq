@@ -42,13 +42,6 @@ function getCategoryConfig(category: string) {
   return categoryConfig[category] || categoryConfig.default;
 }
 
-function formatCategoryLabel(category: string): string {
-  return category
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
 function getMatchColor(score: number): string {
   if (score >= 0.7) return 'text-emerald-600';
   if (score >= 0.5) return 'text-amber-600';
@@ -139,7 +132,7 @@ export function PolicySearchResultCard({
         {!isNaN(matchPercent) && (
           <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getMatchBg(score)} ${getMatchColor(score)}`}>
             <Percent className="w-3 h-3" />
-            {matchPercent}% match
+            {t('matchPercent', { percent: matchPercent })}
           </div>
         )}
       </div>
@@ -152,12 +145,12 @@ export function PolicySearchResultCard({
         </span>
         <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded ${config.bg} ${config.text} border ${config.border}`}>
           <Tag className="w-3 h-3" />
-          {formatCategoryLabel(result.category)}
+          {t(`categories.${categoryConfig[result.category] ? result.category : 'other'}`)}
         </span>
         {parsed.riskLevel && (
           <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded ${getRiskLevelStyle(parsed.riskLevel).bg} ${getRiskLevelStyle(parsed.riskLevel).text}`}>
             <AlertTriangle className="w-3 h-3" />
-            {parsed.riskLevel} Risk
+            {t('riskLabel', { level: parsed.riskLevel })}
           </span>
         )}
       </div>
@@ -169,7 +162,7 @@ export function PolicySearchResultCard({
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" />
               <div>
-                <span className="font-medium text-slate-800">When: </span>
+                <span className="font-medium text-slate-800">{t('when')}: </span>
                 <span className="text-slate-700">{parsed.condition}</span>
               </div>
             </div>
@@ -178,7 +171,7 @@ export function PolicySearchResultCard({
             <div className="flex items-start gap-2">
               <CheckCircle className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
               <div>
-                <span className="font-medium text-slate-800">Action: </span>
+                <span className="font-medium text-slate-800">{t('action')}: </span>
                 <span className="text-slate-700">{parsed.action}</span>
               </div>
             </div>
@@ -225,7 +218,7 @@ export default function PolicySearchResults({
   return (
     <div className="space-y-3">
       <div className="text-xs text-slate-500 mb-2">
-        Found {results.length} matching {results.length === 1 ? 'policy' : 'policies'}
+        {t('matchingPolicies', { count: results.length })}
       </div>
       {results.map((result) => (
         <PolicySearchResultCard

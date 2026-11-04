@@ -16,8 +16,8 @@ import {
   Eye, Upload
 } from 'lucide-react';
 import type { MortgageDocument, MortgageBorrower, MortgageProperty } from './MortgageWorkbench';
-import { useTranslations } from 'next-intl';
-import { formatCurrency } from './format';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatCurrency as formatCurrencyForLocale } from './format';
 
 interface EvidencePanelProps {
   documents: MortgageDocument[];
@@ -27,22 +27,24 @@ interface EvidencePanelProps {
 }
 interface DocumentGroup {
   id: string;
-  label: string;
   icon: typeof FileText;
   types: string[];
 }
 
 const DOCUMENT_GROUPS: DocumentGroup[] = [
-  { id: 'identity', label: 'Identité', icon: User, types: ['id', 'passport', 'drivers_license', 'identity'] },
-  { id: 'income', label: 'Revenus', icon: Euro, types: ['paystub', 'pay_stub', 'employment_letter', 'employment', 't4', 'noa', 'notice_of_assessment', 'avis_imposition', 'bulletin_salaire', 'bulletin_paie'] },
-  { id: 'assets', label: 'Apport / Épargne', icon: CreditCard, types: ['bank_statement', 'bank', 'investment', 'gift_letter', 'gift'] },
-  { id: 'property', label: 'Bien immobilier', icon: Building, types: ['purchase_agreement', 'purchase', 'appraisal', 'mls', 'title', 'agreement', 'compromis'] },
-  { id: 'credit', label: 'Crédit', icon: Shield, types: ['credit_report', 'credit'] },
-  { id: 'other', label: 'Autres', icon: FileText, types: ['other', 'application', 'mortgage_application', 'demande_pret'] },
+  { id: 'identity', icon: User, types: ['id', 'passport', 'drivers_license', 'identity'] },
+  { id: 'income', icon: Euro, types: ['paystub', 'pay_stub', 'employment_letter', 'employment', 't4', 'noa', 'notice_of_assessment', 'avis_imposition', 'bulletin_salaire', 'bulletin_paie'] },
+  { id: 'assets', icon: CreditCard, types: ['bank_statement', 'bank', 'investment', 'gift_letter', 'gift'] },
+  { id: 'property', icon: Building, types: ['purchase_agreement', 'purchase', 'appraisal', 'mls', 'title', 'agreement', 'compromis'] },
+  { id: 'credit', icon: Shield, types: ['credit_report', 'credit'] },
+  { id: 'other', icon: FileText, types: ['other', 'application', 'mortgage_application', 'demande_pret'] },
 ];
 
 export default function EvidencePanel({ documents, borrower, property, onViewDocument }: EvidencePanelProps) {
   const t = useTranslations('mortgageLabels');
+  const locale = useLocale();
+  const formatCurrency = (value: number | null | undefined) =>
+    formatCurrencyForLocale(value, locale);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['income', 'property']));
 
   const toggleGroup = (groupId: string) => {
@@ -150,7 +152,7 @@ export default function EvidencePanel({ documents, borrower, property, onViewDoc
                 )}
                 <group.icon className="w-4 h-4 text-slate-500" />
                 <span className="flex-1 text-left text-sm font-medium text-slate-700">
-                  {group.label}
+                  {t(`documentGroups.${group.id}`)}
                 </span>
                 {hasDocuments && (
                   <span className={`text-xs px-2 py-0.5 rounded-full ${

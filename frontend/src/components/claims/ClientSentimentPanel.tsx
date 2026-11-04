@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Heart, Phone, Clock, MessageCircle, TrendingUp, UserCheck, Handshake, ChevronRight } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
 
 interface BackendSentiment {
@@ -50,12 +50,12 @@ interface SentimentResult {
 
 function levelToVisual(level: string, score: number) {
   if (level === 'critical' || score >= 70)
-    return { emoji: '😟', label: 'Attention requise', color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200' };
+    return { emoji: '😟', label: 'critical', color: 'text-rose-700', bgColor: 'bg-rose-50', borderColor: 'border-rose-200' };
   if (level === 'stressed' || score >= 50)
-    return { emoji: '😐', label: 'Vigilance', color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
+    return { emoji: '😐', label: 'stressed', color: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
   if (level === 'moderate' || level === 'concerned' || score >= 30)
-    return { emoji: '🙂', label: 'Normal', color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' };
-  return { emoji: '😊', label: 'Serein', color: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
+    return { emoji: '🙂', label: 'concerned', color: 'text-slate-600', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' };
+  return { emoji: '😊', label: 'calm', color: 'text-emerald-700', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' };
 }
 
 export default function ClientSentimentPanel({
@@ -69,6 +69,12 @@ export default function ClientSentimentPanel({
 }: ClientSentimentPanelProps) {
   const t = useTranslations('claimsModals');
   const tSentiment = useTranslations('clientSentiment');
+  const locale = useLocale();
+  const formattedAmount = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(estimatedAmount);
   const sentiment = useMemo<SentimentResult>(() => {
     // ── Prefer backend Sentiment Agent result ──
     if (backendSentiment && typeof backendSentiment.score === 'number') {
@@ -98,38 +104,38 @@ export default function ClientSentimentPanel({
     // Factor 1: Claim value impact on stress
     if (estimatedAmount > 10000) {
       score += 25;
-      factors.push({ label: 'Montant élevé', impact: 'negative', detail: `${estimatedAmount.toLocaleString('fr-FR')} € — impact financier important` });
+      factors.push({ label: tSentiment('factors.highAmount'), impact: 'negative', detail: tSentiment('factorDetails.highAmount', { amount: formattedAmount }) });
     } else if (estimatedAmount > 5000) {
       score += 15;
-      factors.push({ label: 'Montant significatif', impact: 'negative', detail: `${estimatedAmount.toLocaleString('fr-FR')} € — préoccupation probable` });
+      factors.push({ label: tSentiment('factors.significantAmount'), impact: 'negative', detail: tSentiment('factorDetails.significantAmount', { amount: formattedAmount }) });
     } else {
-      factors.push({ label: 'Montant modéré', impact: 'positive', detail: `${estimatedAmount.toLocaleString('fr-FR')} € — impact limité` });
+      factors.push({ label: tSentiment('factors.moderateAmount'), impact: 'positive', detail: tSentiment('factorDetails.moderateAmount', { amount: formattedAmount }) });
     }
 
     // Factor 2: Claim nature sensitivity
     const nature = claimNature.toLowerCase();
     if (nature.includes('incendie') || nature.includes('catastrophe')) {
       score += 20;
-      factors.push({ label: 'Sinistre sensible', impact: 'negative', detail: 'Incendie ou catastrophe naturelle — traumatisme possible' });
+      factors.push({ label: tSentiment('factors.sensitiveClaim'), impact: 'negative', detail: tSentiment('factorDetails.sensitiveClaim') });
     } else if (nature.includes('cambriolage') || nature.includes('vol')) {
       score += 15;
-      factors.push({ label: 'Atteinte aux biens', impact: 'negative', detail: 'Vol ou cambriolage — sentiment d\'insécurité' });
+      factors.push({ label: tSentiment('factors.propertyLoss'), impact: 'negative', detail: tSentiment('factorDetails.propertyLoss') });
     } else if (nature.includes('tempête') || nature.includes('inondation')) {
       score += 10;
-      factors.push({ label: 'Événement climatique', impact: 'neutral', detail: 'Dommages liés à un phénomène naturel' });
+      factors.push({ label: tSentiment('factors.weatherEvent'), impact: 'neutral', detail: tSentiment('factorDetails.weatherEvent') });
     } else {
-      factors.push({ label: 'Sinistre courant', impact: 'positive', detail: 'Dégât des eaux ou dommage standard' });
+      factors.push({ label: tSentiment('factors.routineClaim'), impact: 'positive', detail: tSentiment('factorDetails.routineClaim') });
     }
 
     // Factor 3: Time elapsed
     if (daysSinceClaim > 30) {
       score += 20;
-      factors.push({ label: 'Délai prolongé', impact: 'negative', detail: `${daysSinceClaim} jours depuis la déclaration — frustration probable` });
+      factors.push({ label: tSentiment('factors.extendedDelay'), impact: 'negative', detail: tSentiment('factorDetails.extendedDelay', { days: daysSinceClaim }) });
     } else if (daysSinceClaim > 14) {
       score += 10;
-      factors.push({ label: 'Délai modéré', impact: 'neutral', detail: `${daysSinceClaim} jours — dans la norme mais attente ressentie` });
+      factors.push({ label: tSentiment('factors.moderateDelay'), impact: 'neutral', detail: tSentiment('factorDetails.moderateDelay', { days: daysSinceClaim }) });
     } else {
-      factors.push({ label: 'Traitement rapide', impact: 'positive', detail: `${daysSinceClaim} jours — délai acceptable` });
+      factors.push({ label: tSentiment('factors.fastProcessing'), impact: 'positive', detail: tSentiment('factorDetails.fastProcessing', { days: daysSinceClaim }) });
     }
 
     // Factor 4: Customer history (from C360)
@@ -139,12 +145,12 @@ export default function ClientSentimentPanel({
 
     if (claimHistory && claimHistory.length > 3) {
       score += 10;
-      factors.push({ label: 'Multi-sinistré', impact: 'negative', detail: `${claimHistory.length} sinistres au dossier — client potentiellement lassé` });
+      factors.push({ label: tSentiment('factors.multipleClaims'), impact: 'negative', detail: tSentiment('factorDetails.multipleClaims', { count: claimHistory.length }) });
     }
 
     if (loyaltyYears && loyaltyYears > 10) {
       score -= 5;
-      factors.push({ label: 'Client fidèle', impact: 'positive', detail: `${loyaltyYears} ans de fidélité — relation de confiance` });
+      factors.push({ label: tSentiment('factors.loyalCustomer'), impact: 'positive', detail: tSentiment('factorDetails.loyalCustomer', { years: loyaltyYears }) });
     }
 
     // Clamp score
@@ -152,14 +158,14 @@ export default function ClientSentimentPanel({
 
     // Build suggestions based on score
     if (score >= 70) {
-      suggestions.push({ icon: Phone, label: 'Contact téléphonique prioritaire recommandé', priority: 'high' });
-      suggestions.push({ icon: Heart, label: 'Adopter un ton empathique et rassurant', priority: 'high' });
-      suggestions.push({ icon: Clock, label: 'Accélérer le traitement si possible', priority: 'medium' });
+      suggestions.push({ icon: Phone, label: tSentiment('suggestions.priorityCall'), priority: 'high' });
+      suggestions.push({ icon: Heart, label: tSentiment('suggestions.empatheticTone'), priority: 'high' });
+      suggestions.push({ icon: Clock, label: tSentiment('suggestions.expedite'), priority: 'medium' });
     } else if (score >= 45) {
-      suggestions.push({ icon: MessageCircle, label: 'Email personnalisé avec suivi proactif', priority: 'medium' });
-      suggestions.push({ icon: UserCheck, label: 'Confirmer les prochaines étapes au client', priority: 'medium' });
+      suggestions.push({ icon: MessageCircle, label: tSentiment('suggestions.personalizedEmail'), priority: 'medium' });
+      suggestions.push({ icon: UserCheck, label: tSentiment('suggestions.confirmNextSteps'), priority: 'medium' });
     } else {
-      suggestions.push({ icon: TrendingUp, label: 'Traitement standard — client satisfait', priority: 'low' });
+      suggestions.push({ icon: TrendingUp, label: tSentiment('suggestions.standardProcessing'), priority: 'low' });
     }
 
     const visual = levelToVisual('', score);
@@ -170,7 +176,7 @@ export default function ClientSentimentPanel({
     else level = 'calm';
 
     return { ...visual, level, score, factors, suggestions, isAI: false };
-  }, [customerData, claimNature, estimatedAmount, daysSinceClaim, backendSentiment]);
+  }, [customerData, claimNature, estimatedAmount, daysSinceClaim, backendSentiment, formattedAmount, tSentiment]);
 
   // ── Compact mode: prioritize 'high' suggestions, then take top 2 of each ──
   const isCompact = mode === 'compact';
@@ -191,7 +197,7 @@ export default function ClientSentimentPanel({
         <Handshake className={clsx('w-4 h-4', sentiment.color)} />
         <span className={clsx('text-xs font-semibold', sentiment.color)}>{tSentiment('title')}</span>
         <span className="text-lg ml-0.5">{sentiment.emoji}</span>
-        <span className={clsx('text-[11px] font-medium', sentiment.color)}>{sentiment.label}</span>
+        <span className={clsx('text-[11px] font-medium', sentiment.color)}>{tSentiment(`levels.${sentiment.label}`)}</span>
         <div className="ml-auto flex items-center gap-1.5">
           {sentiment.isAI && <span className="text-[9px] px-1 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 font-medium">IA</span>}
           <div className="w-16 h-1.5 bg-white/60 rounded-full overflow-hidden">

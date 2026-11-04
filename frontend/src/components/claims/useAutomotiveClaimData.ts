@@ -60,11 +60,11 @@ export default function useAutomotiveClaimData(applicationId: string) {
       }
     } catch (err) {
       console.error('Failed to fetch claim data:', err);
-      setError(err instanceof Error ? err.message : 'Échec du chargement des données');
+      setError(err instanceof Error ? err.message : t('automotive.loadFailed'));
     } finally {
       setIsRefreshing(false);
     }
-  }, [applicationId]);
+  }, [applicationId, t]);
 
   useEffect(() => {
     fetchClaimData();
@@ -77,7 +77,7 @@ export default function useAutomotiveClaimData(applicationId: string) {
     setError(null);
     try {
       await uploadClaimFiles(applicationId, Array.from(files));
-      addToast('success', 'Fichiers téléversés avec succès');
+      addToast('success', t('automotive.uploadSuccess'));
       // Poll until backend processing completes (avoids flicker from stale data)
       const poll = setInterval(async () => {
         try {
@@ -95,8 +95,8 @@ export default function useAutomotiveClaimData(applicationId: string) {
       // Failsafe timeout
       setTimeout(() => { clearInterval(poll); setIsUploading(false); }, 120000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Échec du téléversement');
-      addToast('error', 'Échec du téléversement des fichiers');
+      setError(err instanceof Error ? err.message : t('automotive.uploadFailed'));
+      addToast('error', t('automotive.uploadFailed'));
       setIsUploading(false);
     }
   };
@@ -126,7 +126,7 @@ export default function useAutomotiveClaimData(applicationId: string) {
       };
       await updateAdjusterDecision(applicationId, request);
       await fetchClaimData();
-      addToast('success', `Décision "${decision}" enregistrée`);
+      addToast('success', t('automotive.decisionSaved', { decision }));
       switch (decision) {
         case 'approve': callbacks?.onApprove?.(); break;
         case 'adjust': callbacks?.onAdjust?.(); break;
@@ -134,8 +134,8 @@ export default function useAutomotiveClaimData(applicationId: string) {
         case 'investigate': callbacks?.onInvestigate?.(); break;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Échec de l\'enregistrement');
-      addToast('error', 'Erreur lors de l\'enregistrement de la décision');
+      setError(err instanceof Error ? err.message : t('automotive.decisionSaveFailed'));
+      addToast('error', t('automotive.decisionSaveFailed'));
     }
   };
 
@@ -301,9 +301,9 @@ export default function useAutomotiveClaimData(applicationId: string) {
     const date = getField(['DateSinistre', 'date_sinistre']);
     if (description || vehicle || date) {
       return [
-        description || 'Sinistre automobile déclaré',
-        vehicle ? `Véhicule : ${vehicle}` : '',
-        date ? `Date du sinistre : ${date}` : '',
+        description || t('automotive.declaredClaim'),
+        vehicle ? t('automotive.vehicleSummary', { vehicle }) : '',
+        date ? t('automotive.claimDateSummary', { date }) : '',
       ].filter(Boolean).join('. ');
     }
 
@@ -314,7 +314,7 @@ export default function useAutomotiveClaimData(applicationId: string) {
         .replace(/^(crash|accident|sinistre|photo|image)[_-]/i, '')
         .replace(/[_-]+/g, ' ')
         .trim();
-      return `Sinistre automobile avec dommage visible sur la pièce justificative ${label || evidence.filename}.`;
+      return t('automotive.visibleDamageEvidence', { file: label || evidence.filename });
     }
 
     return '';
@@ -323,10 +323,10 @@ export default function useAutomotiveClaimData(applicationId: string) {
   const getRiskLevel = (severity: string | undefined) => {
     const s = (severity || '').toLowerCase();
     if (s.includes('high') || s.includes('severe') || s.includes('heavy'))
-      return { label: 'Élevé', bgColor: 'bg-rose-50', textColor: 'text-rose-700', borderColor: 'border-rose-200' };
+      return { label: t('automotive.riskHigh'), bgColor: 'bg-rose-50', textColor: 'text-rose-700', borderColor: 'border-rose-200' };
     if (s.includes('moderate') || s.includes('medium'))
-      return { label: 'Modéré', bgColor: 'bg-amber-50', textColor: 'text-amber-700', borderColor: 'border-amber-200' };
-    return { label: 'Faible', bgColor: 'bg-emerald-50', textColor: 'text-emerald-700', borderColor: 'border-emerald-200' };
+      return { label: t('automotive.riskModerate'), bgColor: 'bg-amber-50', textColor: 'text-amber-700', borderColor: 'border-amber-200' };
+    return { label: t('automotive.riskLow'), bgColor: 'bg-emerald-50', textColor: 'text-emerald-700', borderColor: 'border-emerald-200' };
   };
 
   return {

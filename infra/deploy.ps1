@@ -238,7 +238,7 @@ if (-not $SkipBackend -and -not $BuildOnly) {
         $backendModelEnvVarArgs += "WEBIQ_API_KEY=secretref:webiq-api-key"
         Write-Host "    WEBIQ: enabled (Key Vault reference)" -ForegroundColor Green
     } else {
-        Write-Host "    WEBIQ: not configured (secret webiq-api-key absent) - chat keeps legacy web_search" -ForegroundColor Yellow
+        Write-Host "    WEBIQ: not configured (secret webiq-api-key absent) - web intelligence is unavailable" -ForegroundColor Yellow
     }
 }
 if ($PreflightOnly) {

@@ -108,7 +108,7 @@ export default function FloatingPdfPreview({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200 flex-shrink-0">
         <span className="text-xs font-medium text-slate-700">
-          Page {pageNumber} — {fileName.split('/').pop()}
+          {t('pageNumber', { page: pageNumber })} — {fileName.split('/').pop()}
         </span>
         <button
           onClick={onClose}

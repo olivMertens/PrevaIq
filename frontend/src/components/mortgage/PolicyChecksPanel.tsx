@@ -14,7 +14,7 @@ import {
   CheckCircle, XCircle, AlertTriangle, Info,
   ChevronDown, ChevronRight, ExternalLink, BookOpen
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import type { MortgageFinding, MortgageRatios, MortgageStressRatios } from './MortgageWorkbench';
 
 interface PolicyChecksPanelProps {
@@ -27,58 +27,42 @@ interface PolicyChecksPanelProps {
 const OSFI_RULES = [
   {
     id: 'OSFI-B20-GDS-001',
-    name: 'Taux d\'effort (équivalent GDS)',
-    description: 'Le taux d\'effort est vérifié au taux qualifié du dossier.',
-    threshold: '≤ 39% (seuil moteur actuel)',
+    key: 'gds',
     category: 'ratio',
   },
   {
     id: 'OSFI-B20-TDS-001',
-    name: 'Endettement total (équivalent TDS)',
-    description: 'L\'endettement total est contrôlé au taux qualifié du dossier.',
-    threshold: '≤ 44% (seuil moteur actuel)',
+    key: 'tds',
     category: 'ratio',
   },
   {
     id: 'OSFI-B20-LTV-001',
-    name: 'Ratio prêt/valeur (LTV)',
-    description: 'Le ratio LTV est contrôlé selon le type de dossier et la garantie.',
-    threshold: '≤ 80% conventionnel (95% assuré)',
+    key: 'ltv',
     category: 'ratio',
   },
   {
     id: 'OSFI-B20-MQR-001',
-    name: 'Taux qualifié minimal',
-    description: 'Le dossier doit passer au taux qualifié défini par le moteur.',
-    threshold: 'max(taux+2%, 5.25%)',
+    key: 'minimumRate',
     category: 'stress_test',
   },
   {
     id: 'OSFI-B20-INCOME-001',
-    name: 'Vérification des revenus',
-    description: 'Les revenus doivent être justifiés par des pièces recevables.',
-    threshold: 'Obligatoire',
+    key: 'income',
     category: 'documentation',
   },
   {
     id: 'OSFI-B20-CREDIT-001',
-    name: 'Évaluation du crédit',
-    description: 'Le score crédit doit respecter le seuil minimum du moteur.',
-    threshold: '≥ 620',
+    key: 'credit',
     category: 'credit',
   },
   {
     id: 'OSFI-B20-DP-001',
-    name: 'Origine de l\'apport',
-    description: 'L\'origine de l\'apport doit être documentée.',
-    threshold: 'Obligatoire',
+    key: 'downPayment',
     category: 'documentation',
   },
   {
     id: 'OSFI-B20-PROP-001',
-    name: 'Valorisation du bien',
-    description: 'La valeur du bien doit être appuyée par estimation ou expertise.',
-    threshold: 'Obligatoire',
+    key: 'propertyValue',
     category: 'property',
   },
 ];
@@ -89,6 +73,11 @@ export default function PolicyChecksPanel({
   stressRatios,
 }: PolicyChecksPanelProps) {
   const t = useTranslations('mortgageLabels');
+  const locale = useLocale();
+  const formatPercent = (value: number) => new Intl.NumberFormat(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
   const [expandedRules, setExpandedRules] = useState<Set<string>>(new Set());
 
   const toggleRule = (ruleId: string) => {
@@ -119,7 +108,11 @@ export default function PolicyChecksPanel({
           rule_id: rule.id,
           severity: stressRatios.gds <= 39 ? 'pass' : 'fail',
           category: 'ratio',
-          message: `Taux d'effort ${stressRatios.gds.toFixed(2)}% ${stressRatios.gds <= 39 ? 'dans la limite' : 'au-dessus de la limite'} de 39%`,
+          message: t('policyFindings.gds', {
+            value: formatPercent(stressRatios.gds),
+            status: t(stressRatios.gds <= 39 ? 'policyFindings.withinLimit' : 'policyFindings.aboveLimit'),
+            limit: 39,
+          }),
           evidence: { calculated_value: stressRatios.gds, limit: 39 },
         };
       case 'OSFI-B20-TDS-001':
@@ -127,7 +120,11 @@ export default function PolicyChecksPanel({
           rule_id: rule.id,
           severity: stressRatios.tds <= 44 ? 'pass' : 'fail',
           category: 'ratio',
-          message: `Endettement total ${stressRatios.tds.toFixed(2)}% ${stressRatios.tds <= 44 ? 'dans la limite' : 'au-dessus de la limite'} de 44%`,
+          message: t('policyFindings.tds', {
+            value: formatPercent(stressRatios.tds),
+            status: t(stressRatios.tds <= 44 ? 'policyFindings.withinLimit' : 'policyFindings.aboveLimit'),
+            limit: 44,
+          }),
           evidence: { calculated_value: stressRatios.tds, limit: 44 },
         };
       case 'OSFI-B20-LTV-001':
@@ -136,7 +133,11 @@ export default function PolicyChecksPanel({
           rule_id: rule.id,
           severity: ratios.ltv <= ltvLimit ? 'pass' : 'fail',
           category: 'ratio',
-          message: `LTV ${ratios.ltv.toFixed(2)}% ${ratios.ltv <= ltvLimit ? 'dans la limite' : 'au-dessus de la limite'} de ${ltvLimit}%`,
+          message: t('policyFindings.ltv', {
+            value: formatPercent(ratios.ltv),
+            status: t(ratios.ltv <= ltvLimit ? 'policyFindings.withinLimit' : 'policyFindings.aboveLimit'),
+            limit: ltvLimit,
+          }),
           evidence: { calculated_value: ratios.ltv, limit: ltvLimit },
         };
       case 'OSFI-B20-MQR-001':
@@ -144,7 +145,9 @@ export default function PolicyChecksPanel({
           rule_id: rule.id,
           severity: 'pass',
           category: 'stress_test',
-          message: `Le dossier passe au taux qualifié de ${stressRatios.qualifying_rate.toFixed(2)}%`,
+          message: t('policyFindings.qualifyingRate', {
+            rate: formatPercent(stressRatios.qualifying_rate),
+          }),
           evidence: { calculated_value: stressRatios.qualifying_rate },
         };
       default:
@@ -152,7 +155,7 @@ export default function PolicyChecksPanel({
           rule_id: rule.id,
           severity: 'pass',
           category: rule.category,
-          message: `${rule.name} : conformité validée`,
+          message: t('policyRules.compliant', { name: t(`policyRules.${rule.key}.name`) }),
         };
     }
   };
@@ -189,9 +192,7 @@ export default function PolicyChecksPanel({
           <BookOpen className="w-5 h-5 text-blue-600 mt-0.5" />
           <div>
             <h4 className="text-sm font-medium text-blue-900">{t('hcsfGuideline')}</h4>
-            <p className="text-sm text-blue-700 mt-1">
-              Haut Conseil de Stabilité Financière — Normes d'octroi crédit immobilier
-            </p>
+            <p className="text-sm text-blue-700 mt-1">{t('hcsfGuidelineDescription')}</p>
             <a
               href="https://www.economie.gouv.fr/hcsf/mesures"
               target="_blank"
@@ -290,7 +291,7 @@ function PolicyRuleCard({
         {getStatusIcon()}
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-slate-900">{rule.name}</span>
+            <span className="font-medium text-slate-900">{t(`policyRules.${rule.key}.name`)}</span>
             <span className="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">
               {getCategoryLabel(rule.category)}
             </span>
@@ -307,13 +308,13 @@ function PolicyRuleCard({
               <h5 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
                 {t('ruleIntent')}
               </h5>
-              <p className="text-sm text-slate-700">{rule.description}</p>
+              <p className="text-sm text-slate-700">{t(`policyRules.${rule.key}.description`)}</p>
             </div>
             <div>
               <h5 className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">
                 {t('threshold')}
               </h5>
-              <p className="text-sm font-medium text-slate-900">{rule.threshold}</p>
+              <p className="text-sm font-medium text-slate-900">{t(`policyRules.${rule.key}.threshold`)}</p>
             </div>
           </div>
 

@@ -80,6 +80,19 @@ def test_sanitize_refusal_passthrough_when_clean():
     assert _sanitize_refusal(text) == text
 
 
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        ("en", "manual review"),
+        ("fr", "revue manuelle"),
+        ("de", "manuelle Prüfung"),
+    ],
+)
+def test_sanitize_refusal_localizes_review_marker(language, expected):
+    text = "Structured analysis.\n\nI'm sorry, but I cannot assist with that request."
+    assert expected in _sanitize_refusal(text, language=language)
+
+
 def test_contains_refusal_detects_en_and_fr():
     assert _contains_refusal("I'm sorry, but I cannot assist")
     assert _contains_refusal("Je suis désolé, mais je ne peux pas vous aider")
@@ -118,7 +131,9 @@ def test_build_chat_client_azure_ad_path(monkeypatch):
 def test_azure_token_provider_is_awaitable(monkeypatch):
     _base_openai_env(monkeypatch)
     monkeypatch.setenv("AZURE_OPENAI_USE_AZURE_AD", "true")
-    monkeypatch.setattr("azure.identity.get_bearer_token_provider", lambda *args: lambda: "test-token")
+    monkeypatch.setattr(
+        "azure.identity.get_bearer_token_provider", lambda *args: lambda: "test-token"
+    )
     client = _build_chat_client(load_settings(), "chat")
     assert asyncio.run(client.client._azure_ad_token_provider()) == "test-token"
 
@@ -170,21 +185,47 @@ def test_reasoning_low_reaches_responses_request(monkeypatch):
 
     def respond(request):
         requests.append(json.loads(request.content))
-        return httpx.Response(200, json={
-            "id": "resp_test", "object": "response", "created_at": 1,
-            "status": "completed", "model": "gpt-5.4-mini",
-            "output": [{"id": "msg_test", "type": "message", "role": "assistant",
-                        "status": "completed", "content": [{"type": "output_text",
-                        "text": "Analyse disponible.", "annotations": []}]}],
-        })
+        return httpx.Response(
+            200,
+            json={
+                "id": "resp_test",
+                "object": "response",
+                "created_at": 1,
+                "status": "completed",
+                "model": "gpt-5.4-mini",
+                "output": [
+                    {
+                        "id": "msg_test",
+                        "type": "message",
+                        "role": "assistant",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "output_text",
+                                "text": "Analyse disponible.",
+                                "annotations": [],
+                            }
+                        ],
+                    }
+                ],
+            },
+        )
 
     async def run():
         async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as transport:
-            client = OpenAIChatClient(model="insurance-mini", async_client=AsyncOpenAI(
-                api_key="test", http_client=transport,
-            ))
-            agent = _create_agent(client, name="Test", instructions="Respond briefly.",
-                                  default_options=_agent_options(load_settings()))
+            client = OpenAIChatClient(
+                model="insurance-mini",
+                async_client=AsyncOpenAI(
+                    api_key="test",
+                    http_client=transport,
+                ),
+            )
+            agent = _create_agent(
+                client,
+                name="Test",
+                instructions="Respond briefly.",
+                default_options=_agent_options(load_settings()),
+            )
             result = await agent.run("Bonjour")
             assert result.text == "Analyse disponible."
 
@@ -211,13 +252,106 @@ def test_webiq_tool_scopes_key_and_tools(monkeypatch):
 
 
 def test_web_tool_resolution_prefers_webiq_when_configured(monkeypatch):
-    from app.agents.tools import resolve_web_tool, web_search, webiq_search
+    from app.agents.tools import resolve_web_tool, webiq_search
 
     _base_openai_env(monkeypatch)
     monkeypatch.delenv("WEBIQ_API_KEY", raising=False)
-    assert resolve_web_tool(load_settings()) is web_search
+    assert resolve_web_tool(load_settings()) is webiq_search
     monkeypatch.setenv("WEBIQ_API_KEY", "test-webiq-key")
     assert resolve_web_tool(load_settings()) is webiq_search
+
+
+class _FakeWebIqFunction:
+    name = "webiq_web"
+
+    def __init__(self, response):
+        self.response = response
+        self.arguments = None
+
+    def parameters(self):
+        return {
+            "properties": {
+                "query": {},
+                "maxResults": {},
+                "language": {},
+                "region": {},
+                "contentFormat": {},
+                "maxLength": {},
+            }
+        }
+
+    async def invoke(self, *, arguments):
+        self.arguments = arguments
+        if isinstance(self.response, BaseException):
+            raise self.response
+        return self.response
+
+
+class _FakeWebIqTool:
+    def __init__(self, function):
+        self.functions = [function]
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        return False
+
+
+def test_webiq_search_localizes_request_and_preserves_source(monkeypatch):
+    from app.agents.tools import webiq_search
+
+    function = _FakeWebIqFunction(
+        [
+            SimpleNamespace(
+                text=json.dumps(
+                    {
+                        "webResults": [
+                            {
+                                "title": "Décret français",
+                                "url": "https://example.test/decret",
+                                "content": "Citation source française inchangée.",
+                            }
+                        ]
+                    }
+                )
+            )
+        ]
+    )
+    monkeypatch.setattr(
+        "app.agents.tools.create_webiq_tool", lambda settings: _FakeWebIqTool(function)
+    )
+
+    result = asyncio.run(webiq_search("Hochwasser Nîmes", language="de-DE"))
+
+    assert function.arguments["language"] == "de"
+    assert function.arguments["region"] == "FR"
+    assert "Quelle: https://example.test/decret" in result
+    assert "Citation source française inchangée." in result
+
+
+def test_webiq_search_localizes_missing_configuration(monkeypatch):
+    from app.agents.tools import webiq_search
+
+    monkeypatch.setattr("app.agents.tools.create_webiq_tool", lambda settings: None)
+
+    result = asyncio.run(webiq_search("test", language="de"))
+
+    assert result == "Web-Intelligenz ist nicht verfügbar, da Web IQ nicht konfiguriert ist."
+
+
+@pytest.mark.parametrize("failure", [PermissionError("denied"), asyncio.TimeoutError()])
+def test_webiq_search_localizes_runtime_failures(monkeypatch, failure):
+    from app.agents.tools import webiq_search
+
+    function = _FakeWebIqFunction(failure)
+    monkeypatch.setattr(
+        "app.agents.tools.create_webiq_tool", lambda settings: _FakeWebIqTool(function)
+    )
+
+    result = asyncio.run(webiq_search("test", language="en"))
+
+    assert result == "Web intelligence is temporarily unavailable."
 
 
 # ── Workflow result-dict shape (UI data contract) ────────────────────────────
@@ -237,7 +371,7 @@ def test_express_workflow_result_shape(monkeypatch):
     """create_express_workflow must return {workflow,status,steps[{agent,text}],summary}."""
     prompts = {}
 
-    async def _fake_run(agent, prompt, *, agent_name, max_retries=1):
+    async def _fake_run(agent, prompt, *, agent_name, language="en", max_retries=1):
         prompts[agent_name] = prompt
         return f"[{agent_name}] canned analysis"
 
@@ -257,7 +391,7 @@ def test_express_workflow_result_shape(monkeypatch):
 def test_complet_runs_four_branches_concurrently_and_degrades(monkeypatch):
     running, peak = 0, 0
 
-    async def _fake_run(agent, prompt, *, agent_name, max_retries=1):
+    async def _fake_run(agent, prompt, *, agent_name, language="en", max_retries=1):
         nonlocal running, peak
         running += 1
         peak = max(peak, running)
@@ -274,14 +408,36 @@ def test_complet_runs_four_branches_concurrently_and_degrades(monkeypatch):
     steps = {s["agent"]: s["text"] for s in result["steps"]}
     assert "requires_human_review: true" in steps["FraudAgent"]
     assert "vision unavailable" not in steps["FraudAgent"]
+    assert result["status"] == "needs_review"
     assert result["summary"] == "[RiskAgent] ok"
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        ("en", "timed out"),
+        ("fr", "délai dépassé"),
+        ("de", "Zeitüberschreitung"),
+    ],
+)
+def test_workflow_step_timeout_is_localized(monkeypatch, language, expected):
+    async def slow_run(agent, prompt, *, agent_name, language="en", max_retries=1):
+        await asyncio.sleep(1)
+
+    monkeypatch.setattr(wf, "_run_agent_with_refusal_retry", slow_run)
+    monkeypatch.setattr(wf, "AGENT_TIMEOUT_SECONDS", 0.01)
+
+    result = asyncio.run(wf._run_step(None, "prompt", agent_name="Slow", language=language))
+
+    assert expected in result
+    assert "requires_human_review: true" in result
 
 
 def test_fraud_workflow_runs_vision_and_web_in_parallel(monkeypatch):
     monkeypatch.delenv("WEBIQ_API_KEY", raising=False)
     running, peak = 0, 0
 
-    async def _fake_run(agent, prompt, *, agent_name, max_retries=1):
+    async def _fake_run(agent, prompt, *, agent_name, language="en", max_retries=1):
         nonlocal running, peak
         running += 1
         peak = max(peak, running)
@@ -295,7 +451,11 @@ def test_fraud_workflow_runs_vision_and_web_in_parallel(monkeypatch):
     )
 
     assert peak == 2
-    assert [s["agent"] for s in result["steps"]] == ["FraudDetector", "WebIntelligence", "CrossChecker"]
+    assert [s["agent"] for s in result["steps"]] == [
+        "FraudDetector",
+        "WebIntelligence",
+        "CrossChecker",
+    ]
 
 
 # ── Agent cache (perf debt #6) ───────────────────────────────────────────────

@@ -42,10 +42,38 @@ frontend/
 │   └── i18n/                   # next-intl configuration
 ├── messages/                   # fr.json reference and en.json mirror
 ├── public/
-│   ├── prevaiq-logo.svg        # Brand logo referenced by brand.logo
-│   └── favicon-prevaiq.svg     # Brand favicon referenced by brand.favicon
+│   ├── prevaiq-logo.png · prevaiq-logo-dark.png  # Exact FDR wordmarks
+│   ├── prevaiq-icon.png · prevaiq-icon-dark.png  # Exact FDR icons
+│   ├── favicon.svg            # Exact FDR browser favicon
+│   └── prevaiq-logo.svg · favicon-prevaiq.svg    # Official compatibility aliases
 ├── package.json · tailwind.config.js · tsconfig.json · next.config.js
 ```
+
+## Shared brand assets
+
+PrevaIQ uses the **exact official FDR files**, not a redrawn SVG or a CSS-recolored logo.
+The canonical PNGs are `../assets/logos/prevaiq_icon.png`, `prevaiq_icon_dark.png`,
+`prevaiq_logo.png` and `prevaiq_logo_dark.png`; their public copies use hyphenated names.
+`BrandMark` renders the PNG wordmark with intrinsic dimensions and preserved aspect ratio,
+without image conversion. Use `surface="dark"` on dark surfaces (the sidebar); white
+cards, including the login splash card and guided-demo footer, use the light variant.
+This does not introduce an application-wide theme switch or change the app palette.
+
+Root metadata uses `/favicon.svg` for browser/shortcut icons and `/prevaiq-icon.png`
+for the PNG Apple touch icon. `/favicon-prevaiq.svg` remains a byte-identical favicon
+alias. The legacy `public/prevaiq-logo.svg` and `assets/logos/prevaiq-logo.svg` are exact
+copies of the official FDR wordmark SVG, retained for existing links, not used by the UI.
+`assets/logo-prevaiq.png` and `assets/logos/logo-prevaiq.png` retain their paths for
+existing document-generation consumers and contain the official light PNG.
+Official SVG files are marked binary in `.gitattributes` to preserve their original
+bytes (including line endings) on both Windows and Unix checkouts.
+
+`npm run test:branding` checks pinned SHA-256 values for canonical files and aliases,
+rendered light/dark and compact logos, root metadata, and UI integration (header,
+login, access, administration, Customer 360, sidebar and guided demo). It needs no
+FDR checkout or extra dependency. After an approved brand update, copy the official
+files without conversion and deliberately update these pinned hashes together.
+No demo scenario text, file selection or PDF dataset was changed by this UI update.
 
 ## Prerequisites
 
@@ -99,6 +127,19 @@ Follow the repository's SOLID, DRY, and YAGNI rules.
 - **No god components**: refactor components above roughly 400 lines, such as `admin/page.tsx`, `LandingPage.tsx`, or `LifeHealthClaimsOverview.tsx`.
 - **Co-location**: keep related files together, such as `components/admin/DocumentsTab.tsx` and `components/admin/useAdminState.ts`.
 - **Custom hooks**: use hooks for reusable logic, such as `useApplications` and `useToast`.
+
+## Login appearance
+
+`/login` follows Nemo's centered hero/card layout, with the existing EN/FR locale
+cookie and segmented language/theme controls together at the top right. Its CSS
+tokens and `login-theme` cookie (path `/login`) are isolated from the rest of the
+app; the server restores the theme before rendering. Official logos still use
+`BrandMark`, selected for the actual surface. Authentication and access links are
+unchanged. No demo-guide content or demo-file references are affected.
+
+Run the focused presentation, branding and authentication checks together:
+`node --test tests/login.test.js tests/branding.test.js tests/auth.test.js`.
+The login-only suite is also available as `npm run test:login`.
 
 ## Build and deploy
 

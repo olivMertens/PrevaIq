@@ -405,7 +405,7 @@ def get_application_summary(application_id: str) -> str:
             # Web intelligence (nested in fraud_analysis)
             wi = fa.get("web_intelligence")
             if wi and isinstance(wi, dict) and not wi.get("error"):
-                parts.append("\n### Renseignement web (Bing WebSearch)")
+                parts.append("\n### Renseignement web (Microsoft Web IQ)")
                 if wi.get("event_verified") is True:
                     parts.append("- ✅ Événement vérifié par sources web")
                 elif wi.get("event_verified") is False:
@@ -505,6 +505,7 @@ def analyze_section(
     application_id: str,
     section: str,
     subsection: str,
+    language: str = "en",
 ) -> str:
     """Run a specific prompt-based analysis section on an application.
 
@@ -558,6 +559,7 @@ def analyze_section(
         template,
         doc_md,
         underwriting_policies=policies,
+        language=language,
     )
 
     # Store result
@@ -1348,6 +1350,7 @@ def get_page_reference(application_id: str, page_number: int) -> str:
 def query_fabric_data(
     question: str,
     persona: str = "",
+    language: str = "en",
 ) -> str:
     """Query business data (claims history, amounts, volumes, statistics) via Fabric Data Agent.
 
@@ -1366,6 +1369,9 @@ def query_fabric_data(
         message if the Data Agent is not configured.
     """
     from ..config import load_settings
+    from ..languages import language_instruction, require_language
+
+    language = require_language(language)
 
     project_endpoint = load_settings().foundry.project_endpoint
     fabric_conn_name = os.getenv("FABRIC_CONNECTION_NAME", "")
@@ -1423,7 +1429,8 @@ def query_fabric_data(
                     instructions=(
                         "Tu es un assistant data pour les assurances. "
                         "Utilise le Fabric Data Agent pour répondre aux questions sur les données métier. "
-                        "Réponds toujours en français avec des données structurées (tableaux, montants, pourcentages)."
+                        "Retourne des données structurées (tableaux, montants, pourcentages). "
+                        + language_instruction(language)
                     ),
                     tools=[
                         MicrosoftFabricPreviewTool(
@@ -1583,7 +1590,7 @@ def create_webiq_tool(settings) -> Any | None:
         name="webiq",
         url=webiq.mcp_url,
         tool_name_prefix="webiq",
-        description="Microsoft Web IQ : recherche web, actualités et lecture d'URL publiques.",
+        description="Microsoft Web IQ: web search, news, and public URL browsing.",
         static_headers={"x-apikey": webiq.api_key},
         allowed_tools=WEBIQ_TOOLS,
         approval_mode="never_require",
@@ -1592,7 +1599,7 @@ def create_webiq_tool(settings) -> Any | None:
     )
 
 
-async def webiq_search(query: str, news: bool = False) -> str:
+async def webiq_search(query: str, news: bool = False, language: str = "en") -> str:
     """Search public sources with Microsoft Web IQ (web pages or recent news).
 
     Use this tool to verify facts about a claim: Cat-Nat decrees, weather
@@ -1602,19 +1609,26 @@ async def webiq_search(query: str, news: bool = False) -> str:
     Args:
         query: Search query, e.g. "arrêté catastrophe naturelle inondation Nîmes juin 2026".
         news: True to search recent news articles instead of web pages.
+        language: Requested presentation language (en, fr, or de).
 
     Returns:
-        Short French passages with their source URLs.
+        Source passages and URLs in the requested Web IQ search language.
     """
     from ..config import load_settings
+    from ..languages import localized_message, require_language
 
+    locale = require_language(language)
     tool = create_webiq_tool(load_settings())
     if tool is None:
-        return "Recherche web non disponible (Web IQ non configuré)."
+        return localized_message("webiq_not_configured", locale)
     # Connect per call (~2-6 s) so questions that never search pay nothing.
     wanted = {
-        "query": query, "maxResults": 5, "language": "fr", "region": "FR",
-        "contentFormat": "passage", "maxLength": 1500,
+        "query": query,
+        "maxResults": 5,
+        "language": locale,
+        "region": "FR",
+        "contentFormat": "passage",
+        "maxLength": 1500,
     }
     try:
         async with tool:
@@ -1624,97 +1638,28 @@ async def webiq_search(query: str, news: bool = False) -> str:
             result = await func.invoke(arguments={k: v for k, v in wanted.items() if k in accepted})
     except Exception as exc:
         logger.warning("Web IQ search failed: %r", exc)
-        return "Recherche web momentanément indisponible."
+        return localized_message("webiq_temporarily_unavailable", locale)
     text = "\n\n".join(t for t in (getattr(c, "text", None) for c in result or []) if t)
     try:
         payload = json.loads(text)
         items = payload.get("newsResults" if news else "webResults") or []
+        source_label = {"en": "Source", "fr": "Source", "de": "Quelle"}[locale]
         text = "\n\n".join(
-            f"### {it.get('title', '')}\nSource : {it.get('url', '')}\n{it.get('content', '')}"
+            f"### {it.get('title', '')}\n{source_label}: {it.get('url', '')}\n{it.get('content', '')}"
             for it in items
         )
     except (ValueError, AttributeError):
         pass  # keep the raw text when Web IQ changes its response shape
-    return text[:_WEBIQ_MAX_CHARS] or "Aucun résultat web."
+    return text[:_WEBIQ_MAX_CHARS] or localized_message("webiq_no_results", locale)
 
 
 def resolve_web_tool(settings):
-    """Web IQ when configured, otherwise the legacy Bing-backed ``web_search``."""
-    return webiq_search if create_webiq_tool(settings) is not None else web_search
+    """Return the dedicated Microsoft Web IQ tool.
 
-
-def web_search(query: str, claim_type: str = "auto", location: str = "", date: str = "") -> str:
-    """Search the web for insurance-relevant information using Bing WebSearch.
-
-    Use this tool when the user asks to verify facts about a claim, check
-    weather events, Cat-Nat decrees, market prices (Argus, FFB index),
-    regulatory changes, or any question that requires up-to-date public
-    information to complement policy data.
-
-    Args:
-        query: Natural language search query (e.g. "arrêté Cat-Nat inondation
-               Nîmes juin 2024", "cote Argus Peugeot 308 2019").
-        claim_type: Type of insurance claim for context (auto, habitation,
-                    santé, hypothécaire).
-        location: Optional geographic location to focus the search.
-        date: Optional date or date range relevant to the query.
-
-    Returns:
-        Formatted web search results with findings, sources, and assessment.
+    The tool reports an explicit configuration error when no API key is present;
+    it never falls back to Foundry/Bing grounding.
     """
-    from ..config import load_settings
-
-    settings = load_settings()
-    fraud_settings = settings.fraud_detection
-
-    if not fraud_settings.web_intelligence_enabled or not fraud_settings.foundry_project_endpoint:
-        return "Recherche web non disponible (Web Intelligence Agent non configuré)."
-
-    result = _run_web_intelligence(
-        fraud_settings,
-        claim_date=date,
-        claim_location=location,
-        claim_nature=query,
-        claim_type=claim_type,
-        declared_amount="",
-    )
-
-    if not result or result.get("error"):
-        error_msg = result.get("error", "Erreur inconnue") if result else "Pas de résultat"
-        return f"Recherche web échouée : {error_msg}"
-
-    parts = []
-    # Overall assessment
-    assessment = result.get("overall_assessment", "")
-    if assessment:
-        parts.append(f"### Synthèse\n{assessment}")
-
-    # Event verification
-    event_verified = result.get("event_verified")
-    if event_verified is not None:
-        status = "✅ Confirmé" if event_verified else "❌ Non confirmé"
-        parts.append(f"**Événement vérifié** : {status}")
-
-    # Individual findings
-    findings = result.get("findings", [])
-    if findings:
-        parts.append("\n### Résultats de recherche")
-        for f in findings:
-            if isinstance(f, dict):
-                parts.append(
-                    f"- **{f.get('type', 'Info')}** : {f.get('detail', f.get('description', str(f)))}"
-                )
-            else:
-                parts.append(f"- {f}")
-
-    # Source URLs
-    sources = result.get("source_urls", [])
-    if sources:
-        parts.append("\n### Sources")
-        for url in sources[:10]:
-            parts.append(f"- {url}")
-
-    return "\n".join(parts) if parts else "Aucun résultat pertinent trouvé."
+    return webiq_search
 
 
 def analyze_image_fraud(
@@ -1722,6 +1667,7 @@ def analyze_image_fraud(
     filename: str = "",
     declaration_text: str = "",
     reasoning_effort: str = "medium",
+    language: str = "en",
 ) -> str:
     """Analyze claim photos for manipulation, AI generation, and declaration consistency.
 
@@ -1746,6 +1692,9 @@ def analyze_image_fraud(
         JSON fraud analysis with authenticity scores, manipulation indicators,
         declaration cross-check results, and overall fraud risk.
     """
+    from ..languages import require_language
+
+    language = require_language(language)
     # Detect whether we're already inside an async event loop (e.g. FastAPI)
     try:
         loop = asyncio.get_running_loop()
@@ -1756,14 +1705,16 @@ def analyze_image_fraud(
         # Called from async context (FastAPI) — can't nest event loops.
         # Fall back to synchronous ThreadPoolExecutor-based parallelism.
         raw_result = _fraud_orchestrator_sync(
-            application_id, filename, declaration_text, reasoning_effort
+            application_id, filename, declaration_text, reasoning_effort, language
         )
     else:
         # Called from sync context (Agent Framework tool) — use asyncio
         new_loop = asyncio.new_event_loop()
         try:
             raw_result = new_loop.run_until_complete(
-                _fraud_orchestrator(application_id, filename, declaration_text, reasoning_effort)
+                _fraud_orchestrator(
+                    application_id, filename, declaration_text, reasoning_effort, language
+                )
             )
         finally:
             new_loop.close()
@@ -1785,6 +1736,7 @@ async def _fraud_orchestrator(
     filename: str,
     declaration_text: str,
     reasoning_effort: str,
+    language: str,
 ) -> str:
     """Async fraud orchestrator — runs vision, context, and policies in parallel."""
     from ..config import load_settings
@@ -1803,6 +1755,10 @@ async def _fraud_orchestrator(
     prompts = _load_fraud_prompts(settings.app.prompts_root, brand=settings.brand_name)
     if not prompts:
         return "Prompts de détection de fraude non disponibles."
+    from ..languages import language_instruction
+    for prompt_group in prompts.values():
+        if isinstance(prompt_group, dict) and isinstance(prompt_group.get("system_prompt"), str):
+            prompt_group["system_prompt"] += "\n\n" + language_instruction(language)
 
     decl_text = declaration_text or app_md.document_markdown or ""
     if not decl_text:
@@ -1917,7 +1873,7 @@ async def _fraud_orchestrator(
             logger.warning("Context: policy search failed: %s", exc)
             return ""
 
-    # ── Branch D: Web Intelligence (Web IQ, or Foundry Agent + Bing WebSearch) ──
+    # ── Branch D: Web Intelligence (dedicated Microsoft Web IQ MCP connection) ──
     async def _web_intelligence_branch() -> dict:
         if not _web_intelligence_available(settings):
             return {}
@@ -1935,6 +1891,7 @@ async def _fraud_orchestrator(
                 ),
                 claim_type=app_md.persona or "sinistre",
                 declared_amount=declared_amount,
+                language=language,
             )
         except Exception as exc:
             logger.warning("Web intelligence branch failed: %s", exc)
@@ -2002,6 +1959,7 @@ def _fraud_orchestrator_sync(
     filename: str,
     declaration_text: str,
     reasoning_effort: str,
+    language: str,
 ) -> str:
     """Sync fraud orchestrator for FastAPI context — uses ThreadPoolExecutor for parallelism."""
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -2021,6 +1979,10 @@ def _fraud_orchestrator_sync(
     prompts = _load_fraud_prompts(settings.app.prompts_root, brand=settings.brand_name)
     if not prompts:
         return "Prompts de détection de fraude non disponibles."
+    from ..languages import language_instruction
+    for prompt_group in prompts.values():
+        if isinstance(prompt_group, dict) and isinstance(prompt_group.get("system_prompt"), str):
+            prompt_group["system_prompt"] += "\n\n" + language_instruction(language)
 
     decl_text = declaration_text or app_md.document_markdown or ""
     if not decl_text:
@@ -2113,6 +2075,7 @@ def _fraud_orchestrator_sync(
                 ),
                 claim_type=app_md.persona or "sinistre",
                 declared_amount=declared_amount,
+                language=language,
             )
 
         # Collect vision results
@@ -2259,17 +2222,12 @@ def _load_fraud_prompts(prompts_root: str, brand: str = "") -> dict:
 
 
 def _web_intelligence_available(settings) -> bool:
-    fraud_settings = settings.fraud_detection
-    return create_webiq_tool(settings) is not None or bool(
-        fraud_settings.web_intelligence_enabled and fraud_settings.foundry_project_endpoint
-    )
+    return create_webiq_tool(settings) is not None
 
 
 def _run_claim_web_intelligence(settings, **claim) -> dict:
-    """Branch D dispatcher: Microsoft Web IQ when configured, else the Foundry Bing agent."""
-    if create_webiq_tool(settings) is not None:
-        return _run_webiq_intelligence(settings, **claim)
-    return _run_web_intelligence(settings.fraud_detection, **claim)
+    """Run claim verification through the dedicated Microsoft Web IQ MCP connection."""
+    return _run_webiq_intelligence(settings, **claim)
 
 
 def _run_webiq_intelligence(
@@ -2279,6 +2237,7 @@ def _run_webiq_intelligence(
     claim_nature: str,
     claim_type: str,
     declared_amount: str,
+    language: str = "en",
 ) -> dict:
     """Branch D via Microsoft Web IQ: weather, Cat-Nat decrees and local news at the claim date.
 
@@ -2286,6 +2245,9 @@ def _run_webiq_intelligence(
     passages into the same structured result as the Foundry agent path.
     """
     from ..openai_client import chat_completion
+    from ..languages import language_instruction, require_language
+
+    language = require_language(language)
 
     fraud_settings = settings.fraud_detection
     place = claim_location or "France"
@@ -2298,7 +2260,9 @@ def _run_webiq_intelligence(
     ]
 
     async def _search_all():
-        return await asyncio.gather(*(webiq_search(q, news=n) for q, n in queries))
+        return await asyncio.gather(
+            *(webiq_search(q, news=n, language=language) for q, n in queries)
+        )
 
     started = time.perf_counter()
     try:
@@ -2310,7 +2274,9 @@ def _run_webiq_intelligence(
     corpus = "\n\n".join(
         f"=== Recherche : {q} ===\n{p}" for (q, _), p in zip(queries, passages)
     )[:12000]
-    source_urls = list(dict.fromkeys(re.findall(r"Source : (https?://\S+)", corpus)))[:10]
+    source_urls = list(
+        dict.fromkeys(re.findall(r"(?:Source|Quelle)\s*:\s*(https?://\S+)", corpus))
+    )[:10]
     messages = [
         {
             "role": "system",
@@ -2320,7 +2286,8 @@ def _run_webiq_intelligence(
                 "à la date et au lieu du sinistre. N'invente aucune source. Réponds en JSON : "
                 '{"event_verified": true|false|null, "confidence": 0.0-1.0, '
                 '"findings": [{"title": str, "summary": str, "source_url": str, "supports_claim": true|false|null}], '
-                '"overall_assessment": str}. Rédige en français.'
+                '"overall_assessment": str}. '
+                + language_instruction(language)
             ),
         },
         {
@@ -2354,122 +2321,6 @@ def _run_webiq_intelligence(
         (time.perf_counter() - started) * 1000, len(source_urls),
     )
     return parsed
-
-
-def _run_web_intelligence(
-    fraud_settings,
-    claim_date: str,
-    claim_location: str,
-    claim_nature: str,
-    claim_type: str,
-    declared_amount: str,
-) -> dict:
-    """Branch D: Query Foundry Agent Service with WebSearchTool for claim verification.
-
-    Creates a query from claim context and sends it to a persistent Foundry agent
-    that has Bing WebSearch enabled. Returns structured findings with source URLs.
-    """
-    try:
-        from azure.identity import DefaultAzureCredential
-        from azure.ai.projects import AIProjectClient
-    except ImportError:
-        logger.warning("azure-ai-projects not installed — web intelligence disabled")
-        return {}
-
-    agent_name = fraud_settings.web_intelligence_agent_name
-    started = time.perf_counter()
-    # The claim location (an address) is deliberately not exported as a span attribute.
-    with start_span(
-        "web_intelligence.query",
-        {
-            "gen_ai.operation.name": "web_intelligence",
-            "gen_ai.system": "foundry_agent_service",
-            "gen_ai.agent.name": agent_name,
-            "workbenchiq.claim_type": claim_type,
-            "workbenchiq.claim_nature": (claim_nature or "unknown")[:100],
-            "workbenchiq.agent_name": agent_name,
-        },
-        tracer_name="workbenchiq.web_intelligence",
-        kind="client",
-    ) as span:
-        logger.debug("Web intelligence: querying Foundry agent %s (claim_type=%s)", agent_name, claim_type)
-        try:
-            project = AIProjectClient(
-                endpoint=fraud_settings.foundry_project_endpoint,
-                credential=DefaultAzureCredential(),
-            )
-            openai_client = project.get_openai_client()
-
-            # Build a focused query from claim context
-            query_parts = [f"Vérification sinistre assurance {claim_type}"]
-            if claim_nature:
-                query_parts.append(f"Nature: {claim_nature}")
-            if claim_location:
-                query_parts.append(f"Lieu: {claim_location}")
-            if claim_date and claim_date != "non spécifiée":
-                query_parts.append(f"Date: {claim_date}")
-            if declared_amount and declared_amount != "non spécifié":
-                query_parts.append(f"Montant déclaré: {declared_amount}")
-
-            query = ". ".join(query_parts) + (
-                ". Recherche SPÉCIFIQUEMENT pour cette commune et cette date : "
-                "1) Arrêté Cat-Nat publié au JO couvrant cette commune à cette date. "
-                "2) Bulletins météo Météo-France pour cette zone et cette période. "
-                "3) Articles de presse locale confirmant l'événement. "
-                "4) Indices de référence (FFB, Argus) pertinents pour le montant. "
-                "Retourne un JSON avec event_verified (true/false), confidence (0.0-1.0), "
-                "findings[] (chaque finding avec title, summary, source_url, supports_claim), "
-                "source_urls[], et overall_assessment. "
-                "Sois PRÉCIS : cite les numéros d'arrêtés, les communes listées, les dates exactes."
-            )
-
-            response = openai_client.responses.create(
-                input=query,
-                extra_body={
-                    "agent_reference": {
-                        "name": agent_name,
-                        "type": "agent_reference",
-                    }
-                },
-            )
-
-            result_text = response.output_text or ""
-            # Extract URL citations from response
-            citations = []
-            for item in response.output or []:
-                if getattr(item, "type", None) == "message":
-                    for content_block in getattr(item, "content", []):
-                        if getattr(content_block, "type", None) == "output_text":
-                            for annotation in getattr(content_block, "annotations", []):
-                                if getattr(annotation, "type", None) == "url_citation":
-                                    url = getattr(annotation, "url", "")
-                                    if url:
-                                        citations.append(url)
-
-            # Try to parse as JSON, fallback to text summary
-            parsed = _parse_json_robust(result_text)
-            if parsed.get("parse_error"):
-                parsed = {
-                    "overall_assessment": result_text[:2000],
-                    "findings": [],
-                }
-            parsed["source_urls"] = citations
-
-            findings = parsed.get("findings")
-            findings_count = len(findings) if isinstance(findings, list) else 0
-            span.set_attribute("workbenchiq.citations_count", len(citations))
-            span.set_attribute("workbenchiq.event_verified", str(parsed.get("event_verified", "unknown")))
-            span.set_attribute("workbenchiq.findings_count", findings_count)
-            logger.info(
-                "Web intelligence completed: agent=%s duration_ms=%d citations=%d findings=%d",
-                agent_name, (time.perf_counter() - started) * 1000, len(citations), findings_count,
-            )
-            return parsed
-
-        except Exception as exc:
-            logger.warning("Foundry web intelligence agent call failed: %s", exc)
-            record_span_error(span, exc)
-            return {"error": str(exc)}
 
 
 def _load_file_bytes(settings, application_id: str, filename: str) -> bytes | None:

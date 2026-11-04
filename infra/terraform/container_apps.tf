@@ -65,10 +65,8 @@ locals {
     # Azure AI Search (corrections index)
     AZURE_SEARCH_ENDPOINT   = "https://${azurerm_search_service.this.name}.search.windows.net"
     AZURE_SEARCH_INDEX_NAME = "corrections"
-    # Web Intelligence agent (Foundry Agent Service + Bing grounding)
-    WEB_INTELLIGENCE_ENABLED    = "true"
-    FOUNDRY_PROJECT_ENDPOINT    = local.foundry_project_endpoint
-    WEB_INTELLIGENCE_AGENT_NAME = "PrevaIQ-WebIntelligence"
+    # Foundry project is used by the Fabric Data Agent connection only.
+    FOUNDRY_PROJECT_ENDPOINT = local.foundry_project_endpoint
   }
 
   # Fabric Data Agent IDs (set them after creating the Data Agent in Fabric); omitted while empty.

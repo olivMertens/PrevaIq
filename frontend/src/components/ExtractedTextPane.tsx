@@ -203,7 +203,7 @@ export default function ExtractedTextPane({
       <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200">
         <div className="min-w-0">
           <div className="text-sm text-gray-600">
-            <span className="font-medium text-gray-900">Page {page.page_number}</span>
+            <span className="font-medium text-gray-900">{t('pageNumber', { page: page.page_number })}</span>
             {' — '}
             <span>{shortFileName(page.file)}</span>
           </div>
@@ -260,10 +260,10 @@ export default function ExtractedTextPane({
                 <div className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-900">
-                    AI Summary — Batch {batchSummary.batch_num}
+                    {t('aiBatchSummary', { batch: batchSummary.batch_num })}
                   </span>
                   <span className="text-xs text-blue-600">
-                    (Pages {batchSummary.page_start}–{batchSummary.page_end})
+                    ({t('pageRange', { start: batchSummary.page_start, end: batchSummary.page_end })})
                   </span>
                 </div>
                 {batchExpanded ? (

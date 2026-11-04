@@ -64,14 +64,14 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
         setAllTerms(terms);
       } catch (err) {
         console.error('Failed to load glossary:', err);
-        addToast('error', 'Impossible de charger le glossaire');
+        addToast('error', t('loadError'));
       } finally {
         setLoading(false);
       }
     }
     
     loadGlossary();
-  }, [currentPersona, isOpen]);
+  }, [currentPersona, isOpen, addToast, t]);
 
   // Search effect with debounce
   useEffect(() => {

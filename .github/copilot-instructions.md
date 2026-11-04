@@ -59,7 +59,7 @@ PrevaIQ (technical name *WorkbenchIQ*) is a brand-agnostic, AI-powered insurance
 
 ### Microsoft Agent Framework
 - **NEVER depend on `agent-framework` metapackage** — it overwrites `agent_framework/__init__.py` with an empty file in Docker, breaking all imports
-- **ALWAYS use `agent-framework-core>=1.21.0,<2.0` + `agent-framework-openai>=1.15.0,<2.0`** as direct dependencies
+- **ALWAYS use `agent-framework-core>=1.24.0,<2.0` + `agent-framework-openai>=1.18.0,<2.0`** as direct dependencies
 - Import: `from agent_framework import Agent` (`ChatAgent` is not exported)
 - Workflows run branches with `asyncio.gather` (see `app/agents/workflows.py`); Web IQ via `MCPStreamableHTTPTool`
 - In `agent-framework-openai` 1.x, `OpenAIChatClient` = **Responses API**, `OpenAIChatCompletionClient` = Chat Completions. `AGENTS_OPENAI_API` (`responses` default / `chat_completions` rollback) selects the client in `_build_chat_client`. `app/openai_client.chat_completion` stays on Chat Completions for JSON prompts.
@@ -82,7 +82,8 @@ PrevaIQ (technical name *WorkbenchIQ*) is a brand-agnostic, AI-powered insurance
 ### Branding
 - App name: **PrevaIQ** (Azure resources and images are named `prevaiq`; the technical name WorkbenchIQ remains only in the repository, the Python package and the PostgreSQL schema)
 - Brand config: `app/brands.py` (backend) and `frontend/src/lib/brand.ts` (frontend) — PrevaIQ only
-- Logo: `frontend/public/prevaiq-logo.svg`
+- Logo: exact FDR PNGs `frontend/public/prevaiq-logo.png` / `prevaiq-logo-dark.png`, rendered through `BrandMark` (choose the variant for the actual surface; never invert/recolor it). Canonical files: `assets/logos/prevaiq_*.png`.
+- Favicon: exact FDR `frontend/public/favicon.svg`; PNG touch icon: `prevaiq-icon.png`. Approved byte hashes and integration checks: `npm run test:branding` in `frontend/`. See `frontend/README.md` for compatibility aliases.
 - Primary color: `#17395C`, Secondary: `#2EC4B6`, Accent: `#0F2E4D`
 - Default language: English (`<html lang="en">`), French available via the FR/EN switcher
 - All persona names in French (Souscription, Sinistres Auto, etc.)

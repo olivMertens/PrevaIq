@@ -122,7 +122,7 @@ export default function FamilyHistoryPanel({ application }: FamilyHistoryPanelPr
         <div className="flex items-center gap-2">
           {/* Confidence & Citation indicators */}
           {confidence !== undefined && (
-            <ConfidenceIndicator confidence={confidence} fieldName="Antécédents familiaux" />
+            <ConfidenceIndicator confidence={confidence} fieldName={t('title')} />
           )}
           {citationData && (
             <CitationTooltip citation={citationData} appId={application.id}>

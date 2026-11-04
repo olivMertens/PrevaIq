@@ -5,8 +5,8 @@
       "id": "habitation-degats-eaux",
       "persona": "habitation_claims",
       "files": [
-        "assets/demo-prevaiq/habitation/declaration-sinistre-habitation.pdf",
-        "assets/demo-prevaiq/habitation/facture-plombier-degats-eaux.pdf"
+        "assets/demo-prevaiq/property-claims/wine-cellar/declaration-sinistre-habitation.pdf",
+        "assets/demo-prevaiq/property-claims/wine-cellar/facture-plombier-degats-eaux.pdf"
       ],
       "expected_values": [
         "SIN-2026-HAB-04837",
@@ -21,7 +21,7 @@
     {
       "id": "souscription-sante-lefevre",
       "persona": "underwriting",
-      "files": ["assets/demo-prevaiq/sante/souscription-sante-lefevre.pdf"],
+      "files": ["assets/demo-prevaiq/health-underwriting/souscription-sante-lefevre.pdf"],
       "expected_values": [
         "LEFEVRE Antoine",
         "12 septembre 1977",

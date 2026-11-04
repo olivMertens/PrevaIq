@@ -83,17 +83,17 @@ function parseHazardousActivities(value: unknown): string | null {
 /**
  * Parse foreign travel, handling French responses
  */
-function parseForeignTravel(value: unknown): string | null {
+function parseForeignTravel(value: unknown, t: (key: string) => string): string | null {
   if (!value) return null;
   const strVal = safeStringify(value);
   if (!strVal) return null;
   // Handle French "Non" or "Oui"
-  if (strVal.toLowerCase() === 'non') return 'Aucun prévu';
-  if (strVal.toLowerCase() === 'oui') return 'Oui — voir détails';
+  if (strVal.toLowerCase() === 'non') return t('nonePlanned');
+  if (strVal.toLowerCase() === 'oui') return t('yesSeeDetails');
   return strVal;
 }
 
-function parseOccupationData(application: ApplicationMetadata): OccupationData {
+function parseOccupationData(application: ApplicationMetadata, t: (key: string) => string): OccupationData {
   const fields = application.extracted_fields || {};
   
   // Try to get occupation from LLM outputs first
@@ -131,7 +131,7 @@ function parseOccupationData(application: ApplicationMetadata): OccupationData {
       citation: hazardousField,
     },
     foreignTravel: { 
-      value: parseForeignTravel(travelField?.value),
+      value: parseForeignTravel(travelField?.value, t),
       confidence: travelField?.confidence,
       citation: travelField,
     },
@@ -140,7 +140,7 @@ function parseOccupationData(application: ApplicationMetadata): OccupationData {
 
 export default function OccupationPanel({ application }: OccupationPanelProps) {
   const t = useTranslations('occupation');
-  const data = parseOccupationData(application);
+  const data = parseOccupationData(application, t);
   const hasData = data.occupation.value || data.hazardousActivities.value || data.foreignTravel.value;
 
   // Helper to build citation data

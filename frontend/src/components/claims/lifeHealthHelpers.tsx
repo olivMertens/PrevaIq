@@ -24,11 +24,10 @@ export function parseDate(text: string): Date | null {
   return null;
 }
 
-export function formatDateDisplay(date: Date | null): { date: string; year: string } {
+export function formatDateDisplay(date: Date | null, locale: string): { date: string; year: string } {
   if (!date) return { date: 'N/A', year: '' };
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return {
-    date: `${months[date.getMonth()]}-${date.getDate().toString().padStart(2, '0')}`,
+    date: new Intl.DateTimeFormat(locale, { month: 'short', day: '2-digit' }).format(date),
     year: date.getFullYear().toString(),
   };
 }

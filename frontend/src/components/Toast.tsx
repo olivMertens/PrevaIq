@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X, AlertCircle, CheckCircle2, Info, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export interface ToastMessage {
   id: string;
@@ -17,6 +18,7 @@ interface ToastProps {
 const TOAST_DURATION = 6000;
 
 function ToastItem({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () => void }) {
+  const t = useTranslations('toast');
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastMessage; onDismiss: () =>
     warning: AlertTriangle,
   };
   const Icon = icons[toast.type];
-  const message = toast.message?.trim() || 'Erreur inattendue';
+  const message = toast.message?.trim() || t('unexpectedError');
 
   return (
     <div

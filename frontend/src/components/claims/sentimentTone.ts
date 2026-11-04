@@ -19,7 +19,6 @@ export interface SeverityTone {
   /** Optional subtle banner background — currently kept slate for visual calm. */
   badgeBg: string;
   badgeText: string;
-  label: string;
 }
 
 /**
@@ -52,7 +51,6 @@ export function toneForSeverity(severity: Severity): SeverityTone {
           'bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100',
         badgeBg: 'bg-rose-100',
         badgeText: 'text-rose-700',
-        label: 'Attention requise',
       };
     case 'warning':
       return {
@@ -61,7 +59,6 @@ export function toneForSeverity(severity: Severity): SeverityTone {
           'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100',
         badgeBg: 'bg-amber-100',
         badgeText: 'text-amber-700',
-        label: 'Vigilance',
       };
     case 'serene':
       return {
@@ -70,7 +67,6 @@ export function toneForSeverity(severity: Severity): SeverityTone {
           'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100',
         badgeBg: 'bg-emerald-100',
         badgeText: 'text-emerald-700',
-        label: 'Serein',
       };
     case 'normal':
     default: {
@@ -80,7 +76,6 @@ export function toneForSeverity(severity: Severity): SeverityTone {
           'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100',
         badgeBg: 'bg-slate-100',
         badgeText: 'text-slate-700',
-        label: 'Normal',
       };
     }
   }

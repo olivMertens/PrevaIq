@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, FormEvent, type CSSProperties } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useTranslations } from 'next-intl';
-import { brand } from '@/lib/brand';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
+import BrandMark from '@/components/BrandMark';
+import { useLoginTheme } from '@/components/auth/LoginShell';
+import styles from '@/components/auth/login.module.css';
 import LoginHero from '@/components/auth/LoginHero';
 import EntraButton from '@/components/auth/EntraButton';
 import { mailtoHref, useAuthProviders } from '@/components/auth/useAuthProviders';
@@ -16,6 +17,7 @@ const CALLBACK_ERRORS: Record<string, 'errorState' | 'errorEntra' | 'errorCapaci
 
 export default function LoginPage() {
   const t = useTranslations('auth');
+  const theme = useLoginTheme();
   const { entraEnabled, localAuthEnabled, loaded, requestEmail } = useAuthProviders();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -63,63 +65,57 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen bg-slate-50 lg:grid-cols-[1.1fr_1fr]">
+    <div className={styles.layout}>
       <LoginHero />
-      <main className="relative flex items-center justify-center px-6 py-10">
-        <div className="absolute right-6 top-6">
-          <LanguageSwitcher />
-        </div>
-      <div className="w-full max-w-sm space-y-5">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">{brand.name}</h2>
-          <p className="text-sm text-slate-500 mt-1">{t('signIn')}</p>
-        </div>
+      <section className={styles.card} aria-labelledby="login-title">
+        <div className={styles.cardBrand}><BrandMark surface={theme} /></div>
+        <h2 id="login-title" className={styles.title}>{t('signIn')}</h2>
 
         {entraEnabled && (
-          <div className="space-y-2">
+          <div className={styles.sso}>
             <EntraButton label={t('entraButton')} />
-            <p className="text-xs text-slate-500">{t('entraHint')}</p>
-            {localAuthEnabled && <div className="flex items-center gap-3 pt-2 text-xs uppercase tracking-wide text-slate-400">
-              <span className="h-px flex-1 bg-slate-200" />
+            <p className={styles.hint}>{t('entraHint')}</p>
+            {localAuthEnabled && <div className={styles.divider}>
+              <span />
               {t('or')} · {t('demoAccount')}
-              <span className="h-px flex-1 bg-slate-200" />
+              <span />
             </div>}
           </div>
         )}
 
         {loaded && !entraEnabled && !localAuthEnabled && (
-          <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div role="alert" className={styles.error}>
             {t('unavailable')}
           </div>
         )}
 
         {(entraEnabled || localAuthEnabled) && (
-          <p className="text-xs leading-relaxed text-slate-500">{t('demoAccessNotice')}</p>
+          <p className={styles.hint}>{t('demoAccessNotice')}</p>
         )}
 
-        <div aria-live="polite">
+        <div aria-live="polite" className={styles.feedback}>
           {alreadyConnected && (
-            <div className="bg-orange-50 text-orange-700 text-sm px-4 py-3 rounded-lg border border-orange-200">
+            <div className={styles.warning}>
               {t('alreadyConnected')}
             </div>
           )}
 
           {capacityFull && (
-            <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200">
+            <div className={styles.error}>
               {t('capacityFull')}
             </div>
           )}
 
           {error && !capacityFull && !alreadyConnected && (
-            <div className="bg-red-50 text-red-700 text-sm px-4 py-3 rounded-lg border border-red-200">
+            <div className={styles.error}>
               {error}
             </div>
           )}
         </div>
 
-        {localAuthEnabled && <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-lg border border-slate-200 p-6 space-y-4">
+        {localAuthEnabled && <form onSubmit={handleSubmit} className={styles.form}>
           <div>
-            <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="username" className={styles.label}>
               {t('username')}
             </label>
             <input
@@ -133,14 +129,13 @@ export default function LoginPage() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors"
-              style={{ '--tw-ring-color': brand.secondary } as CSSProperties}
+              className={styles.input}
               placeholder={t('username')}
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1.5">
+            <label htmlFor="password" className={styles.label}>
               {t('password')}
             </label>
             <input
@@ -150,8 +145,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 transition-colors"
-              style={{ '--tw-ring-color': brand.secondary } as CSSProperties}
+              className={styles.input}
               placeholder={t('password')}
             />
           </div>
@@ -159,36 +153,33 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 text-white text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            style={{ backgroundColor: brand.primary, '--tw-ring-color': brand.secondary } as CSSProperties}
+            className={styles.button}
           >
             {loading ? t('loggingIn') : t('loginButton')}
           </button>
         </form>}
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <h3 className="text-sm font-semibold text-slate-900">{t('requestTitle')}</h3>
-          <p className="mt-1 text-xs text-slate-600">{t('requestLead')}</p>
+        <div className={styles.request}>
+          <h3>{t('requestTitle')}</h3>
+          <p>{t('requestLead')}</p>
           {requestEmail && (
             <a
               href={mailtoHref(requestEmail, t('requestMailSubject'), t('requestMailBody'))}
-              className="mt-3 inline-flex rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-50"
-              style={{ color: brand.primary, borderColor: `${brand.primary}40` }}
+              className={`${styles.button} ${styles.secondary}`}
             >
               {t('requestButton')}
             </a>
           )}
           {requestEmail && (
-            <p className="mt-3 text-xs text-slate-600">
+            <p className={styles.contact}>
               {t('contactUs')}:{' '}
-              <a href={`mailto:${requestEmail}`} className="font-medium underline" style={{ color: brand.primary }}>
+              <a href={`mailto:${requestEmail}`} className={styles.link}>
                 {requestEmail}
               </a>
             </p>
           )}
         </div>
-      </div>
-      </main>
+      </section>
     </div>
   );
 }

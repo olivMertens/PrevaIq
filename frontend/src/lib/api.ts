@@ -36,6 +36,17 @@ import { textValue } from './applicationDisplay';
 
 // Backend API base URL - uses relative paths to go through Next.js proxy rewrites
 const API_BASE_URL = '';
+const SUPPORTED_LOCALES = new Set(['en', 'fr', 'de']);
+
+function resolveLocale(locale?: string): string {
+  const browserLocale = typeof document !== 'undefined'
+    ? document.documentElement.lang
+    : typeof navigator !== 'undefined'
+      ? navigator.language
+      : 'en';
+  const normalized = (locale || browserLocale || 'en').trim().toLowerCase().split('-')[0];
+  return SUPPORTED_LOCALES.has(normalized) ? normalized : 'en';
+}
 
 /**
  * Get the media base URL.
@@ -211,8 +222,11 @@ export async function listApplications(persona?: string): Promise<ApplicationLis
 /**
  * Get detailed metadata for a specific application
  */
-export async function getApplication(appId: string): Promise<ApplicationMetadata> {
-  return apiFetch<ApplicationMetadata>(`/api/applications/${appId}`);
+export async function getApplication(appId: string, locale?: string): Promise<ApplicationMetadata> {
+  const params = new URLSearchParams({ language: resolveLocale(locale) });
+  return apiFetch<ApplicationMetadata>(
+    `/api/applications/${encodeURIComponent(appId)}?${params.toString()}`
+  );
 }
 
 export async function deleteApplication(appId: string): Promise<void> {
@@ -337,7 +351,7 @@ export async function runContentUnderstanding(
 /**
  * Run underwriting prompts analysis on an application
  * @param background If true, starts in background and returns immediately
- * @param locale Optional UI locale (fr/en) — controls LLM response language
+ * @param locale Optional UI locale (en/fr/de) — controls LLM response language
  */
 export async function runUnderwritingAnalysis(
   appId: string,
@@ -476,13 +490,16 @@ export async function pollForAnalysisCompletion(
 export async function runRiskAnalysis(
   appId: string,
   timeout: number = 300000,
-  interval: number = 2000
+  interval: number = 2000,
+  locale?: string
 ): Promise<ApplicationMetadata> {
   let response: Response;
   try {
-    response = await fetch(`/api/applications/${appId}/risk-analysis`, {
-      method: 'POST',
-    });
+    const params = new URLSearchParams({ language: resolveLocale(locale) });
+    response = await fetch(
+      `/api/applications/${encodeURIComponent(appId)}/risk-analysis?${params.toString()}`,
+      { method: 'POST' }
+    );
   } catch (err) {
     // Network-level failure (TypeError) — e.g. connection dropped.
     throw new Error(
@@ -519,7 +536,7 @@ export async function runRiskAnalysis(
   // Poll until the background task finishes (status leaves 'analyzing').
   const startTime = Date.now();
   while (true) {
-    const app = await getApplication(appId);
+    const app = await getApplication(appId, locale);
 
     if (app.processing_status === 'error' || (app as any).processing_error) {
       throw new Error(
@@ -546,13 +563,17 @@ export async function runRiskAnalysis(
  * Returns immediately. Client should poll getApplication() for status updates.
  * @param processingMode - 'auto', 'large_document', or 'standard'
  */
-export async function startProcessing(appId: string, processingMode?: string): Promise<ApplicationMetadata> {
-  const url = processingMode 
-    ? `/api/applications/${appId}/process?processing_mode=${processingMode}`
-    : `/api/applications/${appId}/process`;
-  return apiFetch<ApplicationMetadata>(url, {
-    method: 'POST',
-  });
+export async function startProcessing(
+  appId: string,
+  processingMode?: string,
+  locale?: string
+): Promise<ApplicationMetadata> {
+  const params = new URLSearchParams({ language: resolveLocale(locale) });
+  if (processingMode) params.set('processing_mode', processingMode);
+  return apiFetch<ApplicationMetadata>(
+    `/api/applications/${encodeURIComponent(appId)}/process?${params.toString()}`,
+    { method: 'POST' }
+  );
 }
 
 // ============================================================================
@@ -1745,18 +1766,30 @@ export async function getMediaDamageAreas(
 /**
  * Get property deep dive analysis for a mortgage application
  */
-export async function getPropertyDeepDive(appId: string): Promise<import('./types').PropertyDeepDiveData> {
-  return apiFetch<import('./types').PropertyDeepDiveData>(`/api/mortgage/applications/${appId}/property-deep-dive`);
+export async function getPropertyDeepDive(
+  appId: string,
+  locale?: string
+): Promise<import('./types').PropertyDeepDiveData> {
+  const params = new URLSearchParams({ language: resolveLocale(locale) });
+  return apiFetch<import('./types').PropertyDeepDiveData>(
+    `/api/mortgage/applications/${encodeURIComponent(appId)}/property-deep-dive?${params.toString()}`
+  );
 }
 
 /**
  * Run property deep dive analysis
  */
-export async function runPropertyDeepDive(appId: string, force: boolean = false): Promise<import('./types').PropertyDeepDiveData> {
-  const params = force ? '?force=true' : '';
-  return apiFetch<import('./types').PropertyDeepDiveData>(`/api/mortgage/applications/${appId}/property-deep-dive${params}`, {
-    method: 'POST',
-  });
+export async function runPropertyDeepDive(
+  appId: string,
+  force: boolean = false,
+  locale?: string
+): Promise<import('./types').PropertyDeepDiveData> {
+  const params = new URLSearchParams({ language: resolveLocale(locale) });
+  if (force) params.set('force', 'true');
+  return apiFetch<import('./types').PropertyDeepDiveData>(
+    `/api/mortgage/applications/${encodeURIComponent(appId)}/property-deep-dive?${params.toString()}`,
+    { method: 'POST' }
+  );
 }
 
 // =============================================================================

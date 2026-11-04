@@ -140,7 +140,7 @@ export default function MortgageWorkbench({
       setApplication(app);
     } catch (err) {
       console.error('Failed to fetch mortgage data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load mortgage data');
+      setError(err instanceof Error ? err.message : t('loadError'));
       addToast('error', t('loadError'));
     } finally {
       setIsRefreshing(false);

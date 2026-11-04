@@ -201,27 +201,29 @@ function PolicyCitations({
 }
 
 // Agent badge config — maps tool names & agent hints to display badges
-const TOOL_BADGES: Record<string, { label: string; color: string; icon: typeof Bot }> = {
-  search_policies: { label: 'Polices RAG', color: 'bg-amber-100 text-amber-700', icon: Shield },
-  get_application_summary: { label: 'Données', color: 'bg-emerald-100 text-emerald-700', icon: Database },
-  get_glossary: { label: 'Glossaire', color: 'bg-violet-100 text-violet-700', icon: BookOpen },
-  query_fabric_data: { label: 'Fabric', color: 'bg-cyan-100 text-cyan-700', icon: BarChart3 },
-  analyze_image_fraud: { label: 'Détection Fraude', color: 'bg-purple-100 text-purple-700', icon: Shield },
-  web_search: { label: 'Web Search', color: 'bg-blue-100 text-blue-700', icon: Globe },
-  webiq_search: { label: 'Web IQ', color: 'bg-blue-100 text-blue-700', icon: Globe },
+const TOOL_BADGES: Record<string, { labelKey: string; color: string; icon: typeof Bot }> = {
+  search_policies: { labelKey: 'toolBadges.policies', color: 'bg-amber-100 text-amber-700', icon: Shield },
+  get_application_summary: { labelKey: 'toolBadges.data', color: 'bg-emerald-100 text-emerald-700', icon: Database },
+  get_glossary: { labelKey: 'toolBadges.glossary', color: 'bg-violet-100 text-violet-700', icon: BookOpen },
+  query_fabric_data: { labelKey: 'toolBadges.fabric', color: 'bg-cyan-100 text-cyan-700', icon: BarChart3 },
+  analyze_image_fraud: { labelKey: 'toolBadges.fraudDetection', color: 'bg-purple-100 text-purple-700', icon: Shield },
+  web_search: { labelKey: 'toolBadges.webSearch', color: 'bg-blue-100 text-blue-700', icon: Globe },
+  webiq_search: { labelKey: 'toolBadges.webIq', color: 'bg-blue-100 text-blue-700', icon: Globe },
 };
 
 // Detect which agents/tools contributed to a response
-function detectAgentBadges(msg: ChatMessage): { label: string; color: string; icon: typeof Bot }[] {
+function detectAgentBadges(msg: ChatMessage, t: (key: string) => string): { label: string; color: string; icon: typeof Bot }[] {
   const badges: { label: string; color: string; icon: typeof Bot }[] = [];
 
   // From RAG citations
   if (msg.rag?.citations && msg.rag.citations.length > 0) {
-    badges.push(TOOL_BADGES.search_policies);
+    badges.push({ ...TOOL_BADGES.search_policies, label: t(TOOL_BADGES.search_policies.labelKey) });
   }
 
   for (const tool of msg.agent?.tools_called ?? []) {
-    if (TOOL_BADGES[tool]) badges.push(TOOL_BADGES[tool]);
+    if (TOOL_BADGES[tool]) {
+      badges.push({ ...TOOL_BADGES[tool], label: t(TOOL_BADGES[tool].labelKey) });
+    }
   }
 
   // Deduplicate by label
@@ -230,7 +232,7 @@ function detectAgentBadges(msg: ChatMessage): { label: string; color: string; ic
 }
 
 // Quick-link toolbox for policy PDFs referenced in message
-function PolicyToolbox({ content, citations }: { content: string; citations?: RAGCitation[] }) {
+function PolicyToolbox({ content, citations, t }: { content: string; citations?: RAGCitation[]; t: (key: string, values?: Record<string, string | number>) => string }) {
   // Collect policy IDs from inline references (e.g. PC-COV-001) and from RAG citations
   const policyIds = new Set<string>();
   const inlineMatches = content.match(/\b[A-Z]+-[A-Z]+-\d+\b/g);
@@ -241,10 +243,10 @@ function PolicyToolbox({ content, citations }: { content: string; citations?: RA
 
   // Map policy ID prefixes to PDF filenames and labels
   const policyPdfMap: Record<string, { label: string; pdf: string }> = {
-    'PC': { label: 'CG Habitation', pdf: 'habitation' },
-    'LH': { label: 'CG Santé', pdf: 'sante' },
-    'AU': { label: 'CG Auto', pdf: 'auto' },
-    'MO': { label: 'CG Hypothécaire', pdf: 'hypothecaire' },
+    'PC': { label: t('policyDocs.property'), pdf: 'habitation' },
+    'LH': { label: t('policyDocs.health'), pdf: 'sante' },
+    'AU': { label: t('policyDocs.auto'), pdf: 'auto' },
+    'MO': { label: t('policyDocs.mortgage'), pdf: 'hypothecaire' },
   };
 
   // Group by PDF
@@ -274,7 +276,7 @@ function PolicyToolbox({ content, citations }: { content: string; citations?: RA
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded text-[10px] font-medium text-slate-600 hover:text-indigo-700 transition-colors"
-          title={`Ouvrir ${label} — Références: ${ids.join(', ')}`}
+          title={t('openPolicy', { label, references: ids.join(', ') })}
         >
           <ExternalLink className="w-2.5 h-2.5" />
           {label}
@@ -296,7 +298,8 @@ function MessageBubble({
   onFeedback?: (msg: ChatMessage, type: 'positive' | 'negative') => void;
 }) {
   const t = useTranslations('chat');
-  const agentBadges = msg.role === 'assistant' ? detectAgentBadges(msg) : [];
+  const locale = useLocale();
+  const agentBadges = msg.role === 'assistant' ? detectAgentBadges(msg, t) : [];
 
   return (
     <div className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -345,13 +348,13 @@ function MessageBubble({
 
         {/* Policy PDF toolbox — quick links to referenced CG documents */}
         {msg.role === 'assistant' && (
-          <PolicyToolbox content={msg.content} citations={msg.rag?.citations} />
+          <PolicyToolbox content={msg.content} citations={msg.rag?.citations} t={t} />
         )}
         
         <div className={`flex items-center gap-1 text-xs mt-1 ${
           msg.role === 'user' ? 'text-indigo-200' : 'text-slate-400'
         }`}>
-          <span>{msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+          <span>{msg.timestamp.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
           {msg.role === 'assistant' && msg.rag && <RAGStatsTooltip rag={msg.rag} />}
           {/* Feedback buttons for assistant messages */}
           {msg.role === 'assistant' && onFeedback && (
@@ -404,22 +407,22 @@ function MessageBubble({
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DECISION_LABELS: Record<string, string> = {
-  documented_recommendation: 'Recommandation',
-  recommendation: 'Recommandation',
-  decision: 'Décision',
-  rationale: 'Justifications',
-  reasoning: 'Justifications',
-  conditions_or_franchise: 'Conditions / Franchise',
-  conditions: 'Conditions',
-  next_steps: 'Prochaines étapes',
-  actions: 'Actions',
-  missing_items: 'Éléments manquants',
-  missing_documents: 'Documents manquants',
-  requires_human_review: 'Revue humaine requise',
-  confidence: 'Confiance',
-  risk_level: 'Niveau de risque',
-  citations: 'Citations',
-  sources: 'Sources',
+  documented_recommendation: 'recommendation',
+  recommendation: 'recommendation',
+  decision: 'decision',
+  rationale: 'rationale',
+  reasoning: 'rationale',
+  conditions_or_franchise: 'conditionsOrDeductible',
+  conditions: 'conditions',
+  next_steps: 'nextSteps',
+  actions: 'actions',
+  missing_items: 'missingItems',
+  missing_documents: 'missingDocuments',
+  requires_human_review: 'humanReview',
+  confidence: 'confidence',
+  risk_level: 'riskLevel',
+  citations: 'citations',
+  sources: 'sources',
 };
 
 function tryParseAgentJson(text: string): Record<string, unknown> | null {
@@ -436,24 +439,25 @@ function tryParseAgentJson(text: string): Record<string, unknown> | null {
   }
 }
 
-function humanizeKey(key: string): string {
+function humanizeKey(key: string, t: (key: string) => string): string {
   return DECISION_LABELS[key]
-    || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    ? t(`decisionFields.${DECISION_LABELS[key]}`)
+    : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
-function renderAgentValue(value: unknown, indent = 0): string {
+function renderAgentValue(value: unknown, t: (key: string) => string, indent = 0): string {
   if (value === null || value === undefined) return '_—_';
-  if (typeof value === 'boolean') return value ? '✅ Oui' : '❌ Non';
+  if (typeof value === 'boolean') return value ? `✅ ${t('yes')}` : `❌ ${t('no')}`;
   if (typeof value === 'number') return String(value);
   if (typeof value === 'string') return value.trim();
   if (Array.isArray(value)) {
-    if (value.length === 0) return '_(aucun)_';
+    if (value.length === 0) return `_(${t('none')})_`;
     return value
       .map(v => {
         if (typeof v === 'string') return `${'  '.repeat(indent)}- ${v.trim()}`;
         if (v && typeof v === 'object') {
           const inner = Object.entries(v as Record<string, unknown>)
-            .map(([k, val]) => `**${humanizeKey(k)}** : ${renderAgentValue(val, indent + 1)}`)
+            .map(([k, val]) => `**${humanizeKey(k, t)}** : ${renderAgentValue(val, t, indent + 1)}`)
             .join(' · ');
           return `${'  '.repeat(indent)}- ${inner}`;
         }
@@ -463,13 +467,13 @@ function renderAgentValue(value: unknown, indent = 0): string {
   }
   if (typeof value === 'object') {
     return Object.entries(value as Record<string, unknown>)
-      .map(([k, v]) => `- **${humanizeKey(k)}** : ${renderAgentValue(v, indent + 1)}`)
+      .map(([k, v]) => `- **${humanizeKey(k, t)}** : ${renderAgentValue(v, t, indent + 1)}`)
       .join('\n');
   }
   return String(value);
 }
 
-function formatAgentObject(obj: Record<string, unknown>): string | null {
+function formatAgentObject(obj: Record<string, unknown>, t: (key: string) => string): string | null {
   const keys = Object.keys(obj);
   const known = ['documented_recommendation', 'recommendation', 'decision', 'rationale', 'next_steps', 'missing_items', 'conditions_or_franchise', 'requires_human_review'];
   if (!keys.some(k => known.includes(k))) return null;
@@ -482,7 +486,7 @@ function formatAgentObject(obj: Record<string, unknown>): string | null {
       : lower.includes('deny') || lower.includes('reject') || lower === 'refuse' ? '🔴'
       : lower.includes('review') ? '🟡'
       : '🔵';
-    parts.push(`**${badge} ${humanizeKey('documented_recommendation')} :** \`${reco}\``);
+    parts.push(`**${badge} ${humanizeKey('documented_recommendation', t)} :** \`${reco}\``);
   }
 
   const order = [
@@ -502,17 +506,17 @@ function formatAgentObject(obj: Record<string, unknown>): string | null {
     const val = obj[key];
     if (val === undefined) continue;
     if (Array.isArray(val) && val.length === 0) continue;
-    parts.push(`\n**${humanizeKey(key)}**`);
-    parts.push(renderAgentValue(val));
+    parts.push(`\n**${humanizeKey(key, t)}**`);
+    parts.push(renderAgentValue(val, t));
   }
 
   return parts.join('\n');
 }
 
-function formatAgentText(text: string): string {
+function formatAgentText(text: string, t: (key: string) => string): string {
   const parsed = tryParseAgentJson(text);
   if (!parsed) return text;
-  const md = formatAgentObject(parsed);
+  const md = formatAgentObject(parsed, t);
   return md ?? text;
 }
 
@@ -650,27 +654,27 @@ export default function ChatDrawer({
     if (isMajor || hasRecourse || hasExpertise || hasCatNat || (contextLabels && contextLabels.length > 3)) {
       const score = (isMajor ? 25 : 0) + (hasRecourse ? 20 : 0) + (hasExpertise ? 15 : 0) + (hasCatNat ? 15 : 0) + ((contextLabels?.length || 0) > 3 ? 10 : 0);
       recs.push({ id: 'complet', score: Math.min(90, 50 + score), reason: [
-        isMajor && 'Sinistre majeur',
-        hasRecourse && 'Recours tiers',
-        hasExpertise && 'Expertise requise',
-        hasCatNat && 'Cat-Nat',
+        isMajor && t('recommendationSignals.majorClaim'),
+        hasRecourse && t('recommendationSignals.thirdPartyRecourse'),
+        hasExpertise && t('recommendationSignals.expertiseRequired'),
+        hasCatNat && t('recommendationSignals.catNat'),
       ].filter(Boolean).join(' + ') + ' — ' + t('recComplet') });
     }
 
     // Express workflow — routine/simple case
     if (!isMajor && !hasSIU && !hasCatNat && (contextLabels?.length || 0) <= 3) {
-      recs.push({ id: 'express', score: hasFraud ? 40 : 70, reason: 'Express — ' + t('recComplet').replace('complète', 'express') });
+      recs.push({ id: 'express', score: hasFraud ? 40 : 70, reason: t('recExpress') });
     }
 
     // Also recommend specific agent pills based on context
     if (hasMissingDocs) recs.push({ id: 'agent:analysis', score: 60, reason: t('recMissing') });
     if (hasRecourse) recs.push({ id: 'agent:policy', score: 55, reason: t('recRecourse') });
     if (isMortgagePersona && hasMortgageRisk) {
-      recs.push({ id: 'agent:analysis', score: 75, reason: 'Analyse HCSF recommandée' });
-      recs.push({ id: 'complet', score: 70, reason: 'Dossier hypothécaire sensible — revue complète' });
+      recs.push({ id: 'agent:analysis', score: 75, reason: t('recMortgageHcsf') });
+      recs.push({ id: 'complet', score: 70, reason: t('recMortgageSensitive') });
     }
     if (isMortgagePersona && hasMortgageDocs) {
-      recs.push({ id: 'agent:analysis', score: 68, reason: 'Pièces hypothécaires à compléter' });
+      recs.push({ id: 'agent:analysis', score: 68, reason: t('recMortgageDocuments') });
     }
 
     return recs.sort((a, b) => b.score - a.score);
@@ -679,15 +683,15 @@ export default function ChatDrawer({
   const contextualSuggestions = useMemo(() => {
     // State-aware suggestions based on dossier lifecycle
     if (processingStatus === 'extracting') {
-      return ['L\'extraction est en cours — les suggestions seront disponibles après l\'analyse'];
+      return [t('contextual.extracting')];
     }
     if (processingStatus === 'analyzing') {
-      return ['L\'analyse IA est en cours — posez votre question, elle sera traitée après l\'analyse'];
+      return [t('contextual.analyzing')];
     }
     if (applicationStatus === 'error') {
       return [
-        'Le traitement a échoué — souhaitez-vous relancer l\'extraction ?',
-        'Résume l\'erreur de traitement',
+        t('contextual.processingFailed'),
+        t('contextual.summarizeError'),
       ];
     }
 
@@ -714,8 +718,8 @@ export default function ChatDrawer({
 
     // Post-decision suggestions
     if (hasDecision) {
-      suggestions.push('Résume la décision prise et les justifications');
-      suggestions.push('Quels sont les prochains pas après cette décision ?');
+      suggestions.push(t('contextual.summarizeDecision'));
+      suggestions.push(t('contextual.nextSteps'));
     }
 
     // Generate suggestions from context labels (dossier-specific)
@@ -723,61 +727,61 @@ export default function ChatDrawer({
       const labelTypes = new Set(contextLabels.map(l => l.type));
       const labelKeys = new Set(contextLabels.map(l => l.key));
 
-      if (labelKeys.has('convention_irsi')) suggestions.push('La convention IRSI s\'applique-t-elle à ce sinistre ?');
-      if (labelKeys.has('garantie_dde')) suggestions.push('Quel est le montant de la franchise DDE applicable ?');
-      if (labelKeys.has('garantie_tempete')) suggestions.push('La garantie tempête couvre-t-elle ces dommages ?');
-      if (labelKeys.has('garantie_vol')) suggestions.push('Les conditions de la garantie vol sont-elles remplies ?');
-      if (labelKeys.has('garantie_incendie')) suggestions.push('Quelles sont les exclusions de la garantie incendie ?');
-      if (labelKeys.has('rc_habitation')) suggestions.push('Un recours contre le tiers est-il possible ?');
-      if (labelKeys.has('regime_catnat')) suggestions.push('Y a-t-il eu un arrêté Cat-Nat pour cette commune et cette période ?');
-      if (labelKeys.has('sinistre_majeur')) suggestions.push('Quels sont les seuils d\'expertise obligatoire selon les CG ?');
+      if (labelKeys.has('convention_irsi')) suggestions.push(t('contextual.irsi'));
+      if (labelKeys.has('garantie_dde')) suggestions.push(t('contextual.waterDeductible'));
+      if (labelKeys.has('garantie_tempete')) suggestions.push(t('contextual.stormCoverage'));
+      if (labelKeys.has('garantie_vol')) suggestions.push(t('contextual.theftCoverage'));
+      if (labelKeys.has('garantie_incendie')) suggestions.push(t('contextual.fireExclusions'));
+      if (labelKeys.has('rc_habitation')) suggestions.push(t('contextual.thirdPartyRecourse'));
+      if (labelKeys.has('regime_catnat')) suggestions.push(t('contextual.catNatOrder'));
+      if (labelKeys.has('sinistre_majeur')) suggestions.push(t('contextual.expertiseThresholds'));
       if (labelTypes.has('fraud')) {
-        suggestions.push('Quels sont les indicateurs de fraude détectés ?');
-        suggestions.push('Analyse les photos pour vérifier l\'authenticité');
+        suggestions.push(t('contextual.fraudIndicators'));
+        suggestions.push(t('contextual.photoAuthenticity'));
       }
       if (labelKeys.has('catnat_confirmee') || labelKeys.has('catnat_non_confirmee')) {
-        suggestions.push('Quelles sont les conditions d\'indemnisation Cat-Nat ?');
+        suggestions.push(t('contextual.catNatConditions'));
       }
-      if (labelKeys.has('exclusions_possibles')) suggestions.push('Quelles exclusions pourraient s\'appliquer à ce sinistre ?');
-      if (labelKeys.has('couverture_non_confirmee')) suggestions.push('Ce sinistre est-il couvert par le contrat ?');
+      if (labelKeys.has('exclusions_possibles')) suggestions.push(t('contextual.possibleExclusions'));
+      if (labelKeys.has('couverture_non_confirmee')) suggestions.push(t('contextual.coverageConfirmed'));
 
       if (labelKeys.has('hcsf_endettement_critique') || labelKeys.has('hcsf_endettement_tendu')) {
-        suggestions.push('Le taux d\'endettement respecte-t-il les normes HCSF ?');
+        suggestions.push(t('contextual.hcsfDebt'));
       }
       if (labelKeys.has('hcsf_ltv_critique') || labelKeys.has('hcsf_ltv_tendu')) {
-        suggestions.push('Le ratio LTV est-il acceptable pour ce dossier ?');
+        suggestions.push(t('contextual.ltv'));
       }
       if (labelKeys.has('hcsf_apport_faible')) {
-        suggestions.push('L\'apport est-il suffisant pour respecter les exigences de souscription ?');
+        suggestions.push(t('contextual.downPayment'));
       }
       if (labelKeys.has('ptz')) {
-        suggestions.push('Quelles conditions PTZ doivent être validées ?');
+        suggestions.push(t('contextual.ptz'));
       }
       if (labelKeys.has('frontalier')) {
-        suggestions.push('Quels justificatifs supplémentaires faut-il pour un dossier frontalier ?');
+        suggestions.push(t('contextual.crossBorder'));
       }
       if (labelKeys.has('pieces_manquantes')) {
-        suggestions.push('Liste les pièces manquantes et l\'ordre de priorité.');
+        suggestions.push(t('contextual.missingDocuments'));
       }
     }
 
     // Generate from context tasks
     if (contextTasks && contextTasks.length > 0) {
       for (const task of contextTasks) {
-        if (task.category === 'coverage' && !suggestions.some(s => s.includes('couverture')))
-          suggestions.push('Résume la couverture applicable selon les CG');
-        else if (task.category === 'expertise' && !suggestions.some(s => s.includes('expertise')))
-          suggestions.push('Quel type d\'expert faut-il mandater pour ce sinistre ?');
+        if (task.category === 'coverage')
+          suggestions.push(t('contextual.summarizeCoverage'));
+        else if (task.category === 'expertise')
+          suggestions.push(t('contextual.expertType'));
         else if (task.category === 'recourse')
-          suggestions.push('Quelle est la procédure de recours tiers (IRSI / CIDE-COP) ?');
+          suggestions.push(t('contextual.recourseProcedure'));
         else if (task.category === 'documents')
-          suggestions.push('Quelles pièces manquent pour compléter ce dossier ?');
-        else if (task.category === 'fraud' && !suggestions.some(s => s.includes('fraude')))
-          suggestions.push('Résume l\'analyse anti-fraude de ce dossier');
+          suggestions.push(t('contextual.documentsNeeded'));
+        else if (task.category === 'fraud')
+          suggestions.push(t('contextual.summarizeFraud'));
         else if (task.category === 'verification')
-          suggestions.push('Quelles vérifications réglementaires sont prioritaires sur ce dossier ?');
+          suggestions.push(t('contextual.regulatoryChecks'));
         else if (task.category === 'risk')
-          suggestions.push('Quels signaux de risque justifient une revue approfondie ?');
+          suggestions.push(t('contextual.riskSignals'));
       }
     }
 
@@ -787,30 +791,30 @@ export default function ChatDrawer({
     // Persona-based fallback (pre-analysis or non-claims personas)
     const fallback: Record<string, string[]> = {
       habitation_claims: [
-        'Ce sinistre est-il couvert par les CG Habitation ?',
-        'Quel est le montant de la franchise applicable ?',
-        'Analyse les photos pour détecter une fraude',
+        t('contextual.propertyCoverage'),
+        t('contextual.applicableDeductible'),
+        t('contextual.detectPhotoFraud'),
       ],
       property_casualty_claims: [
-        'Ce sinistre est-il couvert par les CG Habitation ?',
-        'Quel est le montant de la franchise applicable ?',
+        t('contextual.propertyCoverage'),
+        t('contextual.applicableDeductible'),
       ],
       automotive_claims: [
-        'Quelle est la responsabilité de l\'assuré ?',
-        'Analyse les photos pour détecter une fraude',
+        t('contextual.insuredLiability'),
+        t('contextual.detectPhotoFraud'),
       ],
       life_health_claims: [
-        'Ce soin est-il pris en charge ?',
-        'Quel est le taux de remboursement ?',
+        t('contextual.healthCoverage'),
+        t('contextual.reimbursementRate'),
       ],
       underwriting: [
-        'Quel est le niveau de risque cardiovasculaire ?',
-        'Quelle formule recommander pour ce profil ?',
+        t('contextual.cardiovascularRisk'),
+        t('contextual.recommendedPlan'),
       ],
       mortgage: [
-        'Le ratio LTV est-il acceptable ?',
-        'Le taux d\'endettement est-il conforme ?',
-        'Quelles normes HCSF posent le plus de risque sur ce dossier ?',
+        t('contextual.ltvShort'),
+        t('contextual.debtCompliant'),
+        t('contextual.hcsfRisk'),
       ],
     };
     return fallback[persona] || fallback.habitation_claims || [];
@@ -851,7 +855,7 @@ export default function ChatDrawer({
       setMessages(prev => prev.map(m =>
         m === msg ? { ...m, feedbackGiven: null } : m
       ));
-      addToast('error', 'Impossible d\'envoyer le feedback');
+      addToast('error', t('feedbackError'));
     }
   }, [persona, conversationId, applicationId, addToast]);
 
@@ -912,7 +916,7 @@ export default function ChatDrawer({
     } catch (e) {
       if (generation !== requestGenerationRef.current) return;
       console.error('Failed to load conversation:', e);
-      addToast('error', 'Impossible de charger la conversation');
+      addToast('error', t('conversationLoadError'));
     } finally {
       if (generation === requestGenerationRef.current) setIsLoadingConversation(false);
     }
@@ -1011,22 +1015,30 @@ export default function ChatDrawer({
       }
 
       const result = await response.json();
+      const needsReview = result.status === 'needs_review';
+      const workflowStatus = needsReview
+        ? t('workflowNeedsReviewStatus')
+        : result.status === 'completed'
+          ? t('workflowCompletedStatus')
+          : result.status || t('workflowCompletedStatus');
 
       // Build a rich response from workflow steps
-      const parts: string[] = [`## ✅ ${t('workflowLabel')}: ${workflowName}\n`];
+      const parts: string[] = [
+        `## ${needsReview ? '⚠️' : '✅'} ${t('workflowLabel')}: ${workflowName}\n`,
+      ];
       if (result.steps && Array.isArray(result.steps)) {
         for (const step of result.steps) {
           parts.push(`### 🤖 ${step.agent}`);
-          parts.push(formatAgentText(step.text));
+          parts.push(formatAgentText(step.text, t));
           parts.push('');
         }
       }
       if (result.summary) {
         // Use blank lines around the summary so markdown headings (e.g. "### …")
         // inside `result.summary` are rendered as real headings instead of literal text.
-        parts.push(`---\n\n**${t('workflowSummary')}**\n\n${formatAgentText(result.summary)}`);
+        parts.push(`---\n\n**${t('workflowSummary')}**\n\n${formatAgentText(result.summary, t)}`);
       }
-      parts.push(`\n_${t('workflowStatus')}: ${result.status || t('workflowCompletedStatus')}_`);
+      parts.push(`\n_${t('workflowStatus')}: ${workflowStatus}_`);
 
       const resultMsg: ChatMessage = {
         role: 'assistant',
@@ -1045,7 +1057,7 @@ export default function ChatDrawer({
       setWorkflowRunning(null);
       stopLoadingPhases();
     }
-  }, [applicationId, isLoading, workflowRunning]);
+  }, [applicationId, isLoading, locale, t, workflowRunning]);
 
   const handleSend = useCallback(async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -1502,7 +1514,11 @@ export default function ChatDrawer({
                           className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
                           title={r.reason}
                         >
-                          {r.id === 'agent:policy' ? '🛡️ Polices' : r.id === 'agent:analysis' ? '🔍 Analyse' : r.id.replace('agent:', '')}
+                          {r.id === 'agent:policy'
+                            ? `🛡️ ${t('agentPolicy')}`
+                            : r.id === 'agent:analysis'
+                              ? `🔍 ${t('agentAnalysis')}`
+                              : r.id.replace('agent:', '')}
                         </button>
                       ))}
                     </div>

@@ -14,21 +14,18 @@ interface PendingInvestigationsCardProps {
   onPageLeave?: () => void;
 }
 
-const urgencyConfig: Record<Urgency, { className: string; icon: React.ReactNode; label: string }> = {
+const urgencyConfig: Record<Urgency, { className: string; icon: React.ReactNode }> = {
   high: {
     className: 'bg-red-50 text-red-700 border-red-200',
     icon: <AlertTriangle className="w-3 h-3" />,
-    label: 'HIGH',
   },
   medium: {
     className: 'bg-amber-50 text-amber-700 border-amber-200',
     icon: <Clock className="w-3 h-3" />,
-    label: 'MEDIUM',
   },
   low: {
     className: 'bg-slate-50 text-slate-600 border-slate-200',
     icon: <Search className="w-3 h-3" />,
-    label: 'LOW',
   },
 };
 
@@ -52,7 +49,7 @@ export default function PendingInvestigationsCard({
     return (
       <div className="bg-white rounded-lg border border-slate-200 p-4">
         <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-2">
-          <AlertCircle className="w-4 h-4 text-red-500" /> Pending Investigations
+          <AlertCircle className="w-4 h-4 text-red-500" /> {t('pendingInvestigations')}
         </h3>
         <p className="text-sm text-slate-500 italic">{t('noPendingInvestigations')}</p>
       </div>
@@ -62,7 +59,7 @@ export default function PendingInvestigationsCard({
   return (
     <div className="bg-white rounded-lg border-l-4 border-l-red-400 border border-slate-200 p-4">
       <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2 mb-1">
-        <AlertCircle className="w-4 h-4 text-red-500" /> Pending Investigations
+        <AlertCircle className="w-4 h-4 text-red-500" /> {t('pendingInvestigations')}
       </h3>
       {summary && <p className="text-xs text-slate-500 mb-3">{summary}</p>}
       <div className="space-y-2">
@@ -85,9 +82,9 @@ export default function PendingInvestigationsCard({
                     className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border ${urg.className}`}
                   >
                     {urg.icon}
-                    {urg.label}
+                    {t(`urgency.${inv.urgency}`)}
                   </span>
-                  <span className="text-[10px] text-slate-400 capitalize">{inv.type}</span>
+                  <span className="text-[10px] text-slate-400 capitalize">{t(`investigationType.${inv.type}`)}</span>
                 </div>
                 <p className="text-sm text-slate-700 leading-snug">
                   {inv.description}

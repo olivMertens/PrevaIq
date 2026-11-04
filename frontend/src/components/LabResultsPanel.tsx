@@ -25,7 +25,7 @@ interface LabResultsData {
   riskAssessment?: string;
 }
 
-function parseLabResults(application: ApplicationMetadata): LabResultsData {
+function parseLabResults(application: ApplicationMetadata, t: (key: string) => string): LabResultsData {
   const results: ParsedLabResult[] = [];
   let summary: string | undefined;
   let riskAssessment: string | undefined;
@@ -43,7 +43,7 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
     llmHypertension.bp_readings.forEach((reading: any, idx: number) => {
       if (reading.systolic && reading.diastolic) {
         results.push({
-          name: llmHypertension.bp_readings.length > 1 ? `Tension artérielle #${idx + 1}` : 'Tension artérielle',
+          name: llmHypertension.bp_readings.length > 1 ? `${t('bloodPressure')} #${idx + 1}` : t('bloodPressure'),
           value: `${reading.systolic}/${reading.diastolic}`,
           unit: 'mmHg',
           date: reading.date,
@@ -60,10 +60,10 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
   const llmCholesterol = application.llm_outputs?.medical_summary?.high_cholesterol?.parsed as any;
   if (llmCholesterol?.lipid_panels && Array.isArray(llmCholesterol.lipid_panels)) {
     llmCholesterol.lipid_panels.forEach((panel: any) => {
-      if (panel.total_cholesterol) results.push({ name: 'Cholestérol total', value: panel.total_cholesterol, date: panel.date, confidence: lipidConfidence, citation: lipidField });
+      if (panel.total_cholesterol) results.push({ name: t('totalCholesterol'), value: panel.total_cholesterol, date: panel.date, confidence: lipidConfidence, citation: lipidField });
       if (panel.ldl) results.push({ name: 'LDL', value: panel.ldl, date: panel.date, confidence: lipidConfidence, citation: lipidField });
       if (panel.hdl) results.push({ name: 'HDL', value: panel.hdl, date: panel.date, confidence: lipidConfidence, citation: lipidField });
-      if (panel.triglycerides) results.push({ name: 'Triglycérides', value: panel.triglycerides, date: panel.date, confidence: lipidConfidence, citation: lipidField });
+      if (panel.triglycerides) results.push({ name: t('triglycerides'), value: panel.triglycerides, date: panel.date, confidence: lipidConfidence, citation: lipidField });
     });
   }
   
@@ -78,7 +78,7 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
         if (reading.systolic && reading.diastolic) {
           const dateInfo = reading.date ? ` (${reading.date})` : '';
           results.push({
-            name: bpArray.length > 1 ? `Tension artérielle #${idx + 1}` : 'Tension artérielle',
+            name: bpArray.length > 1 ? `${t('bloodPressure')} #${idx + 1}` : t('bloodPressure'),
             value: `${reading.systolic}/${reading.diastolic}`,
             unit: 'mmHg',
             date: reading.date,
@@ -95,7 +95,7 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
         const match = reading.match(/(\d+\/\d+)\s*(mmHg)?/i);
         if (match) {
           results.push({
-            name: readings.length > 1 ? `Tension artérielle #${idx + 1}` : 'Tension artérielle',
+            name: readings.length > 1 ? `${t('bloodPressure')} #${idx + 1}` : t('bloodPressure'),
             value: match[1],
             unit: 'mmHg',
             confidence: bpField.confidence,
@@ -115,8 +115,8 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
     if (typeof lipidField.value === 'object' && !Array.isArray(lipidField.value)) {
       const lipid = lipidField.value as any;
       // Only add if the nested value has an actual valueString, not just confidence
-      if (lipid.totalCholesterol?.valueString) results.push({ name: 'Cholestérol total', value: String(lipid.totalCholesterol.valueString).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate?.valueString, confidence, citation: lipidField });
-      else if (lipid.totalCholesterol && typeof lipid.totalCholesterol === 'string') results.push({ name: 'Cholestérol total', value: String(lipid.totalCholesterol).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate, confidence, citation: lipidField });
+      if (lipid.totalCholesterol?.valueString) results.push({ name: t('totalCholesterol'), value: String(lipid.totalCholesterol.valueString).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate?.valueString, confidence, citation: lipidField });
+      else if (lipid.totalCholesterol && typeof lipid.totalCholesterol === 'string') results.push({ name: t('totalCholesterol'), value: String(lipid.totalCholesterol).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate, confidence, citation: lipidField });
       
       if (lipid.hdl?.valueString) results.push({ name: 'HDL', value: String(lipid.hdl.valueString).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate?.valueString, confidence, citation: lipidField });
       else if (lipid.hdl && typeof lipid.hdl === 'string') results.push({ name: 'HDL', value: String(lipid.hdl).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate, confidence, citation: lipidField });
@@ -124,8 +124,8 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
       if (lipid.ldl?.valueString) results.push({ name: 'LDL', value: String(lipid.ldl.valueString).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate?.valueString, confidence, citation: lipidField });
       else if (lipid.ldl && typeof lipid.ldl === 'string') results.push({ name: 'LDL', value: String(lipid.ldl).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate, confidence, citation: lipidField });
       
-      if (lipid.triglycerides?.valueString) results.push({ name: 'Triglycérides', value: String(lipid.triglycerides.valueString).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate?.valueString, confidence, citation: lipidField });
-      else if (lipid.triglycerides && typeof lipid.triglycerides === 'string') results.push({ name: 'Triglycérides', value: String(lipid.triglycerides).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate, confidence, citation: lipidField });
+      if (lipid.triglycerides?.valueString) results.push({ name: t('triglycerides'), value: String(lipid.triglycerides.valueString).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate?.valueString, confidence, citation: lipidField });
+      else if (lipid.triglycerides && typeof lipid.triglycerides === 'string') results.push({ name: t('triglycerides'), value: String(lipid.triglycerides).replace(/[^\d.]/g, ''), unit: 'mg/dL', date: lipid.testDate, confidence, citation: lipidField });
     } else {
       // Handle old format: string with embedded values
       const lipidStr = String(lipidField.value);
@@ -134,10 +134,10 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
       const ldlMatch = lipidStr.match(/ldl[:\s]+(\d+)/i);
       const trigMatch = lipidStr.match(/triglycerides?[:\s]+(\d+)/i);
       
-      if (cholMatch) results.push({ name: 'Cholestérol total', value: cholMatch[1], unit: 'mg/dL', confidence, citation: lipidField });
+      if (cholMatch) results.push({ name: t('totalCholesterol'), value: cholMatch[1], unit: 'mg/dL', confidence, citation: lipidField });
       if (hdlMatch) results.push({ name: 'HDL', value: hdlMatch[1], unit: 'mg/dL', confidence, citation: lipidField });
       if (ldlMatch) results.push({ name: 'LDL', value: ldlMatch[1], unit: 'mg/dL', confidence, citation: lipidField });
-      if (trigMatch) results.push({ name: 'Triglycérides', value: trigMatch[1], unit: 'mg/dL', confidence, citation: lipidField });
+      if (trigMatch) results.push({ name: t('triglycerides'), value: trigMatch[1], unit: 'mg/dL', confidence, citation: lipidField });
     }
   }
 
@@ -145,7 +145,7 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
   const pulseField = Object.values(fields).find(f => f.field_name === 'PulseRate');
   if (pulseField?.value) {
     results.push({
-      name: 'Fréquence cardiaque',
+      name: t('pulseRate'),
       value: String(pulseField.value),
       unit: 'bpm',
       confidence: pulseField.confidence,
@@ -166,15 +166,15 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
         const bloodVal = urine.blood?.valueString || (typeof urine.blood === 'string' ? urine.blood : null);
         const otherVal = urine.other?.valueString || (typeof urine.other === 'string' ? urine.other : null);
         
-        if (proteinVal) parts.push(`Protéines : ${proteinVal}`);
-        if (glucoseVal) parts.push(`Glucose : ${glucoseVal}`);
-        if (bloodVal) parts.push(`Sang : ${bloodVal}`);
+        if (proteinVal) parts.push(`${t('protein')}: ${proteinVal}`);
+        if (glucoseVal) parts.push(`${t('glucose')}: ${glucoseVal}`);
+        if (bloodVal) parts.push(`${t('blood')}: ${bloodVal}`);
         if (otherVal) parts.push(otherVal);
         
         // Only add if we have actual values
         if (parts.length > 0) {
           results.push({
-            name: 'Analyse d\'urine',
+            name: t('urinalysis'),
             value: parts.join(', '),
             confidence: urineField.confidence,
             citation: urineField,
@@ -185,7 +185,7 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
         const valueStr = String(urineField.value).trim();
         if (valueStr) {
           results.push({
-            name: 'Analyse d\'urine',
+            name: t('urinalysis'),
             value: valueStr.substring(0, 50) + (valueStr.length > 50 ? '...' : ''),
             confidence: urineField.confidence,
             citation: urineField,
@@ -200,7 +200,7 @@ function parseLabResults(application: ApplicationMetadata): LabResultsData {
 
 export default function LabResultsPanel({ application }: LabResultsPanelProps) {
   const t = useTranslations('lab');
-  const { results, summary, riskAssessment } = parseLabResults(application);
+  const { results, summary, riskAssessment } = parseLabResults(application, t);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 max-h-[400px] overflow-y-auto">

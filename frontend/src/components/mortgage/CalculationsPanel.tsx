@@ -14,8 +14,8 @@ import React from 'react';
 import {
   Calculator, TrendingUp, AlertTriangle, CheckCircle
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { formatCurrency, formatPercent, getStatusColor } from './format';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatCurrency as formatCurrencyForLocale, formatPercent as formatPercentForLocale, getStatusColor } from './format';
 import type {
   MortgageRatios,
   MortgageStressRatios,
@@ -50,6 +50,10 @@ export default function CalculationsPanel({
   liabilities,
 }: CalculationsPanelProps) {
   const t = useTranslations('mortgageLabels');
+  const locale = useLocale();
+  const formatCurrency = (value: number | null | undefined) =>
+    formatCurrencyForLocale(value, locale);
+  const formatPercent = (value: number) => formatPercentForLocale(value, 2, locale);
 
   const getRatioStatus = (value: number, limit: number): 'pass' | 'warning' | 'fail' => {
     if (value <= limit * 0.9) return 'pass';
@@ -84,6 +88,8 @@ export default function CalculationsPanel({
           limit={OSFI_LIMITS.gds}
           status={gdsStatus}
           description={t('gdsDesc')}
+          limitLabel={t('limit')}
+          locale={locale}
         />
         <RatioCard
           label={t('tdsStress')}
@@ -91,6 +97,8 @@ export default function CalculationsPanel({
           limit={OSFI_LIMITS.tds}
           status={tdsStatus}
           description={t('tdsDesc')}
+          limitLabel={t('limit')}
+          locale={locale}
         />
         <RatioCard
           label="LTV"
@@ -98,6 +106,8 @@ export default function CalculationsPanel({
           limit={ratios.ltv > 0.8 ? OSFI_LIMITS.ltv_insured : OSFI_LIMITS.ltv_conventional}
           status={ltvStatus}
           description={t('ltvDesc')}
+          limitLabel={t('limit')}
+          locale={locale}
         />
       </div>
 
@@ -134,7 +144,7 @@ export default function CalculationsPanel({
               <h4 className="text-sm font-medium text-slate-700 mb-3">
                 {t('qualifyingRateMQR')}
                 <span className="ml-2 text-xs font-normal text-slate-500">
-                  max(taux+2%, 5.25%)
+                  {t('qualifyingRateFormula')}
                 </span>
               </h4>
               <div className="space-y-2">
@@ -273,15 +283,19 @@ function RatioCard({
   limit,
   status,
   description,
+  limitLabel,
+  locale,
 }: {
   label: string;
   value: number;
   limit: number;
   status: 'pass' | 'warning' | 'fail';
   description: string;
+  limitLabel: string;
+  locale: string;
 }) {
   // Values are already percentages (e.g., 26.36 means 26.36%)
-  const formatPercent = (v: number) => `${v.toFixed(1)}%`;
+  const formatPercent = (v: number) => formatPercentForLocale(v, 1, locale);
 
   const getStatusIcon = () => {
     switch (status) {
@@ -328,7 +342,7 @@ function RatioCard({
         {formatPercent(value)}
       </div>
       <div className="text-xs text-slate-500 mb-3">
-        Limit: {formatPercent(limit)}
+        {limitLabel}: {formatPercent(limit)}
       </div>
       <div className="w-full bg-slate-200 rounded-full h-2">
         <div

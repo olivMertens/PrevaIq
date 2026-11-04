@@ -28,7 +28,7 @@ import UnderwritingDecisionFooter from '@/components/UnderwritingDecisionFooter'
 import { MortgageWorkbench } from '@/components/mortgage';
 import { usePersona } from '@/lib/PersonaContext';
 import { useToast } from '@/lib/ToastProvider';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { getApplication, runRiskAnalysis } from '@/lib/api';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
 import type { ApplicationMetadata, ApplicationListItem } from '@/lib/types';
@@ -165,6 +165,7 @@ export default function WorkbenchView({
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
   const [sourcePageNumber, setSourcePageNumber] = useState<number | undefined>(undefined);
   const { currentPersona, personaConfig } = usePersona();
+  const locale = useLocale();
   const tw = useTranslations('workbench');
   const { addToast } = useToast();
 
@@ -183,8 +184,8 @@ export default function WorkbenchView({
         setActiveView('overview');
       } catch (err) {
         console.error('Failed to load application:', err);
-        setError('Failed to load application details');
-        addToast('error', 'Impossible de charger le dossier');
+        setError(tw('applicationLoadError'));
+        addToast('error', tw('applicationLoadError'));
       } finally {
         setLoading(false);
       }
@@ -254,7 +255,7 @@ export default function WorkbenchView({
           return (
             <AutomotiveClaimsOverview 
                 applicationId={selectedApp.id}
-                displayTitle={getApplicationDisplayTitle(selectedApp)}
+                displayTitle={getApplicationDisplayTitle(selectedApp, locale)}
             />
           );
         }
@@ -281,7 +282,7 @@ export default function WorkbenchView({
     const handleRerunAnalysis = async () => {
       if (!selectedApp) return;
       try {
-        const app = await runRiskAnalysis(selectedApp.id);
+        const app = await runRiskAnalysis(selectedApp.id, 300000, 2000, locale);
         setSelectedApp(app);
       } catch (err) {
         console.error('Failed to re-run risk analysis:', err);
@@ -400,7 +401,7 @@ export default function WorkbenchView({
             </button>
             <span className="mx-2 text-slate-300">/</span>
             <span className="text-sm font-medium text-slate-700 truncate max-w-md">
-                {selectedApp ? getApplicationDisplayTitle(selectedApp) : tw('applicationDetails')}
+                {selectedApp ? getApplicationDisplayTitle(selectedApp, locale) : tw('applicationDetails')}
             </span>
              {loading && <span className="ml-3 text-xs text-slate-400 animate-pulse">{tw('loading')}</span>}
         </div>

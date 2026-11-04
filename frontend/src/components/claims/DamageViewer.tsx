@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Euro, Car, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { DamageArea } from '@/lib/api';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface DamageViewerProps {
   damageAreas: DamageArea[];
@@ -57,6 +57,12 @@ const DamageCard: React.FC<DamageCardProps> = ({
   t,
 }) => {
   const config = severityConfig[damage.severity];
+  const locale = useLocale();
+  const cost = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(damage.estimated_cost);
 
   return (
     <div
@@ -89,7 +95,7 @@ const DamageCard: React.FC<DamageCardProps> = ({
         </div>
         <div className="text-right flex-shrink-0">
           <div className="text-lg font-semibold text-gray-900">
-            {damage.estimated_cost.toLocaleString('fr-FR')} €
+            {cost}
           </div>
           <button
             onClick={(e) => {
@@ -153,22 +159,23 @@ const VehicleDiagram: React.FC<VehicleDiagramProps> = ({
   selectedDamageId,
   t,
 }) => {
+  const locale = useLocale();
   // Map damage locations to diagram positions
   const locationToPosition: Record<string, { x: number; y: number; label: string }> = {
-    'front_bumper': { x: 50, y: 10, label: 'Pare-chocs avant' },
-    'front_left_fender': { x: 20, y: 25, label: 'Aile avant gauche' },
-    'front_right_fender': { x: 80, y: 25, label: 'Aile avant droite' },
-    'hood': { x: 50, y: 25, label: 'Capot' },
-    'windshield': { x: 50, y: 35, label: 'Pare-brise' },
-    'roof': { x: 50, y: 50, label: 'Toit' },
-    'left_door_front': { x: 15, y: 45, label: 'Porte avant gauche' },
-    'left_door_rear': { x: 15, y: 60, label: 'Porte arrière gauche' },
-    'right_door_front': { x: 85, y: 45, label: 'Porte avant droite' },
-    'right_door_rear': { x: 85, y: 60, label: 'Porte arrière droite' },
-    'rear_bumper': { x: 50, y: 90, label: 'Pare-chocs arrière' },
-    'trunk': { x: 50, y: 80, label: 'Coffre' },
-    'rear_left_quarter': { x: 20, y: 75, label: 'Aile arrière gauche' },
-    'rear_right_quarter': { x: 80, y: 75, label: 'Aile arrière droite' },
+    'front_bumper': { x: 50, y: 10, label: t('vehicleParts.frontBumper') },
+    'front_left_fender': { x: 20, y: 25, label: t('vehicleParts.frontLeftFender') },
+    'front_right_fender': { x: 80, y: 25, label: t('vehicleParts.frontRightFender') },
+    'hood': { x: 50, y: 25, label: t('vehicleParts.hood') },
+    'windshield': { x: 50, y: 35, label: t('vehicleParts.windshield') },
+    'roof': { x: 50, y: 50, label: t('vehicleParts.roof') },
+    'left_door_front': { x: 15, y: 45, label: t('vehicleParts.frontLeftDoor') },
+    'left_door_rear': { x: 15, y: 60, label: t('vehicleParts.rearLeftDoor') },
+    'right_door_front': { x: 85, y: 45, label: t('vehicleParts.frontRightDoor') },
+    'right_door_rear': { x: 85, y: 60, label: t('vehicleParts.rearRightDoor') },
+    'rear_bumper': { x: 50, y: 90, label: t('vehicleParts.rearBumper') },
+    'trunk': { x: 50, y: 80, label: t('vehicleParts.trunk') },
+    'rear_left_quarter': { x: 20, y: 75, label: t('vehicleParts.rearLeftQuarter') },
+    'rear_right_quarter': { x: 80, y: 75, label: t('vehicleParts.rearRightQuarter') },
   };
 
   const getDamagePosition = (damage: DamageArea) => {
@@ -224,6 +231,11 @@ const VehicleDiagram: React.FC<VehicleDiagramProps> = ({
           const position = getDamagePosition(damage);
           const config = severityConfig[damage.severity];
           const isSelected = damage.area_id === selectedDamageId;
+          const cost = new Intl.NumberFormat(locale, {
+            style: 'currency',
+            currency: 'EUR',
+            maximumFractionDigits: 0,
+          }).format(damage.estimated_cost);
 
           return (
             <button
@@ -233,7 +245,7 @@ const VehicleDiagram: React.FC<VehicleDiagramProps> = ({
                 isSelected ? 'scale-125 z-10' : 'hover:scale-110'
               }`}
               style={{ left: `${position.x}%`, top: `${position.y}%` }}
-      title={`${damage.location}: ${t(config.labelKey)} - ${damage.estimated_cost.toLocaleString('fr-FR')} €`}
+              title={`${damage.location}: ${t(config.labelKey)} - ${cost}`}
             >
               <div
                 className={`w-6 h-6 rounded-full ${config.barColor} flex items-center justify-center text-white text-xs font-bold shadow-lg ${
@@ -267,6 +279,12 @@ const DamageViewer: React.FC<DamageViewerProps> = ({
   selectedDamageId,
 }) => {
   const t = useTranslations('damage');
+  const locale = useLocale();
+  const formattedTotal = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(totalEstimate);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'severity' | 'cost'>('severity');
 
@@ -315,7 +333,7 @@ const DamageViewer: React.FC<DamageViewerProps> = ({
               {t('totalEstimate')}
             </div>
             <div className="text-2xl font-bold text-red-700 mt-1">
-              {totalEstimate.toLocaleString('fr-FR')} €
+              {formattedTotal}
             </div>
           </div>
         </div>

@@ -2,7 +2,7 @@
 """Generate branded mortgage demo PDF packs for PrevaIQ.
 
 Creates synthetic mortgage files with logo + brand header and writes them into:
-  assets/demo-prevaiq/mortgage/<category>/<subitem>/<app-id>/
+  assets/demo-prevaiq/mortgage-underwriting/<scenario>/<app-id>/
 
 Usage:
   python scripts/generate_mortgage_demo_documents.py
@@ -44,7 +44,7 @@ class MortgageScenario:
 SCENARIOS: list[MortgageScenario] = [
     MortgageScenario(
         app_id="app-mtg-004",
-        category="souscription-hypothecaire",
+        category="mortgage-underwriting",
         subitem="primo-accedant",
         files=[
             "demande_pret_immobilier.pdf",
@@ -57,7 +57,7 @@ SCENARIOS: list[MortgageScenario] = [
     ),
     MortgageScenario(
         app_id="app-mtg-005",
-        category="souscription-hypothecaire",
+        category="mortgage-underwriting",
         subitem="primo-accedant-ptz",
         files=[
             "demande_pret_ptz.pdf",
@@ -70,7 +70,7 @@ SCENARIOS: list[MortgageScenario] = [
     ),
     MortgageScenario(
         app_id="app-mtg-006",
-        category="souscription-hypothecaire",
+        category="mortgage-underwriting",
         subitem="rachat-credit",
         files=[
             "demande_rachat_credit.pdf",
@@ -82,7 +82,7 @@ SCENARIOS: list[MortgageScenario] = [
     ),
     MortgageScenario(
         app_id="app-mtg-007",
-        category="souscription-hypothecaire",
+        category="mortgage-underwriting",
         subitem="frontalier",
         files=[
             "demande_pret_frontalier.pdf",
@@ -94,7 +94,7 @@ SCENARIOS: list[MortgageScenario] = [
     ),
     MortgageScenario(
         app_id="app-mtg-008",
-        category="souscription-hypothecaire",
+        category="mortgage-underwriting",
         subitem="incomplet",
         files=["demande_pret.pdf"],
         title="Dossier incomplet - pièces manquantes",
@@ -155,7 +155,7 @@ def _body(c: canvas.Canvas, scenario: MortgageScenario, filename: str, brand_nam
 
 
 def _output_root(brand: str) -> Path:
-    return Path("assets") / f"demo-{brand}" / "mortgage"
+    return Path("assets") / f"demo-{brand}"
 
 
 def _render_document(

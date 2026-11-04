@@ -23,9 +23,10 @@
 | `FRAUD_DETECTION_ENABLED` | No | `true` | Enable the anti-fraud pipeline |
 | `FRAUD_VISION_DEPLOYMENT` | No | `gpt-5.4-mini` | Vision model for image-authenticity analysis |
 | `FRAUD_DETECTION_DEPLOYMENT` | No | `gpt-5.4-mini` | Reasoning model for declaration-versus-evidence consistency |
-| `WEBIQ_API_KEY` | No | - | Microsoft Web IQ key for MCP web, news, and browse. In Azure, Key Vault secret `webiq-api-key` is referenced by the Container App through `infra/set-webiq-secret.ps1`. |
-| `WEB_INTELLIGENCE_ENABLED` | No | `false` | Enable the optional Bing web-intelligence branch for Cat-Nat, weather, and decrees |
-| `FOUNDRY_PROJECT_ENDPOINT` | Conditional | - | Microsoft Foundry project endpoint for Agent Service only, distinct from `AZURE_OPENAI_ENDPOINT`; required for `WEB_INTELLIGENCE_ENABLED=true` and the Fabric Data Agent |
+| `WEBIQ_API_KEY` | No | - | Microsoft Web IQ API key for the demo MCP integration (`web`, `news`, and `browse`). In Azure, Key Vault secret `webiq-api-key` is referenced by the Container App through `infra/set-webiq-secret.ps1`; never set a literal key in source or frontend configuration. Microsoft Entra ID is the recommended future production authentication path. |
+| `WEBIQ_MCP_URL` | No | `https://api.microsoft.ai/v3/mcp` | Dedicated Microsoft Web IQ Streamable HTTP MCP endpoint. |
+| `WEBIQ_TIMEOUT_SECONDS` | No | `30` | Timeout for a Web IQ MCP request. |
+| `FOUNDRY_PROJECT_ENDPOINT` | Conditional | - | Microsoft Foundry project endpoint, distinct from `AZURE_OPENAI_ENDPOINT`; used by the Fabric Data Agent connection, not for web grounding. |
 | `AGENTS_OPENAI_API` | No | `responses` | API used by Microsoft Agent Framework agents: `responses` or `chat_completions` for rollback |
 | `EXTRACTION_BUDGET_SECONDS` | No | `900` | Wall-clock budget for extraction; remaining files are skipped and the case is flagged for review. Use `0` for no cap. |
 | `ANALYSIS_BUDGET_SECONDS` | No | `900` | Wall-clock budget for analysis; remaining sections are skipped. Use `0` for no cap. |
@@ -33,7 +34,6 @@
 | `MAX_REEXTRACTIONS` | No | `3` | Maximum targeted re-extractions per case, at most one per file |
 | `REEXTRACTION_QUALITY_THRESHOLD` | No | `50` | Extraction quality score from 0 to 100 below which a document is re-extracted and flagged |
 | `REVIEW_CONFIDENCE_THRESHOLD` | No | `0.6` | Average field confidence below which the case needs human review |
-| `WEB_INTELLIGENCE_AGENT_NAME` | No | `PrevaIQ-WebIntelligence` | Foundry agent name with Bing grounding for web verification |
 | `MARKITDOWN_ENABLED` | No | `true` | Enable MarkItDown Markdown conversion |
 | `MARKITDOWN_MODE` | No | `local` | MarkItDown mode: `local`, `cu`, or `auto` |
 | `MARKITDOWN_USE_CONTENT_UNDERSTANDING` | No | `false` | Use Azure Content Understanding from MarkItDown when enabled |
@@ -244,5 +244,3 @@ python scripts/seed_customer360.py
 | Priya Patel | High | Auto claim investigating, life insurance pending, mortgage declined | New customer with fraud flags and financial overextension |
 
 Each application includes workbench-quality data: `llm_outputs` with complete section/subsection structure, `extracted_fields` with confidence scores, and `risk_analysis` results. Seed data is modular; see `scripts/seed_data/` for per-persona modules.
-
-

@@ -3,16 +3,16 @@ Property Deep Dive Engine for Canadian Mortgage Underwriting.
 
 Queries REALTOR.ca for comparable sales, price trends, and risk
 classification to support auto-appraisal decisions.
-Falls back to Bing web search when REALTOR.ca is unavailable.
+Falls back to the dedicated Microsoft Web IQ MCP connection when REALTOR.ca is unavailable.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import time
+import asyncio
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -315,81 +315,13 @@ def _similarity_score(
     return max(round(score, 1), 0)
 
 
-# ---------------------------------------------------------------------------
-# Azure OpenAI Responses API with web_search_preview (Bing Grounding)
-# ---------------------------------------------------------------------------
-
-_RESPONSES_API_VERSION = "2025-04-01-preview"
-_RESPONSES_API_MODEL = os.environ.get("AZURE_RESPONSES_API_MODEL", "gpt-5.4-mini")
-
-
-def _call_responses_api(prompt: str) -> str | None:
-    """Call the Azure OpenAI Responses API with web_search_preview tool.
-
-    Uses the AIServices endpoint (separate from the main Chat Completions
-    endpoint) which supports the Responses API with built-in Bing Grounding.
-    Returns the text output or None on failure.
-
-    Requires env var AZURE_RESPONSES_API_ENDPOINT to be set.
-    """
-    import os
-
-    endpoint = os.environ.get("AZURE_RESPONSES_API_ENDPOINT", "").rstrip("/")
-    if not endpoint:
-        return None
-
-    try:
-        from azure.identity import DefaultAzureCredential
-
-        credential = DefaultAzureCredential()
-        token = credential.get_token("https://cognitiveservices.azure.com/.default")
-    except Exception:
-        logger.warning("Azure AD auth failed for Responses API", exc_info=True)
-        return None
-
-    url = f"{endpoint}/openai/responses"
-    headers = {
-        "Authorization": f"Bearer {token.token}",
-        "Content-Type": "application/json",
-    }
-    body = {
-        "model": _RESPONSES_API_MODEL,
-        "tools": [{"type": "web_search_preview"}],
-        "input": prompt,
-    }
-
-    try:
-        _rate_limit()
-        resp = requests.post(
-            url,
-            params={"api-version": _RESPONSES_API_VERSION},
-            headers=headers,
-            json=body,
-            timeout=90,
-        )
-        resp.raise_for_status()
-        result = resp.json()
-
-        # Extract text from the Responses API output structure
-        for item in result.get("output", []):
-            if item.get("type") == "message":
-                for content in item.get("content", []):
-                    if content.get("type") == "output_text":
-                        return content.get("text", "")
-        return None
-    except Exception:
-        logger.warning("Responses API call failed", exc_info=True)
-        return None
-
-
 def _search_property_via_llm(
-    address: str, purchase_price: float, property_type: str
+    address: str, purchase_price: float, property_type: str, language: str = "en"
 ) -> dict[str, Any]:
     """Gather property market data using AI with live web grounding.
 
-    Tries the Azure OpenAI Responses API (with Bing web search) first for
-    live, cited data. Falls back to the standard Chat Completions API
-    (LLM training knowledge) if the Responses API is unavailable.
+    Uses Microsoft Web IQ for live, cited passages and Azure OpenAI only to
+    structure those passages. No Foundry or Bing web-grounding fallback is used.
     """
     data: dict[str, Any] = {
         "comps": [],
@@ -429,59 +361,64 @@ Inclus 3 à 5 biens comparables vendus récemment à proximité. Utilise les don
 Retourne UNIQUEMENT du JSON valide, sans markdown ni explication."""
 
     content: str | None = None
-    source = "unknown"
+    source = "Microsoft Web IQ"
 
-    # --- Strategy 1: Responses API with live Bing web search ---
     try:
-        raw = _call_responses_api(
-            f"Tu es un analyste expert du marché immobilier français. "
-            f"Retourne uniquement du JSON valide.\n\n{json_prompt}"
+        from app.agents.tools import webiq_search
+        from app.config import load_settings
+        from app.languages import language_instruction, localized_message, require_language
+        from app.openai_client import chat_completion
+
+        language = require_language(language)
+
+        corpus = asyncio.run(
+            webiq_search(
+                f"prix immobilier ventes comparables {address} {property_type} "
+                "Notaires de France MeilleursAgents SeLoger",
+                language=language,
+            )
         )
+        unavailable_responses = {
+            localized_message("webiq_not_configured", locale)
+            for locale in ("en", "fr", "de")
+        } | {
+            localized_message("webiq_temporarily_unavailable", locale)
+            for locale in ("en", "fr", "de")
+        }
+        if corpus in unavailable_responses:
+            logger.warning("Web IQ property search unavailable for %s", address)
+            return data
+
+        settings = load_settings()
+        result = chat_completion(
+            settings.openai,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Tu es un analyste du marché immobilier français. Structure uniquement "
+                        "les passages Web IQ fournis. N'invente aucune valeur. Retourne du JSON valide. "
+                        + language_instruction(language)
+                    ),
+                },
+                {"role": "user", "content": f"{json_prompt}\n\nPassages Web IQ:\n{corpus}"},
+            ],
+            max_tokens=2000,
+            temperature=0.0,
+            timeout=60,
+            response_format="json_object",
+        )
+        raw = result.get("choices", [{}])[0].get("message", {}).get(
+            "content", ""
+        ) or result.get("content", "")
         if raw:
-            # Strip markdown fences / comments the model may still add
             cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip())
             cleaned = re.sub(r"\s*```$", "", cleaned.strip())
             cleaned = re.sub(r"//[^\n]*", "", cleaned)
-            if cleaned.startswith("{"):
-                content = cleaned
-                source = "Bing Web Search"
-                logger.info("Responses API returned %d chars for %s", len(content), address)
+            content = cleaned
+            logger.info("Web IQ synthesis returned %d chars for %s", len(content), address)
     except Exception:
-        logger.debug("Responses API path failed, trying chat_completion", exc_info=True)
-
-    # --- Strategy 2: Chat Completions (LLM training knowledge) ---
-    if content is None:
-        try:
-            from app.config import load_settings
-            from app.openai_client import chat_completion
-
-            settings = load_settings()
-            result = chat_completion(
-                settings.openai,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Tu es un analyste expert du marché immobilier français. Retourne uniquement du JSON valide.",
-                    },
-                    {"role": "user", "content": json_prompt},
-                ],
-                max_tokens=2000,
-                temperature=0.3,
-                timeout=60,
-                response_format="json_object",
-            )
-            raw = result.get("choices", [{}])[0].get("message", {}).get(
-                "content", ""
-            ) or result.get("content", "")
-            if raw:
-                cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip())
-                cleaned = re.sub(r"\s*```$", "", cleaned.strip())
-                cleaned = re.sub(r"//[^\n]*", "", cleaned)
-                content = cleaned
-                source = "AI Market Analysis"
-                logger.info("chat_completion returned %d chars for %s", len(content), address)
-        except Exception:
-            logger.warning("chat_completion path also failed for %s", address, exc_info=True)
+        logger.warning("Web IQ property search failed for %s", address, exc_info=True)
 
     # --- Parse the JSON content ---
     if not content:
@@ -558,7 +495,10 @@ class PropertyDeepDiveEngine:
         bathrooms: int | None = None,
         living_area: float | None = None,
         lot_size: str | None = None,
+        language: str = "en",
     ) -> None:
+        from app.languages import require_language
+
         self.property_address = property_address
         self.purchase_price = purchase_price
         self.property_type = property_type.lower() if property_type else "single_family_detached"
@@ -568,6 +508,7 @@ class PropertyDeepDiveEngine:
         self.bathrooms = bathrooms or 0
         self.living_area = living_area or 0.0
         self.lot_size = lot_size
+        self.language = require_language(language)
         self._warnings: list[str] = []
         self._lat: float | None = None
         self._lon: float | None = None
@@ -589,12 +530,15 @@ class PropertyDeepDiveEngine:
         # 3. Fetch comparable sales
         comps = self._fetch_comparables()
 
-        # 4. If MLS data is empty, fall back to Bing web search
+        # 4. If MLS data is empty, fall back to Microsoft Web IQ
         web_data: dict[str, Any] = {}
         if not comps and not subject_listing:
             logger.info("MLS data unavailable — falling back to AI market analysis")
             web_data = _search_property_via_llm(
-                self.property_address, self.purchase_price, self.property_type
+                self.property_address,
+                self.purchase_price,
+                self.property_type,
+                self.language,
             )
             comps = web_data.get("comps", [])
             if comps:

@@ -20,8 +20,8 @@ dependencies = [
     "pgvector>=0.2.4",
     "numpy>=1.24.0",
     "pymupdf>=1.25.0",
-    "agent-framework-core>=1.21.0,<2.0",
-    "agent-framework-openai>=1.15.0,<2.0",
+    "agent-framework-core>=1.24.0,<2.0",
+    "agent-framework-openai>=1.18.0,<2.0",
     # Required by MCPStreamableHTTPTool (Microsoft Web IQ)
     "mcp>=1.20.0,<2.0",
     "azure-monitor-opentelemetry>=1.6.0",
@@ -44,8 +44,8 @@ api-server = "api_server:main"
 
 [tool.black]
 line-length = 100
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"

@@ -15,7 +15,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import type { CustomerJourneyEvent } from '@/lib/customer360-types';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import Link from 'next/link';
 
@@ -54,6 +54,7 @@ const EVENT_TYPE_ICONS: Record<string, typeof FileText> = {
 
 export default function CustomerTimeline({ events }: CustomerTimelineProps) {
   const t = useTranslations('customer360');
+  const locale = useLocale();
   if (events.length === 0) {
     return (
       <div className="text-center py-12 text-slate-400">
@@ -109,7 +110,7 @@ export default function CustomerTimeline({ events }: CustomerTimelineProps) {
                             <span className={clsx('text-xs font-medium px-2 py-0.5 rounded-full', personaCfg.bg, personaCfg.color)}>
                               {t(personaCfg.labelKey)}
                             </span>
-                            <span className="text-xs text-slate-400">{formatDate(event.date)}</span>
+                            <span className="text-xs text-slate-400">{formatDate(event.date, locale)}</span>
                           </div>
                           <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-1.5">
                             <EventIcon className="w-4 h-4 text-slate-400" />
@@ -181,8 +182,8 @@ function mapPersonaToFrontendId(persona: string): string {
   return persona;
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+function formatDate(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

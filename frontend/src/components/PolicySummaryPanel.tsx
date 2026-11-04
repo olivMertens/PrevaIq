@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Shield, FileText, AlertTriangle, CheckCircle, Clock, Play, Loader2, Sparkles } from 'lucide-react';
 import type { ApplicationMetadata, RiskFinding } from '@/lib/types';
 import { runRiskAnalysis } from '@/lib/api';
@@ -58,6 +58,7 @@ export default function PolicySummaryPanel({
   const [isRunningAnalysis, setIsRunningAnalysis] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const t = useTranslations('policy');
+  const locale = useLocale();
 
   const riskAnalysis = application.risk_analysis?.parsed;
   const hasRiskAnalysis = !!riskAnalysis;
@@ -67,7 +68,7 @@ export default function PolicySummaryPanel({
     setError(null);
 
     try {
-      await runRiskAnalysis(application.id);
+      await runRiskAnalysis(application.id, 300000, 2000, locale);
 
       // Trigger reload of application data
       if (onRiskAnalysisComplete) {
@@ -75,7 +76,7 @@ export default function PolicySummaryPanel({
       }
     } catch (err) {
       console.error('Risk analysis error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to run risk analysis');
+      setError(err instanceof Error ? err.message : t('riskAnalysisFailed'));
     } finally {
       setIsRunningAnalysis(false);
     }

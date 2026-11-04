@@ -4,8 +4,10 @@
     as a Key Vault-referenced secret (webiq-api-key), read through the app's user-assigned identity.
 
 .DESCRIPTION
-    The key is read with Read-Host -AsSecureString: never echoed, never written to disk or history.
-    Idempotent: creates the RBAC Key Vault and role assignment only when missing.
+    The key is read with Read-Host -AsSecureString and never echoed or added to shell history.
+    It is written only to a unique file under the gitignored .tmp directory for the Azure CLI
+    --file operation, then deleted in a finally block. Idempotent: creates the RBAC Key Vault
+    and role assignment only when missing.
     Run deploy.ps1 afterwards so new revisions receive WEBIQ_API_KEY=secretref:webiq-api-key.
 #>
 [CmdletBinding()]
@@ -60,13 +62,16 @@ foreach ($assignment in @(
 $secure = Read-Host "Web IQ API key (input hidden)" -AsSecureString
 $plain = [System.Net.NetworkCredential]::new("", $secure).Password
 if ([string]::IsNullOrWhiteSpace($plain)) { throw "Empty key." }
-$tempFile = New-TemporaryFile
+$repoRoot = Split-Path $PSScriptRoot -Parent
+$tempDirectory = Join-Path $repoRoot ".tmp"
+New-Item -ItemType Directory -Path $tempDirectory -Force | Out-Null
+$tempFile = Join-Path $tempDirectory "webiq-key-$([guid]::NewGuid().ToString('N')).tmp"
 try {
     # --file keeps the key off the az.cmd command line (visible to other processes).
-    [IO.File]::WriteAllText($tempFile.FullName, $plain, [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText($tempFile, $plain, [Text.UTF8Encoding]::new($false))
     $set = $false
     for ($attempt = 1; $attempt -le 6 -and -not $set; $attempt++) {
-        az keyvault secret set --vault-name $KeyVaultName -n $SecretName --file $tempFile.FullName `
+        az keyvault secret set --vault-name $KeyVaultName -n $SecretName --file $tempFile `
             --encoding utf-8 -o none
         if ($LASTEXITCODE -eq 0) { $set = $true } else {
             Write-Host "Waiting for RBAC propagation (attempt $attempt/6)..." -ForegroundColor Yellow
@@ -75,7 +80,7 @@ try {
     }
     if (-not $set) { throw "Could not write the secret (RBAC propagation can take ~5 min; rerun)." }
 } finally {
-    Remove-Item $tempFile.FullName -Force -ErrorAction SilentlyContinue
+    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
     $plain = $null
 }
 

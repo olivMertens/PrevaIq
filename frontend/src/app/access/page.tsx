@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Clock, ShieldX, TriangleAlert } from 'lucide-react';
 import { brand } from '@/lib/brand';
+import BrandMark from '@/components/BrandMark';
 import EntraButton from '@/components/auth/EntraButton';
 import { mailtoHref, useAuthProviders } from '@/components/auth/useAuthProviders';
 
@@ -28,7 +29,7 @@ export default function AccessPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-10">
       <section className="w-full max-w-md space-y-5 rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
-        <img src={brand.logo} alt={brand.logoAlt} className="h-10 w-auto" />
+        <BrandMark compact />
         <div className="flex items-start gap-3">
           <span
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"

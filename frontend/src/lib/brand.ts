@@ -8,6 +8,9 @@ interface BrandConfig {
   key: string;
   companyName: string;
   logo: string;        // public/ path
+  logoDark: string;
+  icon: string;
+  iconDark: string;
   logoAlt: string;
   favicon: string;
   primary: string;     // hex
@@ -27,9 +30,12 @@ const brands: Record<string, BrandConfig> = {
     prefix: 'Preva',
     key: 'prevaiq',
     companyName: 'PrevaIQ Assurance',
-    logo: '/prevaiq-logo.svg',
+    logo: '/prevaiq-logo.png',
+    logoDark: '/prevaiq-logo-dark.png',
+    icon: '/prevaiq-icon.png',
+    iconDark: '/prevaiq-icon-dark.png',
     logoAlt: 'PrevaIQ',
-    favicon: '/favicon-prevaiq.svg',
+    favicon: '/favicon.svg',
     primary: '#17395C',
     secondary: '#2EC4B6',
     accent: '#0F2E4D',

@@ -3,11 +3,8 @@
 import React, { useState, useCallback } from 'react';
 import { Mail, MessageSquare, FileText, Copy, Check, X, Loader2, Sparkles, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
-
-const BRAND = brand.companyName;
-const PHONE = brand.insurerPhone;
 
 interface CommunicationGeneratorProps {
   /** Application ID for API call */
@@ -39,134 +36,13 @@ interface GeneratedComm {
   timestamp: string;
 }
 
-const COMM_TYPES: { id: CommType; label: string; icon: typeof Mail }[] = [
-  { id: 'email', label: 'Email', icon: Mail },
-  { id: 'sms', label: 'SMS', icon: MessageSquare },
-  { id: 'letter', label: 'Courrier', icon: FileText },
+const COMM_TYPES: { id: CommType; icon: typeof Mail }[] = [
+  { id: 'email', icon: Mail },
+  { id: 'sms', icon: MessageSquare },
+  { id: 'letter', icon: FileText },
 ];
 
-const TONE_OPTIONS: { id: CommTone; label: string; desc: string }[] = [
-  { id: 'empathetic', label: 'Empathique', desc: `Ton chaleureux, proximité et écoute — valeurs ${BRAND}` },
-  { id: 'standard', label: 'Standard', desc: 'Professionnel et bienveillant' },
-  { id: 'formal', label: 'Formel', desc: 'Officiel, termes juridiques' },
-];
-
-const TEMPLATES: Record<string, Record<CommType, { subject?: string; body: string }>> = {
-  approved: {
-    email: {
-      subject: 'Votre sinistre {ref} — Bonne nouvelle, votre indemnisation est validée',
-      body: `Bonjour {name},
-
-Nous sommes heureux de vous confirmer que votre déclaration de sinistre n° {ref} a été analysée et que votre indemnisation a été validée.
-
-**Montant accordé** : {amount}
-**Délai de versement** : sous 5 jours ouvrés
-
-Le montant sera versé directement sur votre compte bancaire enregistré dans votre contrat.
-
-En tant que client ${BRAND}, nous sommes à vos côtés tout au long de cette épreuve. N'hésitez pas à contacter votre conseiller dédié au ${PHONE} si vous avez la moindre question.
-
-Bien à vous,
-Votre équipe ${BRAND} Sinistres`,
-    },
-    sms: {
-      body: `${BRAND} : Bonne nouvelle ! Votre sinistre n\u00b0{ref} est valid\u00e9. Indemnisation de {amount} sous 5 jours. Votre conseiller reste \u00e0 votre \u00e9coute au ${PHONE}`,
-    },
-    letter: {
-      subject: 'Notification d\'indemnisation — Sinistre n° {ref}',
-      body: `Madame, Monsieur {name},
-
-Par la présente, nous vous notifions que votre déclaration de sinistre enregistrée sous la référence {ref} a fait l'objet d'une analyse complète.
-
-Conformément aux conditions générales de votre contrat Multirisque Habitation, l'indemnisation suivante vous est accordée :
-
-Montant brut de l'indemnisation : {amount}
-Franchise applicable : selon votre contrat
-Montant net à percevoir : sera précisé dans le décompte de règlement joint
-
-Le versement sera effectué dans un délai de cinq (5) jours ouvrés.
-
-Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
-
-Service Sinistres — ${BRAND}`,
-    },
-  },
-  pending: {
-    email: {
-      subject: 'Votre sinistre {ref} — Complément d\'information nécessaire',
-      body: `Bonjour {name},
-
-Nous avons bien reçu votre déclaration de sinistre n° {ref} et nous vous remercions de votre confiance.
-
-Nous souhaitons traiter votre dossier dans les meilleurs délais. Pour cela, pourriez-vous nous transmettre les éléments suivants :
-- Factures ou devis des réparations
-- Photos complémentaires des dommages
-- Tout justificatif de propriété des biens endommagés
-
-Vous pouvez déposer ces documents directement sur votre espace client ou les envoyer par email.
-
-Nous avançons ensemble — votre conseiller ${BRAND} est à votre disposition au ${PHONE} pour vous accompagner.
-
-Bien à vous,
-Votre équipe ${BRAND} Sinistres`,
-    },
-    sms: {
-      body: `${BRAND} : Sinistre n\u00b0{ref} en cours d'\u00e9tude. Des documents compl\u00e9mentaires sont n\u00e9cessaires. Votre conseiller vous accompagne : ${PHONE} ou espace client.`,
-    },
-    letter: {
-      subject: 'Demande de pièces complémentaires — Sinistre n° {ref}',
-      body: `Madame, Monsieur {name},
-
-Nous accusons réception de votre déclaration de sinistre n° {ref}.
-
-Afin de poursuivre l'instruction de votre dossier, nous vous prions de bien vouloir nous transmettre les pièces suivantes dans un délai de 30 jours :
-
-1. Factures ou devis relatifs aux dommages déclarés
-2. Photographies complémentaires
-3. Justificatifs de propriété des biens concernés
-
-À défaut de réception de ces documents dans le délai imparti, votre dossier pourrait faire l'objet d'une clôture.
-
-Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
-
-Service Sinistres — ${BRAND}`,
-    },
-  },
-  denied: {
-    email: {
-      subject: 'Votre sinistre {ref} — Décision de non-prise en charge',
-      body: `Bonjour {name},
-
-Après analyse approfondie de votre déclaration de sinistre n° {ref}, nous sommes au regret de vous informer que celui-ci ne peut être pris en charge au titre de votre contrat.
-
-**Motif** : Les conditions de garantie ne sont pas réunies pour ce type de sinistre.
-
-Nous comprenons que cette décision puisse être décevante. Votre conseiller ${BRAND} se tient à votre disposition pour vous expliquer en détail les raisons de cette décision et étudier avec vous d'éventuelles alternatives.
-
-Vous disposez d'un droit de contestation dans un délai de 2 mois. Pour ce faire, adressez votre courrier au Service Réclamations.
-
-Nous restons à votre écoute.
-
-Bien à vous,
-Votre équipe ${BRAND} Sinistres`,
-    },
-    sms: {
-      body: `${BRAND} : Sinistre n°{ref} — Votre dossier ne peut être pris en charge. Votre conseiller est disponible pour en discuter avec vous : ${PHONE}`,
-    },
-    letter: {
-      subject: 'Notification de non-prise en charge — Sinistre n° {ref}',
-      body: `Madame, Monsieur {name},
-
-À la suite de l'examen de votre déclaration de sinistre n° {ref}, nous avons le regret de vous informer que les conditions de garantie prévues par votre contrat ne permettent pas la prise en charge du sinistre déclaré.
-
-Vous disposez de la possibilité de contester cette décision auprès de notre Service Réclamations dans un délai de deux (2) mois à compter de la réception du présent courrier.
-
-Veuillez agréer, Madame, Monsieur, l'expression de nos salutations distinguées.
-
-Service Sinistres — ${BRAND}`,
-    },
-  },
-};
+const TONE_OPTIONS: CommTone[] = ['empathetic', 'standard', 'formal'];
 
 export default function CommunicationGenerator({
   applicationId,
@@ -177,6 +53,8 @@ export default function CommunicationGenerator({
   defaultTone = 'standard',
 }: CommunicationGeneratorProps) {
   const tComm = useTranslations('communicationActions');
+  const t = useTranslations('communicationGenerator');
+  const locale = useLocale();
   const [commType, setCommType] = useState<CommType>('email');
   const [tone, setTone] = useState<CommTone>(defaultTone);
   const [generated, setGenerated] = useState<GeneratedComm | null>(null);
@@ -190,7 +68,7 @@ export default function CommunicationGenerator({
       const response = await fetch(`/api/applications/${applicationId}/generate-communication`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ channel: commType, tone }),
+        body: JSON.stringify({ channel: commType, tone, language: locale }),
       });
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
@@ -205,31 +83,27 @@ export default function CommunicationGenerator({
     } catch (err) {
       console.error('[CommunicationGenerator] Generation failed:', err);
       // Fallback to template if API fails
-      const status = decisionStatus || 'pending';
-      const template = TEMPLATES[status]?.[commType] || TEMPLATES.pending[commType];
-      const replacements: Record<string, string> = {
-        '{name}': insuredName || 'Client',
-        '{ref}': claimReference || applicationId.slice(0, 8),
-        '{amount}': settlementAmount || '—',
+      const status = decisionStatus === 'approved' || decisionStatus === 'denied' ? decisionStatus : 'pending';
+      const values = {
+        name: insuredName || t('defaultClient'),
+        ref: claimReference || applicationId.slice(0, 8),
+        amount: settlementAmount || '—',
+        brand: brand.companyName,
+        phone: brand.insurerPhone,
       };
-      let body = template.body;
-      let subject = template.subject;
-      for (const [key, val] of Object.entries(replacements)) {
-        body = body.replaceAll(key, val);
-        if (subject) subject = subject.replaceAll(key, val);
-      }
-      if (tone === 'empathetic') {
-        body = body.replace('Bonjour', 'Cher(e)');
-      }
+      const body = t(`templates.${status}.${commType}.body`, values);
+      const subject = commType === 'sms'
+        ? undefined
+        : t(`templates.${status}.${commType}.subject`, values);
       setGenerated({ type: commType, tone, subject, body, timestamp: new Date().toISOString() });
     } finally {
       setIsGenerating(false);
     }
-  }, [commType, tone, applicationId, decisionStatus, insuredName, claimReference, settlementAmount]);
+  }, [commType, tone, applicationId, decisionStatus, insuredName, claimReference, settlementAmount, locale, t]);
 
   const handleCopy = useCallback(async () => {
     if (!generated) return;
-    const text = generated.subject ? `Objet: ${generated.subject}\n\n${generated.body}` : generated.body;
+    const text = generated.subject ? `${t('subject')}: ${generated.subject}\n\n${generated.body}` : generated.body;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -237,7 +111,7 @@ export default function CommunicationGenerator({
     } catch {
       // Fallback
     }
-  }, [generated]);
+  }, [generated, t]);
 
   return (
     <div className="space-y-3">
@@ -262,7 +136,7 @@ export default function CommunicationGenerator({
               } : undefined}
             >
               <Icon className="w-3.5 h-3.5" />
-              {ct.label}
+              {t(`types.${ct.id}`)}
             </button>
           );
         })}
@@ -272,23 +146,23 @@ export default function CommunicationGenerator({
             onClick={() => setShowToneOptions(!showToneOptions)}
             className="flex items-center gap-1 px-2 py-1.5 text-[10px] text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg bg-white"
           >
-            Ton : {TONE_OPTIONS.find(t => t.id === tone)?.label}
+            {t('toneLabel')}: {t(`tones.${tone}.label`)}
             <ChevronDown className="w-3 h-3" />
           </button>
           {showToneOptions && (
             <div className="absolute right-0 top-full mt-1 z-10 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-1">
-              {TONE_OPTIONS.map((t) => (
+              {TONE_OPTIONS.map((toneOption) => (
                 <button
-                  key={t.id}
-                  onClick={() => { setTone(t.id); setShowToneOptions(false); setGenerated(null); }}
+                  key={toneOption}
+                  onClick={() => { setTone(toneOption); setShowToneOptions(false); setGenerated(null); }}
                   className={clsx(
                     'w-full text-left px-3 py-2 text-xs hover:bg-slate-50',
-                    tone === t.id ? '' : 'text-slate-600'
+                    tone === toneOption ? '' : 'text-slate-600'
                   )}
-                  style={tone === t.id ? { color: brand.primary, backgroundColor: `${brand.primary}0D` } : undefined}
+                  style={tone === toneOption ? { color: brand.primary, backgroundColor: `${brand.primary}0D` } : undefined}
                 >
-                  <div className="font-medium">{t.label}</div>
-                  <div className="text-[10px] text-slate-400">{t.desc}</div>
+                  <div className="font-medium">{t(`tones.${toneOption}.label`)}</div>
+                  <div className="text-[10px] text-slate-400">{t(`tones.${toneOption}.description`)}</div>
                 </button>
               ))}
             </div>
@@ -305,9 +179,9 @@ export default function CommunicationGenerator({
           style={{ backgroundColor: brand.primary }}
         >
           {isGenerating ? (
-            <><Loader2 className="w-4 h-4 animate-spin" />Génération IA...</>
+            <><Loader2 className="w-4 h-4 animate-spin" />{t('generating')}</>
           ) : (
-            <><Sparkles className="w-4 h-4" />Générer {commType === 'email' ? 'l\'email' : commType === 'sms' ? 'le SMS' : 'le courrier'}</>
+            <><Sparkles className="w-4 h-4" />{t('generate', { type: t(`types.${commType}`) })}</>
           )}
         </button>
       ) : (
@@ -316,9 +190,9 @@ export default function CommunicationGenerator({
           <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" style={{ color: brand.primary }} />
             <span className="text-xs font-medium text-slate-700">
-              {commType === 'email' ? 'Email' : commType === 'sms' ? 'SMS' : 'Courrier'} généré
+              {t('generated', { type: t(`types.${commType}`) })}
             </span>
-            <span className="text-[10px] text-slate-400">({TONE_OPTIONS.find(t => t.id === tone)?.label})</span>
+            <span className="text-[10px] text-slate-400">({t(`tones.${tone}.label`)})</span>
             <div className="ml-auto flex items-center gap-1">
               <button onClick={handleCopy} title={tComm('copy')}
                 className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
@@ -333,7 +207,7 @@ export default function CommunicationGenerator({
           {/* Subject (email/letter only) */}
           {generated.subject && (
             <div className="px-3 py-1.5 border-b border-slate-100 text-xs">
-              <span className="text-slate-400">Objet : </span>
+              <span className="text-slate-400">{t('subject')} : </span>
               <span className="font-medium text-slate-800">{generated.subject}</span>
             </div>
           )}
@@ -352,7 +226,7 @@ export default function CommunicationGenerator({
                 backgroundColor: `${brand.primary}0D`,
               }}
             >
-              <Sparkles className="w-3 h-3" />Régénérer
+              <Sparkles className="w-3 h-3" />{t('regenerate')}
             </button>
           </div>
         </div>

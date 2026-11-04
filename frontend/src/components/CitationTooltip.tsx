@@ -278,7 +278,10 @@ export function CitationBadge({
   return (
     <span
       className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-slate-500 bg-slate-100 rounded ${className}`}
-      title={`Source : ${sourceFile || t('document')}${pageNumber ? `, Page ${pageNumber}` : ''}`}
+      title={t('sourceTitle', {
+        source: sourceFile || t('document'),
+        page: pageNumber ? t('pageTitle', { page: pageNumber }) : '',
+      })}
     >
       <FileText className="w-2.5 h-2.5" />
       {pageNumber && <span>p.{pageNumber}</span>}

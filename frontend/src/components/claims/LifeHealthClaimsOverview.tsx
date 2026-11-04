@@ -45,12 +45,12 @@ export default function LifeHealthClaimsOverview({ application }: LifeHealthClai
 
   const handleFinalDecisionConfirm = (decision: any) => {
     setFinalDecisionStatus(decision.decision);
-    addToast('success', `Décision "${decision.decision}" enregistrée`);
+    addToast('success', t('decisionSaved', { decision: decision.decision }));
   };
 
   const handleOverrideConfirm = (override: any) => {
     setLineItemOverrides(prev => ({ ...prev, [override.line]: override }));
-    addToast('info', 'Override appliqué sur la ligne');
+    addToast('info', t('overrideApplied'));
   };
 
   const toggleExpand = (idx: number) => {

@@ -205,7 +205,7 @@ export default function SearchBar({ pages, batchSummaries, onResults, onNavigate
       {/* Match chips */}
       {results.length > 0 && (
         <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-          <span className="text-xs text-gray-500">Matches:</span>
+          <span className="text-xs text-gray-500">{t('matches')}:</span>
           {results.map((r, idx) => (
             <button
               key={`${r.type}-${r.pageNumber ?? r.batchNum}`}

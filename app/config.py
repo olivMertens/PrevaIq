@@ -159,7 +159,7 @@ class FraudDetectionSettings:
 
     - Vision model (GPT-5.4 mini): image description + manipulation detection
     - Reasoning model (GPT-5.4 mini, reasoning low): fraud reasoning from descriptions
-    - Web intelligence agent (Foundry Agent Service + Bing WebSearch)
+    - Web intelligence through the dedicated Microsoft Web IQ MCP connection
     """
 
     enabled: bool = True
@@ -169,10 +169,6 @@ class FraudDetectionSettings:
     # Reasoning model — fraud detection
     deployment_name: str = "gpt-5.4-mini"
     model_name: str = "gpt-5.4-mini"
-    # Web intelligence — Foundry Agent Service with WebSearchTool
-    web_intelligence_enabled: bool = False
-    foundry_project_endpoint: str = ""  # mirrors FoundrySettings.project_endpoint
-    web_intelligence_agent_name: str = "PrevaIQ-WebIntelligence"
 
     @classmethod
     def from_env(cls) -> "FraudDetectionSettings":
@@ -183,12 +179,6 @@ class FraudDetectionSettings:
             vision_model_name=os.getenv("FRAUD_VISION_MODEL", "gpt-5.4-mini"),
             deployment_name=os.getenv("FRAUD_DETECTION_DEPLOYMENT", "gpt-5.4-mini"),
             model_name=os.getenv("FRAUD_DETECTION_MODEL", "gpt-5.4-mini"),
-            web_intelligence_enabled=os.getenv("WEB_INTELLIGENCE_ENABLED", "false").lower()
-            == "true",
-            foundry_project_endpoint=os.getenv("FOUNDRY_PROJECT_ENDPOINT", ""),
-            web_intelligence_agent_name=os.getenv(
-                "WEB_INTELLIGENCE_AGENT_NAME", "PrevaIQ-WebIntelligence"
-            ),
         )
 
 
@@ -353,7 +343,7 @@ class FoundrySettings:
 
 @dataclass
 class WebIQSettings:
-    """Microsoft Web IQ remote MCP server (web/news/browse grounding)."""
+    """Microsoft Web IQ remote MCP server (web/news/browse intelligence)."""
 
     api_key: Optional[str] = None
     mcp_url: str = "https://api.microsoft.ai/v3/mcp"
@@ -473,8 +463,6 @@ def load_settings() -> Settings:
     fraud = FraudDetectionSettings.from_env()
     markitdown = MarkItDownSettings.from_env()
     foundry = FoundrySettings.from_env()
-    fraud.foundry_project_endpoint = foundry.project_endpoint
-
     processing = ProcessingSettings(
         large_doc_threshold_kb=int(os.getenv("LARGE_DOC_THRESHOLD_KB", "1500")),
         chunk_size_chars=int(os.getenv("CHUNK_SIZE_CHARS", "50000")),

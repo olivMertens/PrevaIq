@@ -8,7 +8,7 @@ import {
   AlertTriangle,
   Activity,
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
 
@@ -30,6 +30,7 @@ export default function PriorityQueues({
   onSelectApp,
 }: PriorityQueuesProps) {
   const t = useTranslations('dashboard');
+  const locale = useLocale();
 
   return (
     <div className="mx-auto px-6 lg:px-8 py-6">
@@ -67,7 +68,7 @@ export default function PriorityQueues({
                     <div className="min-w-0">
                       <p className="truncate font-medium text-slate-900 transition-colors">{getAppDisplayTitle(app)}</p>
                       <p className="text-xs text-slate-400">
-                        {new Date(app.created_at).toLocaleDateString()} at {new Date(app.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(app.created_at))}
                       </p>
                     </div>
                   </div>
@@ -141,7 +142,9 @@ export default function PriorityQueues({
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
             <div className="flex-1">
-              <p className="font-medium text-rose-800">{hasErrors.length} {t('requiresAttention')}</p>
+              <p className="font-medium text-rose-800">
+                {t('requiresAttention', { count: hasErrors.length })}
+              </p>
               <p className="text-sm text-rose-600 mt-0.5">{t('errorOccurred')}</p>
             </div>
             <button onClick={() => onSelectApp(hasErrors[0].id)}

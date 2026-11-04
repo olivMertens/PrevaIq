@@ -16,7 +16,7 @@ import { ApplicationListItem } from '@/lib/types';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
 import { createApplication, startProcessing, getApplication } from '@/lib/api';
 import clsx from 'clsx';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useToast } from '@/lib/ToastProvider';
 import ProcessingBanner from './landing/ProcessingBanner';
 import PriorityQueues from './landing/PriorityQueues';
@@ -41,6 +41,7 @@ export default function LandingPage({
   username,
 }: LandingPageProps) {
   const { currentPersona, personaConfig } = usePersona();
+  const locale = useLocale();
   const t = useTranslations('dashboard');
   const { addToast } = useToast();
   const [dragActive, setDragActive] = useState(false);
@@ -120,29 +121,29 @@ export default function LandingPage({
         return;
       }
       try {
-        const status = await getApplication(appId);
+        const status = await getApplication(appId, locale);
         if (status.processing_status === 'extracting') {
           setProcessingStep('extracting');
-          setProcessingMessage('Data Agent extracting documents...');
+          setProcessingMessage(t('processing.extracting'));
           onRefreshApps();
           setTimeout(poll, 2000);
         } else if (status.processing_status === 'analyzing') {
           setProcessingStep('analyzing');
-          setProcessingMessage('Risk Agent analyzing case...');
+          setProcessingMessage(t('processing.analyzing'));
           onRefreshApps();
           setTimeout(poll, 2000);
         } else if (status.processing_status === 'error') {
           setProcessingStep('error');
-          setProcessingMessage(status.processing_error || 'An error occurred.');
+          setProcessingMessage(status.processing_error || t('processing.error'));
           pollingRef.current = null;
           onRefreshApps();
-          addToast('error', status.processing_error || 'Erreur lors du traitement');
+          addToast('error', status.processing_error || t('processing.error'));
         } else if (!status.processing_status) {
           setProcessingStep('complete');
-          setProcessingMessage('Analysis complete! Opening application...');
+          setProcessingMessage(t('processing.complete'));
           pollingRef.current = null;
           onRefreshApps();
-          addToast('success', 'Analyse terminée avec succès');
+          addToast('success', t('processing.success'));
           setTimeout(() => onSelectApp(appId), 1500);
         }
       } catch {
@@ -151,9 +152,9 @@ export default function LandingPage({
     };
 
     setProcessingStep('extracting');
-    setProcessingMessage('Data Agent starting extraction...');
+    setProcessingMessage(t('processing.starting'));
     setTimeout(poll, 2000);
-  }, [onRefreshApps, onSelectApp]);
+  }, [addToast, locale, onRefreshApps, onSelectApp, t]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -186,12 +187,16 @@ export default function LandingPage({
     try {
       const app = await createApplication(files, undefined, currentPersona);
       setProcessingAppId(app.id);
-      await startProcessing(app.id, largeDocumentMode ? 'large_document' : 'standard');
+      await startProcessing(
+        app.id,
+        largeDocumentMode ? 'large_document' : 'standard',
+        locale
+      );
       setUploading(false);
       onRefreshApps();
       pollForCompletion(app.id);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to create application';
+      const msg = err instanceof Error ? err.message : t('processing.createFailed');
       setError(msg);
       setProcessingStep('error');
       setProcessingMessage(msg);

@@ -132,9 +132,8 @@ export default function BodySystemDeepDiveModal({
   const handleExportFullReport = useCallback(() => {
     const dd: DeepDiveData = getDeepDiveData(currentApp);
     const caseRef = currentApp.external_reference || currentApp.id;
-    const intlLocale = locale === 'en' ? 'en-US' : 'fr-FR';
-    const now = new Date().toLocaleString(intlLocale);
-    const htmlLang = locale === 'en' ? 'en' : 'fr';
+    const now = new Date().toLocaleString(locale);
+    const htmlLang = locale;
 
     // ---------- helpers ----------
     const esc = (s: string | undefined | null) =>

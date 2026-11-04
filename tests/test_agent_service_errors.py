@@ -15,7 +15,7 @@ def test_tool_badges_require_a_completed_sdk_call():
     response = AgentResponse(messages=[
         Message(role="assistant", contents=[
             Content.from_function_call("call1", "search_policies"),
-            Content.from_function_call("call2", "web_search"),
+            Content.from_function_call("call2", "webiq_search"),
         ]),
         Message(role="tool", contents=[Content.from_function_result("call1", result="policy")]),
         Message(role="assistant", contents=[Content.from_text("No resource was found.")]),

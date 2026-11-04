@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.47.16.16243",
-      "templateHash": "902403968827735703"
+      "version": "0.48.1.52935",
+      "templateHash": "11423417408158251409"
     }
   },
   "parameters": {
@@ -110,6 +110,22 @@
       "metadata": {
         "description": "Wire the Web IQ key (Key Vault secret webiq-api-key) into the API app. Enable after running infra/set-webiq-secret.ps1."
       }
+    },
+    "accessEmailEnabled": {
+      "type": "bool",
+      "defaultValue": false
+    },
+    "accessEmailDataLocation": {
+      "type": "string",
+      "defaultValue": "Europe"
+    },
+    "accessRequestEmail": {
+      "type": "string",
+      "defaultValue": ""
+    },
+    "accessAdminUrl": {
+      "type": "string",
+      "defaultValue": ""
     },
     "deployApps": {
       "type": "bool",
@@ -1132,7 +1148,7 @@
                 "cpu": "[json('0.5')]",
                 "memory": "1Gi"
               },
-              "env": "[concat(createArray(createObject('name', 'API_KEY', 'secretRef', 'api-key'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').clientId), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-large'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_OPENAI_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_OPENAI_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_NANO_DEPLOYMENT_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_NANO_MODEL_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', '2025-04-01-preview'), createObject('name', 'AZURE_OPENAI_REASONING_EFFORT', 'value', 'low'), createObject('name', 'FRAUD_VISION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_VISION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'STORAGE_BACKEND', 'value', 'azure_blob'), createObject('name', 'AZURE_STORAGE_AUTH_MODE', 'value', 'default'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), createObject('name', 'AZURE_STORAGE_CONTAINER_NAME', 'value', variables('dataContainerName')), createObject('name', 'DATABASE_BACKEND', 'value', 'postgresql'), createObject('name', 'POSTGRESQL_HOST', 'value', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', format('pg-{0}', variables('prefix'))), '2024-08-01').fullyQualifiedDomainName), createObject('name', 'POSTGRESQL_PORT', 'value', '5432'), createObject('name', 'POSTGRESQL_DATABASE', 'value', parameters('postgresDatabaseName')), createObject('name', 'POSTGRESQL_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'POSTGRESQL_PASSWORD', 'secretRef', 'pg-password'), createObject('name', 'POSTGRESQL_SSL_MODE', 'value', 'require'), createObject('name', 'RAG_ENABLED', 'value', 'true'), createObject('name', 'EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-small'), createObject('name', 'AGENT_FRAMEWORK_ENABLED', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString), createObject('name', 'OTEL_SERVICE_NAME', 'value', parameters('brandName')), createObject('name', 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', 'value', 'true'), createObject('name', 'FABRIC_DATA_AGENT_ENDPOINT', 'value', parameters('fabricDataAgentEndpoint')), createObject('name', 'FABRIC_WORKSPACE_ID', 'value', parameters('fabricWorkspaceId')), createObject('name', 'FABRIC_DATA_AGENT_ID', 'value', parameters('fabricDataAgentId')), createObject('name', 'AZURE_SEARCH_ENDPOINT', 'value', format('https://{0}.search.windows.net', format('srch-{0}', variables('prefix')))), createObject('name', 'AZURE_SEARCH_INDEX_NAME', 'value', 'corrections'), createObject('name', 'WEB_INTELLIGENCE_ENABLED', 'value', 'true'), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', format('{0}/api/projects/{1}', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint, format('ai-{0}-project', parameters('projectName')))), createObject('name', 'WEB_INTELLIGENCE_AGENT_NAME', 'value', 'PrevaIQ-WebIntelligence')), variables('webIqEnv'))]"
+              "env": "[concat(createArray(createObject('name', 'API_KEY', 'secretRef', 'api-key'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').clientId), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-large'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_OPENAI_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_OPENAI_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_NANO_DEPLOYMENT_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_NANO_MODEL_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', '2025-04-01-preview'), createObject('name', 'AZURE_OPENAI_REASONING_EFFORT', 'value', 'low'), createObject('name', 'FRAUD_VISION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_VISION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'STORAGE_BACKEND', 'value', 'azure_blob'), createObject('name', 'AZURE_STORAGE_AUTH_MODE', 'value', 'default'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), createObject('name', 'AZURE_STORAGE_CONTAINER_NAME', 'value', variables('dataContainerName')), createObject('name', 'DATABASE_BACKEND', 'value', 'postgresql'), createObject('name', 'POSTGRESQL_HOST', 'value', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', format('pg-{0}', variables('prefix'))), '2024-08-01').fullyQualifiedDomainName), createObject('name', 'POSTGRESQL_PORT', 'value', '5432'), createObject('name', 'POSTGRESQL_DATABASE', 'value', parameters('postgresDatabaseName')), createObject('name', 'POSTGRESQL_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'POSTGRESQL_PASSWORD', 'secretRef', 'pg-password'), createObject('name', 'POSTGRESQL_SSL_MODE', 'value', 'require'), createObject('name', 'RAG_ENABLED', 'value', 'true'), createObject('name', 'EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-small'), createObject('name', 'AGENT_FRAMEWORK_ENABLED', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString), createObject('name', 'OTEL_SERVICE_NAME', 'value', parameters('brandName')), createObject('name', 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', 'value', 'true'), createObject('name', 'FABRIC_DATA_AGENT_ENDPOINT', 'value', parameters('fabricDataAgentEndpoint')), createObject('name', 'FABRIC_WORKSPACE_ID', 'value', parameters('fabricWorkspaceId')), createObject('name', 'FABRIC_DATA_AGENT_ID', 'value', parameters('fabricDataAgentId')), createObject('name', 'AZURE_SEARCH_ENDPOINT', 'value', format('https://{0}.search.windows.net', format('srch-{0}', variables('prefix')))), createObject('name', 'AZURE_SEARCH_INDEX_NAME', 'value', 'corrections'), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', format('{0}/api/projects/{1}', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint, format('ai-{0}-project', parameters('projectName'))))), variables('webIqEnv'), if(parameters('accessEmailEnabled'), createArray(createObject('name', 'ACCESS_EMAIL_ENDPOINT', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.endpoint.value), createObject('name', 'ACCESS_EMAIL_SENDER', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.senderAddress.value), createObject('name', 'ACCESS_REQUEST_EMAIL', 'value', parameters('accessRequestEmail')), createObject('name', 'ACCESS_ADMIN_URL', 'value', parameters('accessAdminUrl'))), createArray()))]"
             }
           ],
           "scale": {
@@ -1143,6 +1159,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', format('cae-{0}', variables('prefix')))]",
+        "[resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email')]",
         "[resourceId('Microsoft.ContainerRegistry/registries', format('acr{0}{1}', parameters('projectName'), parameters('environment')))]",
         "[extensionResourceId(resourceId('Microsoft.ContainerRegistry/registries', format('acr{0}{1}', parameters('projectName'), parameters('environment'))), 'Microsoft.Authorization/roleAssignments', guid(resourceId('Microsoft.ContainerRegistry/registries', format('acr{0}{1}', parameters('projectName'), parameters('environment'))), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), 'acrpull'))]",
         "[resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix')))]",
@@ -1234,6 +1251,166 @@
         "[resourceId('Microsoft.App/containerApps', format('ca-api-{0}', parameters('environment')))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix')))]"
       ]
+    },
+    {
+      "condition": "[parameters('accessEmailEnabled')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "prevaiq-access-email",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "projectName": {
+            "value": "[parameters('projectName')]"
+          },
+          "environment": {
+            "value": "[parameters('environment')]"
+          },
+          "identityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').principalId]"
+          },
+          "dataLocation": {
+            "value": "[parameters('accessEmailDataLocation')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "17059446081861507960"
+            }
+          },
+          "parameters": {
+            "projectName": {
+              "type": "string",
+              "defaultValue": "prevaiq"
+            },
+            "environment": {
+              "type": "string",
+              "defaultValue": "demo"
+            },
+            "identityPrincipalId": {
+              "type": "string"
+            },
+            "dataLocation": {
+              "type": "string",
+              "defaultValue": "Europe",
+              "metadata": {
+                "description": "Email data residency geography, not an Azure resource region."
+              }
+            }
+          },
+          "variables": {
+            "prefix": "[format('{0}-{1}', parameters('projectName'), parameters('environment'))]",
+            "tags": {
+              "SecurityControl": "ignore",
+              "CostControl": "ignore",
+              "Project": "[parameters('projectName')]",
+              "Environment": "[parameters('environment')]"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Communication/emailServices",
+              "apiVersion": "2023-03-31",
+              "name": "[format('email-{0}', variables('prefix'))]",
+              "location": "global",
+              "tags": "[variables('tags')]",
+              "properties": {
+                "dataLocation": "[parameters('dataLocation')]"
+              }
+            },
+            {
+              "type": "Microsoft.Communication/emailServices/domains",
+              "apiVersion": "2023-03-31",
+              "name": "[format('{0}/{1}', format('email-{0}', variables('prefix')), 'AzureManagedDomain')]",
+              "location": "global",
+              "tags": "[variables('tags')]",
+              "properties": {
+                "domainManagement": "AzureManaged",
+                "userEngagementTracking": "Disabled"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Communication/emailServices', format('email-{0}', variables('prefix')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Communication/communicationServices",
+              "apiVersion": "2023-03-31",
+              "name": "[format('acs-{0}', variables('prefix'))]",
+              "location": "global",
+              "tags": "[variables('tags')]",
+              "properties": {
+                "dataLocation": "[parameters('dataLocation')]",
+                "linkedDomains": [
+                  "[resourceId('Microsoft.Communication/emailServices/domains', format('email-{0}', variables('prefix')), 'AzureManagedDomain')]"
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Communication/emailServices/domains', format('email-{0}', variables('prefix')), 'AzureManagedDomain')]"
+              ]
+            },
+            {
+              "type": "Microsoft.Authorization/roleDefinitions",
+              "apiVersion": "2022-04-01",
+              "name": "[guid(resourceGroup().id, variables('prefix'), 'access-email-sender')]",
+              "properties": {
+                "roleName": "[format('{0}-access-email-sender', variables('prefix'))]",
+                "description": "Submit access-request emails using Entra authentication on the dedicated ACS resource.",
+                "type": "CustomRole",
+                "assignableScopes": [
+                  "[resourceGroup().id]"
+                ],
+                "permissions": [
+                  {
+                    "actions": [
+                      "Microsoft.Communication/CommunicationServices/read",
+                      "Microsoft.Communication/CommunicationServices/write"
+                    ],
+                    "notActions": [],
+                    "dataActions": [],
+                    "notDataActions": []
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[resourceId('Microsoft.Communication/communicationServices', format('acs-{0}', variables('prefix')))]",
+              "name": "[guid(resourceId('Microsoft.Communication/communicationServices', format('acs-{0}', variables('prefix'))), parameters('identityPrincipalId'), resourceId('Microsoft.Authorization/roleDefinitions', guid(resourceGroup().id, variables('prefix'), 'access-email-sender')))]",
+              "properties": {
+                "principalId": "[parameters('identityPrincipalId')]",
+                "principalType": "ServicePrincipal",
+                "roleDefinitionId": "[resourceId('Microsoft.Authorization/roleDefinitions', guid(resourceGroup().id, variables('prefix'), 'access-email-sender'))]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Communication/communicationServices', format('acs-{0}', variables('prefix')))]",
+                "[resourceId('Microsoft.Authorization/roleDefinitions', guid(resourceGroup().id, variables('prefix'), 'access-email-sender'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "endpoint": {
+              "type": "string",
+              "value": "[format('https://{0}', reference(resourceId('Microsoft.Communication/communicationServices', format('acs-{0}', variables('prefix'))), '2023-03-31').hostName)]"
+            },
+            "senderAddress": {
+              "type": "string",
+              "value": "[format('DoNotReply@{0}', reference(resourceId('Microsoft.Communication/emailServices/domains', format('email-{0}', variables('prefix')), 'AzureManagedDomain'), '2023-03-31').fromSenderDomain)]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix')))]"
+      ]
     }
   ],
   "outputs": {
@@ -1288,6 +1465,14 @@
     "appInsightsConnectionString": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString]"
+    },
+    "accessEmailEndpoint": {
+      "type": "string",
+      "value": "[if(parameters('accessEmailEnabled'), reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.endpoint.value, '')]"
+    },
+    "accessEmailSender": {
+      "type": "string",
+      "value": "[if(parameters('accessEmailEnabled'), reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.senderAddress.value, '')]"
     }
   }
 }

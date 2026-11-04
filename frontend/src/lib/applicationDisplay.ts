@@ -2,6 +2,7 @@ import type { ApplicationListItem, ApplicationMetadata, ExtractedField } from '@
 
 type DisplayApplication = ApplicationListItem | ApplicationMetadata;
 type FieldMap = Record<string, string>;
+type DisplayLocale = 'en' | 'fr' | 'de';
 
 const HTML_TAG_RE = /<[^>]+>/g;
 const HTML_ONLY_RE = /^(?:<\/?(?:td|tr|th|table|tbody|thead|p|span|div|br)\s*\/?>\s*)+$/i;
@@ -52,7 +53,7 @@ function shortSubject(subject: string): string {
   return subject.split('—')[0].split('–')[0].trim();
 }
 
-function titleFromFiles(app: DisplayApplication): string | null {
+function titleFromFiles(app: DisplayApplication, locale: DisplayLocale): string | null {
   if (!('files' in app) || !Array.isArray(app.files)) return null;
   const candidate = app.files
     .map((file) => file.filename)
@@ -68,14 +69,24 @@ function titleFromFiles(app: DisplayApplication): string | null {
   if (!stem) return null;
   // Prefix by persona so a habitation file is not mislabelled "Sinistre Auto".
   const persona = ('persona' in app && app.persona ? String(app.persona) : '').toLowerCase();
-  let prefix = 'Sinistre';
-  if (persona.includes('automotive') || persona.includes('auto')) prefix = 'Sinistre Auto';
-  else if (persona.includes('habitation') || persona.includes('property')) prefix = 'Sinistre Habitation';
-  else if (persona.includes('health') || persona.includes('sante')) prefix = 'Sinistre Santé';
+  const prefixes = {
+    en: { claim: 'Claim', automotive: 'Auto Claim', property: 'Property Claim', health: 'Health Claim' },
+    fr: { claim: 'Sinistre', automotive: 'Sinistre Auto', property: 'Sinistre Habitation', health: 'Sinistre Santé' },
+    de: { claim: 'Schadenfall', automotive: 'Kfz-Schaden', property: 'Sachschaden', health: 'Gesundheitsschaden' },
+  }[locale];
+  let prefix = prefixes.claim;
+  if (persona.includes('automotive') || persona.includes('auto')) prefix = prefixes.automotive;
+  else if (persona.includes('habitation') || persona.includes('property')) prefix = prefixes.property;
+  else if (persona.includes('health') || persona.includes('sante')) prefix = prefixes.health;
   return `${prefix} — ${stem}`;
 }
 
-export function getApplicationDisplayTitle(app: DisplayApplication): string {
+export function getApplicationDisplayTitle(
+  app: DisplayApplication,
+  requestedLocale: string = 'en'
+): string {
+  const locale: DisplayLocale =
+    requestedLocale === 'fr' || requestedLocale === 'de' ? requestedLocale : 'en';
   if ('summary_title' in app && app.summary_title) return app.summary_title;
 
   const fields: FieldMap = {
@@ -106,7 +117,7 @@ export function getApplicationDisplayTitle(app: DisplayApplication): string {
   if (name) return name;
   if (vehicle) return vehicle;
   if (subject) return shortSubject(subject);
-  const fileTitle = titleFromFiles(app);
+  const fileTitle = titleFromFiles(app, locale);
   if (fileTitle) return fileTitle;
   if (app.external_reference) return app.external_reference;
   return app.id.substring(0, 8).toUpperCase();

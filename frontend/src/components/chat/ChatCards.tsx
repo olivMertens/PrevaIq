@@ -419,7 +419,7 @@ export function FraudAnalysisCard({ data }: { data: FraudAnalysisResponse }) {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <LevelIcon className={`w-5 h-5 ${levelConfig.text}`} />
-              <span className={`text-sm font-semibold ${levelConfig.text}`}>{data.title}</span>
+              <span className={`text-sm font-semibold ${levelConfig.text}`}>{data.title || t('fraudAnalysisTitle')}</span>
             </div>
             {data.summary && <p className="text-sm text-slate-700 leading-relaxed">{data.summary}</p>}
           </div>
@@ -544,7 +544,7 @@ function parseFraudMarkdown(content: string): FraudAnalysisResponse | null {
 
   return {
     type: 'fraud_analysis',
-    title: 'Analyse fraude photo',
+    title: '',
     photosAnalyzed,
     riskLevel,
     score,

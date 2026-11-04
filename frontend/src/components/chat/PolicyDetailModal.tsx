@@ -63,7 +63,7 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
         const data = await response.json();
         setPolicy(data.policy || data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load policy');
+        setError(err instanceof Error ? err.message : t('loadError'));
       } finally {
         setLoading(false);
       }

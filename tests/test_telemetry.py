@@ -49,7 +49,9 @@ def _by_name(exporter: InMemorySpanExporter) -> dict:
 
 
 def test_connection_description_masks_the_instrumentation_key():
-    described = telemetry._describe_connection(telemetry._parse_connection_string(CONNECTION_STRING))
+    described = telemetry._describe_connection(
+        telemetry._parse_connection_string(CONNECTION_STRING)
+    )
     assert described["ingestion_host"] == INGESTION_HOST
     assert described["instrumentation_key"] == "12345678..."
     assert "aaaa" not in str(described)
@@ -69,7 +71,9 @@ def test_configure_telemetry_rejects_a_connection_string_without_key(monkeypatch
         raise AssertionError("configure_azure_monitor must not be reached")
 
     monkeypatch.setattr(telemetry, "_initialized", False)
-    monkeypatch.setenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "IngestionEndpoint=https://x.example/")
+    monkeypatch.setenv(
+        "APPLICATIONINSIGHTS_CONNECTION_STRING", "IngestionEndpoint=https://x.example/"
+    )
     monkeypatch.setattr("azure.monitor.opentelemetry.configure_azure_monitor", must_not_configure)
     with caplog.at_level(logging.WARNING, logger="underwriting_assistant"):
         telemetry.configure_telemetry()
@@ -179,7 +183,7 @@ def test_add_span_event_attaches_to_the_current_span_only(spans):
 def test_workflow_step_span_flags_timeouts_and_failures(monkeypatch, spans):
     from app.agents import workflows as wf
 
-    async def fake_run(agent, prompt, *, agent_name, max_retries=1):
+    async def fake_run(agent, prompt, *, agent_name, language="en", max_retries=1):
         if agent_name == "Slow":
             await asyncio.sleep(1)
         if agent_name == "Broken":
@@ -190,7 +194,10 @@ def test_workflow_step_span_flags_timeouts_and_failures(monkeypatch, spans):
     monkeypatch.setattr(wf, "AGENT_TIMEOUT_SECONDS", 0.01)
 
     async def run():
-        return [await wf._run_step(None, "prompt", agent_name=name) for name in ("Fast", "Slow", "Broken")]
+        return [
+            await wf._run_step(None, "prompt", agent_name=name, language="fr")
+            for name in ("Fast", "Slow", "Broken")
+        ]
 
     fast, slow, broken = asyncio.run(run())
 
@@ -198,11 +205,15 @@ def test_workflow_step_span_flags_timeouts_and_failures(monkeypatch, spans):
     assert "délai dépassé" in slow and "indisponible" in broken
     recorded = _by_name(spans)
     assert recorded["workflow.step Fast"].status.status_code is StatusCode.UNSET
-    assert recorded["workflow.step Fast"].attributes["workbenchiq.response_chars"] == len("analysis")
+    assert recorded["workflow.step Fast"].attributes["workbenchiq.response_chars"] == len(
+        "analysis"
+    )
     assert recorded["workflow.step Slow"].status.status_code is StatusCode.ERROR
     assert recorded["workflow.step Slow"].attributes["error.type"] == "timeout"
+    assert recorded["workflow.step Slow"].attributes["workbenchiq.requires_human_review"]
     assert recorded["workflow.step Broken"].status.status_code is StatusCode.ERROR
     assert recorded["workflow.step Broken"].attributes["error.type"] == "RuntimeError"
+    assert recorded["workflow.step Broken"].attributes["workbenchiq.requires_human_review"]
 
 
 def test_agent_workflow_failure_sets_error_attributes_on_its_span(monkeypatch, spans):
@@ -222,11 +233,40 @@ def test_agent_workflow_failure_sets_error_attributes_on_its_span(monkeypatch, s
     assert span.attributes["workbenchiq.request_id"] == raised.value.request_id
 
 
+def test_agent_workflow_records_review_status_on_its_span(monkeypatch, spans):
+    from app.agents import api_integration, workflows
+
+    async def needs_review(settings, app_id, persona, language="en"):
+        return {
+            "workflow": "express",
+            "status": "needs_review",
+            "steps": [{"agent": "ExtractAgent", "text": "requires_human_review: true"}],
+            "summary": "Review required",
+        }
+
+    monkeypatch.setattr(workflows, "create_express_workflow", needs_review)
+    result = asyncio.run(
+        api_integration.agent_workflow(object(), "APP-1", "express", language="de")
+    )
+
+    assert result["status"] == "needs_review"
+    [span] = spans.get_finished_spans()
+    assert span.attributes["workbenchiq.workflow.status"] == "needs_review"
+    assert span.attributes["workbenchiq.workflow.steps"] == 1
+    assert span.attributes["workbenchiq.requires_human_review"] is True
+
+
 def test_agent_chat_direct_tool_route_gets_a_child_tool_span(monkeypatch, spans):
     from app.agents import api_integration, tools
 
-    monkeypatch.setattr(tools, "get_application_summary", lambda application_id: "Résumé du dossier")
-    monkeypatch.setattr(tools, "query_fabric_data", lambda question, persona="": "42 sinistres")
+    monkeypatch.setattr(
+        tools, "get_application_summary", lambda application_id: "Résumé du dossier"
+    )
+    monkeypatch.setattr(
+        tools,
+        "query_fabric_data",
+        lambda question, persona="", language="en": "42 sinistres",
+    )
 
     result = asyncio.run(
         api_integration.agent_chat(object(), "APP-1", "Combien de sinistres ?", agent_type="data")
@@ -252,11 +292,15 @@ def test_agent_chat_logs_completion_with_token_usage(monkeypatch, spans, caplog)
         return FakeAgent()
 
     monkeypatch.setattr(agents, "create_analysis_agent", fake_analysis_agent)
-    monkeypatch.setattr(tools, "get_application_summary", lambda application_id: "Résumé du dossier")
+    monkeypatch.setattr(
+        tools, "get_application_summary", lambda application_id: "Résumé du dossier"
+    )
 
     with caplog.at_level(logging.INFO, logger="underwriting_assistant"):
         result = asyncio.run(
-            api_integration.agent_chat(object(), "APP-1", "Analyse ce dossier", agent_type="analysis")
+            api_integration.agent_chat(
+                object(), "APP-1", "Analyse ce dossier", agent_type="analysis"
+            )
         )
 
     assert result["response"] == "Réponse"
@@ -284,67 +328,21 @@ def test_agent_chat_failure_sets_the_error_code_on_the_span(monkeypatch, spans):
         return BrokenAgent()
 
     monkeypatch.setattr(agents, "create_analysis_agent", fake_analysis_agent)
-    monkeypatch.setattr(tools, "get_application_summary", lambda application_id: "Résumé du dossier")
+    monkeypatch.setattr(
+        tools, "get_application_summary", lambda application_id: "Résumé du dossier"
+    )
 
     with pytest.raises(AgentServiceError) as raised:
-        asyncio.run(api_integration.agent_chat(object(), "APP-1", "Analyse ce dossier", agent_type="analysis"))
+        asyncio.run(
+            api_integration.agent_chat(
+                object(), "APP-1", "Analyse ce dossier", agent_type="analysis"
+            )
+        )
 
     span = _by_name(spans)["AnalysisAgent"]
     assert span.status.status_code is StatusCode.ERROR
     assert span.attributes["error.type"] == raised.value.code
     assert span.attributes["workbenchiq.request_id"] == raised.value.request_id
-
-
-# ── Foundry agent calls (web intelligence, Fabric) ──────────────────────────
-
-
-def _fraud_settings():
-    return SimpleNamespace(web_intelligence_agent_name="WebIntel", foundry_project_endpoint="https://foundry.example")
-
-
-def test_web_intelligence_span_is_entered_and_carries_the_result(monkeypatch, spans):
-    from app.agents import tools
-
-    response = SimpleNamespace(output_text='{"event_verified": true, "findings": [{"title": "Arrêté"}]}', output=[])
-    project = SimpleNamespace(
-        get_openai_client=lambda: SimpleNamespace(responses=SimpleNamespace(create=lambda **kwargs: response))
-    )
-    monkeypatch.setattr("azure.ai.projects.AIProjectClient", lambda **kwargs: project)
-    monkeypatch.setattr("azure.identity.DefaultAzureCredential", lambda: object())
-
-    result = tools._run_web_intelligence(
-        _fraud_settings(), claim_date="01/06/2026", claim_location="12 rue des Lilas, Nîmes",
-        claim_nature="Inondation", claim_type="habitation", declared_amount="5000",
-    )
-
-    assert result["event_verified"] is True
-    [span] = spans.get_finished_spans()
-    assert span.name == "web_intelligence.query" and span.kind is SpanKind.CLIENT
-    assert span.attributes["workbenchiq.findings_count"] == 1
-    assert span.attributes["workbenchiq.citations_count"] == 0
-    assert span.attributes["gen_ai.agent.name"] == "WebIntel"
-    assert not any("location" in key for key in span.attributes)
-    assert "Nîmes" not in str(dict(span.attributes))
-
-
-def test_web_intelligence_failure_is_recorded_on_the_span(monkeypatch, spans):
-    from app.agents import tools
-
-    def unavailable(**kwargs):
-        raise RuntimeError("foundry down")
-
-    monkeypatch.setattr("azure.ai.projects.AIProjectClient", unavailable)
-    monkeypatch.setattr("azure.identity.DefaultAzureCredential", lambda: object())
-
-    result = tools._run_web_intelligence(
-        _fraud_settings(), claim_date="", claim_location="", claim_nature="", claim_type="auto",
-        declared_amount="",
-    )
-
-    assert result == {"error": "foundry down"}
-    [span] = spans.get_finished_spans()
-    assert span.status.status_code is StatusCode.ERROR
-    assert span.attributes["error.type"] == "RuntimeError"
 
 
 def test_fabric_query_span_and_cleanup_failure_is_logged(monkeypatch, spans, caplog):
@@ -360,14 +358,18 @@ def test_fabric_query_span_and_cleanup_failure_is_logged(monkeypatch, spans, cap
             delete_version=delete_version,
         ),
         get_openai_client=lambda: SimpleNamespace(
-            responses=SimpleNamespace(create=lambda **kwargs: SimpleNamespace(output_text="42 sinistres"))
+            responses=SimpleNamespace(
+                create=lambda **kwargs: SimpleNamespace(output_text="42 sinistres")
+            )
         ),
     )
     monkeypatch.setattr("azure.ai.projects.AIProjectClient", lambda **kwargs: project)
     monkeypatch.setattr("azure.identity.DefaultAzureCredential", lambda: object())
     monkeypatch.setattr(
         "app.config.load_settings",
-        lambda: SimpleNamespace(foundry=SimpleNamespace(project_endpoint="https://foundry.example/api/projects/p")),
+        lambda: SimpleNamespace(
+            foundry=SimpleNamespace(project_endpoint="https://foundry.example/api/projects/p")
+        ),
     )
     monkeypatch.setenv("FABRIC_CONNECTION_NAME", "fabric-conn")
 

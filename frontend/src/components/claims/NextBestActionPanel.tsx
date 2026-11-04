@@ -44,7 +44,7 @@ export default function NextBestActionPanel({
 }: NextBestActionPanelProps) {
   const t = useTranslations('nextAction');
   const locale = useLocale();
-  const numberLocale = locale === 'fr' ? 'fr-FR' : 'en-US';
+  const numberLocale = locale;
   const [justification, setJustification] = useState('');
   const [showDetails, setShowDetails] = useState(false);
   const [actionTaken, setActionTaken] = useState<string | null>(null);

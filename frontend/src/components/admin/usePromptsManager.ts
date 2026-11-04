@@ -48,7 +48,7 @@ export function usePromptsManager(currentPersona: string, isActive: boolean) {
         }
       }
     } catch (err) {
-      setPromptsError(err instanceof Error ? err.message : 'Failed to load prompts');
+      setPromptsError(err instanceof Error ? err.message : t('promptLoadFailed'));
     } finally {
       setPromptsLoading(false);
     }

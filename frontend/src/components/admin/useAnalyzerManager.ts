@@ -4,9 +4,11 @@ import { useState, useCallback, useEffect } from 'react';
 import { getAnalyzerStatus, getAnalyzerSchema, listAnalyzers, createAnalyzer, deleteAnalyzer } from '@/lib/api';
 import type { AnalyzerStatus, AnalyzerInfo, FieldSchema } from '@/lib/types';
 import { useToast } from '@/lib/ToastProvider';
+import { useTranslations } from 'next-intl';
 
 export function useAnalyzerManager(currentPersona: string, isActive: boolean) {
   const { addToast } = useToast();
+  const t = useTranslations('admin');
   const [analyzerStatus, setAnalyzerStatus] = useState<AnalyzerStatus | null>(null);
   const [analyzerSchema, setAnalyzerSchema] = useState<FieldSchema | null>(null);
   const [analyzers, setAnalyzers] = useState<AnalyzerInfo[]>([]);
@@ -28,11 +30,11 @@ export function useAnalyzerManager(currentPersona: string, isActive: boolean) {
       setAnalyzerSchema(schema);
       setAnalyzers(list.analyzers);
     } catch (err) {
-      setAnalyzerError(err instanceof Error ? err.message : 'Failed to load analyzer data');
+      setAnalyzerError(err instanceof Error ? err.message : t('analyzerLoadFailed'));
     } finally {
       setAnalyzerLoading(false);
     }
-  }, [currentPersona]);
+  }, [currentPersona, t]);
 
   // Load when tab becomes active or schema cleared
   useEffect(() => {
@@ -54,36 +56,36 @@ export function useAnalyzerManager(currentPersona: string, isActive: boolean) {
     setAnalyzerSuccess(null);
     try {
       const result = await createAnalyzer(analyzerId, currentPersona, undefined, mediaType);
-      setAnalyzerSuccess(`Analyseur "${result.analyzer_id}" créé avec succès`);
-      addToast('success', 'Analyseur créé avec succès');
+      setAnalyzerSuccess(t('analyzerCreatedWithId', { id: result.analyzer_id }));
+      addToast('success', t('analyzerCreated'));
       await loadAnalyzerData();
       setTimeout(() => setAnalyzerSuccess(null), 5000);
     } catch (err) {
-      setAnalyzerError(err instanceof Error ? err.message : 'Failed to create analyzer');
+      setAnalyzerError(err instanceof Error ? err.message : t('analyzerCreateFailed'));
     } finally {
       setAnalyzerProcessing(false);
     }
-  }, [currentPersona, loadAnalyzerData]);
+  }, [currentPersona, loadAnalyzerData, t, addToast]);
 
   const handleDeleteAnalyzer = useCallback(async (analyzerId: string) => {
     // Prevent deletion of prebuilt analyzers
     const analyzer = analyzers.find(a => a.id === analyzerId);
     if (analyzer?.type === 'prebuilt') return;
-    if (!confirm(`Supprimer l'analyseur "${analyzerId}" ?`)) return;
+    if (!confirm(t('deleteAnalyzerConfirm', { id: analyzerId }))) return;
     setAnalyzerProcessing(true);
     setAnalyzerError(null);
     try {
       await deleteAnalyzer(analyzerId);
-      setAnalyzerSuccess('Analyseur supprimé avec succès');
-      addToast('info', 'Analyseur supprimé');
+      setAnalyzerSuccess(t('analyzerDeleted'));
+      addToast('info', t('analyzerDeleted'));
       await loadAnalyzerData();
       setTimeout(() => setAnalyzerSuccess(null), 3000);
     } catch (err) {
-      setAnalyzerError(err instanceof Error ? err.message : 'Échec de la suppression');
+      setAnalyzerError(err instanceof Error ? err.message : t('analyzerDeleteFailed'));
     } finally {
       setAnalyzerProcessing(false);
     }
-  }, [loadAnalyzerData, analyzers]);
+  }, [loadAnalyzerData, analyzers, t, addToast]);
 
   return {
     analyzerStatus,

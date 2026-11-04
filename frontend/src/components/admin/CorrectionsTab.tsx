@@ -274,9 +274,9 @@ export default function CorrectionsTab({ currentPersona }: CorrectionsTabProps) 
                           </div>
                         </div>
                         <div className="flex gap-4 mt-3 text-xs text-slate-500">
-                          <span>Persona: <strong>{c.persona}</strong></span>
-                          <span>Agent: <strong>{c.agent_type}</strong></span>
-                          <span>Cat: <strong>{c.metadata?.category || '-'}</strong></span>
+                          <span>{t('persona')}: <strong>{c.persona}</strong></span>
+                          <span>{t('agent')}: <strong>{c.agent_type}</strong></span>
+                          <span>{t('category')}: <strong>{c.metadata?.category || '-'}</strong></span>
                           <span>{t('correctionDate')}: <strong>{c.metadata?.correction_date || '-'}</strong></span>
                         </div>
                       </td>

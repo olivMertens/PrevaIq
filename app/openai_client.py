@@ -140,7 +140,7 @@ def chat_completion(
         api_version_override: Optional API version to use instead of settings.api_version
         timeout: HTTP request timeout in seconds. If None, scales with max_tokens
                  (120s base + 1s per 100 tokens over 1200).
-        extra_body: Optional dict merged into the request body (e.g., data_sources for Bing Grounding).
+        extra_body: Optional dict merged into the request body for provider-specific options.
         reasoning_effort: Optional reasoning effort for reasoning models.
                          Only used when the model is a reasoning model (gpt-5-*, o-series).
     """

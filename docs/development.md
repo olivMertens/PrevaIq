@@ -152,7 +152,7 @@ For Azure Container Apps, read the FQDNs for `ca-frontend-demo` and `ca-api-demo
 │   │   ├── risk_analysis.py      # Mortgage risk factor scoring
 │   │   ├── stress_test.py        # Stress test at MQR rates
 │   │   ├── aggregator.py         # Multi-document data aggregation
-│   │   ├── property_deep_dive.py # AI property analysis with Bing Grounding
+│   │   ├── property_deep_dive.py # AI property analysis grounded with Microsoft Web IQ
 │   │   └── extractors/           # Field extractors for borrower, income, property, loan, credit
 │   ├── database/                 # PostgreSQL connection management
 │   └── rag/                      # Optional PostgreSQL RAG module
@@ -275,5 +275,4 @@ uvicorn api_server:app --host 0.0.0.0 --port 8000
 - API logs: terminal running `uvicorn`.
 - Frontend logs: browser developer console.
 - Azure logs: Azure Portal > Monitor > Logs.
-
 

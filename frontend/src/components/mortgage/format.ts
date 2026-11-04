@@ -6,9 +6,9 @@
  * Format a number as EUR currency (e.g. "125 000 €").
  * Returns "—" for null/undefined values.
  */
-export function formatCurrency(amount: number | null | undefined): string {
+export function formatCurrency(amount: number | null | undefined, locale = 'en'): string {
   if (amount == null) return '—';
-  return new Intl.NumberFormat('fr-FR', {
+  return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 0,
@@ -19,9 +19,9 @@ export function formatCurrency(amount: number | null | undefined): string {
  * Format a number with locale grouping (e.g. "1 250").
  * Returns "—" for null/undefined values.
  */
-export function formatNumber(value: number | null | undefined, decimals = 0): string {
+export function formatNumber(value: number | null | undefined, decimals = 0, locale = 'en'): string {
   if (value == null) return '—';
-  return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: decimals }).format(value);
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: decimals }).format(value);
 }
 
 /**
@@ -29,26 +29,39 @@ export function formatNumber(value: number | null | undefined, decimals = 0): st
  * Expects the value to already be in percentage form (e.g. 26.36 → "26.36%").
  * Returns "N/A" for non-finite values.
  */
-export function formatPercent(value: number, decimals = 2): string {
+export function formatPercent(value: number, decimals = 2, locale = 'en'): string {
   if (!isFinite(value)) return 'N/A';
-  return `${value.toFixed(decimals)}%`;
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value / 100);
 }
 
 /**
  * Format a 0–1 ratio as percentage (e.g. 0.2636 → "26.36%").
  */
-export function formatRatio(value: number, decimals = 2): string {
+export function formatRatio(value: number, decimals = 2, locale = 'en'): string {
   if (!isFinite(value)) return 'N/A';
-  return `${(value * 100).toFixed(decimals)}%`;
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
 }
 
 /**
  * Format a signed percentage with +/- prefix (e.g. +2.5%, -1.3%).
  * Returns "—" for null/undefined values.
  */
-export function formatSignedPercent(value: number | null | undefined, decimals = 1): string {
+export function formatSignedPercent(value: number | null | undefined, decimals = 1, locale = 'en'): string {
   if (value == null) return '—';
-  return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`;
+  return new Intl.NumberFormat(locale, {
+    style: 'percent',
+    signDisplay: 'always',
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value / 100);
 }
 
 /** Severity → Tailwind text color class */

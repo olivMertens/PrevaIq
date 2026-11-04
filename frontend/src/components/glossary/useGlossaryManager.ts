@@ -13,11 +13,13 @@ import {
 } from '@/lib/api';
 import type { PersonaGlossary, GlossaryCategory, GlossaryTerm } from '@/lib/api';
 import { useToast } from '@/lib/ToastProvider';
+import { useTranslations } from 'next-intl';
 
 export type { PersonaGlossary, GlossaryCategory, GlossaryTerm };
 
 export default function useGlossaryManager(persona: string) {
   const { addToast } = useToast();
+  const t = useTranslations('glossaryManager');
   const [glossary, setGlossary] = useState<PersonaGlossary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,11 +65,11 @@ export default function useGlossaryManager(persona: string) {
         setExpandedCategories(new Set([data.categories[0].id]));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load glossary');
+      setError(err instanceof Error ? err.message : t('loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [persona]);
+  }, [persona, t]);
 
   useEffect(() => {
     loadGlossary();
@@ -144,7 +146,7 @@ export default function useGlossaryManager(persona: string) {
 
   const handleAddTerm = async (categoryId: string) => {
     if (!newTermData.abbreviation || !newTermData.meaning) {
-      showMessage('Abbreviation and meaning are required', true);
+      showMessage(t('termFieldsRequired'), true);
       return;
     }
     try {
@@ -154,12 +156,12 @@ export default function useGlossaryManager(persona: string) {
         meaning: newTermData.meaning,
         context: newTermData.context || undefined,
       });
-      showMessage(`Added term "${newTermData.abbreviation}"`);
+      showMessage(t('termAdded', { abbreviation: newTermData.abbreviation || '' }));
       setShowNewTermForm(null);
       setNewTermData({ abbreviation: '', meaning: '', context: '' });
       await loadGlossary();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Failed to add term', true);
+      showMessage(err instanceof Error ? err.message : t('termAddFailed'), true);
     } finally {
       setSaving(false);
     }
@@ -167,7 +169,7 @@ export default function useGlossaryManager(persona: string) {
 
   const handleUpdateTerm = async (abbreviation: string) => {
     if (!editFormData.meaning) {
-      showMessage('Meaning is required', true);
+      showMessage(t('meaningRequired'), true);
       return;
     }
     try {
@@ -176,26 +178,26 @@ export default function useGlossaryManager(persona: string) {
         meaning: editFormData.meaning,
         context: editFormData.context || undefined,
       });
-      showMessage(`Updated term "${abbreviation}"`);
+      showMessage(t('termUpdated', { abbreviation }));
       setEditingTerm(null);
       setEditFormData({});
       await loadGlossary();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Failed to update term', true);
+      showMessage(err instanceof Error ? err.message : t('termUpdateFailed'), true);
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteTerm = async (abbreviation: string) => {
-    if (!confirm(`Delete term "${abbreviation}"?`)) return;
+    if (!confirm(t('deleteTermConfirm', { abbreviation }))) return;
     try {
       setSaving(true);
       await deleteGlossaryTerm(persona, abbreviation);
-      showMessage(`Deleted term "${abbreviation}"`);
+      showMessage(t('termDeleted', { abbreviation }));
       await loadGlossary();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Failed to delete term', true);
+      showMessage(err instanceof Error ? err.message : t('termDeleteFailed'), true);
     } finally {
       setSaving(false);
     }
@@ -203,18 +205,18 @@ export default function useGlossaryManager(persona: string) {
 
   const handleAddCategory = async () => {
     if (!newCategoryData.id || !newCategoryData.name) {
-      showMessage('Category ID and name are required', true);
+      showMessage(t('categoryFieldsRequired'), true);
       return;
     }
     try {
       setSaving(true);
       await createGlossaryCategory(persona, newCategoryData.id, newCategoryData.name);
-      showMessage(`Added category "${newCategoryData.name}"`);
+      showMessage(t('categoryAdded', { name: newCategoryData.name }));
       setShowNewCategoryForm(false);
       setNewCategoryData({ id: '', name: '' });
       await loadGlossary();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Failed to add category', true);
+      showMessage(err instanceof Error ? err.message : t('categoryAddFailed'), true);
     } finally {
       setSaving(false);
     }
@@ -222,18 +224,18 @@ export default function useGlossaryManager(persona: string) {
 
   const handleUpdateCategory = async (categoryId: string) => {
     if (!editCategoryName) {
-      showMessage('Category name is required', true);
+      showMessage(t('categoryNameRequired'), true);
       return;
     }
     try {
       setSaving(true);
       await updateGlossaryCategory(persona, categoryId, editCategoryName);
-      showMessage(`Updated category "${editCategoryName}"`);
+      showMessage(t('categoryUpdated', { name: editCategoryName }));
       setEditingCategory(null);
       setEditCategoryName('');
       await loadGlossary();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Failed to update category', true);
+      showMessage(err instanceof Error ? err.message : t('categoryUpdateFailed'), true);
     } finally {
       setSaving(false);
     }
@@ -241,17 +243,17 @@ export default function useGlossaryManager(persona: string) {
 
   const handleDeleteCategory = async (categoryId: string, termCount: number) => {
     if (termCount > 0) {
-      showMessage('Cannot delete category with terms. Delete all terms first.', true);
+      showMessage(t('categoryNotEmpty'), true);
       return;
     }
-    if (!confirm(`Delete category "${categoryId}"?`)) return;
+    if (!confirm(t('deleteCategoryConfirm', { id: categoryId }))) return;
     try {
       setSaving(true);
       await deleteGlossaryCategory(persona, categoryId);
-      showMessage(`Deleted category`);
+      showMessage(t('categoryDeleted'));
       await loadGlossary();
     } catch (err) {
-      showMessage(err instanceof Error ? err.message : 'Failed to delete category', true);
+      showMessage(err instanceof Error ? err.message : t('categoryDeleteFailed'), true);
     } finally {
       setSaving(false);
     }

@@ -95,7 +95,7 @@ export default function CustomerListView({
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-500">
           <Users className="w-4 h-4" />
-          <span>{filteredCustomers.length} client{filteredCustomers.length !== 1 ? 's' : ''}</span>
+          <span>{t('customerCount', { count: filteredCustomers.length })}</span>
         </div>
       </div>
 

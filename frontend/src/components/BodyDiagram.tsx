@@ -11,56 +11,56 @@ interface BodyDiagramProps {
 }
 
 // Map body regions to SVG areas
-const regionPaths: Record<BodyRegion, { path: string; cx: number; cy: number; label: string }> = {
+const regionPaths: Record<BodyRegion, { path: string; cx: number; cy: number; labelKey: string }> = {
   head: {
     path: 'M45,8 Q50,2 55,8 Q60,14 58,22 L56,28 Q50,30 44,28 L42,22 Q40,14 45,8 Z',
     cx: 50,
     cy: 16,
-    label: 'Head',
+    labelKey: 'head',
   },
   chest: {
     path: 'M36,34 L44,30 Q50,29 56,30 L64,34 L66,50 L62,56 Q50,58 38,56 L34,50 Z',
     cx: 50,
     cy: 44,
-    label: 'Chest',
+    labelKey: 'chest',
   },
   abdomen: {
     path: 'M38,56 Q50,58 62,56 L63,68 Q50,70 37,68 Z',
     cx: 50,
     cy: 62,
-    label: 'Abdomen',
+    labelKey: 'abdomen',
   },
   pelvis: {
     path: 'M37,68 Q50,70 63,68 L65,76 Q50,80 35,76 Z',
     cx: 50,
     cy: 73,
-    label: 'Pelvis',
+    labelKey: 'pelvis',
   },
   joints_spine: {
     path: 'M47,30 L53,30 L53,76 L47,76 Z',
     cx: 50,
     cy: 53,
-    label: 'Spine & Joints',
+    labelKey: 'spineJoints',
   },
   extremities: {
     path: 'M28,34 L36,34 L34,50 L30,60 L24,50 Z M64,34 L72,34 L76,50 L70,60 L66,50 Z',
     cx: 50,
     cy: 47,
-    label: 'Extremities',
+    labelKey: 'extremities',
   },
   skin: {
     // Not rendered as a specific region — whole body outline
     path: '',
     cx: 50,
     cy: 50,
-    label: 'Skin',
+    labelKey: 'skin',
   },
   systemic: {
     // Not rendered as a specific region — indicator near center
     path: '',
     cx: 78,
     cy: 50,
-    label: 'Systemic',
+    labelKey: 'systemic',
   },
 };
 
@@ -151,7 +151,7 @@ export default function BodyDiagram({ bodySystems, onRegionClick, selectedSystem
                     if (code) onRegionClick?.(code);
                   }}
                 >
-                  <title>{`${rp.label}: ${data.systems.map(s => s.system_name).join(', ')} — ${data.severity}`}</title>
+                  <title>{`${t(rp.labelKey)}: ${data.systems.map(s => s.system_name).join(', ')} — ${t(data.severity)}`}</title>
                 </path>
                 {/* Diagnosis count indicator */}
                 {data.diagnosisCount > 0 && (

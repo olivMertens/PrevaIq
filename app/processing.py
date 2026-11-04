@@ -23,6 +23,7 @@ from .large_document_processor import (
     build_condensed_context,
     get_document_stats,
 )
+from .languages import language_instruction, normalize_language, require_language
 from .file_capabilities import detect_media_type
 from .markitdown_service import (
     MarkItDownConversionError,
@@ -37,8 +38,13 @@ from .storage import (
     ApplicationMetadata,
     save_application_metadata,
     save_cu_raw_result,
+    load_application,
     load_file_content,
+    load_localized_analysis_cache,
+    save_localized_analysis_cache,
     sanitize_extracted_fields,
+    analysis_source_revision,
+    canonical_analysis_payload,
 )
 from .personas import get_persona_config
 from .utils import setup_logging
@@ -46,6 +52,225 @@ from .underwriting_policies import format_all_policies_for_prompt, format_polici
 from .glossary import format_glossary_for_prompt
 
 logger = setup_logging()
+
+_LOCALIZATION_PROTECTED_KEYS = {
+    "raw",
+    "_raw",
+    "source",
+    "sources",
+    "source_text",
+    "citation",
+    "citations",
+    "identifier",
+    "identifiers",
+    "id",
+    "url",
+    "uri",
+    "path",
+    "filename",
+    "reference",
+    "references",
+    "article",
+    "article_id",
+    "policy_id",
+    "code",
+    "page",
+    "pages",
+    "usage",
+}
+_NON_HUMAN_VALUE_KEYS = {
+    "key",
+    "type",
+    "status",
+    "level",
+    "category",
+    "priority",
+    "decision",
+    "recommendation",
+    "risk_level",
+    "suggestedTone",
+}
+_HUMAN_TEXT_KEYS = {
+    "label",
+    "title",
+    "message",
+    "description",
+    "summary",
+    "synthese",
+    "conclusion",
+    "rationale",
+    "reason",
+    "reasons",
+    "recommendation_text",
+    "next_steps",
+    "conditions",
+    "warning",
+    "warnings",
+}
+
+
+def _localizable_strings(
+    value: Any,
+    path: tuple[str | int, ...] = (),
+) -> list[tuple[tuple[str | int, ...], str]]:
+    """Collect generated prose while excluding source evidence and machine values."""
+    key = path[-1] if path and isinstance(path[-1], str) else ""
+    if key:
+        if key in _LOCALIZATION_PROTECTED_KEYS or key.lower() in _LOCALIZATION_PROTECTED_KEYS:
+            return []
+        if key in _NON_HUMAN_VALUE_KEYS:
+            return []
+    if isinstance(value, dict):
+        items: list[tuple[tuple[str | int, ...], str]] = []
+        for key, child in value.items():
+            items.extend(_localizable_strings(child, (*path, key)))
+        return items
+    if isinstance(value, list):
+        items = []
+        for index, child in enumerate(value):
+            items.extend(_localizable_strings(child, (*path, index)))
+        return items
+    if not isinstance(value, str) or not value.strip():
+        return []
+    # Codes, dates, URLs, e-mail addresses, and short enum-like tokens are data.
+    if (
+        "://" in value
+        or "@" in value
+        or (
+            key not in _HUMAN_TEXT_KEYS
+            and value.replace("-", "").replace("_", "").replace(".", "").isalnum()
+            and ("_" in value or len(value.split()) == 1)
+        )
+    ):
+        return []
+    return [(path, value)]
+
+
+def _set_json_path(value: Any, path: tuple[str | int, ...], replacement: str) -> None:
+    target = value
+    for segment in path[:-1]:
+        target = target[segment]
+    target[path[-1]] = replacement
+
+
+def translate_analysis_payload(
+    settings: Settings,
+    payload: Dict[str, Any],
+    *,
+    source_language: str,
+    target_language: str,
+) -> Dict[str, Any]:
+    """Translate generated prose without changing JSON shape or source evidence."""
+    import copy
+
+    source = require_language(source_language)
+    target = require_language(target_language)
+    translated = copy.deepcopy(payload)
+    if source == target:
+        return translated
+
+    strings = _localizable_strings(payload)
+    if not strings:
+        return translated
+    translation_input = {str(index): text for index, (_, text) in enumerate(strings)}
+    prompt = (
+        f"Translate each JSON string value from {source} to {target}. "
+        "Return exactly the same object keys and string values only. "
+        "Do not translate French legal terms, quotations, citations, identifiers, codes, "
+        "names, dates, numbers, URLs, or enum tokens. Do not add commentary."
+    )
+    result = chat_completion(
+        settings.openai,
+        [
+            {"role": "system", "content": prompt},
+            {
+                "role": "user",
+                "content": json.dumps(translation_input, ensure_ascii=False),
+            },
+        ],
+        max_tokens=max(800, min(16000, len(json.dumps(translation_input)) // 2)),
+        temperature=0.0,
+        response_format="json_object",
+    )
+    try:
+        replacements = json.loads(result.get("content", ""))
+    except (json.JSONDecodeError, TypeError) as exc:
+        raise RuntimeError("Analysis translation returned invalid JSON.") from exc
+    expected = set(translation_input)
+    if not isinstance(replacements, dict) or set(replacements) != expected:
+        raise RuntimeError("Analysis translation returned an incomplete data contract.")
+    if not all(isinstance(replacements[key], str) for key in expected):
+        raise RuntimeError("Analysis translation returned non-string values.")
+    for index, (path, _) in enumerate(strings):
+        _set_json_path(translated, path, replacements[str(index)])
+    return translated
+
+
+def localized_analysis_payload(
+    settings: Settings,
+    app_md: ApplicationMetadata,
+    language: str,
+) -> Dict[str, Any]:
+    """Return and persist a revision-bound localized projection of derived analysis."""
+    locale = require_language(language)
+    canonical = canonical_analysis_payload(app_md)
+    revision = analysis_source_revision(app_md)
+    # Analyses persisted before locale tracking were generated by the former
+    # French-only pipeline. Treat them as French so an English or German view
+    # receives a localized projection instead of leaking legacy French prose.
+    source_locale = require_language(app_md.analysis_locale or "fr")
+    if locale == source_locale:
+        return canonical
+
+    cache = app_md.localized_analyses or {}
+    cached = cache.get(locale)
+    if isinstance(cached, dict) and cached.get("source_revision") == revision:
+        cached_payload = cached.get("payload")
+        if isinstance(cached_payload, dict):
+            return cached_payload
+
+    persisted = load_localized_analysis_cache(
+        settings.app.storage_root,
+        app_md.id,
+        revision,
+        locale,
+    )
+    if persisted is not None:
+        cache[locale] = {"source_revision": revision, "payload": persisted}
+        app_md.localized_analyses = cache
+        return persisted
+
+    translated = translate_analysis_payload(
+        settings,
+        canonical,
+        source_language=source_locale,
+        target_language=locale,
+    )
+
+    # Translation may take long enough for a newer canonical analysis to be persisted.
+    # Cache only when the revision is still current. The locale/revision cache is a
+    # separate object, so concurrent locale writes cannot overwrite metadata or each other.
+    latest = load_application(settings.app.storage_root, app_md.id)
+    if latest is None or analysis_source_revision(latest) != revision:
+        logger.info(
+            "Skipping stale localized analysis cache write for %s (%s)",
+            app_md.id,
+            locale,
+        )
+        return translated
+
+    save_localized_analysis_cache(
+        settings.app.storage_root,
+        app_md.id,
+        revision,
+        locale,
+        translated,
+    )
+    cache[locale] = {"source_revision": revision, "payload": translated}
+    app_md.localized_analyses = cache
+    app_md.analysis_source_revision = revision
+    return translated
+
 
 _LLM_FALLBACK_FIELD_SOURCES = {"llm_fallback", "llm_markdown_fallback"}
 
@@ -1491,11 +1716,11 @@ def _gpt_vision_describe_image(
     }.get(ext, "image/png")
 
     # Persona-specific system prompts — {brand} substituted from settings
-    brand = settings.brand_name
+    brand = getattr(settings, "brand_name", DEFAULT_BRAND.brand_name)
     prompts_by_persona = {
         "automotive_claims": (
             f"Tu es un expert en sinistres automobiles pour {brand}. "
-            "Décris les dommages visibles sur cette photo de véhicule en français. "
+            "Analyse les dommages visibles sur cette photo de véhicule. "
             "**CRUCIAL: Les côtés gauche/droite doivent être déterminés du point de vue du conducteur assis dans le véhicule, "
             "PAS du point de vue du photographe.** "
             "Structure ta réponse en sections:\n"
@@ -1508,7 +1733,7 @@ def _gpt_vision_describe_image(
         ),
         "habitation_claims": (
             f"Tu es un expert en sinistres habitation pour {brand}. "
-            "Décris les dommages visibles sur cette photo en français. "
+            "Analyse les dommages visibles sur cette photo. "
             "Structure ta réponse en sections:\n"
             "- **Type de bien** (appartement, maison, cave, garage, etc.)\n"
             "- **Zone affectée** (façade, intérieur, toit, fenêtres, fondations)\n"
@@ -1519,7 +1744,7 @@ def _gpt_vision_describe_image(
         ),
         "life_health_claims": (
             f"Tu es un expert médical en assurance santé pour {brand}. "
-            "Décris le document ou la photo médicale visible en français. "
+            "Analyse le document ou la photo médicale visible. "
             "Structure ta réponse en sections:\n"
             "- **Type de document** (prescription, ordonnance, facture, radiographie, résultat de lab)\n"
             "- **Informations visibles** (date, professionnel, patient si visible)\n"
@@ -1529,7 +1754,7 @@ def _gpt_vision_describe_image(
         ),
         "mortgage_underwriting": (
             f"Tu es un expert en expertise immobilière pour {brand}. "
-            "Décris le bien et sa structure visibles sur cette photo en français. "
+            "Analyse le bien et sa structure visibles sur cette photo. "
             "Structure ta réponse en sections:\n"
             "- **Type de propriété** (maison, appartement, terrain, commercial)\n"
             "- **État général** (bon, moyen, dégradé, ruine)\n"
@@ -1539,15 +1764,17 @@ def _gpt_vision_describe_image(
             "- **Estimation d'âge** et travaux apparents (rénovés, anciens, neufs)"
         ),
     }
+    response_language = normalize_language(language)
     system_prompt = prompts_by_persona.get(persona, prompts_by_persona["automotive_claims"])
-    if language and language.lower() == "en":
-        system_prompt += " Write your entire response in English, translating every section title and all content."
-
-    user_text = (
-        f"Analyze this photo: {filename}"
-        if language and language.lower() == "en"
-        else f"Analyse cette photo: {filename}"
+    system_prompt += (
+        f" {language_instruction(response_language)} Translate every section title and all "
+        "human-readable content into that language."
     )
+    user_text = {
+        "en": f"Analyze this photo: {filename}",
+        "fr": f"Analyse cette photo : {filename}",
+        "de": f"Analysiere dieses Foto: {filename}",
+    }[response_language]
     messages = [
         {
             "role": "system",
@@ -1574,7 +1801,11 @@ def _gpt_vision_describe_image(
         text = raw.get("content", "") or str(raw)
     else:
         text = str(raw)
-    header = "Photo analysis" if language and language.lower() == "en" else "Analyse photo"
+    header = {
+        "en": "Photo analysis",
+        "fr": "Analyse photo",
+        "de": "Fotoanalyse",
+    }[response_language]
     return f"# {header} : {filename}\n\n{text}"
 
 
@@ -1667,13 +1898,10 @@ def _run_single_prompt(
     max_tokens_override: int | None = None,
     language: Optional[str] = None,
 ) -> Dict[str, Any]:
-    system_prompt = "You are an expert life insurance underwriter. Always return STRICT JSON."
-    if language and language.lower() == "en":
-        system_prompt += " Respond in English for all human-readable text fields."
-    else:
-        system_prompt += (
-            " Répondez en français pour tous les champs textuels destinés à l'utilisateur."
-        )
+    system_prompt = (
+        "You are an expert life insurance underwriter. Always return STRICT JSON. "
+        f"{language_instruction(language)} Apply that language to every human-readable text field."
+    )
 
     # Inject underwriting policies into the prompt template
     if "{underwriting_policies}" in prompt_template:
@@ -2747,6 +2975,7 @@ def run_underwriting_prompts(
     Returns:
         Updated ApplicationMetadata with LLM outputs
     """
+    language = require_language(language)
     if not app_md.document_markdown:
         raise ValueError("ApplicationMarkdown is empty; run Content Understanding first.")
 
@@ -3122,6 +3351,7 @@ def run_underwriting_prompts(
 
     record_stage(app_md, budget, assess_analysis(budget=budget, results=results))
     app_md.status = "completed"
+    app_md.analysis_locale = language
     save_application_metadata(settings.app.storage_root, app_md)
     logger.info("Underwriting prompts completed for application %s (mode: %s)", app_md.id, mode)
     return app_md
@@ -3130,6 +3360,7 @@ def run_underwriting_prompts(
 def run_risk_analysis(
     settings: Settings,
     app_md: ApplicationMetadata,
+    language: str | None = None,
 ) -> Dict[str, Any]:
     """Run policy-based risk analysis on an already-analyzed application.
 
@@ -3144,6 +3375,7 @@ def run_risk_analysis(
     Returns:
         Risk analysis results with policy citations
     """
+    language = require_language(language or app_md.analysis_locale)
     if not app_md.llm_outputs:
         raise ValueError("Application has no LLM outputs. Run analysis first.")
 
@@ -3214,7 +3446,10 @@ def run_risk_analysis(
     filled_prompt = prompt_template.replace("{underwriting_policies}", underwriting_policies)
     filled_prompt = filled_prompt.replace("{application_data}", full_application_data)
 
-    system_message = "You are an expert life insurance underwriter. Always return STRICT JSON."
+    system_message = (
+        "You are an expert life insurance underwriter. Always return STRICT JSON. "
+        + language_instruction(language)
+    )
     messages = [
         {"role": "system", "content": system_message},
         {"role": "user", "content": filled_prompt},
@@ -3254,6 +3489,7 @@ def run_risk_analysis(
     if not hasattr(app_md, "risk_analysis") or app_md.risk_analysis is None:
         app_md.risk_analysis = {}
     app_md.risk_analysis = risk_analysis_result
+    app_md.analysis_locale = language
 
     # Clear processing status after successful completion
     app_md.processing_status = None

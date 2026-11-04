@@ -52,7 +52,7 @@ export function usePoliciesManager(currentPersona: string, isActive: boolean) {
       const data = await getPolicies(currentPersona);
       setPolicies(data.policies);
     } catch (err) {
-      setPoliciesError(err instanceof Error ? err.message : 'Failed to load policies');
+      setPoliciesError(err instanceof Error ? err.message : t('policyLoadFailed'));
     } finally {
       setPoliciesLoading(false);
     }

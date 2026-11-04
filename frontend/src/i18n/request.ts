@@ -1,8 +1,31 @@
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 
-const SUPPORTED_LOCALES = ['en', 'fr'] as const;
+const SUPPORTED_LOCALES = ['en', 'fr', 'de'] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
+
+function mergeMessages(
+  fallback: Record<string, unknown>,
+  overrides: Record<string, unknown>
+): Record<string, unknown> {
+  const merged = { ...fallback };
+  for (const [key, value] of Object.entries(overrides)) {
+    const fallbackValue = fallback[key];
+    merged[key] =
+      value &&
+      fallbackValue &&
+      typeof value === 'object' &&
+      typeof fallbackValue === 'object' &&
+      !Array.isArray(value) &&
+      !Array.isArray(fallbackValue)
+        ? mergeMessages(
+            fallbackValue as Record<string, unknown>,
+            value as Record<string, unknown>
+          )
+        : value;
+  }
+  return merged;
+}
 
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
@@ -12,9 +35,18 @@ export default getRequestConfig(async () => {
       ? (cookieLocale as Locale)
       : 'en';
 
+  const localeMessages = (await import(`../../messages/${locale}.json`)).default;
+  const messages =
+    locale === 'en'
+      ? localeMessages
+      : mergeMessages(
+          (await import('../../messages/en.json')).default,
+          localeMessages
+        );
+
   return {
     locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    messages,
     // Gracefully handle missing translation keys instead of crashing React.
     // Dynamic field names from LLM outputs (e.g. formatLabels.contrat,
     // formatLabels.plafond biens mobiliers) generate unpredictable keys.

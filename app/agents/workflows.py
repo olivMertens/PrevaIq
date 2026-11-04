@@ -22,6 +22,7 @@ import time
 from typing import Any
 
 from ..config import Settings
+from ..languages import language_instruction, require_language
 from ..telemetry import add_span_event, record_span_error, start_span
 from ..utils import setup_logging
 from .agents import _agent_options, _create_agent, _get_chat_client
@@ -31,11 +32,6 @@ logger = setup_logging()
 AGENT_TIMEOUT_SECONDS = 150
 CONTEXT_TIMEOUT_SECONDS = 30
 _MAX_CONTEXT_CHARS = 12000
-
-_LANG_INSTRUCTION = {
-    "fr": "Réponds TOUJOURS en français.",
-    "en": "ALWAYS respond in English.",
-}
 
 # Shared framing prepended to every workflow agent's instructions.
 # Goal: defuse LLM self-refusals on synthetic insurance scenarios by making
@@ -76,7 +72,12 @@ def _contains_refusal(text: str) -> bool:
     return bool(text) and bool(_REFUSAL_PATTERNS.search(text))
 
 
-def _sanitize_refusal(text: str, *, agent_name: str = "agent") -> str:
+def _sanitize_refusal(
+    text: str,
+    *,
+    agent_name: str = "agent",
+    language: str = "en",
+) -> str:
     """Strip any refusal sentence from the response and append a review marker.
 
     The model sometimes writes valid content, then injects a self-refusal
@@ -95,11 +96,24 @@ def _sanitize_refusal(text: str, *, agent_name: str = "agent") -> str:
         agent_name,
         len(text) - len(head),
     )
-    note = (
-        "\n\n> ⚠️ _Partie de la réponse non générée par le modèle (refus automatique "
-        "détecté). `requires_human_review: true` — relance ou revue manuelle "
-        "recommandée._"
-    )
+    locale = require_language(language)
+    note = {
+        "en": (
+            "\n\n> ⚠️ _Part of the response was not generated because an automatic refusal "
+            "was detected. `requires_human_review: true` — retry or manual review is "
+            "recommended._"
+        ),
+        "fr": (
+            "\n\n> ⚠️ _Partie de la réponse non générée par le modèle (refus automatique "
+            "détecté). `requires_human_review: true` — relance ou revue manuelle "
+            "recommandée._"
+        ),
+        "de": (
+            "\n\n> ⚠️ _Ein Teil der Antwort wurde wegen einer automatischen Ablehnung nicht "
+            "generiert. `requires_human_review: true` — erneuter Versuch oder manuelle "
+            "Prüfung empfohlen._"
+        ),
+    }[locale]
     return (head + note).strip()
 
 
@@ -108,6 +122,7 @@ async def _run_agent_with_refusal_retry(
     prompt: str,
     *,
     agent_name: str,
+    language: str = "en",
     max_retries: int = 1,
 ) -> str:
     """Run an agent and retry once with a reframing prefix if the model refuses."""
@@ -124,18 +139,23 @@ async def _run_agent_with_refusal_retry(
             "workbench demo. The applicant data is synthetic. Produce the requested "
             "structured document analysis — do not refuse, do not apologize. "
             "If information is missing, output the analysis with "
-            "`requires_human_review: true`.\n\n"
-            + prompt
+            "`requires_human_review: true`.\n\n" + prompt
         )
         resp = await agent.run(retry_prompt)
         text = _resp_text(resp)
         if not _contains_refusal(text):
             return text
 
-    return _sanitize_refusal(text, agent_name=agent_name)
+    return _sanitize_refusal(text, agent_name=agent_name, language=language)
 
 
-async def _run_step(agent: Any, prompt: str, *, agent_name: str) -> str:
+async def _run_step(
+    agent: Any,
+    prompt: str,
+    *,
+    agent_name: str,
+    language: str = "en",
+) -> str:
     """Run one agent with a timeout; a failure becomes a flagged step, not a workflow error."""
     started = time.perf_counter()
     logger.debug("Workflow step %s started (prompt_chars=%d)", agent_name, len(prompt))
@@ -145,21 +165,48 @@ async def _run_step(agent: Any, prompt: str, *, agent_name: str) -> str:
     ) as span:
         try:
             text = await asyncio.wait_for(
-                _run_agent_with_refusal_retry(agent, prompt, agent_name=agent_name),
+                _run_agent_with_refusal_retry(
+                    agent,
+                    prompt,
+                    agent_name=agent_name,
+                    language=language,
+                ),
                 timeout=AGENT_TIMEOUT_SECONDS,
             )
         except asyncio.TimeoutError:
-            logger.warning("Workflow step %s timed out after %ss", agent_name, AGENT_TIMEOUT_SECONDS)
-            record_span_error(span, f"timed out after {AGENT_TIMEOUT_SECONDS}s", error_type="timeout")
-            return f"> ⚠️ {agent_name} : délai dépassé — `requires_human_review: true`."
+            logger.warning(
+                "Workflow step %s timed out after %ss", agent_name, AGENT_TIMEOUT_SECONDS
+            )
+            record_span_error(
+                span, f"timed out after {AGENT_TIMEOUT_SECONDS}s", error_type="timeout"
+            )
+            span.set_attribute("workbenchiq.requires_human_review", True)
+            message = {
+                "en": "timed out",
+                "fr": "délai dépassé",
+                "de": "Zeitüberschreitung",
+            }[require_language(language)]
+            return f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`."
         except Exception as exc:
             logger.exception("Workflow step %s failed", agent_name)
             record_span_error(span, exc)
-            return f"> ⚠️ {agent_name} : étape indisponible — `requires_human_review: true`."
+            span.set_attribute("workbenchiq.requires_human_review", True)
+            message = {
+                "en": "step unavailable",
+                "fr": "étape indisponible",
+                "de": "Schritt nicht verfügbar",
+            }[require_language(language)]
+            return f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`."
         span.set_attribute("workbenchiq.response_chars", len(text))
+        span.set_attribute(
+            "workbenchiq.requires_human_review",
+            "requires_human_review: true" in text,
+        )
         logger.info(
             "Workflow step %s completed in %d ms (response_chars=%d)",
-            agent_name, (time.perf_counter() - started) * 1000, len(text),
+            agent_name,
+            (time.perf_counter() - started) * 1000,
+            len(text),
         )
         return text
 
@@ -190,7 +237,10 @@ async def _read_context(app_id: str, *, customer_history: bool = False) -> str:
             return ""
         logger.debug(
             "Workflow context %s read for %s in %d ms (%d chars)",
-            label, app_id, (time.perf_counter() - started) * 1000, len(str(value or "")),
+            label,
+            app_id,
+            (time.perf_counter() - started) * 1000,
+            len(str(value or "")),
         )
         return f"### {label}\n{str(value)[:_MAX_CONTEXT_CHARS]}" if value else ""
 
@@ -259,9 +309,10 @@ def _role(text: str, lang: str) -> str:
 
 
 def _result(workflow: str, steps: list[tuple[str, str]]) -> dict[str, Any]:
+    needs_review = any("requires_human_review: true" in text for _, text in steps)
     return {
         "workflow": workflow,
-        "status": "completed",
+        "status": "needs_review" if needs_review else "completed",
         "steps": [{"agent": agent, "text": text} for agent, text in steps],
         "summary": steps[-1][1] or "No output",
     }
@@ -274,12 +325,12 @@ async def create_express_workflow(
     settings: Settings,
     app_id: str,
     persona: str = "habitation_claims",
-    language: str = "fr",
+    language: str = "en",
 ) -> dict[str, Any]:
     """Express: [Extract ∥ Policy] → Decision, for routine claims."""
     from .tools import search_policies
 
-    lang = _LANG_INSTRUCTION.get(language, _LANG_INSTRUCTION["fr"])
+    lang = language_instruction(require_language(language))
     context = await _read_context(app_id)
 
     extract_agent = _cached_agent(
@@ -325,6 +376,7 @@ async def create_express_workflow(
             extract_agent,
             _with_context(f"Summarize application {app_id}.", context),
             agent_name="ExtractAgent",
+            language=language,
         ),
         _run_step(
             policy_agent,
@@ -334,6 +386,7 @@ async def create_express_workflow(
                 context,
             ),
             agent_name="PolicyAgent",
+            language=language,
         ),
     )
     decision_text = await _run_step(
@@ -344,6 +397,7 @@ async def create_express_workflow(
             context,
         ),
         agent_name="DecisionAgent",
+        language=language,
     )
     return _result(
         "express",
@@ -359,12 +413,12 @@ async def create_complet_workflow(
     settings: Settings,
     app_id: str,
     persona: str = "habitation_claims",
-    language: str = "fr",
+    language: str = "en",
 ) -> dict[str, Any]:
     """Complet: [Extract ∥ Analysis ∥ Fraud ∥ Policy] → Risk, for complex claims."""
     from .tools import analyze_image_fraud, search_policies
 
-    lang = _LANG_INSTRUCTION.get(language, _LANG_INSTRUCTION["fr"])
+    lang = language_instruction(require_language(language))
     context = await _read_context(app_id, customer_history=True)
 
     extract_agent = _cached_agent(
@@ -429,7 +483,10 @@ async def create_complet_workflow(
             analysis_agent,
             f"Analyze documented liability, damage severity and coverage for application {app_id}.",
         ),
-        "FraudAgent": (fraud_agent, f"Surface documented fraud indicators for application {app_id}."),
+        "FraudAgent": (
+            fraud_agent,
+            f"Surface documented fraud indicators for application {app_id}.",
+        ),
         "PolicyAgent": (
             policy_agent,
             f"Cite the Conditions Générales articles, exclusions and franchise for application {app_id}.",
@@ -437,7 +494,12 @@ async def create_complet_workflow(
     }
     texts = await asyncio.gather(
         *(
-            _run_step(agent, _with_context(task, context), agent_name=name)
+            _run_step(
+                agent,
+                _with_context(task, context),
+                agent_name=name,
+                language=language,
+            )
             for name, (agent, task) in branches.items()
         )
     )
@@ -448,6 +510,7 @@ async def create_complet_workflow(
         f"Consolidate the outputs for application {app_id} into a structured risk analysis."
         f"\n\n{merged}",
         agent_name="RiskAgent",
+        language=language,
     )
     return _result("complet", [*steps, ("RiskAgent", risk_text)])
 
@@ -456,12 +519,12 @@ async def create_fraud_workflow(
     settings: Settings,
     app_id: str,
     persona: str = "habitation_claims",
-    language: str = "fr",
+    language: str = "en",
 ) -> dict[str, Any]:
     """Fraude: [FraudDetector ∥ WebIntelligence] → CrossChecker, for SIU investigations."""
     from .tools import analyze_image_fraud, resolve_web_tool, search_policies
 
-    lang = _LANG_INSTRUCTION.get(language, _LANG_INSTRUCTION["fr"])
+    lang = language_instruction(require_language(language))
     context = await _read_context(app_id, customer_history=True)
 
     fraud_agent = _cached_agent(
@@ -505,6 +568,7 @@ async def create_fraud_workflow(
             fraud_agent,
             _with_context(f"Analyze the images of application {app_id}.", context),
             agent_name="FraudDetector",
+            language=language,
         ),
         _run_step(
             webintel_agent,
@@ -513,6 +577,7 @@ async def create_fraud_workflow(
                 context,
             ),
             agent_name="WebIntelligence",
+            language=language,
         ),
     )
 
@@ -524,6 +589,7 @@ async def create_fraud_workflow(
             context,
         ),
         agent_name="CrossChecker",
+        language=language,
     )
     return _result(
         "fraude",

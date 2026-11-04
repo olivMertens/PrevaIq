@@ -13,7 +13,7 @@ import {
   Tag,
 } from 'lucide-react';
 import type { Customer360View } from '@/lib/customer360-types';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
 
 interface CustomerProfileHeaderProps {
@@ -28,6 +28,7 @@ const RISK_TIER_KEYS = {
 
 export default function CustomerProfileHeader({ data }: CustomerProfileHeaderProps) {
   const t = useTranslations('customer360');
+  const locale = useLocale();
   const { profile, total_products, active_claims, overall_risk } = data;
   const riskConfig = RISK_TIER_KEYS[profile.risk_tier] || RISK_TIER_KEYS.low;
   const RiskIcon = riskConfig.icon;
@@ -55,7 +56,7 @@ export default function CustomerProfileHeader({ data }: CustomerProfileHeaderPro
                 <span>{t('ageYears', { age })}</span>
 
                 <span>•</span>
-                <span>{t('dateOfBirth', { date: formatDate(profile.date_of_birth) })}</span>
+                <span>{t('dateOfBirth', { date: formatDate(profile.date_of_birth, locale) })}</span>
               </div>
               <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
                 <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> {profile.email}</span>
@@ -79,7 +80,7 @@ export default function CustomerProfileHeader({ data }: CustomerProfileHeaderPro
 
         {/* Stats strip */}
         <div className="flex items-center gap-6 mt-6 pt-5 border-t border-slate-100">
-          <Stat icon={Calendar} label={t('customerSince')} value={formatDate(profile.customer_since)} sublabel={tenure} />
+          <Stat icon={Calendar} label={t('customerSince')} value={formatDate(profile.customer_since, locale)} sublabel={tenure} />
           <div className="w-px h-10 bg-slate-200" />
           <Stat icon={Package} label={t('products')} value={String(total_products)} />
           <div className="w-px h-10 bg-slate-200" />
@@ -164,8 +165,8 @@ function getCustomerTenure(since: string, t: (key: string, values?: Record<strin
   return m > 0 ? t('tenureYearsMonths', { years: y, months: m }) : t('tenureYearsOnly', { years: y });
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', {
+function formatDate(dateStr: string, locale: string): string {
+  return new Date(dateStr).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

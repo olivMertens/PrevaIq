@@ -20,6 +20,13 @@
     "pages": "Pages"
   },
   "auth": {
+    "splashEyebrow": "Atelier IA de l’assurance",
+    "languageLabel": "Langue",
+    "languageEnglish": "Anglais",
+    "languageFrench": "Français",
+    "languageGerman": "Allemand",
+    "useLightTheme": "Passer au thème clair",
+    "useDarkTheme": "Passer au thème sombre",
     "signIn": "Connectez-vous pour continuer",
     "demoAccessNotice": "Démo interne · 7 sessions simultanées maximum.",
     "username": "Nom d'utilisateur",
@@ -92,7 +99,23 @@
     "damageAreas": "Zones de dommages",
     "totalEstimate": "Estimation totale",
     "detectedDamageAreas": "Zones de dommages détectées",
-    "uploadVehicleMedia": "Téléversez des photos ou vidéos du véhicule pour analyser les dommages"
+    "uploadVehicleMedia": "Téléversez des photos ou vidéos du véhicule pour analyser les dommages",
+    "vehicleParts": {
+      "frontBumper": "Pare-chocs avant",
+      "frontLeftFender": "Arrière avant gauche",
+      "frontRightFender": "Arrière avant droite",
+      "hood": "Capuche",
+      "windshield": "Pare-brise",
+      "roof": "Toit",
+      "frontLeftDoor": "Porte avant gauche",
+      "rearLeftDoor": "Porte arrière gauche",
+      "frontRightDoor": "Porte avant droite",
+      "rearRightDoor": "Porte arrière droite",
+      "rearBumper": "Pare-chocs arrière",
+      "trunk": "Coffre",
+      "rearLeftQuarter": "Panneau arrière du quart gauche",
+      "rearRightQuarter": "Panneau arrière droit"
+    }
   },
   "labs": {
     "noAbnormalResults": "Aucun résultat biologique anormal trouvé.",
@@ -143,7 +166,7 @@
     "pending": "En attente",
     "errorLabel": "Erreur",
     "open": "Ouvrir",
-    "requiresAttention": "dossier(s) nécessitent votre attention",
+    "requiresAttention": "{count, plural, one {# dossier nécessite votre attention} other {# dossiers nécessitent votre attention}}",
     "errorOccurred": "Des erreurs de traitement sont survenues. Cliquez pour revoir.",
     "review": "Revoir",
     "stepUpload": "Téléchargement",
@@ -307,7 +330,7 @@
     "selectPromptToEdit": "Sélectionnez un prompt à modifier...",
     "promptsHelp": "Les prompts doivent retourner du JSON valide. Utilisez le formatage markdown pour les instructions.",
     "createNewPrompt": "Créer un nouveau prompt",
-    "promptText": "Texte du prompt",
+    "promptText": "Saisissez le texte du prompt…",
     "creating": "Création...",
     "contentUnderstandingAnalyzer": "Analyseur de compréhension de contenu",
     "loadingAnalyzerStatus": "Chargement du statut de l'analyseur...",
@@ -430,7 +453,6 @@
     "confirmDeleteDossier": "Supprimer le dossier {id} ?",
     "dossierDeletedSuccess": "Dossier {id} supprimé avec succès",
     "dossierDeleteFailed": "Échec de la suppression du dossier {id}",
-    "promptText": "Saisissez le texte du prompt…",
     "searchPlaceholder": "ex. numéro de police, ID dossier",
     "placeholderCvdId": "ex. CVD-BP-001",
     "placeholderPolicyName": "Nom de la police",
@@ -439,7 +461,9 @@
     "placeholderDescription": "Description de la police",
     "placeholderConditionCriteria": "Condition",
     "placeholderAction": "Action",
-    "placeholderRationale": "Justification"
+    "placeholderRationale": "Justification",
+    "policyLoadFailed": "Échec du chargement des polices",
+    "promptLoadFailed": "Échec du chargement des prompts"
   },
   "patient": {
     "name": "Nom de l'assuré",
@@ -516,7 +540,21 @@
       "defaultInsuredName": "Assuré",
       "lastAnalyzed": "Dernière analyse : {date}",
       "notAnalyzed": "Non analysé"
-    }
+    },
+    "when": "Condition",
+    "action": "Action",
+    "riskLabel": "Risque {level}",
+    "categories": {
+      "fraud_detection": "Détection de fraude",
+      "liability_determination": "Détermination de la responsabilité",
+      "damage_assessment": "Évaluation des dommages",
+      "payout_calculation": "Calcul de l’indemnisation",
+      "other": "Autre"
+    },
+    "matchPercent": "Correspondance : {percent} %",
+    "matchingPolicies": "{count, plural, one {# police correspondante trouvée} other {# polices correspondantes trouvées}}",
+    "applicationLabel": "Dossier {id}",
+    "riskAnalysisFailed": "Échec de l’analyse des risques"
   },
   "body": {
     "systemMap": "Carte des systèmes corporels",
@@ -585,7 +623,8 @@
       "analysis_errors": "Erreurs d'analyse",
       "analysis_budget_exhausted": "Budget d'analyse épuisé"
     },
-    "disabled": "Désactivé"
+    "disabled": "Désactivé",
+    "applicationLoadError": "Impossible de charger le dossier"
   },
   "actions": {
     "cancel": "Annuler",
@@ -823,7 +862,8 @@
       "damageItem": "Dommage constaté",
       "linked": "Lié ?",
       "close": "Fermer",
-      "zoneDamageFull": "Zone / Bien / Dommage"
+      "zoneDamageFull": "Zone / Bien / Dommage",
+      "viewSource": "Voir {source}"
     },
     "evidence": {
       "cgHabitation": "CG Habitation",
@@ -848,7 +888,8 @@
       "pdfDesc": "Document PDF joint au dossier",
       "attachmentTitle": "Pièce jointe",
       "attachmentDesc": "Document ajouté au dossier",
-      "videoTitle": "Vidéo"
+      "videoTitle": "Vidéo",
+      "imageTitle": "Image"
     },
     "markdown": {
       "claimNumber": "N° Sinistre",
@@ -906,16 +947,27 @@
       "receptionDesc": "Dossier enregistré — traitement IA lancé",
       "analysisComplete": "Analyse IA terminée",
       "analysisCompleteDesc": "{count} pièce(s) analysée(s)",
-      "systems": "Systèmes : {badges}",
+      "systems": "Systèmes : {systems}",
       "decisionApprove": "Décision : Approuvé",
       "decisionApproveConditions": "Décision : Approuvé sous conditions",
       "decisionDefer": "Décision : Différé",
       "decisionDecline": "Décision : Refusé",
       "decisionRecorded": "Décision enregistrée",
-      "aiRecommendation": "IA : {recommendation}",
+      "aiRecommendation": "IA",
       "divergence": "Divergence IA/Humain",
       "closure": "Clôture du dossier",
-      "closureDesc": "Dossier clos"
+      "closureDesc": "Dossier clos",
+      "waitingDescription": "Attendre le traitement des documents",
+      "aiHumanDivergence": "AI/Différence humaine",
+      "conditions": "Conditions",
+      "decisions": {
+        "approve": "Décision: Approuvée",
+        "approve_with_conditions": "Décision: Approuvée avec conditions",
+        "defer": "Décision : Reportée",
+        "decline": "Décision : Déclinée"
+      },
+      "decision": "Décision:{decision}",
+      "decisionSaved": "Décision enregistrée"
     },
     "amountComparison": {
       "warning": "Écart montant déclaré / expertise :",
@@ -971,6 +1023,109 @@
         "footerLine2": "Ce document est un projet de note de règlement. Il ne constitue pas un engagement définitif de {companyName} et doit être validé par un responsable autorisé.",
         "footerLine3": "{companyName} — Document de démonstration."
       }
+    },
+    "analysisFailed": "L'analyse AI a échoué",
+    "schemaFieldsDefined": "{count}champs définis",
+    "defaults": {
+      "waterOrStorm": "Dommages causés par l'eau/tempête",
+      "waterDamage": "Dommages causés par l ' eau"
+    },
+    "parsedFields": {
+      "fileReference": "Référence du fichier",
+      "estimatedRepairs": "Réparations prévues",
+      "estimatedAmount": "Montant estimatif",
+      "deductible": "Déduction applicable",
+      "recommendedPayout": "Paiement recommandé",
+      "applicableCoverage": "Couverture applicable",
+      "coverage": "Couverture",
+      "exclusions": "Exclusions",
+      "liability": "Responsabilité",
+      "observations": "Observations",
+      "recommendation": "Recommandation",
+      "conclusion": "Conclusion",
+      "risk": "Risque",
+      "score": "Score",
+      "settlementAnalysis": "Analyse du règlement",
+      "calculationDetails": "Détails du calcul",
+      "totalDamage": "Total des dommages",
+      "coverageLimit": "Limite de couverture",
+      "depreciation": "Amortissement",
+      "depreciationRate": "Taux d'amortissement",
+      "contract": "Contrat",
+      "conditions": "Conditions",
+      "contractPlan": "Plan des contrats",
+      "number": "Numéro",
+      "contractNumber": "Contrat no.",
+      "contractType": "Type de contrat",
+      "contentsLimit": "Limite de contenu",
+      "buildingLimit": "Limite de construction",
+      "valuablesLimit": "Limite des valeurs",
+      "summary": "Résumé",
+      "description": "Désignation des marchandises",
+      "cause": "Cause",
+      "date": "Date",
+      "location": "Lieu",
+      "amount": "Montant",
+      "status": "État",
+      "coverageStatus": "État de la couverture",
+      "fraudIndicators": "Indicateurs de fraude",
+      "riskLevel": "Niveau de risque",
+      "severity": "Gravité",
+      "yes": "Oui",
+      "no": "Numéro"
+    },
+    "signals": {
+      "siuReferral": "Renvoi recommandé",
+      "siuReferralDetail": "Enquête spéciale recommandée par l'analyse de la fraude",
+      "highAmount": "Montant élevé",
+      "highAmountDetail": "Montant estimatif:{amount}— expertise obligatoire supérieure à 5 000 euros",
+      "weatherEvent": "Événement météorologique",
+      "weatherEventDetail": "Réclamation liée à un événement météorologique — vérifier l'ordre de catastrophe naturelle",
+      "weatherConfirmed": "Activité météorologique confirmée par des sources publiques",
+      "weatherUnconfirmed": "Activité météorologique non confirmée par des sources publiques — vérification manuelle requise",
+      "fire": "Feu",
+      "fireDetail": "Réclamation pour incendie — évaluation systématique par des experts",
+      "thirdParty": "Troisième partie concernée",
+      "thirdPartyDetail": "Un tiers est impliqué — contrôle de l'accord IRSI et recours éventuel",
+      "highUrgency": "Haute urgence",
+      "highUrgencyDetail": "Niveau d'urgence:{urgency}— traitement prioritaire requis",
+      "preExistingDamage": "Dommages préexistants",
+      "preExistingDamageDetail": "Dommages préexistants détectés dans les photos — vérifier l'état antérieur",
+      "inconsistency": "Incohérence détectée",
+      "inconsistencyDetail": "Incohérence de la description de la réclamation — enquête recommandée",
+      "coverageUnconfirmed": "Couverture non confirmée",
+      "statusDetail": "État :{status}",
+      "missingDeclaration": "Déclaration de la réclamation",
+      "missingPhotos": "Photos des dommages (minimum 3)",
+      "missingEstimate": "Estimation ou facture de réparation",
+      "missingAccidentReport": "Déclaration d'accident (tiers impliqués)",
+      "missingDocuments": "{count, plural, one {# document manquant} other {# documents manquants}}",
+      "alertCount": "{count, plural, one {# alerte} other {# alertes}}",
+      "fraudIndicators": "Indicateurs de fraude",
+      "possibleExclusions": "Exclusions possibles"
+    },
+    "settlement": {
+      "siuSuspended": "Renvoi de l'UES recommandé — règlement suspendu",
+      "generatePdf": "Générer la note de règlement PDF",
+      "completeTasks": "Terminer toutes les tâches pour activer"
+    },
+    "damage": {
+      "relatedToClaim": "En rapport avec la réclamation ?",
+      "item": "Superficie / Biens / Dommages"
+    },
+    "automotive": {
+      "loadFailed": "Impossible de charger les données",
+      "uploadSuccess": "Fichiers téléchargés avec succès",
+      "uploadFailed": "Le téléchargement du fichier a échoué",
+      "decisionSaved": "Décision « {decision} » enregistrée",
+      "decisionSaveFailed": "Échec de la décision",
+      "declaredClaim": "Réclamation pour automobile déclarée",
+      "vehicleSummary": "Véhicule:{vehicle}",
+      "claimDateSummary": "Date de la réclamation :{date}",
+      "visibleDamageEvidence": "Réclamation automobile avec dommages visibles dans le dossier de preuve{file}.",
+      "riskHigh": "Haut",
+      "riskModerate": "Modéré",
+      "riskLow": "Faible"
     }
   },
   "mortgage": {
@@ -1022,7 +1177,7 @@
     "chunkType": "Type d'extrait :",
     "criteriaId": "ID critère :",
     "clickToViewPolicy": "Cliquez pour voir les détails de la police",
-    "responsePending": "R\u00e9ponse en cours...",
+    "responsePending": "Réponse en cours...",
     "retrievingPolicies": "Agent Polices en cours de recherche...",
     "analyzingData": "Agent d'Analyse en cours de revue...",
     "formulatingResponse": "Agent de Réponse en cours de formulation...",
@@ -1054,6 +1209,7 @@
     "workflowSummary": "Synthèse finale :",
     "workflowStatus": "Statut",
     "workflowCompletedStatus": "terminé",
+    "workflowNeedsReviewStatus": "revue humaine requise",
     "workflowErrorTitle": "Erreur workflow",
     "unknownError": "Erreur inconnue",
     "recommended": "Recommandé",
@@ -1109,7 +1265,99 @@
     "correctionsToggle": "Activer ou désactiver les corrections gestionnaires",
     "correctionsTitle": "Corrections gestionnaires",
     "correctionsOn": "ON — 200 corrections vectorisées sont injectées dans le prompt (similarité ≥ 80%)",
-    "correctionsOff": "OFF — L'agent répond sans corrections. Utile pour montrer l'avant/après."
+    "correctionsOff": "OFF — L'agent répond sans corrections. Utile pour montrer l'avant/après.",
+    "toolBadges": {
+      "policies": "Politiques des GAR",
+      "data": "Données",
+      "glossary": "Glossaire",
+      "fabric": "Tissu",
+      "fraudDetection": "Détection des fraudes",
+      "webSearch": "Recherche Web",
+      "webIq": "IQ Web"
+    },
+    "policyDocs": {
+      "property": "Termes de la politique immobilière",
+      "health": "Conditions de la politique de santé",
+      "auto": "Conditions de la politique de l'automobile",
+      "mortgage": "Conditions de la politique hypothécaire"
+    },
+    "recommendationSignals": {
+      "majorClaim": "Réclamation majeure",
+      "thirdPartyRecourse": "Recours de tiers",
+      "expertiseRequired": "Évaluation des experts requise",
+      "catNat": "Catastrophe naturelle"
+    },
+    "recExpress": "Fichier courant — flux de travail express recommandé",
+    "recMortgageHcsf": "Analyse HCSF recommandée",
+    "recMortgageSensitive": "Dossier hypothécaire sensible — examen complet",
+    "recMortgageDocuments": "Les documents hypothécaires doivent être complétés",
+    "decisionFields": {
+      "recommendation": "Recommandation",
+      "decision": "Décision",
+      "rationale": "Justification",
+      "conditionsOrDeductible": "Conditions/déductibles",
+      "conditions": "Conditions",
+      "nextSteps": "Prochaines étapes",
+      "actions": "Actions",
+      "missingItems": "Articles manquants",
+      "missingDocuments": "Documents manquants",
+      "humanReview": "Examen humain nécessaire",
+      "confidence": "Confiance",
+      "riskLevel": "Niveau de risque",
+      "citations": "Citations",
+      "sources": "Sources"
+    },
+    "yes": "Oui",
+    "no": "Numéro",
+    "none": "aucune",
+    "contextual": {
+      "extracting": "L'extraction est en cours — des suggestions seront disponibles après analyse",
+      "analyzing": "L'analyse de l'IA est en cours — posez votre question et elle sera traitée ultérieurement",
+      "processingFailed": "Le traitement a échoué — souhaitez-vous redémarrer l'extraction?",
+      "summarizeError": "Résumer l'erreur de traitement",
+      "summarizeDecision": "Résumer la décision et la justification",
+      "nextSteps": "Quelles sont les prochaines étapes après cette décision?",
+      "irsi": "L'accord IRSI s'applique-t-il à cette demande?",
+      "waterDeductible": "Quelle est la franchise applicable en cas de dommages causés par l'eau?",
+      "stormCoverage": "La couverture des tempêtes inclut-elle ces dommages?",
+      "theftCoverage": "Les conditions de la protection contre le vol sont-elles remplies?",
+      "fireExclusions": "Quelles exclusions s'appliquent à la protection contre les incendies?",
+      "thirdPartyRecourse": "Un recours contre le tiers est-il possible?",
+      "catNatOrder": "Un ordre de catastrophe naturelle a-t-il été émis pour cette municipalité et cette période?",
+      "expertiseThresholds": "Quels sont les seuils obligatoires d'évaluation par les experts en vertu de la politique?",
+      "fraudIndicators": "Quels indicateurs de fraude ont été détectés?",
+      "photoAuthenticity": "Analyser les photos pour vérifier l'authenticité",
+      "catNatConditions": "Quelles sont les conditions de compensation des catastrophes naturelles?",
+      "possibleExclusions": "Quelles exclusions pourraient s'appliquer à cette revendication?",
+      "coverageConfirmed": "Cette réclamation est-elle couverte par la police?",
+      "hcsfDebt": "Le ratio de la dette est-il conforme aux normes du HCSF?",
+      "ltv": "Le rapport LTV est-il acceptable pour ce dossier?",
+      "downPayment": "L'acompte est-il suffisant pour satisfaire aux exigences de souscription?",
+      "ptz": "Quelles conditions PTZ doivent être validées?",
+      "crossBorder": "Quelles preuves supplémentaires sont requises pour un demandeur transfrontalier?",
+      "missingDocuments": "Énumérer les documents manquants en ordre de priorité.",
+      "summarizeCoverage": "Résumer la couverture applicable aux termes de la police",
+      "expertType": "Quel type d'expert devrait être nommé pour cette réclamation?",
+      "recourseProcedure": "Quelle est la procédure de recours de tiers (IRSI / CIDE-COP)?",
+      "documentsNeeded": "Quels documents sont nécessaires pour compléter ce dossier?",
+      "summarizeFraud": "Résumé de l'analyse antifraude pour ce dossier",
+      "regulatoryChecks": "Quelles vérifications réglementaires sont les plus prioritaires pour ce dossier?",
+      "riskSignals": "Quels signaux de risque justifient un examen approfondi?",
+      "propertyCoverage": "Cette réclamation est-elle couverte par les conditions de la police immobilière?",
+      "applicableDeductible": "Quelle est la franchise applicable?",
+      "detectPhotoFraud": "Analyser les photos pour les indicateurs de fraude",
+      "insuredLiability": "Quelle est la responsabilité de l'assuré?",
+      "healthCoverage": "Ce traitement est-il couvert ?",
+      "reimbursementRate": "Quel est le taux de remboursement?",
+      "cardiovascularRisk": "Quel est le niveau de risque cardiovasculaire?",
+      "recommendedPlan": "Quel plan est recommandé pour ce profil?",
+      "ltvShort": "Le rapport LTV est-il acceptable?",
+      "debtCompliant": "Le ratio de la dette est-il conforme?",
+      "hcsfRisk": "Quelles normes HCSF représentent le plus grand risque pour ce dossier?"
+    },
+    "openPolicy": "Ouvrir {label} — Références : {references}",
+    "feedbackError": "Impossible d’envoyer le retour",
+    "conversationLoadError": "Impossible de charger la conversation"
   },
   "policyDetail": {
     "title": "Détails de la police",
@@ -1119,7 +1367,8 @@
     "references": "Références",
     "action": "Action",
     "rationale": "Justification",
-    "close": "Fermer"
+    "close": "Fermer",
+    "loadError": "Échec du chargement de la police"
   },
   "decisions": {
     "yourDecision": "Votre décision :",
@@ -1163,7 +1412,10 @@
     "noCorrections": "Aucune correction trouvée",
     "loadError": "Erreur lors du chargement des corrections",
     "refresh": "Actualiser",
-    "correctionsCount": "{count} correction(s)"
+    "correctionsCount": "{count} correction(s)",
+    "persona": "Persona",
+    "agent": "Agent",
+    "category": "Catégorie"
   },
   "glossary": {
     "title": "Glossaire",
@@ -1241,7 +1493,30 @@
     "runExtractionHint": "Lancez l'extraction depuis le panneau d'administration pour extraire le texte des documents.",
     "backend": "Backend",
     "analyzer": "Analyseur",
-    "sourcePage": "Page source"
+    "sourcePage": "Page source",
+    "summary": "Résumé",
+    "documentInsights": "Analyse du document par section",
+    "batchCount": "{count, plural, one {# lot} other {# lots}}",
+    "expandAll": "Tout développer",
+    "collapseAll": "Tout réduire",
+    "pageRange": "Pages {start}–{end}",
+    "notableFindings": "Éléments notables",
+    "pagesAnalyzed": "{count, plural, one {# page analysée} other {# pages analysées}}",
+    "pageNumber": "Page {page}",
+    "aiBatchSummary": "Synthèse IA — Lot {batch}",
+    "pendingInvestigations": "Examens en attente",
+    "urgency": {
+      "high": "ÉLEVÉE",
+      "medium": "MOYENNE",
+      "low": "FAIBLE"
+    },
+    "investigationType": {
+      "test": "Examen",
+      "referral": "Orientation",
+      "consult": "Consultation",
+      "imaging": "Imagerie",
+      "procedure": "Procédure"
+    }
   },
   "customer360": {
     "title": "Client 360",
@@ -1321,7 +1596,7 @@
     "riskLabelLow": "Risque faible",
     "riskLabelMedium": "Risque modéré",
     "riskLabelHigh": "Risque élevé",
-    "signOut": "Déconnexion"
+    "customerCount": "{count, plural, one {# client} other {# clients}}"
   },
   "souscria": {
     "acquisitionTitle": "Contexte acquisition Souscr'IA",
@@ -1373,7 +1648,8 @@
     "conditions": "Conditions",
     "rationale": "Justification",
     "nextSteps": "Prochaines étapes",
-    "consistency": "Cohérence déclaration / photos"
+    "consistency": "Cohérence déclaration / photos",
+    "fraudAnalysisTitle": "Analyse de fraude photo"
   },
   "chatHistory": {
     "history": "Historique",
@@ -1467,7 +1743,7 @@
     "hdlCholesterol": "HDL",
     "triglycerides": "Triglycérides",
     "pulseRate": "Fréquence cardiaque",
-    "urinalysis": "Analyse d'urine",
+    "urinalysis": "Analyse d’urine",
     "protein": "Protéines",
     "glucose": "Glucose",
     "blood": "Sang"
@@ -1500,7 +1776,8 @@
     "foreignTravel": "Déplacements à l'étranger",
     "nonePlanned": "Aucun prévu",
     "yesDetails": "Oui — voir détails",
-    "noData": "Aucune donnée professionnelle extraite"
+    "noData": "Aucune donnée professionnelle extraite",
+    "yesSeeDetails": "Oui — voir les détails"
   },
   "confidence": {
     "high": "Élevée",
@@ -1509,12 +1786,13 @@
     "confidence": "Confiance"
   },
   "citation": {
-    "sourceTitle": "Citation source",
+    "sourceTitle": "Source : {source}{page}",
     "document": "Document",
     "page": "Page {pageNumber}",
     "viewInDocument": "Voir dans le document",
     "openPdf": "Ouvrir le PDF",
-    "source": "Source : {source}"
+    "source": "Source : {source}",
+    "pageTitle": ", page {page}"
   },
   "riskPopover": {
     "riskRating": "Niveau de risque : {rating}",
@@ -1552,7 +1830,33 @@
     "statusOngoing": "En cours",
     "statusResolved": "Résolu",
     "statusActive": "Actif",
-    "statusMonitoring": "Suivi"
+    "statusMonitoring": "Suivi",
+    "systems": "Systèmes:{systems}",
+    "claimEventTitle": "Réclamation :{nature}",
+    "claimEvent": "Réclamation{nature}",
+    "claimEventLocation": "{nature}a fait l'objet d'une réclamation —{location}",
+    "claimEventDetails": "La réclamation{nature}a été présentée sur{date}",
+    "claimEventDetailsLocation": "La revendication{nature}est apparue sur{date}à{location}",
+    "damageObserved": "Dommages observés",
+    "damageObservedBy": "{name}observe les dommages",
+    "insured": "L'assuré",
+    "protectiveMeasures": "Mesures de protection prises",
+    "emergencyInterventions": "Travaux d ' urgence achevés",
+    "claimDeclaration": "Déclaration de la réclamation",
+    "declarationSent": "Déclaration adressée à l'assureur",
+    "declarationSentContract": "Déclaration envoyée à l'assureur — contrat{contract}",
+    "declarationDetails": "Déclaration de réclamation\nContrat :{contract}Montant estimatif:{amount}",
+    "damageEstimate": "Estimation des dommages:{amount}",
+    "damageEstimateDeductible": "Total des dommages estimatifs déductibles:{deductible}",
+    "damageEstimateTotal": "Total des dommages estimés",
+    "damageEstimateDetails": "Montant estimatif:{amount}Déduction applicable:{deductible}Troisième partie concernée:{thirdParty}",
+    "fileReceived": "Dossier reçu",
+    "fileReceivedDescription": "Fichier reçu et enregistré dans{brand}— traitement AI démarré",
+    "fileReceivedDetails": "Fichier créé sur{date}Fichiers :{files}",
+    "urgencyLevel": "Niveau d'urgence:{level}",
+    "priorityFile": "Dossier prioritaire — traitement accéléré requis",
+    "urgencyDetails": "Niveau d'urgence classé:{level}",
+    "aiAnalysis": "Analyse IA : {section}"
   },
   "pdfViewer": {
     "zoomIn": "Zoom avant",
@@ -1566,7 +1870,14 @@
     "newTab": "Nouvel onglet",
     "previewUnavailable": "Aperçu PDF indisponible",
     "loadingPdf": "Chargement du PDF...",
-    "loadingPage": "Chargement de la page {pageNumber}…"
+    "loadingPage": "Chargement de la page {pageNumber}…",
+    "inlineUnavailable": "Le PDF ne peut pas être affiché dans cette page.",
+    "openFullPdf": "Ouvrir le PDF complet",
+    "previewTitle": "Aperçu PDF — {file}, page {page}",
+    "previous": "Précédent",
+    "pageOf": "Page {page} / {total}",
+    "next": "Suivant",
+    "pageNumber": "Page {page}"
   },
   "searchBar": {
     "placeholder": "Rechercher dans les pages et résumés… (Ctrl+F)",
@@ -1574,7 +1885,8 @@
     "noMatches": "Aucune correspondance",
     "previousMatch": "Correspondance précédente (Maj+Entrée)",
     "nextMatch": "Correspondance suivante (Entrée)",
-    "clearSearch": "Effacer la recherche (Échap)"
+    "clearSearch": "Effacer la recherche (Échap)",
+    "matches": "Résultats"
   },
   "glossaryDropdown": {
     "title": "Glossaire — Référence terminologique métier",
@@ -1590,7 +1902,8 @@
     "category": "Catégorie : {category}",
     "resultsCount": "{count} résultats",
     "termsStartingWith": "{count} termes commençant par « {letter} »",
-    "showingTerms": "{shown} sur {total} termes affichés"
+    "showingTerms": "{shown} sur {total} termes affichés",
+    "loadError": "Impossible de charger le glossaire"
   },
   "claimsModals": {
     "proposeFinalDecision": "Proposer la décision finale",
@@ -1680,7 +1993,63 @@
     "recommendedLabel": "Recommandé",
     "sentiment": {
       "viewMore": "Voir {count, plural, =1 {1 autre recommandation} other {# autres recommandations}}"
-    }
+    },
+    "automotive": {
+      "attachments": "Pièces jointes ({count})",
+      "noDamage": "Aucun dommage identifié par l'analyse",
+      "severity": {
+        "minor": "MINORITÉ",
+        "moderate": "MODÉRATE",
+        "severe": "QUELQUES",
+        "heavy": "LOURDITE",
+        "total_loss": "TOTAL DES PERTES"
+      },
+      "location": {
+        "front": "Avant",
+        "rear": "Arrière",
+        "left": "Gauche",
+        "right": "Droite",
+        "roof": "Toit",
+        "frontLeft": "Avant gauche",
+        "frontRight": "Devant à droite",
+        "rearLeft": "Arrière gauche",
+        "rearRight": "Arrière droite",
+        "sideLeft": "Côté gauche",
+        "sideRight": "Côté droit",
+        "hood": "Capuche",
+        "trunk": "Coffre",
+        "bumper": "Bumper",
+        "frontBumper": "Pare-chocs avant",
+        "rearBumper": "Pare-chocs arrière",
+        "windshield": "Pare-brise",
+        "door": "Porte",
+        "fender": "Prêteur",
+        "quarterPanel": "Panneau de quart"
+      },
+      "indicator": {
+        "documentation": "Documentation",
+        "pattern": "Modèle suspect",
+        "behavioral": "Comportement",
+        "financial": "Financement",
+        "timeline": "Calendrier",
+        "general": "Généralités"
+      },
+      "description": {
+        "noPoliceReport": "Aucun rapport de police ni déclaration d'accident",
+        "hitAndRun": "pour un délit de fuite sur une route publique",
+        "noWitness": "Aucune information fournie par un tiers ou un témoin",
+        "urgentLanguage": "Langage urgent et émotionnel dans la communication",
+        "panelRepair": "Réparation ou remplacement de panneaux",
+        "crack": "fissure",
+        "dent": "dent",
+        "scratch": "rayure",
+        "repair": "Réparation",
+        "replace": "Remplacement"
+      }
+    },
+    "analysisFailed": "Échec de l’analyse IA",
+    "analyzing": "Analyse en cours…",
+    "damageZoneCount": "{count, plural, one {# zone} other {# zones}}"
   },
   "mortgageLabels": {
     "propertyDeepDive": "Analyse approfondie du bien",
@@ -1748,7 +2117,7 @@
     "osfiGuideline": "Ligne directrice BSIF B-20",
     "viewFullGuideline": "Voir la ligne directrice complète",
     "calculatedValue": "Valeur calculée :",
-    "limit": "Limite :",
+    "limit": "Limite",
     "hcsfGuideline": "Normes HCSF crédit immobilier",
     "viewHcsfGuideline": "Voir les normes HCSF",
     "passed": "conformes",
@@ -1886,7 +2255,159 @@
       "yoyChange": "Variation annuelle",
       "cagr3yr": "CAGR 3 ans",
       "trend": "Tendance"
-    }
+    },
+    "documentGroups": {
+      "identity": "Identité",
+      "income": "Recettes",
+      "assets": "Acompte / Économie",
+      "property": "Biens",
+      "credit": "Crédit",
+      "other": "Autres"
+    },
+    "hcsfGuidelineDescription": "Haut Conseil pour la stabilité financière — Normes de prêt hypothécaire",
+    "policyRules": {
+      "compliant": "{name}: conforme",
+      "gds": {
+        "name": "Rapport d'effort (équivalent GDS)",
+        "description": "Le taux d'effort est vérifié au taux de qualification du fichier.",
+        "threshold": "≤ 39% (seuil actuel du moteur)"
+      },
+      "tds": {
+        "name": "Total de la dette (équivalent DTS)",
+        "description": "La dette totale est vérifiée au taux admissible du fichier.",
+        "threshold": "≤ 44% (seuil actuel du moteur)"
+      },
+      "ltv": {
+        "name": "Rapport prêt/valeur (TVL)",
+        "description": "Le rapport LTV est vérifié par type de fichier et de garantie.",
+        "threshold": "≤ 80 % conventionnel (95 % assuré)"
+      },
+      "minimumRate": {
+        "name": "Taux minimum admissible",
+        "description": "Le dossier doit passer au taux de qualification défini par le moteur.",
+        "threshold": "max(taux+2%, 5,25 %)"
+      },
+      "income": {
+        "name": "Vérification des recettes",
+        "description": "Le revenu doit être étayé par des preuves acceptables.",
+        "threshold": "Requis"
+      },
+      "credit": {
+        "name": "Évaluation du crédit",
+        "description": "La cote de crédit doit atteindre le seuil minimum du moteur.",
+        "threshold": "≥ 620"
+      },
+      "downPayment": {
+        "name": "Source d ' acompte",
+        "description": "La source de l'acompte doit être documentée.",
+        "threshold": "Requis"
+      },
+      "propertyValue": {
+        "name": "Évaluation des biens",
+        "description": "La valeur du bien doit être étayée par une estimation ou une évaluation.",
+        "threshold": "Requis"
+      }
+    },
+    "enums": {
+      "employment": {
+        "permanentFullTime": "Permanent à temps plein",
+        "permanentPartTime": "Temps partiel permanent",
+        "contract": "Contrat à durée déterminée",
+        "selfEmployed": "Travailleurs indépendants",
+        "commission": "Basé sur la Commission",
+        "retired": "Retraités",
+        "unemployed": "Chômeurs",
+        "other": "Autres",
+        "civilServant": "Fonctionnaire",
+        "professional": "Professionnels indépendants",
+        "temporary": "temporaire"
+      },
+      "property": {
+        "detached": "Maison individuelle",
+        "semiDetached": "Maison jumelée",
+        "townhouse": "Maison de ville",
+        "condominium": "Condominium",
+        "duplex": "Duplex",
+        "triplex": "Triplex",
+        "fourplex": "Bâtiment à quatre unités",
+        "mobileHome": "Maison mobile",
+        "modularHome": "Maison modulaire",
+        "mixedUse": "Usage mixte",
+        "apartment": "Appartement",
+        "incomeProperty": "Biens à revenu"
+      },
+      "occupancy": {
+        "primary": "Résidence principale",
+        "secondary": "Résidence secondaire",
+        "rental": "Investissements locatifs"
+      },
+      "downPayment": {
+        "savings": "Économies personnelles",
+        "gift": "Cadeau",
+        "savingsPlan": "Régime d'épargne-logement",
+        "pel": "PEL",
+        "cel": "CEL",
+        "familyGift": "Cadeau familial",
+        "propertySale": "Vente de biens",
+        "familyLoan": "Prêt familial"
+      },
+      "rate": {
+        "variable": "Taux variable",
+        "fixed1": "Taux fixe d'un an",
+        "fixed2": "Taux fixe à 2 ans",
+        "fixed3": "Taux fixe à 3 ans",
+        "fixed4": "Taux fixe à 4 ans",
+        "fixed5": "Taux fixe à 5 ans",
+        "fixed7": "Taux fixe à 7 ans",
+        "fixed10": "Taux fixe à 10 ans",
+        "fixed": "Taux fixe"
+      },
+      "product": {
+        "amortizing": "Amortissement du prêt",
+        "highLtv": "Prêt de TVL",
+        "refinance": "Refinancement",
+        "renewal": "Renouvellement",
+        "switch": "Transfert",
+        "bridge": "Prêt-relais",
+        "interestOnly": "Prêt à intérêt unique",
+        "zeroRate": "Prêt à taux zéro (PTZ)"
+      }
+    },
+    "changeFactors": {
+      "reduceHousingCosts": "Réduire les charges de logement ou augmenter les revenus pour abaisser le taux d’effort de {points} pts",
+      "payOffDebt": "Solder d’autres crédits pour abaisser le taux d’endettement de {points} pts",
+      "verifyIncome": "Fournir des justificatifs complémentaires pour vérifier les revenus",
+      "addCoBorrower": "Envisager un co-emprunteur avec un meilleur profil de crédit"
+    },
+    "policyFindings": {
+      "withinLimit": "dans la limite",
+      "aboveLimit": "au-dessus de la limite",
+      "gds": "Taux d’effort {value}% {status} de {limit}%",
+      "tds": "Endettement total {value}% {status} de {limit}%",
+      "ltv": "LTV {value}% {status} de {limit}%",
+      "qualifyingRate": "Le dossier passe au taux qualifié de {rate}%"
+    },
+    "propertyAnalysisLoadFailed": "Échec du chargement de l’analyse du bien",
+    "aiAnalysis": "Analyse IA",
+    "mlsNumber": "MLS nº {number}",
+    "comparablesFound": "{count, plural, one {# trouvé} other {# trouvés}}",
+    "averageComparablePrice": "Prix comparable moyen",
+    "subjectVariance": "Écart du bien",
+    "oneYearAgo": "Il y a 1 an",
+    "threeYearsAgo": "Il y a 3 ans",
+    "threeYearCagr": "TCAC sur 3 ans",
+    "propertyFeatures": "Caractéristiques du bien",
+    "mlsDataPoints": "Données MLS",
+    "viewMlsListing": "Voir l’annonce MLS",
+    "trendUpward": "À la hausse",
+    "trendDownward": "À la baisse",
+    "trendStable": "Stable",
+    "qualifyingRateFormula": "max(taux+2 %, 5,25 %)",
+    "forceRerunningPropertyAnalysis": "Relance forcée de l’analyse du bien…",
+    "startingPropertyAnalysis": "Démarrage de l’analyse du bien…",
+    "propertyAnalysisComplete": "Analyse terminée !",
+    "propertyAnalysisFailed": "Échec de l’analyse. Veuillez réessayer.",
+    "loadFailed": "Échec du chargement"
   },
   "adminLabels": {
     "refresh": "Actualiser",
@@ -1920,7 +2441,8 @@
     "policyNameGeneric": "Nom de la police",
     "policyCategory": "ex. cardiovasculaire",
     "policyCondition": "ex. hypertension",
-    "references": "Une référence par ligne :\nDirectives NHTSA Section 4.2\nCode des assurances 1234"
+    "references": "Une référence par ligne :\nDirectives NHTSA Section 4.2\nCode des assurances 1234",
+    "referencesPlaceholder": "Une référence par ligne :\nDirectives NHTSA, section 4.2\nCode des assurances 1234"
   },
   "lifeHealth": {
     "clinicalNotes": "Notes cliniques",
@@ -1956,7 +2478,9 @@
     "policyLabel": "Police :",
     "coverageLabel": "Couverture :",
     "providerLabel": "Praticien :",
-    "riskHigh": "Élevé"
+    "riskHigh": "Élevé",
+    "decisionSaved": "Décision « {decision} » enregistrée",
+    "overrideApplied": "Dépassement appliqué à la ligne"
   },
   "claimsSummary": {
     "title": "Résumé du sinistre",
@@ -2034,7 +2558,65 @@
       "LOW": "Risque faible",
       "MODERATE": "Risque modéré",
       "HIGH": "Risque élevé"
-    }
+    },
+    "expand": "Élargir",
+    "detail": "Détails",
+    "webVerificationUnavailable": "Le service de vérification web est temporairement indisponible. Les résultats de la recherche sur Internet n'ont pas pu être obtenus pour ce fichier.",
+    "estimatedDuration": "durée estimée",
+    "effort": {
+      "low": {
+        "label": "Rapide",
+        "description": "Vérification de base de l'image"
+      },
+      "medium": {
+        "label": "Norme",
+        "description": "Analyse équilibrée — images et déclaration"
+      },
+      "high": {
+        "label": "En profondeur",
+        "description": "Enquête complète — vérification croisée multisources"
+      }
+    },
+    "report": {
+      "title": "Rapport d'analyse des fraudes",
+      "file": "Fichier",
+      "date": "Date",
+      "overallAssessment": "Évaluation générale",
+      "riskLevel": "Niveau de risque",
+      "riskScore": "Score du risque",
+      "siuReferral": "Renvoi recommandé",
+      "attentionPoints": "Points d'attention",
+      "fileConcordance": "Concordance des fichiers",
+      "score": "Score",
+      "field": "Champ",
+      "declared": "Déclaré",
+      "observed": "Observé",
+      "concordance": "Concordance",
+      "fraudIndicators": "Indicateurs de fraude",
+      "imageAuthenticity": "Analyse de l'authenticité des images",
+      "error": "Erreur",
+      "authentic": "Authentique",
+      "suspicious": "Suspicieux",
+      "status": "État",
+      "genericFilename": "Nom de fichier générique (non descriptif)",
+      "filenameMismatch": "Le nom du fichier ne correspond pas au contenu",
+      "filenameMatch": "Le nom du fichier correspond au contenu",
+      "declarationVerification": "Déclaration par rapport à la vérification des preuves",
+      "overallConsistency": "Cohérence générale",
+      "consistent": "Cohérence",
+      "inconsistencies": "Incohérences détectées",
+      "webIntelligence": "Renseignements web (Microsoft Web IQ)",
+      "eventVerified": "Événement vérifié",
+      "confirmed": "Confirmé",
+      "notConfirmed": "Non confirmé",
+      "results": "Résultats",
+      "source": "Source",
+      "sources": "Sources",
+      "generatedBy": "Rapport généré par{brand}—{date}"
+    },
+    "close": "Fermer",
+    "field": "Champ",
+    "analysisFailed": "Échec de l’analyse de fraude"
   },
   "gallery": {
     "download": "Télécharger",
@@ -2113,11 +2695,261 @@
   },
   "clientSentiment": {
     "title": "Accompagnement client",
-    "aiBadge": "IA"
+    "aiBadge": "IA",
+    "levels": {
+      "critical": "Attention requise",
+      "stressed": "Vigilance",
+      "concerned": "Normal",
+      "calm": "Calme"
+    },
+    "factors": {
+      "highAmount": "Montant élevé",
+      "significantAmount": "Montant important",
+      "moderateAmount": "Montant modéré",
+      "sensitiveClaim": "Allégation sensible",
+      "propertyLoss": "Violation de propriété",
+      "weatherEvent": "Événement météorologique",
+      "routineClaim": "Réclamation courante",
+      "extendedDelay": "Délai prolongé",
+      "moderateDelay": "Délai modéré",
+      "fastProcessing": "Traitement rapide",
+      "multipleClaims": "Nombreux requérants",
+      "loyalCustomer": "Client fidèle"
+    },
+    "factorDetails": {
+      "highAmount": "{amount}— impact financier significatif",
+      "significantAmount": "{amount}— risque de préoccupation",
+      "moderateAmount": "{amount}— impact limité",
+      "sensitiveClaim": "Incendie ou catastrophe naturelle — traumatisme éventuel",
+      "propertyLoss": "Vol ou cambriolage — sentiment d'insécurité",
+      "weatherEvent": "Dommages causés par un événement naturel",
+      "routineClaim": "Dommages à l'eau ou perte standard",
+      "extendedDelay": "{days}jours après la déclaration — probablement frustration",
+      "moderateDelay": "{days}jours — dans le temps standard mais l'attente est ressentie",
+      "fastProcessing": "{days}jours — un redressement acceptable",
+      "multipleClaims": "Réclamations{count}au dossier — le client peut être fatigué",
+      "loyalCustomer": "{years}années de fidélité — relation de confiance"
+    },
+    "suggestions": {
+      "priorityCall": "Contact téléphonique prioritaire recommandé",
+      "empatheticTone": "Utilisez un ton empathique et rassurant",
+      "expedite": "Accélérer le traitement dans la mesure du possible",
+      "personalizedEmail": "Courriel personnalisé avec suivi proactif",
+      "confirmNextSteps": "Confirmer les prochaines étapes avec le client",
+      "standardProcessing": "Traitement standard — client satisfait"
+    }
   },
   "demoGuide": {
     "openTitle": "Guide de démonstration",
-    "openBadge": "Démo"
+    "openBadge": "Démo",
+    "title": "Guide de Démonstration",
+    "subtitle": "Démo pour {company} — {scenario}",
+    "scenarioLabel": "Scénario :",
+    "fileLabel": "PDF : {path}",
+    "demoLabel": "Démo : {name}",
+    "close": "Fermer",
+    "scenarios": {
+      "habitation": {
+        "label": "Sinistres Habitation",
+        "summary": "Olivier MERTENS LAFFITE (mlo@wine.com) — Tempête Gérard 27/03/2026 — Cave inondée, collection de vins détruite — 10 825 €\nDossier E0FF1B47 — 4 photos + 1 PDF (déclaration assureur)",
+        "emptyDemo": "Client 360 préchargé",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Sinistres Habitation\"",
+            "detail": "Sélecteur de persona en haut → groupe \"Sinistres\" → \"Sinistres Habitation\" (pictogramme nuage/pluie).",
+            "tip": "Accepte PDF + images. Le RAG cherche dans les conditions générales habitation indexées."
+          },
+          {
+            "title": "2. Uploader les documents",
+            "detail": "• declaration-sinistre-habitation.pdf (déclaration assureur)\n• 4 photos de la cave inondée, murs endommagés, bouteilles détruites (PNG/JPG)\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer les fichiers dans la zone du tableau de bord : le traitement démarre automatiquement.",
+            "tip": "Le PDF est dans assets/demo-prevaiq/property-claims/wine-cellar/."
+          },
+          {
+            "title": "3. Observer le traitement IA (2-3 min)",
+            "detail": "① Extraction → Content Understanding / MarkItDown structure les champs et pièces jointes\n② Analyse multimodale → qualifie les photos de dégâts\n③ Analyse LLM + RAG → évalue le sinistre et cite les conditions applicables"
+          },
+          {
+            "title": "4. Analyse Anti-Fraude & Cat-Nat",
+            "detail": "Bouton \"Analyse Anti-Fraude\" → utilise la connexion MCP dédiée Microsoft Web IQ :\n• Vérifie l'arrêté Cat-Nat pour la commune + la date\n• Croise les déclarations avec les sources publiques\n• Étiquette contextuelle \"✓ Cat-Nat confirmée\" ou \"✗ non confirmée\"\n\nAttention : indicateurs de fraude + score global.",
+            "tip": "L'analyse web prend 30-60s. Les sources sont cliquables."
+          },
+          {
+            "title": "5. Ask IQ (Chat RAG)",
+            "detail": "Bouton Ask IQ en bas à droite dans le workbench. Questions suggérées :\n\n→ \"Ce sinistre est-il couvert par les CG Habitation ?\"\n→ \"Quel est le montant de la franchise tempête ?\"\n→ \"Les vins en cave sont-ils des objets de valeur ?\"",
+            "tip": "Cliquer \"X polices référencées\" pour voir les articles cités."
+          },
+          {
+            "title": "6. Décision du gestionnaire",
+            "detail": "Approuver / Ajuster / Refuser avec notes.\nEx: \"Couvert Art. 3.2 CG Habitation, franchise 250€ déduite.\""
+          }
+        ]
+      },
+      "auto": {
+        "label": "Sinistres Auto",
+        "summary": "Accident de stationnement — portière enfoncée — Constat amiable + photo dégât\nDossier thread2 — 2 PDF + 1 photo",
+        "emptyDemo": "Client 360 préchargé",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Sinistres Auto\"",
+            "detail": "Sélecteur de persona en haut → groupe \"Sinistres\" → \"Sinistres Auto\" (pictogramme voiture).",
+            "tip": "Le RAG cherche dans les CG Auto et CG Flotte Auto indexées."
+          },
+          {
+            "title": "2. Uploader les documents",
+            "detail": "• thread2-01-client-accident-auto.pdf (déclaration client)\n• thread2-02-prevaiq-reponse-auto.pdf (réponse assureur)\n• crash_portière_enfoncée.png (photo du dégât)\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer les fichiers. Cette persona accepte aussi les vidéos.",
+            "tip": "Fichiers dans assets/demo-prevaiq/automotive-claims/parking-impact/."
+          },
+          {
+            "title": "3. Traitement IA multimodal",
+            "detail": "① Extraction → extrait le message client et les pièces jointes\n② Analyse multimodale → analyse la photo de dégât véhicule\n③ Vue Auto dédiée → documents, estimation, responsabilité et indicateurs de fraude dans le même écran"
+          },
+          {
+            "title": "4. Résultats & responsabilité",
+            "detail": "• Analyse de responsabilité → répartition des torts\n• Estimation des réparations → montants par poste\n• Convention IRSA → application automatique\n• Indicateurs de fraude → cohérence déclaration vs. photos"
+          },
+          {
+            "title": "5. Ask IQ — Questions auto",
+            "detail": "Questions suggérées :\n\n→ \"La franchise tous risques s'applique-t-elle ici ?\"\n→ \"Le véhicule est-il réparable économiquement ?\"\n→ \"Quelle est la procédure de recours contre le tiers ?\""
+          },
+          {
+            "title": "6. Décision sinistre auto",
+            "detail": "Approuver / Ajuster / Refuser.\nEx: \"Couvert CG Auto Art. 5.1, franchise 150€, recours tiers engagé.\""
+          }
+        ]
+      },
+      "sante": {
+        "label": "Souscription Vie & Santé",
+        "summary": "Antoine LEFEVRE, 48 ans, chef cuisinier — Complémentaire Santé Équilibre Plus — HTA contrôlée, ancien fumeur, père diabétique — 127 €/mois",
+        "emptyDemo": "Client 360 préchargé",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Souscription Vie & Santé\"",
+            "detail": "Sélecteur de persona en haut → groupe \"Souscription\" → \"Souscription Vie & Santé\" (pictogramme liste).",
+            "tip": "Le RAG cherche dans les polices de souscription + CG Santé indexées."
+          },
+          {
+            "title": "2. Uploader le dossier de souscription",
+            "detail": "• souscription-sante-lefevre.pdf (email client + questionnaire de santé)\n• Pièces médicales mentionnées dans le PDF : ordonnance HTA, résultats d'analyses, attestation SS, RIB\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer le PDF. Activer \"Document volumineux\" seulement pour les dossiers très longs.",
+            "tip": "Le PDF est dans assets/demo-prevaiq/health-underwriting/."
+          },
+          {
+            "title": "3. Observer le traitement IA (2-3 min)",
+            "detail": "① Extraction → champs du questionnaire santé extraits automatiquement\n② Analyse LLM → facteurs de risque détectés :\n   • HTA sous traitement (Amlodipine)\n   • Ancien fumeur (15 PA, arrêt 2021)\n   • IMC 27.2 (surpoids léger)\n   • ATCD paternel diabète type 2\n③ RAG → Conditions Complémentaire Santé"
+          },
+          {
+            "title": "4. Résultats de souscription",
+            "detail": "• Résumé patient → Profil de risque complet\n• Chronologie → Historique médical structuré\n• Body System Map → Vue anatomique des pathologies\n• Source Pages → Questionnaire original avec citations",
+            "tip": "Cliquer sur une carte Body System pour le deep dive avec sources."
+          },
+          {
+            "title": "5. Ask IQ — Questions de souscription",
+            "detail": "Questions suggérées :\n\n→ \"Quel est le niveau de risque cardiovasculaire de ce candidat ?\"\n→ \"L'HTA sous traitement est-elle un motif de surprime ?\"\n→ \"Les ATCD familiaux de diabète impactent-ils la souscription ?\"\n→ \"Quelle formule recommanderiez-vous pour ce profil ?\""
+          },
+          {
+            "title": "6. Décision de souscription",
+            "detail": "Le souscripteur peut :\n• Accepter en standard (aucune surprime)\n• Accepter avec surprime (ex: +15% pour HTA)\n• Demander examen complémentaire\n• Refuser (exclusion)\n\nNotes : \"Accepté avec surprime 10% — HTA contrôlée, risque modéré.\""
+          }
+        ]
+      },
+      "sante-sinistre": {
+        "label": "Sinistres Santé",
+        "summary": "Demande dentaire urgente — consultation, radio, extraction + implant — devis 2 800 € / reste à charge estimé 1 900 €",
+        "emptyDemo": "Client 360 préchargé",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Sinistres Santé\"",
+            "detail": "Sélecteur de persona en haut → groupe \"Sinistres\" → \"Sinistres Santé\" (pictogramme stéthoscope).",
+            "tip": "Le RAG cherche dans la Complémentaire Santé indexée."
+          },
+          {
+            "title": "2. Uploader les justificatifs",
+            "detail": "• thread4-01-client-dentaire.pdf (demande client)\n• thread4-02-prevaiq-reponse-dentaire.pdf (réponse assureur)\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer les PDF.",
+            "tip": "Fichiers dans assets/demo-prevaiq/health-claims/dental/."
+          },
+          {
+            "title": "3. Traitement IA",
+            "detail": "① Extraction → extrait urgence, actes demandés, devis et identifiants adhérent\n② Analyse santé dédiée → couverture selon la formule souscrite\n③ Calcul → reste à charge après Sécu + complémentaire"
+          },
+          {
+            "title": "4. Résultats de remboursement",
+            "detail": "• Tableau des actes → Montants Sécu vs. complémentaire\n• Exclusions identifiées → Dépassements d'honoraires, délais de carence\n• Citations polices → Articles des CG Santé applicables"
+          },
+          {
+            "title": "5. Ask IQ — Questions remboursement",
+            "detail": "Questions suggérées :\n\n→ \"Ce dépassement d'honoraires est-il couvert ?\"\n→ \"Quel est le plafond annuel optique/dentaire ?\"\n→ \"Le délai de carence est-il expiré ?\""
+          },
+          {
+            "title": "6. Décision de remboursement",
+            "detail": "Valider le remboursement calculé ou ajuster.\nEx: \"Remboursé à 100% BR, dépassement honoraires exclu (Art. 4.3).\""
+          }
+        ]
+      },
+      "hypothecaire": {
+        "label": "Souscription Hypothécaire",
+        "summary": "Dossier primo-accédant — Demande de prêt + compromis de vente + avis d'imposition\nDossier app-mtg-004",
+        "emptyDemo": "Client 360 préchargé",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Souscription Hypothécaire\"",
+            "detail": "Sélecteur de persona en haut → groupe \"Souscription\" → \"Souscription Hypothécaire\" (pictogramme maison).",
+            "tip": "Interface spécifique avec chat hypothécaire intégré."
+          },
+          {
+            "title": "2. Uploader le dossier complet",
+            "detail": "• demande_pret_immobilier.pdf (formulaire de demande)\n• compromis_vente.pdf (compromis signé)\n• avis_imposition_2024.pdf (revenus fiscaux)\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer les PDF.",
+            "tip": "Fichiers dans assets/demo-prevaiq/mortgage-underwriting/primo-accedant/app-mtg-004/."
+          },
+          {
+            "title": "3. Analyse IA du dossier",
+            "detail": "① Extraction → revenus, charges, montant emprunté, valeur du bien\n② Analyse hypothécaire → taux d'endettement, ratio LTV, apport personnel\n③ Éligibilité → vérification HCSF / PTZ / pièces manquantes"
+          },
+          {
+            "title": "4. Résultats d'éligibilité",
+            "detail": "• Tableau synthétique → revenus, charges, capacité d'emprunt\n• Ratio LTV → comparaison avec les seuils de risque\n• Taux d'endettement → conformité règle des 35%\n• Pièces manquantes → liste des documents à fournir"
+          },
+          {
+            "title": "5. Chat hypothécaire",
+            "detail": "Chat hypothécaire intégré dans la vue \"Souscription Hypothécaire\" :\n\n→ \"Le dossier est-il éligible au PTZ ?\"\n→ \"Quel est le taux d'endettement calculé ?\"\n→ \"Quelles pièces manquent pour finaliser ?\""
+          },
+          {
+            "title": "6. Décision hypothécaire",
+            "detail": "Accepter / Demander compléments / Refuser.\nEx: \"Éligible PTZ, taux endettement 28%, RAS. Accord sous réserve attestation employeur.\""
+          }
+        ]
+      },
+      "client360": {
+        "label": "Client 360",
+        "summary": "Vue agrégée d'un client undefined — tous contrats, sinistres, communications\nClients fictifs pré-chargés, IDs conservés tels qu'ils existent en base (ex: customer-001)",
+        "emptyDemo": "Client 360 préchargé",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Client 360\"",
+            "detail": "Barre supérieure → bouton \"Client 360\" (pictogramme utilisateurs). Ce n'est pas une option du sélecteur de persona.",
+            "tip": "Pas d'upload nécessaire — les clients sont pré-chargés."
+          },
+          {
+            "title": "2. Rechercher un client",
+            "detail": "Barre de recherche → taper un nom, email ou ID client (ex: \"Dupont\", \"customer-005\").\nLe profil s'affiche avec toutes les informations agrégées."
+          },
+          {
+            "title": "3. Vue d'ensemble du client",
+            "detail": "• Informations personnelles → Nom, adresse, téléphone, email\n• Contrats actifs → Liste des polices (auto, habitation, santé)\n• Historique sinistres → Tous les dossiers traités\n• Score fidélité → Ancienneté, multi-équipement"
+          },
+          {
+            "title": "4. Dossiers affiliés",
+            "detail": "Les dossiers traités dans les autres personas sont automatiquement\nrattachés au profil client (par nom d'assuré).\n\nCliquer sur un dossier → ouvre le détail dans la persona d'origine."
+          },
+          {
+            "title": "5. Ask IQ — Questions client",
+            "detail": "Questions suggérées :\n\n→ \"Combien de sinistres ce client a-t-il déclarés ?\"\n→ \"Quelles opportunités de cross-sell pour ce profil ?\"\n→ \"Y a-t-il des anomalies dans l'historique ?\""
+          },
+          {
+            "title": "6. Actions commerciales",
+            "detail": "Depuis le profil client :\n• Envoyer un devis multi-équipement\n• Planifier un rappel\n• Générer un rapport de fidélisation"
+          }
+        ]
+      }
+    }
   },
   "communicationActions": {
     "copy": "Copier",
@@ -2151,5 +2983,134 @@
     "createError": "Erreur création client",
     "affiliateError": "Erreur affiliation",
     "genericError": "Erreur"
+  },
+  "communicationGenerator": {
+    "defaultClient": "Client",
+    "types": {
+      "email": "Courriel",
+      "sms": "SMS",
+      "letter": "Lettre"
+    },
+    "toneLabel": "Tonalité",
+    "tones": {
+      "empathetic": {
+        "label": "Empathie",
+        "description": "Chaleureux, attentif et rassurant"
+      },
+      "standard": {
+        "label": "Norme",
+        "description": "Professionnelle et attentionnée"
+      },
+      "formal": {
+        "label": "Forme",
+        "description": "Officiel et juridiquement précis"
+      }
+    },
+    "generating": "Générer avec l'IA...",
+    "generate": "Générer{type}",
+    "generated": "{type}généré",
+    "subject": "Sujet",
+    "regenerate": "Régénérer",
+    "templates": {
+      "approved": {
+        "email": {
+          "subject": "Votre sinistre {ref} — Votre indemnisation est approuvée",
+          "body": "Bonjour {name},\n\nNous avons le plaisir de vous confirmer que le sinistre nº {ref} a été examiné et que votre indemnisation est approuvée.\n\nMontant accordé : {amount}\nDélai de paiement : sous 5 jours ouvrés\n\nLe montant sera versé sur le compte bancaire enregistré avec votre contrat. Votre conseiller {brand} reste à votre disposition au {phone} pour toute question.\n\nCordialement,\nL’équipe Sinistres {brand}"
+        },
+        "sms": {
+          "body": "{brand} : Bonne nouvelle ! Le sinistre nº {ref} est approuvé. Indemnisation de {amount} sous 5 jours. Votre conseiller est disponible au {phone}."
+        },
+        "letter": {
+          "subject": "Notification d’indemnisation — Sinistre nº {ref}",
+          "body": "Madame, Monsieur {name},\n\nNous vous informons que le sinistre {ref} a été entièrement examiné. Une indemnisation de {amount} a été accordée conformément aux conditions de votre contrat. Le paiement interviendra sous cinq jours ouvrés.\n\nVeuillez agréer nos salutations distinguées.\nService Sinistres {brand}"
+        }
+      },
+      "pending": {
+        "email": {
+          "subject": "Votre sinistre {ref} — Informations complémentaires requises",
+          "body": "Bonjour {name},\n\nNous avons bien reçu le sinistre nº {ref}. Afin de le traiter rapidement, merci de transmettre les factures ou devis de réparation, des photos complémentaires des dommages et un justificatif de propriété des biens endommagés.\n\nVous pouvez déposer ces documents dans votre espace client ou les envoyer par courriel. Votre conseiller {brand} reste disponible au {phone}.\n\nCordialement,\nL’équipe Sinistres {brand}"
+        },
+        "sms": {
+          "body": "{brand} : Le sinistre nº {ref} est en cours d’examen. Des documents complémentaires sont requis. Votre conseiller peut vous aider au {phone} ou via votre espace client."
+        },
+        "letter": {
+          "subject": "Demande de pièces complémentaires — Sinistre nº {ref}",
+          "body": "Madame, Monsieur {name},\n\nNous accusons réception du sinistre nº {ref}. Pour poursuivre son examen, merci de transmettre sous 30 jours les factures ou devis demandés, les photographies complémentaires et les justificatifs de propriété.\n\nVeuillez agréer nos salutations distinguées.\nService Sinistres {brand}"
+        }
+      },
+      "denied": {
+        "email": {
+          "subject": "Votre sinistre {ref} — Décision de couverture",
+          "body": "Bonjour {name},\n\nAprès examen du sinistre nº {ref}, nous regrettons de vous informer qu’il ne peut pas être pris en charge au titre de votre contrat. Les conditions de couverture ne sont pas réunies pour ce type de sinistre.\n\nVotre conseiller {brand} peut vous expliquer cette décision et étudier les solutions possibles au {phone}. Vous disposez d’un délai de deux mois pour la contester.\n\nCordialement,\nL’équipe Sinistres {brand}"
+        },
+        "sms": {
+          "body": "{brand} : Le sinistre nº {ref} ne peut pas être pris en charge. Votre conseiller est disponible au {phone} pour vous expliquer la décision."
+        },
+        "letter": {
+          "subject": "Notification de non-prise en charge — Sinistre nº {ref}",
+          "body": "Madame, Monsieur {name},\n\nÀ la suite de l’examen du sinistre nº {ref}, nous regrettons de vous informer que les conditions de votre contrat ne permettent pas la prise en charge du dommage déclaré. Vous pouvez saisir notre service Réclamations dans un délai de deux mois à compter de la réception de ce courrier.\n\nVeuillez agréer nos salutations distinguées.\nService Sinistres {brand}"
+        }
+      }
+    }
+  },
+  "admin": {
+    "analyzerLoadFailed": "Les données de l ' analyseur de charge ont échoué",
+    "analyzerCreatedWithId": "Analyseur{id}créé avec succès",
+    "analyzerCreated": "Analyseur créé avec succès",
+    "analyzerCreateFailed": "Impossible de créer l'analyseur",
+    "deleteAnalyzerConfirm": "Supprimer l’analyseur « {id} » ?",
+    "analyzerDeleted": "Analyseur supprimé avec succès",
+    "analyzerDeleteFailed": "Impossible de supprimer l ' analyseur",
+    "processing": {
+      "loadApplicationsFailed": "Échec du chargement des dossiers",
+      "timedOut": "Le traitement a expiré.",
+      "extracting": "L’Agent Données extrait les documents…",
+      "analyzing": "L’Agent Risque analyse le dossier…",
+      "agentError": "Un agent a rencontré une erreur",
+      "complete": "Tous les agents ont terminé !",
+      "reconnecting": "Reconnexion aux agents…",
+      "uploading": "Téléversement des fichiers…",
+      "failed": "Échec du traitement",
+      "startingExtraction": "L’Agent Données démarre l’extraction…",
+      "runningSections": "Agent d’analyse en cours : {sections}…",
+      "runningAllSkills": "Les agents d’analyse exécutent toutes les compétences…",
+      "startingAnalysis": "L’Agent Risque démarre l’analyse…",
+      "reprocessingFailed": "Échec du retraitement"
+    }
+  },
+  "toast": {
+    "unexpectedError": "Erreur inattendue"
+  },
+  "glossaryManager": {
+    "loadFailed": "Échec du chargement du glossaire",
+    "termFieldsRequired": "L’abréviation et la signification sont obligatoires",
+    "termAdded": "Terme « {abbreviation} » ajouté",
+    "termAddFailed": "Échec de l’ajout du terme",
+    "meaningRequired": "La signification est obligatoire",
+    "termUpdated": "Terme « {abbreviation} » mis à jour",
+    "termUpdateFailed": "Échec de la mise à jour du terme",
+    "deleteTermConfirm": "Supprimer le terme « {abbreviation} » ?",
+    "termDeleted": "Terme « {abbreviation} » supprimé",
+    "termDeleteFailed": "Échec de la suppression du terme",
+    "categoryFieldsRequired": "L’identifiant et le nom de la catégorie sont obligatoires",
+    "categoryAdded": "Catégorie « {name} » ajoutée",
+    "categoryAddFailed": "Échec de l’ajout de la catégorie",
+    "categoryNameRequired": "Le nom de la catégorie est obligatoire",
+    "categoryUpdated": "Catégorie « {name} » mise à jour",
+    "categoryUpdateFailed": "Échec de la mise à jour de la catégorie",
+    "categoryNotEmpty": "Impossible de supprimer une catégorie contenant des termes. Supprimez d’abord tous les termes.",
+    "deleteCategoryConfirm": "Supprimer la catégorie « {id} » ?",
+    "categoryDeleted": "Catégorie supprimée",
+    "categoryDeleteFailed": "Échec de la suppression de la catégorie"
+  },
+  "lifeHealthData": {
+    "document": "Document",
+    "event": "Événement",
+    "diagnosis": "Diagnostic",
+    "procedure": "Procédure",
+    "pending": "En attente",
+    "today": "Aujourd’hui",
+    "reviewService": "Examiner : {service}",
+    "reviewServiceWithStatus": "Examiner : {service} ({status})"
   }
 }

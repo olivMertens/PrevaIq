@@ -18,8 +18,8 @@ import {
   User, Euro, Building, FileText,
   ChevronDown, ChevronRight
 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { formatCurrency, formatRatio } from './format';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatCurrency as formatCurrencyForLocale, formatRatio } from './format';
 import {
   formatEmploymentType,
   formatPropertyType,
@@ -72,6 +72,9 @@ export default function DataWorksheet({
   fieldCitations = {},
 }: DataWorksheetProps) {
   const t = useTranslations('mortgageLabels');
+  const locale = useLocale();
+  const formatCurrency = (value: number | null | undefined) =>
+    formatCurrencyForLocale(value, locale);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['borrower', 'income', 'property', 'loan', 'liabilities'])
   );
@@ -101,7 +104,7 @@ export default function DataWorksheet({
         { label: t('name'), value: borrower.name, fieldName: 'BorrowerName' },
         { label: t('coBorrowerLabel'), value: borrower.co_borrower_name || 'N/A', fieldName: 'CoBorrowerName' },
         { label: t('creditScore'), value: borrower.credit_score, fieldName: 'CreditScore' },
-        { label: t('employmentType'), value: formatEmploymentType(borrower.employment_type) || 'CDI', fieldName: 'EmploymentStatus' },
+        { label: t('employmentType'), value: formatEmploymentType(borrower.employment_type, t) || 'CDI', fieldName: 'EmploymentStatus' },
         { label: t('employer'), value: borrower.employer_name || t('notSpecified'), fieldName: 'EmployerName' },
         { label: t('occupation'), value: borrower.occupation || t('notSpecified'), fieldName: 'OccupationTitle' },
       ],
@@ -125,8 +128,8 @@ export default function DataWorksheet({
         { label: t('address'), value: property.address, fieldName: 'PropertyAddress' },
         { label: t('purchasePrice'), value: formatCurrency(property.purchase_price), fieldName: 'PurchasePrice' },
         { label: t('appraisedValue'), value: formatCurrency(property.appraised_value || property.purchase_price), fieldName: 'AppraisedValue' },
-        { label: t('propertyType'), value: formatPropertyType(property.property_type), fieldName: 'PropertyType' },
-        { label: t('occupancy'), value: formatOccupancy(property.occupancy) || t('ownerOccupied'), fieldName: 'PropertyOccupancy' },
+        { label: t('propertyType'), value: formatPropertyType(property.property_type, t), fieldName: 'PropertyType' },
+        { label: t('occupancy'), value: formatOccupancy(property.occupancy, t) || t('ownerOccupied'), fieldName: 'PropertyOccupancy' },
       ],
     },
     {
@@ -137,10 +140,10 @@ export default function DataWorksheet({
         { label: t('loanAmount'), value: formatCurrency(loan.amount), fieldName: 'RequestedLoanAmount' },
         { label: t('downPayment'), value: formatCurrency(loan.down_payment), fieldName: 'DownPaymentAmount' },
         { label: t('downPaymentPct'), value: formatRatio(loan.down_payment / property.purchase_price), isCalculated: true },
-        { label: t('downPaymentSource'), value: formatDownPaymentSource(loan.down_payment_source) || t('savings'), fieldName: 'DownPaymentSource' },
+        { label: t('downPaymentSource'), value: formatDownPaymentSource(loan.down_payment_source, t) || t('savings'), fieldName: 'DownPaymentSource' },
         { label: t('amortization'), value: `${loan.amortization_years} ${t('years')}`, fieldName: 'AmortizationYears' },
         { label: t('contractRateLabel'), value: `${loan.contract_rate || loan.rate}%`, fieldName: 'ContractRate' },
-        { label: t('term'), value: formatRateType(loan.term) || `${loan.term_years || 5} ${t('years')}`, fieldName: 'RateTerm' },
+        { label: t('term'), value: formatRateType(loan.term, t) || `${loan.term_years || 5} ${t('years')}`, fieldName: 'RateTerm' },
       ],
     },
     {

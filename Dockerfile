@@ -14,7 +14,7 @@ COPY pyproject.toml uv.lock ./
 # Install dependencies (no dev deps, no editable installs)
 RUN uv sync --frozen --no-dev --no-editable
 
-# Verify agent-framework-core 1.21.x is correctly installed
+# Verify the supported agent-framework-core 1.x package is correctly installed
 RUN .venv/bin/python -c "from agent_framework import Agent; from agent_framework.openai import OpenAIChatClient; print('OK:', Agent.__name__)"
 
 # Stage 2: Lean runtime image

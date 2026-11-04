@@ -2,11 +2,11 @@
 
 ![PrevaIQ Azure overview](architecture/prevaiq-architecture.png)
 
-Editable sources and exports are in [docs/architecture/](architecture/) (`.drawio` is the source of truth, with standalone `.svg` and `.png` exports). The overview shows the Microsoft Foundry project with its Entra ID connections (Blob, Web IQ over MCP, Fabric data agent — simulated in the demo — and Azure AI Search, where human corrections are indexed and reused on similar files). Azure icons come from [az-icons.com](https://az-icons.com/) (Azure Architecture Icons pack) and, where it has no match, from [MsiconsCollections](https://aka.ms/MsiconsCollections) (Container Apps, Microsoft Fabric, Microsoft Entra ID); they are Microsoft property under the [icon terms](https://learn.microsoft.com/en-us/azure/architecture/icons/#icon-terms). Services without a dedicated icon use the closest real one with an explicit label: *AI Services* for Content Understanding, *Foundry Models* for Mistral Document AI and the generic *Globe* for Microsoft Web IQ. Diagrams are maintained with [`.github/skills/architecture-diagram-author`](../.github/skills/architecture-diagram-author/SKILL.md).
+Editable sources and exports are in [docs/architecture/](architecture/) (`.drawio` is the source of truth, with standalone `.svg` and `.png` exports). The overview separates the Microsoft Foundry project and its Entra ID connections (Blob, Fabric data agent — simulated in the demo — and Azure AI Search) from the dedicated Microsoft Web IQ Streamable HTTP MCP connection. The API reads the Web IQ key from Key Vault and connects directly to `https://api.microsoft.ai/v3/mcp`; Foundry web grounding is not used. Azure icons come from [az-icons.com](https://az-icons.com/) (Azure Architecture Icons pack) and, where it has no match, from [MsiconsCollections](https://aka.ms/MsiconsCollections) (Container Apps, Microsoft Fabric, Microsoft Entra ID); they are Microsoft property under the [icon terms](https://learn.microsoft.com/en-us/azure/architecture/icons/#icon-terms). Services without a dedicated icon use the closest real one with an explicit label: *AI Services* for Content Understanding, *Foundry Models* for Mistral Document AI and the generic *Globe* for Microsoft Web IQ. Diagrams are maintained with [`.github/skills/architecture-diagram-author`](../.github/skills/architecture-diagram-author/SKILL.md).
 
 ```mermaid
 flowchart TB
-    subgraph UI["Next.js 16 UI (React 19 + Tailwind + next-intl FR/EN)"]
+    subgraph UI["Next.js 16 UI (React 19 + Tailwind + next-intl EN/FR/DE)"]
         P1["Life & health underwriting"]
         P2["Home / Auto / Health claims"]
         P3["Mortgage underwriting"]
@@ -15,7 +15,7 @@ flowchart TB
 
     UI -->|"REST + x-api-key"| API
 
-    subgraph API["FastAPI (Python 3.12) + Microsoft Agent Framework 1.21"]
+    subgraph API["FastAPI (Python 3.12) + Microsoft Agent Framework 1.24"]
         Brand["Brand resolver<br/>BRAND_NAME baked"]
         Persona["Persona engine"]
         Prompts["Prompt catalog<br/>policies and agents"]

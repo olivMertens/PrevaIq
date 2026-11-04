@@ -110,7 +110,7 @@ export default function InlinePdfViewer({
             <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
             <h4 className="text-sm font-semibold text-gray-900 mb-1">{t('previewUnavailable')}</h4>
             <p className="text-xs text-gray-500 mb-4">
-              The PDF cannot be displayed inline for this page.
+              {t('inlineUnavailable')}
             </p>
             <a
               href={fileBaseUrl}
@@ -119,7 +119,7 @@ export default function InlinePdfViewer({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
             >
               <ExternalLink className="w-3.5 h-3.5" />
-              Open Full PDF
+              {t('openFullPdf')}
             </a>
           </div>
         ) : isImage ? (
@@ -169,7 +169,7 @@ export default function InlinePdfViewer({
                 setLoadError(true);
                 setLoading(false);
               }}
-              title={`PDF preview — ${fileName} page ${pdfInternalPage}`}
+              title={t('previewTitle', { file: fileName, page: pdfInternalPage })}
             />
           </div>
         )}
@@ -183,17 +183,17 @@ export default function InlinePdfViewer({
           className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="w-3 h-3" />
-          Prev
+          {t('previous')}
         </button>
         <span className="text-xs text-gray-500">
-          Page {pageNumber} / {totalPages}
+          {t('pageOf', { page: pageNumber, total: totalPages })}
         </span>
         <button
           onClick={onNextPage}
           disabled={pageNumber >= totalPages}
           className="flex items-center gap-1 px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
-          Next
+          {t('next')}
           <ChevronRight className="w-3 h-3" />
         </button>
       </div>

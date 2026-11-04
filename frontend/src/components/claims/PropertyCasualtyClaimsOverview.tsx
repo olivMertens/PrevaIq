@@ -72,45 +72,6 @@ function getFieldValue(extractedFields: Record<string, unknown>, keys: string[],
   return defaultValue;
 }
 
-// French label mapping for CamelCase field names from Azure Content Understanding
-const FIELD_LABELS: Record<string, string> = {
-  NomAssure: 'Nom de l\'assuré',
-  AssuréNom: 'Nom de l\'assuré',
-  AssuréPrenom: 'Prénom de l\'assuré',
-  AdresseAssure: 'Adresse de l\'assuré',
-  EmailAssure: 'Email de l\'assuré',
-  TelephoneAssure: 'Téléphone de l\'assuré',
-  NumeroContrat: 'N° de contrat',
-  NumeroPolice: 'N° de police',
-  NumeroSocietaire: 'N° de sociétaire',
-  FormuleContrat: 'Formule du contrat',
-  DateSinistre: 'Date du sinistre',
-  NatureSinistre: 'Nature du sinistre',
-  LieuSinistre: 'Lieu du sinistre',
-  DescriptionSinistre: 'Description du sinistre',
-  MontantEstime: 'Montant estimé',
-  DateConstat: 'Date du constat',
-  ExpertNom: 'Nom de l\'expert',
-  ExpertContact: 'Contact de l\'expert',
-  MesuresConservatoires: 'Mesures conservatoires',
-  NombreItemsEndommages: 'Nb biens endommagés',
-  FranchiseApplicable: 'Franchise applicable',
-  TiersImplique: 'Tiers impliqué',
-  NiveauUrgence: 'Niveau d\'urgence',
-  NomSouscripteur: 'Nom du souscripteur',
-  DateNaissance: 'Date de naissance',
-  Profession: 'Profession',
-  NumeroSecuriteSociale: 'N° de sécurité sociale',
-  FormuleDemandee: 'Formule demandée',
-  CotisationMensuelle: 'Cotisation mensuelle',
-  StatutTabac: 'Statut tabagique',
-  NiveauRisque: 'Niveau de risque',
-  OverallDamageSeverity: 'Sévérité globale des dommages',
-  DamageAreas: 'Zones endommagées',
-  ConstatAmiable: 'Constat amiable',
-  Vehicule: 'Véhicule',
-};
-
 // Fields belonging to dossier info (personal/policy)
 const DOSSIER_FIELDS = new Set([
   'NomAssure', 'AssuréNom', 'AssuréPrenom', 'AdresseAssure',
@@ -211,50 +172,50 @@ function getFieldLabel(fieldName: string, t?: TranslateFn): string {
   if (t) {
     try { return t(`fields.${fieldName}`); } catch { /* fall through */ }
   }
-  return FIELD_LABELS[fieldName] || fieldName;
+  return fieldName;
 }
 
 // Detect file type from filename
-function getFileTypeInfo(filename: string, t?: TranslateFn): { label: string; icon: 'pdf' | 'image' | 'video' | 'document' } {
+function getFileTypeInfo(filename: string, t: TranslateFn): { label: string; icon: 'pdf' | 'image' | 'video' | 'document' } {
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tiff', 'heic'];
   const videoExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', 'wmv', 'm4v'];
   if (ext === 'pdf') return { label: 'PDF', icon: 'pdf' };
-  if (imageExts.includes(ext)) return { label: 'Image', icon: 'image' };
-  if (videoExts.includes(ext)) return { label: t?.('classifyDoc.videoTitle') || 'Vidéo', icon: 'video' };
-  return { label: ext.toUpperCase() || 'Document', icon: 'document' };
+  if (imageExts.includes(ext)) return { label: t('classifyDoc.imageTitle'), icon: 'image' };
+  if (videoExts.includes(ext)) return { label: t('classifyDoc.videoTitle'), icon: 'video' };
+  return { label: ext.toUpperCase() || t('classifyDoc.attachmentTitle'), icon: 'document' };
 }
 
 // Classify document type based on filename (i18n-compatible)
-function classifyDocument(filename: string, t?: TranslateFn): { type: string; summary: string } {
+function classifyDocument(filename: string, t: TranslateFn): { type: string; summary: string } {
   const lower = filename.toLowerCase();
   if (lower.includes('declaration') || lower.includes('sinistre')) {
-    return { type: t?.('classifyDoc.coverageTitle') || 'Couverture', summary: t?.('classifyDoc.coverageDesc') || 'Déclaration de sinistre — document de couverture et circonstances' };
+    return { type: t('classifyDoc.coverageTitle'), summary: t('classifyDoc.coverageDesc') };
   }
   if (lower.includes('photo') || lower.includes('degat') || lower.includes('dégât') || lower.includes('damage')) {
-    return { type: t?.('classifyDoc.damageTitle') || 'Dommages', summary: t?.('classifyDoc.damageDesc') || 'Preuves photographiques des dommages constatés' };
+    return { type: t('classifyDoc.damageTitle'), summary: t('classifyDoc.damageDesc') };
   }
   if (lower.includes('facture') || lower.includes('invoice') || lower.includes('devis')) {
-    return { type: t?.('classifyDoc.repairTitle') || 'Réparation', summary: t?.('classifyDoc.repairDesc') || 'Facture ou devis de réparation' };
+    return { type: t('classifyDoc.repairTitle'), summary: t('classifyDoc.repairDesc') };
   }
   if (lower.includes('meteo') || lower.includes('météo') || lower.includes('weather')) {
-    return { type: t?.('classifyDoc.stormTitle') || 'Tempête', summary: t?.('classifyDoc.stormDesc') || "Données météorologiques confirmant l'événement climatique" };
+    return { type: t('classifyDoc.stormTitle'), summary: t('classifyDoc.stormDesc') };
   }
   if (lower.includes('souscription') || lower.includes('sante') || lower.includes('santé') || lower.includes('health')) {
-    return { type: t?.('classifyDoc.underwritingTitle') || 'Souscription', summary: t?.('classifyDoc.underwritingDesc') || 'Dossier de souscription santé — données médicales et risques' };
+    return { type: t('classifyDoc.underwritingTitle'), summary: t('classifyDoc.underwritingDesc') };
   }
   if (lower.includes('questionnaire') || lower.includes('medical')) {
-    return { type: t?.('classifyDoc.medicalTitle') || 'Médical', summary: t?.('classifyDoc.medicalDesc') || 'Questionnaire médical — antécédents et déclarations' };
+    return { type: t('classifyDoc.medicalTitle'), summary: t('classifyDoc.medicalDesc') };
   }
   const ext = filename.split('.').pop()?.toLowerCase() || '';
   const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'];
   if (imageExts.includes(ext)) {
-    return { type: t?.('classifyDoc.damageTitle') || 'Dommages', summary: t?.('classifyDoc.imageDesc') || 'Image jointe au dossier — preuve visuelle' };
+    return { type: t('classifyDoc.damageTitle'), summary: t('classifyDoc.imageDesc') };
   }
   if (ext === 'pdf') {
-    return { type: 'Document', summary: t?.('classifyDoc.pdfDesc') || 'Document PDF joint au dossier' };
+    return { type: t('classifyDoc.attachmentTitle'), summary: t('classifyDoc.pdfDesc') };
   }
-  return { type: t?.('classifyDoc.attachmentTitle') || 'Pièce jointe', summary: t?.('classifyDoc.attachmentDesc') || 'Document ajouté au dossier' };
+  return { type: t('classifyDoc.attachmentTitle'), summary: t('classifyDoc.attachmentDesc') };
 }
 
 // Header Strip driven by extracted fields + backend context_labels
@@ -354,84 +315,54 @@ function HeaderStrip({ application, fraudResult }: { application: ApplicationMet
 // Format parsed JSON into human-readable labels for AI summary display
 // NOTE: Do NOT use t() for dynamic field names — next-intl throws MISSING_MESSAGE
 // errors that crash React. Use a static lookup map + auto-formatting fallback instead.
-function formatParsedFields(parsed: Record<string, unknown>, prefix = '', t?: TranslateFn): string[] {
+function formatParsedFields(parsed: Record<string, unknown>, prefix = '', t?: TranslateFn, locale = 'en'): string[] {
   const lines: string[] = [];
   // Comprehensive static label map — covers all known LLM output field names
   const labelMap: Record<string, string> = {
-    reference_dossier: 'Réf. dossier',
-    refDossier: 'Réf. dossier',
-    montant_estime_reparations: 'Montant estimé réparations',
-    montantEstime: 'Montant estimé',
-    franchise_applicable: 'Franchise applicable',
-    franchiseApplicable: 'Franchise applicable',
-    franchise: 'Franchise',
-    montant_indemnisation_recommande: 'Indemnisation recommandée',
-    indemnisationRecommandee: 'Indemnisation recommandée',
-    couverture_applicable: 'Couverture applicable',
-    couvertureApplicable: 'Couverture applicable',
-    garantie: 'Garantie',
-    exclusions: 'Exclusions',
-    responsabilite: 'Responsabilité',
-    observations: 'Observations',
-    recommandation: 'Recommandation',
-    conclusion: 'Conclusion',
-    risque: 'Risque',
-    score: 'Score',
-    analyse_reglement: 'Analyse règlement',
-    analyseReglement: 'Analyse règlement',
-    details_calcul: 'Détails du calcul',
-    detailsCalcul: 'Détails du calcul',
-    total_dommages: 'Total dommages',
-    totalDommages: 'Total dommages',
-    plafond_garantie: 'Plafond de garantie',
-    plafondGarantie: 'Plafond de garantie',
-    vetuste: 'Vétusté',
-    taux_vetuste: 'Taux de vétusté',
-    tauxVetuste: 'Taux de vétusté',
-    contrat: 'Contrat',
-    conditions: 'Conditions',
-    formule: 'Formule du contrat',
-    numero: 'Numéro',
-    numeroContrat: 'N° de contrat',
-    typeContrat: 'Type de contrat',
-    'plafond biens mobiliers': 'Plafond biens mobiliers',
-    'plafond biens immobiliers': 'Plafond biens immobiliers',
-    'plafond objets de valeur': 'Plafond objets de valeur',
-    summary: 'Résumé',
-    synthese: 'Synthèse',
-    description: 'Description',
-    cause: 'Cause',
-    date: 'Date',
-    lieu: 'Lieu',
-    montant: 'Montant',
-    status: 'Statut',
-    coverage_status: 'Statut de couverture',
-    fraud_indicators: 'Indicateurs de fraude',
-    risk_level: 'Niveau de risque',
-    severity: 'Gravité',
-    recommendation: 'Recommandation',
+    reference_dossier: 'fileReference', refDossier: 'fileReference',
+    montant_estime_reparations: 'estimatedRepairs', montantEstime: 'estimatedAmount',
+    franchise_applicable: 'deductible', franchiseApplicable: 'deductible', franchise: 'deductible',
+    montant_indemnisation_recommande: 'recommendedPayout', indemnisationRecommandee: 'recommendedPayout',
+    couverture_applicable: 'applicableCoverage', couvertureApplicable: 'applicableCoverage',
+    garantie: 'coverage', exclusions: 'exclusions', responsabilite: 'liability',
+    observations: 'observations', recommandation: 'recommendation', recommendation: 'recommendation',
+    conclusion: 'conclusion', risque: 'risk', score: 'score',
+    analyse_reglement: 'settlementAnalysis', analyseReglement: 'settlementAnalysis',
+    details_calcul: 'calculationDetails', detailsCalcul: 'calculationDetails',
+    total_dommages: 'totalDamage', totalDommages: 'totalDamage',
+    plafond_garantie: 'coverageLimit', plafondGarantie: 'coverageLimit',
+    vetuste: 'depreciation', taux_vetuste: 'depreciationRate', tauxVetuste: 'depreciationRate',
+    contrat: 'contract', conditions: 'conditions', formule: 'contractPlan',
+    numero: 'number', numeroContrat: 'contractNumber', typeContrat: 'contractType',
+    'plafond biens mobiliers': 'contentsLimit', 'plafond biens immobiliers': 'buildingLimit',
+    'plafond objets de valeur': 'valuablesLimit', summary: 'summary', synthese: 'summary',
+    description: 'description', cause: 'cause', date: 'date', lieu: 'location',
+    montant: 'amount', status: 'status', coverage_status: 'coverageStatus',
+    fraud_indicators: 'fraudIndicators', risk_level: 'riskLevel', severity: 'severity',
   };
   for (const [key, value] of Object.entries(parsed)) {
     if (key.startsWith('_')) continue;
     // Use static label map — never call t() with dynamic keys
-    const label = labelMap[key] || key.replace(/_/g, ' ').replace(/\b[a-z]/g, c => c.toUpperCase());
+    const label = labelMap[key] && t
+      ? t(`parsedFields.${labelMap[key]}`)
+      : key.replace(/_/g, ' ').replace(/\b[a-z]/g, c => c.toUpperCase());
     if (typeof value === 'string' && value.trim()) {
       lines.push(`${prefix}${label} : ${value}`);
     } else if (typeof value === 'number') {
       const formatted = key.toLowerCase().includes('montant') || key.toLowerCase().includes('franchise') || key.toLowerCase().includes('indemnisation') || key.toLowerCase().includes('total') || key.toLowerCase().includes('plafond')
-        ? `${value.toLocaleString('fr-FR')} €`
+        ? new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value)
         : String(value);
       lines.push(`${prefix}${label} : ${formatted}`);
     } else if (typeof value === 'boolean') {
-      lines.push(`${prefix}${label} : ${value ? 'Oui' : 'Non'}`);
+      lines.push(`${prefix}${label} : ${value ? t?.('parsedFields.yes') || 'Yes' : t?.('parsedFields.no') || 'No'}`);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       lines.push(`${prefix}${label} :`);
-      lines.push(...formatParsedFields(value as Record<string, unknown>, prefix + '  ', t));
+      lines.push(...formatParsedFields(value as Record<string, unknown>, prefix + '  ', t, locale));
     } else if (Array.isArray(value) && value.length > 0) {
       lines.push(`${prefix}${label} :`);
       for (const item of value) {
         if (typeof item === 'object' && item !== null) {
-          lines.push(...formatParsedFields(item as Record<string, unknown>, prefix + '  - ', t));
+          lines.push(...formatParsedFields(item as Record<string, unknown>, prefix + '  - ', t, locale));
         } else {
           lines.push(`${prefix}  - ${String(item)}`);
         }
@@ -673,10 +604,10 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
         }
       }, 3000);
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : 'Analyse IA échouée');
+      setAiError(err instanceof Error ? err.message : t('analysisFailed'));
       setAiLoading(false);
     }
-  }, [application, onApplicationUpdate]);
+  }, [application, onApplicationUpdate, locale, t]);
 
   // Derive key info from document_markdown when structured fields are missing or unusable.
   const markdownDerivedFields = useMemo(() => {
@@ -783,7 +714,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
       const key = c.toLowerCase();
       if (seen.has(key)) return;
       seen.add(key);
-      items.push({ description: c, related: 'Oui' });
+      items.push({ description: c, related: t('formatLabels.oui') });
     };
 
     // 1) Preferred: structured LLM damage_assessment.damage_areas (clean path)
@@ -847,7 +778,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
             }
             // Fallback: format parsed JSON into readable text
             else {
-              const lines = formatParsedFields(sub.parsed, '', t);
+              const lines = formatParsedFields(sub.parsed, '', t, locale);
               if (lines.length > 0) {
                 parts.push(lines.join('\n'));
               }
@@ -872,9 +803,9 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
     // SIU referral
     if (fraudResult?.overall_assessment?.siu_referral_recommended) {
       signals.push({
-        label: 'Renvoi SIU recommandé',
+        label: t('signals.siuReferral'),
         level: 'high',
-        detail: String(fraudResult.overall_assessment.siu_referral_reason || 'Investigation spéciale recommandée par l\'analyse de fraude'),
+        detail: String(fraudResult.overall_assessment.siu_referral_reason || t('signals.siuReferralDetail')),
       });
     }
     // Fraud attention items
@@ -889,7 +820,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
     const montant = getFieldValue(ef, ['MontantEstime', 'TotalIncurred', 'MontantTotal'], '');
     const montantNum = parseFloat(String(montant).replace(/[^\d.,]/g, '').replace(',', '.'));
     if (montantNum > 5000) {
-      signals.push({ label: 'Montant élevé', level: 'high', detail: `Montant estimé: ${montantNum.toLocaleString('fr-FR')} € — expertise obligatoire au-delà de 5 000 €` });
+      signals.push({ label: t('signals.highAmount'), level: 'high', detail: t('signals.highAmountDetail', { amount: new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(montantNum) }) });
     }
     
     // Check nature of claim for severity — enriched with web intelligence
@@ -897,11 +828,11 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
     if (nature.includes('tempête') || nature.includes('catastrophe') || nature.includes('inondation')) {
       const wi = fraudResult?.web_intelligence;
       const verified = wi && !wi.error ? wi.event_verified : undefined;
-      let detail = `Sinistre lié à un événement climatique — vérifier arrêté Cat-Nat`;
+      let detail = t('signals.weatherEventDetail');
       let sourceUrl: string | undefined;
       let sourceTitle: string | undefined;
       if (verified === true) {
-        detail = `Événement climatique confirmé par sources publiques`;
+        detail = t('signals.weatherConfirmed');
         // Find Cat-Nat source URL
         if (wi?.findings) {
           for (const f of wi.findings) {
@@ -916,36 +847,36 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
           }
         }
       } else if (verified === false) {
-        detail = `Événement climatique non confirmé par sources publiques — vérification manuelle nécessaire`;
+        detail = t('signals.weatherUnconfirmed');
       }
-      signals.push({ label: 'Événement climatique', level: verified === false ? 'high' : 'medium', detail, sourceUrl, sourceTitle });
+      signals.push({ label: t('signals.weatherEvent'), level: verified === false ? 'high' : 'medium', detail, sourceUrl, sourceTitle });
     }
     if (nature.includes('incendie')) {
-      signals.push({ label: 'Incendie', level: 'high', detail: 'Sinistre incendie — expertise systématique requise' });
+      signals.push({ label: t('signals.fire'), level: 'high', detail: t('signals.fireDetail') });
     }
     
     // Check for third party involvement
     const tiers = getFieldValue(ef, ['TiersImplique'], '').toLowerCase();
     if (tiers === 'oui') {
-      signals.push({ label: 'Tiers impliqué', level: 'medium', detail: 'Un tiers est impliqué — vérifier convention IRSI et recours possible' });
+      signals.push({ label: t('signals.thirdParty'), level: 'medium', detail: t('signals.thirdPartyDetail') });
     }
     
     // Check urgency level
     const urgence = getFieldValue(ef, ['NiveauUrgence'], '').toLowerCase();
     if (urgence === 'critique' || urgence === 'eleve') {
-      signals.push({ label: 'Urgence élevée', level: 'high', detail: `Niveau d'urgence: ${urgence} — traitement prioritaire requis` });
+      signals.push({ label: t('signals.highUrgency'), level: 'high', detail: t('signals.highUrgencyDetail', { urgency: urgence }) });
     }
     
     // Check for preexisting damage from image analysis
     const preexisting = getFieldValue(ef, ['PreexistingDamage'], '').toLowerCase();
     if (preexisting === 'probable' || preexisting === 'certain') {
-      signals.push({ label: 'Dommages préexistants', level: 'high', detail: 'Dommages préexistants détectés sur les photos — vérifier antériorité' });
+      signals.push({ label: t('signals.preExistingDamage'), level: 'high', detail: t('signals.preExistingDamageDetail') });
     }
     
     // Check description for fraud keywords
     const desc = getFieldValue(ef, ['DescriptionSinistre'], '').toLowerCase();
     if (desc.includes('incohéren') || desc.includes('contradictoi')) {
-      signals.push({ label: 'Incohérence détectée', level: 'high', detail: 'Incohérence dans la description du sinistre — investigation recommandée' });
+      signals.push({ label: t('signals.inconsistency'), level: 'high', detail: t('signals.inconsistencyDetail') });
     }
     
     // Parse LLM outputs for additional signals
@@ -955,16 +886,16 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
         const sub = val as { parsed?: Record<string, unknown>; raw?: string } | undefined;
         const parsed = sub?.parsed;
         if (parsed?.fraud_indicators && Array.isArray(parsed.fraud_indicators) && parsed.fraud_indicators.length > 0) {
-          signals.push({ label: 'Indicateurs de fraude', level: 'high', detail: String(parsed.fraud_indicators[0]) });
+          signals.push({ label: t('signals.fraudIndicators'), level: 'high', detail: String(parsed.fraud_indicators[0]) });
         }
         if (parsed?.exclusions && typeof parsed.exclusions === 'string' && parsed.exclusions.length > 0 && !parsed.exclusions.toLowerCase().includes('aucune')) {
-          signals.push({ label: 'Exclusions possibles', level: 'medium', detail: String(parsed.exclusions).slice(0, 120) });
+          signals.push({ label: t('signals.possibleExclusions'), level: 'medium', detail: String(parsed.exclusions).slice(0, 120) });
         }
         // Coverage verification signals
         if (sectionName === 'liability_assessment' && parsed?.coverage_status) {
           const status = String(parsed.coverage_status).toLowerCase();
           if (status.includes('non') || status.includes('exclu') || status.includes('refus')) {
-            signals.push({ label: 'Couverture non confirmée', level: 'high', detail: `Statut: ${String(parsed.coverage_status)}` });
+            signals.push({ label: t('signals.coverageUnconfirmed'), level: 'high', detail: t('signals.statusDetail', { status: String(parsed.coverage_status) }) });
           }
         }
       }
@@ -980,25 +911,25 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
     const hasConstat = fileNames.some(f => f.includes('constat') || f.includes('amiable'));
 
     const missingDocs: string[] = [];
-    if (!hasDeclaration && files.length > 0) missingDocs.push('Déclaration de sinistre');
-    if (!hasPhoto) missingDocs.push('Photos des dommages (min. 3)');
-    if (!hasDevis && !hasFacture) missingDocs.push('Devis ou facture de réparation');
+    if (!hasDeclaration && files.length > 0) missingDocs.push(t('signals.missingDeclaration'));
+    if (!hasPhoto) missingDocs.push(t('signals.missingPhotos'));
+    if (!hasDevis && !hasFacture) missingDocs.push(t('signals.missingEstimate'));
     // If third party is involved, constat amiable is required
     const tiersVal = getFieldValue(ef, ['TiersImplique'], '').toLowerCase();
     if ((tiersVal === 'oui' || tiersVal.includes('oui')) && !hasConstat) {
-      missingDocs.push('Constat amiable (tiers impliqué)');
+      missingDocs.push(t('signals.missingAccidentReport'));
     }
 
     if (missingDocs.length > 0) {
       signals.push({
-        label: `📎 ${missingDocs.length} pièce${missingDocs.length > 1 ? 's' : ''} manquante${missingDocs.length > 1 ? 's' : ''}`,
+        label: `📎 ${t('signals.missingDocuments', { count: missingDocs.length })}`,
         level: 'medium',
         detail: missingDocs.join(' · '),
       });
     }
     
     return signals;
-  }, [ef, llmOutputs, fraudResult, files]);
+  }, [ef, llmOutputs, fraudResult, files, locale, t]);
 
   // Amount comparison: customer claimed vs AI-assessed
   const amountComparison = useMemo(() => {
@@ -1069,10 +1000,10 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
 
   // Build coherent narrative timeline from extracted fields (correlates with ChronologicalOverview)
   const liabilityEvents = useMemo(() => {
-    if (files.length === 0) return [{ date: '—', type: 'Attente', desc: 'En attente de traitement des documents', impact: 'neutral' }];
+    if (files.length === 0) return [{ date: '—', type: t('timeline.waiting'), desc: t('timeline.waitingDescription'), impact: 'neutral' }];
 
     const createdDate = application?.created_at ? new Date(application.created_at) : new Date();
-    const fmtDate = (d: Date) => `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+    const fmtDate = (d: Date) => new Intl.DateTimeFormat(locale).format(d);
 
     // Try to build from extracted fields first
     const dateSinistre = getFieldValue(ef, ['DateSinistre']);
@@ -1110,7 +1041,9 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
       events.push({ date: fmtDate(twoDaysAfter), type: t('timeline.declaration'), desc: contrat ? t('timeline.declarationDesc', { contract: contrat }) : t('timeline.declarationDescNoContract'), impact: 'supports', sort: twoDaysAfter.getTime() });
 
       if (montant) {
-        const formatted = !isNaN(Number(montant)) ? Number(montant).toLocaleString(locale === 'en' ? 'en-US' : 'fr-FR') + ' €' : montant;
+        const formatted = !isNaN(Number(montant))
+          ? new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(Number(montant))
+          : montant;
         events.push({ date: fmtDate(twoDaysAfter), type: t('timeline.estimation', { amount: formatted }), desc: t('timeline.estimationDesc'), impact: 'neutral', sort: twoDaysAfter.getTime() + 1 });
       }
 
@@ -1132,13 +1065,13 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
             const icon = decisionIcons[String(dec.decision)] || '📋';
             let desc = dec.notes ? String(dec.notes) : action.source || brand.name;
             if (dec.ai_recommendation) {
-              desc += ` — IA: ${dec.ai_recommendation}`;
+              desc += ` — ${t('timeline.aiRecommendation')}: ${dec.ai_recommendation}`;
             }
             if (dec.validation_divergence && dec.validation_divergence !== 'aligned') {
-              desc += ' ⚡ Divergence IA/Humain';
+              desc += ` ⚡ ${t('timeline.aiHumanDivergence')}`;
             }
             if (dec.conditions) {
-              desc += ` | Conditions: ${dec.conditions}`;
+              desc += ` | ${t('timeline.conditions')}: ${dec.conditions}`;
             }
             events.push({
               date: fmtDate(actionDate),
@@ -1162,7 +1095,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
           events.push({
             date: fmtDate(actionDate),
             type: action.label,
-            desc: badges ? `Systèmes : ${badges}` : action.source,
+            desc: badges ? t('timeline.systems', { systems: badges }) : action.source,
             impact: action.performed === 'HITL' ? 'disputes' : 'supports',
             sort: actionDate.getTime(),
           });
@@ -1179,22 +1112,18 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
         const decIcons: Record<string, string> = {
           approve: '✅', approve_with_conditions: '⚠️', defer: '⏳', decline: '❌',
         };
-        const decLabels: Record<string, string> = {
-          approve: 'Décision : Approuvé',
-          approve_with_conditions: 'Décision : Approuvé sous conditions',
-          defer: 'Décision : Différé',
-          decline: 'Décision : Refusé',
-        };
         const decStr = String(decisionData.decision || '');
         const icon = decIcons[decStr] || '📋';
-        const label = decLabels[decStr] || `Décision : ${decStr}`;
+        const label = ['approve', 'approve_with_conditions', 'defer', 'decline'].includes(decStr)
+          ? t(`timeline.decisions.${decStr}`)
+          : t('timeline.decision', { decision: decStr });
         const decidedAt = decisionData.decided_at
           ? new Date(typeof decisionData.decided_at === 'number' ? decisionData.decided_at * 1000 : String(decisionData.decided_at))
           : new Date();
         events.push({
           date: fmtDate(decidedAt),
           type: `${icon} ${label}`,
-          desc: decisionData.notes ? String(decisionData.notes) : 'Décision enregistrée',
+          desc: decisionData.notes ? String(decisionData.notes) : t('timeline.decisionSaved'),
           impact: decStr === 'decline' ? 'disputes' : 'supports',
           sort: decidedAt.getTime(),
         });
@@ -1209,7 +1138,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
       const classification = classifyDocument(f.filename, t);
       return { date: fmtDate(createdDate), type: classification.type, desc: f.filename, impact: 'supports' };
     });
-  }, [files, application, ef, llmOutputs]);
+  }, [files, application, ef, llmOutputs, locale, t]);
 
   // Build damage items from extracted fields — only damage-related fields with French labels
   const injuries = useMemo(() => {
@@ -1253,7 +1182,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
     const fmt = (offset: number) => {
       const d = new Date();
       d.setDate(d.getDate() + offset);
-      return d.toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' }).replace('.', '');
+      return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' }).replace('.', '');
     };
     // Backend-driven tasks (from analysis output)
     const backendTasks: ContextTask[] = application?.context_tasks || [];
@@ -1281,7 +1210,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
       policyNumber: getFieldValue(ef, ['PolicyNumber', 'NumeroPolice', 'NumeroContrat'], ''),
       claimNumber: getFieldValue(ef, ['ClaimNumber', 'NumeroSinistre'], application.id),
       claimDate: getFieldValue(ef, ['ClaimDate', 'DateSinistre', 'DateEvenement'], ''),
-      causeOfLoss: getFieldValue(ef, ['CauseOfLoss', 'NatureSinistre', 'CauseDuSinistre'], 'Dégâts des eaux / Tempête'),
+      causeOfLoss: getFieldValue(ef, ['CauseOfLoss', 'NatureSinistre', 'CauseDuSinistre'], t('defaults.waterOrStorm')),
       propertyAddress: getFieldValue(ef, ['PropertyAddress', 'AdresseRisque', 'AdresseBien'], ''),
       lineOfBusiness: getFieldValue(ef, ['LineOfBusiness', 'NatureContrat', 'BrancheAssurance'], 'Habitation MRH'),
       totalEstimated: getFieldValue(ef, ['TotalIncurred', 'MontantEstime', 'MontantTotal', 'MontantDevis', 'MontantReparation'], '—'),
@@ -1353,7 +1282,10 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
           <div className="flex-1 text-sm">
             <span className="font-medium text-amber-800">{t('amountComparison.warning')}</span>{' '}
             <span className="text-amber-700">
-              {t('amountComparison.detail', { claimed: amountComparison.claimed.toLocaleString('fr-FR'), recommended: amountComparison.recommended.toLocaleString('fr-FR') })}
+              {t('amountComparison.detail', {
+                claimed: new Intl.NumberFormat(locale).format(amountComparison.claimed),
+                recommended: new Intl.NumberFormat(locale).format(amountComparison.recommended),
+              })}
               {' '}(<span className="font-semibold">+{Math.abs(amountComparison.pctDelta).toFixed(0)}%</span>)
             </span>
           </div>
@@ -1373,7 +1305,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                 <span className="font-semibold text-slate-900 text-sm">{t('panels.aiSummary')}</span>
                 {alertSignals.length > 0 && (
                   <span className={clsx('px-1.5 py-0.5 text-xs rounded-full font-medium', alertSignals.some(s => s.level === 'high') ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700')}>
-                    {alertSignals.length} alerte{alertSignals.length > 1 ? 's' : ''}
+                    {t('signals.alertCount', { count: alertSignals.length })}
                   </span>
                 )}
                 {aiSummary && !aiAnalyzing && (
@@ -1416,7 +1348,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                                className="ml-1.5 inline-flex items-center gap-0.5 text-indigo-600 hover:text-indigo-800 hover:underline font-medium"
                                onClick={e => e.stopPropagation()}>
                               <ExternalLink className="w-3 h-3" />
-                              <span>{sig.sourceTitle || 'Source'}</span>
+                              <span>{sig.sourceTitle || t('analysis.source')}</span>
                             </a>
                           )}
                         </div>
@@ -1517,7 +1449,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                 {showSchema ? (
                   analyzerSchema ? (
                     <div className="space-y-1">
-                      <div className="text-slate-500 mb-2">{analyzerSchema.field_count} champs définis — <span className="font-mono text-xs">{analyzerSchema.schema.name}</span></div>
+                      <div className="text-slate-500 mb-2">{t('schemaFieldsDefined', { count: analyzerSchema.field_count })} — <span className="font-mono text-xs">{analyzerSchema.schema.name}</span></div>
                       {Object.entries(analyzerSchema.schema.fields).map(([fieldName, field]) => (
                         <div key={fieldName} className="flex items-start justify-between py-1 border-b border-slate-50 last:border-0">
                           <div className="min-w-0 flex-1">
@@ -1602,7 +1534,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                 {/* Client Sentiment */}
                 <ClientSentimentPanel
                   customerData={customerData}
-                  claimNature={getFieldValue(ef, ['NatureSinistre', 'CauseOfLoss', 'CauseDuSinistre'], 'Dégâts des eaux')}
+                  claimNature={getFieldValue(ef, ['NatureSinistre', 'CauseOfLoss', 'CauseDuSinistre'], t('defaults.waterDamage'))}
                   estimatedAmount={parseFloat(String(getFieldValue(ef, ['MontantEstime', 'TotalIncurred', 'MontantTotal'], '0')).replace(/[^\d.,]/g, '').replace(',', '.')) || 0}
                   daysSinceClaim={application?.created_at ? Math.floor((Date.now() - new Date(application.created_at).getTime()) / 86400000) : 0}
                   backendSentiment={(application as any)?.sentiment_analysis ?? null}
@@ -1633,8 +1565,8 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                   )}
                   title={
                     fraudResult?.overall_assessment?.siu_referral_recommended
-                      ? 'Renvoi SIU recommandé — règlement suspendu'
-                      : allTasksDone ? 'Générer le PDF de note de règlement' : 'Cochez toutes les tâches pour activer'
+                      ? t('settlement.siuSuspended')
+                      : allTasksDone ? t('settlement.generatePdf') : t('settlement.completeTasks')
                   }
                 >
                   <FileDown className="w-4 h-4" />
@@ -1700,7 +1632,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                       {injuries.map((inj, i) => (
                         <tr key={i}>
                           <td className="py-2 text-slate-900">{inj.diagnosis}</td>
-                          <td className="py-2"><span className={clsx('px-1.5 py-0.5 rounded text-xs', inj.related === 'Oui' ? 'bg-emerald-100 text-emerald-700' : inj.related === 'Possible' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600')}>{inj.related}</span></td>
+                          <td className="py-2"><span className={clsx('px-1.5 py-0.5 rounded text-xs', inj.related === t('formatLabels.oui') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600')}>{inj.related}</span></td>
                         </tr>
                       ))}
                     </tbody>
@@ -1821,7 +1753,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                             <button
                               onClick={(e) => { e.stopPropagation(); setLightboxIndex(i); }}
                               className="text-indigo-600 hover:text-indigo-700"
-                              title={`Voir ${item.source}`}
+                              title={t('documents.viewSource', { source: item.source })}
                             >
                               <ZoomIn className="w-4 h-4 mx-auto" />
                             </button>
@@ -2050,15 +1982,15 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                           <table className="w-full text-sm border-collapse bg-white rounded-lg overflow-hidden">
                             <thead>
                               <tr className="bg-slate-100">
-                                <th className="text-left p-3 border-b font-medium text-slate-700">Zone / Bien / Dommage</th>
-                                <th className="text-left p-3 border-b font-medium text-slate-700 w-32">Lié au sinistre&nbsp;?</th>
+                                <th className="text-left p-3 border-b font-medium text-slate-700">{t('documents.zoneDamageFull')}</th>
+                                <th className="text-left p-3 border-b font-medium text-slate-700 w-32">{t('damage.relatedToClaim')}</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                               {injuries.map((inj, i) => (
                                 <tr key={`inj-${i}`} className="even:bg-slate-50">
                                   <td className="p-3 text-slate-900">{inj.diagnosis}</td>
-                                  <td className="p-3"><span className={clsx('px-2 py-1 rounded text-xs font-medium', inj.related === 'Oui' ? 'bg-emerald-100 text-emerald-700' : inj.related === 'Possible' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600')}>{inj.related}</span></td>
+                                  <td className="p-3"><span className={clsx('px-2 py-1 rounded text-xs font-medium', inj.related === t('formatLabels.oui') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600')}>{inj.related}</span></td>
                                 </tr>
                               ))}
                               {markdownDerivedDamages.map((dmg, i) => (
@@ -2170,12 +2102,12 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
                 <div>
                   {(injuries.length > 0 || markdownDerivedDamages.length > 0) ? (
                     <table className="w-full text-sm border-collapse">
-                      <thead><tr className="bg-slate-50"><th className="text-left p-3 border-b font-medium text-slate-700">Zone / Bien / Dommage</th><th className="text-left p-3 border-b font-medium text-slate-700 w-32">Lié au sinistre ?</th></tr></thead>
+                      <thead><tr className="bg-slate-50"><th className="text-left p-3 border-b font-medium text-slate-700">{t('damage.item')}</th><th className="text-left p-3 border-b font-medium text-slate-700 w-32">{t('damage.relatedToClaim')}</th></tr></thead>
                       <tbody className="divide-y divide-slate-100">
                         {injuries.map((inj, i) => (
                           <tr key={i}>
                             <td className="p-3 text-slate-900">{inj.diagnosis}</td>
-                            <td className="p-3"><span className={clsx('px-2 py-1 rounded text-xs font-medium', inj.related === 'Oui' ? 'bg-emerald-100 text-emerald-700' : inj.related === 'Possible' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600')}>{inj.related}</span></td>
+                            <td className="p-3"><span className={clsx('px-2 py-1 rounded text-xs font-medium', inj.related === t('formatLabels.oui') ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600')}>{inj.related}</span></td>
                           </tr>
                         ))}
                         {markdownDerivedDamages.map((dmg, i) => (
@@ -2199,7 +2131,7 @@ export default function PropertyCasualtyClaimsOverview({ application, onApplicat
               {detailDialog === 'sentiment' && (
                 <ClientSentimentPanel
                   customerData={customerData}
-                  claimNature={getFieldValue(ef, ['NatureSinistre', 'CauseOfLoss', 'CauseDuSinistre'], 'Dégâts des eaux')}
+                  claimNature={getFieldValue(ef, ['NatureSinistre', 'CauseOfLoss', 'CauseDuSinistre'], t('defaults.waterDamage'))}
                   estimatedAmount={parseFloat(String(getFieldValue(ef, ['MontantEstime', 'TotalIncurred', 'MontantTotal'], '0')).replace(/[^\d.,]/g, '').replace(',', '.')) || 0}
                   daysSinceClaim={application?.created_at ? Math.floor((Date.now() - new Date(application.created_at).getTime()) / 86400000) : 0}
                   backendSentiment={(application as any)?.sentiment_analysis ?? null}

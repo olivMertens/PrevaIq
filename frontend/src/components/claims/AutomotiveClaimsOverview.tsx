@@ -37,22 +37,21 @@ interface AutomotiveClaimsOverviewProps {
   onInvestigate?: () => void;
 }
 
-// Translation maps for English values returned by the claims engine
-const SEVERITY_FR: Record<string, string> = { minor: 'MINEUR', moderate: 'MODÉRÉ', severe: 'SÉVÈRE', heavy: 'GRAVE', total_loss: 'PERTE TOTALE' };
-const LOCATION_FR: Record<string, string> = {
-  'front': 'Avant', 'rear': 'Arrière', 'left': 'Gauche', 'right': 'Droite', 'roof': 'Toit',
-  'front left': 'Avant gauche', 'front right': 'Avant droit', 'rear left': 'Arrière gauche', 'rear right': 'Arrière droit',
-  'side left': 'Côté gauche', 'side right': 'Côté droit', 'hood': 'Capot', 'trunk': 'Coffre',
-  'bumper': 'Pare-chocs', 'front bumper': 'Pare-chocs avant', 'rear bumper': 'Pare-chocs arrière',
-  'windshield': 'Pare-brise', 'door': 'Portière', 'fender': 'Aile', 'quarter panel': 'Aile arrière',
+const LOCATION_KEYS: Record<string, string> = {
+  front: 'front', rear: 'rear', left: 'left', right: 'right', roof: 'roof',
+  'front left': 'frontLeft', 'front right': 'frontRight', 'rear left': 'rearLeft', 'rear right': 'rearRight',
+  'side left': 'sideLeft', 'side right': 'sideRight', hood: 'hood', trunk: 'trunk',
+  bumper: 'bumper', 'front bumper': 'frontBumper', 'rear bumper': 'rearBumper',
+  windshield: 'windshield', door: 'door', fender: 'fender', 'quarter panel': 'quarterPanel',
 };
-const INDICATOR_TYPE_FR: Record<string, string> = {
-  'Documentation': 'Documentation', 'Pattern': 'Schéma suspect', 'Behavioral': 'Comportement',
-  'Financial': 'Financier', 'Timeline': 'Chronologie', 'general': 'Général',
+const INDICATOR_KEYS: Record<string, string> = {
+  Documentation: 'documentation', Pattern: 'pattern', Behavioral: 'behavioral',
+  Financial: 'financial', Timeline: 'timeline', general: 'general',
 };
-function trFr(map: Record<string, string>, val: string): string {
+function translateMapped(t: (key: string) => string, prefix: string, map: Record<string, string>, val: string): string {
   const lower = val.toLowerCase().trim();
-  return map[lower] || map[val] || val;
+  const key = map[lower] || map[val];
+  return key ? t(`${prefix}.${key}`) : val;
 }
 
 function getExtractedText(extractedFields: Record<string, unknown>, keys: string[]): string {
@@ -71,23 +70,22 @@ function getExtractedText(extractedFields: Record<string, unknown>, keys: string
   return '';
 }
 
-function trDesc(desc: string): string {
-  // Translate common English claim phrases to French
+function translateDescription(desc: string, t: (key: string) => string): string {
   const map: [RegExp, string][] = [
-    [/No police report or accident statement/i, 'Pas de rapport de police ni de constat'],
-    [/for a hit-and-run at a public intersection/i, 'pour un délit de fuite sur voie publique'],
-    [/No third-party or witness information provided/i, 'Aucune information de tiers ou de témoin fournie'],
-    [/Urgency and emotional language in claim communication/i, 'Langage d\'urgence et émotionnel dans la communication'],
-    [/Panel Repair or Replace/i, 'Réparation ou remplacement de panneau'],
-    [/crack/i, 'fissure'],
-    [/dent/i, 'enfoncement'],
-    [/scratch/i, 'rayure'],
-    [/Repair/i, 'Réparation'],
-    [/Replace/i, 'Remplacement'],
+    [/No police report or accident statement/i, 'noPoliceReport'],
+    [/for a hit-and-run at a public intersection/i, 'hitAndRun'],
+    [/No third-party or witness information provided/i, 'noWitness'],
+    [/Urgency and emotional language in claim communication/i, 'urgentLanguage'],
+    [/Panel Repair or Replace/i, 'panelRepair'],
+    [/crack/i, 'crack'],
+    [/dent/i, 'dent'],
+    [/scratch/i, 'scratch'],
+    [/Repair/i, 'repair'],
+    [/Replace/i, 'replace'],
   ];
   let result = desc;
-  for (const [pattern, replacement] of map) {
-    result = result.replace(pattern, replacement);
+  for (const [pattern, key] of map) {
+    result = result.replace(pattern, t(`automotive.description.${key}`));
   }
   return result;
 }
@@ -100,6 +98,12 @@ export function AutomotiveClaimsOverview({
   const d = useAutomotiveClaimData(applicationId);
   const t = useTranslations('claimsModals');
   const locale = useLocale();
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: 'EUR',
+      maximumFractionDigits: 0,
+    }).format(value);
 
   const [selectedPDF, setSelectedPDF] = useState<MediaItem | null>(null);
   const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
@@ -107,7 +111,9 @@ export function AutomotiveClaimsOverview({
   const [fraudResult, setFraudResult] = useState<FraudAnalysisResponse | null>(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const resolvedDisplayTitle = d.application ? getApplicationDisplayTitle(d.application) : displayTitle;
+  const resolvedDisplayTitle = d.application
+    ? getApplicationDisplayTitle(d.application, locale)
+    : displayTitle;
 
   const handleFraudComplete = useCallback((result: FraudAnalysisResponse) => {
     setFraudResult(result);
@@ -134,7 +140,7 @@ export function AutomotiveClaimsOverview({
     } catch (err) {
       setAiAnalyzing(false);
       const msg = err instanceof Error ? err.message : String(err);
-      d.setError(msg || 'Échec de l\'analyse IA');
+      d.setError(msg || t('analysisFailed'));
     }
   }, [applicationId, aiAnalyzing, d]);
 
@@ -163,7 +169,7 @@ export function AutomotiveClaimsOverview({
           <div className="flex items-center gap-6">
             <div className="text-right">
               <p className="text-[10px] text-emerald-600 font-medium uppercase tracking-wider">{t('recommendedPayout')}</p>
-              <p className="text-2xl font-bold text-emerald-700">{(d.estimatedAmount || 0).toLocaleString('fr-FR')} €</p>
+              <p className="text-2xl font-bold text-emerald-700">{formatCurrency(d.estimatedAmount || 0)}</p>
             </div>
             <div className="h-10 w-px bg-slate-200" />
             <div className="flex gap-4 text-center text-xs text-slate-500">
@@ -183,7 +189,7 @@ export function AutomotiveClaimsOverview({
               title={t('reanalyzeAI')}
             >
               <RotateCcw className={`w-3.5 h-3.5 ${aiAnalyzing ? 'animate-spin' : ''}`} />
-              {aiAnalyzing ? 'Analyse...' : 'Relancer IA'}
+              {aiAnalyzing ? t('analyzing') : t('reanalyzeAI')}
             </button>
             <button onClick={d.fetchClaimData} disabled={d.isRefreshing} title={t('refreshFile')} aria-label={t('refreshFile')} className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors disabled:opacity-50">
               <RefreshCw className={`w-4 h-4 ${d.isRefreshing ? 'animate-spin' : ''}`} />
@@ -251,7 +257,7 @@ export function AutomotiveClaimsOverview({
                 <p className="leading-relaxed">{d.claimSummaryText}</p>
               ) : d.assessment?.damage_areas && d.assessment.damage_areas.length > 0 ? (
                   <p className="leading-relaxed">
-                    {t('claimDamageSummary', { zones: d.assessment.damage_areas.length, total: d.assessment.total_estimated_damage?.toLocaleString('fr-FR') || '0' })}
+                    {t('claimDamageSummary', { zones: d.assessment.damage_areas.length, total: formatCurrency(d.assessment.total_estimated_damage || 0) })}
                     {d.assessment.liability?.fault_determination && <> {t('liabilityIndicates', { determination: d.assessment.liability.fault_determination, percentage: d.assessment.liability.fault_percentage || 0 })}</>}
                     {d.assessment.fraud_indicators && d.assessment.fraud_indicators.length > 0 && <> <span className="text-amber-600">⚠ {t('fraudIndicatorsDetected', { count: d.assessment.fraud_indicators.length })}</span></>}
                   </p>
@@ -265,11 +271,11 @@ export function AutomotiveClaimsOverview({
                   {d.assessment?.damage_areas?.slice(0, 4).map((area, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-1.5 bg-slate-50 rounded-lg">
                       <span className={`px-1 py-0.5 text-[9px] font-medium rounded ${area.severity === 'severe' ? 'bg-rose-100 text-rose-700' : area.severity === 'moderate' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {SEVERITY_FR[area.severity?.toLowerCase() || ''] || area.severity?.toUpperCase()}
+                        {area.severity ? t(`automotive.severity.${area.severity.toLowerCase()}`) : ''}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-slate-900">{trFr(LOCATION_FR, area.location?.replace(/_/g, ' ') || '')}</p>
-                        <p className="text-[10px] text-slate-600 truncate">{trDesc(area.description || '')}</p>
+                        <p className="text-[11px] font-medium text-slate-900">{translateMapped(t, 'automotive.location', LOCATION_KEYS, area.location?.replace(/_/g, ' ') || '')}</p>
+                        <p className="text-[10px] text-slate-600 truncate">{translateDescription(area.description || '', t)}</p>
                       </div>
                     </div>
                   ))}
@@ -283,8 +289,8 @@ export function AutomotiveClaimsOverview({
                     <div key={`fraud-${idx}`} className="flex items-start gap-2 p-1.5 bg-amber-50 rounded-lg border border-amber-200">
                       <AlertTriangle className="w-3 h-3 text-amber-600 mt-0.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-medium text-amber-800">{trFr(INDICATOR_TYPE_FR, indicator.indicator_type || '')}</p>
-                        <p className="text-[10px] text-amber-700 truncate">{trDesc(indicator.description || '')}</p>
+                        <p className="text-[11px] font-medium text-amber-800">{translateMapped(t, 'automotive.indicator', INDICATOR_KEYS, indicator.indicator_type || '')}</p>
+                        <p className="text-[10px] text-amber-700 truncate">{translateDescription(indicator.description || '', t)}</p>
                       </div>
                     </div>
                   ))}
@@ -318,7 +324,7 @@ export function AutomotiveClaimsOverview({
                     {(d.assessment?.fraud_indicators?.length || 0) > 0 ? t('reviewRequired') : t('approve')}
                   </span>
                 </div>
-                <p className="text-slate-600 mt-1">{t('recommendedLabel')} : <strong className="text-slate-900">{(d.estimatedAmount || 0).toLocaleString('fr-FR')} €</strong></p>
+                <p className="text-slate-600 mt-1">{t('recommendedLabel')} : <strong className="text-slate-900">{formatCurrency(d.estimatedAmount || 0)}</strong></p>
               </div>
             </div>
           </div>
@@ -327,7 +333,7 @@ export function AutomotiveClaimsOverview({
           <div className="col-span-4 flex flex-col overflow-hidden">
             <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50 flex-shrink-0">
               <FileText className="w-4 h-4 text-amber-600" />
-              <span className="font-semibold text-slate-900 text-sm">Pièces ({d.mediaItems.length})</span>
+              <span className="font-semibold text-slate-900 text-sm">{t('automotive.attachments', { count: d.mediaItems.length })}</span>
             </div>
             <div className="flex-1 overflow-auto p-3 space-y-2">
               {/* Photos */}
@@ -403,13 +409,13 @@ export function AutomotiveClaimsOverview({
             <div className="px-3 py-2 border-b border-slate-100 flex items-center gap-2 bg-slate-50 flex-shrink-0">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
               <span className="font-semibold text-slate-900 text-sm">{t('damagesObserved')}</span>
-              <span className="ml-auto text-xs text-slate-500">{d.assessment?.damage_areas?.length || 0} zone(s)</span>
+              <span className="ml-auto text-xs text-slate-500">{t('damageZoneCount', { count: d.assessment?.damage_areas?.length || 0 })}</span>
             </div>
             <div className="flex-1 overflow-auto p-3">
               {d.assessment?.damage_areas && d.assessment.damage_areas.length > 0 ? (
                 <DamageViewer damageAreas={d.assessment.damage_areas} totalEstimate={d.assessment.total_estimated_damage || 0} />
               ) : (
-                <p className="text-xs text-slate-500 italic text-center py-4">Aucun dommage identifié par l&apos;analyse</p>
+                <p className="text-xs text-slate-500 italic text-center py-4">{t('automotive.noDamage')}</p>
               )}
             </div>
           </div>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Shield, AlertTriangle, CheckCircle, XCircle, Loader2, Eye, FileWarning, Zap, Brain, Cpu, X, Info, CircleAlert, FileCheck, FileX, Globe, Copy, Check, ExternalLink, Maximize2 } from 'lucide-react';
 import { FraudAnalysisResponse, runFraudAnalysis, getFraudAnalysis } from '@/lib/api';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import ConfidenceIndicator from '../ConfidenceIndicator';
 
@@ -35,12 +35,13 @@ function SectionDetailDialog({ title, open, onClose, children }: { title: string
 
 // Section header with expand button
 function SectionHeader({ title, onExpand }: { title: string; onExpand: () => void }) {
+  const t = useTranslations('fraudAnalysis');
   return (
     <div className="flex items-center justify-between mb-3">
       <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wider">{title}</h3>
-      <button onClick={onExpand} title="Agrandir" className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors text-[10px] font-medium shadow-sm">
+      <button onClick={onExpand} title={t('expand')} className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-700 transition-colors text-[10px] font-medium shadow-sm">
         <Maximize2 className="w-3.5 h-3.5" />
-        <span className="hidden sm:inline">Détail</span>
+        <span className="hidden sm:inline">{t('detail')}</span>
       </button>
     </div>
   );
@@ -68,14 +69,15 @@ interface FraudAnalysisPanelProps {
 // Estimated duration in seconds per effort level (used for progress simulation)
 const EFFORT_DURATION: Record<ReasoningEffort, number> = { low: 30, medium: 90, high: 240 };
 
-const EFFORT_OPTIONS: { value: ReasoningEffort; icon: typeof Zap; label: string; desc: string; time: string }[] = [
-  { value: 'low', icon: Zap, label: 'Rapide', desc: 'Vérification basique des images', time: '~30 sec' },
-  { value: 'medium', icon: Cpu, label: 'Standard', desc: 'Analyse équilibrée — images + déclaration', time: '~1-2 min' },
-  { value: 'high', icon: Brain, label: 'Approfondi', desc: 'Investigation complète — croisement multi-sources', time: '~3-5 min' },
+const EFFORT_OPTIONS: { value: ReasoningEffort; icon: typeof Zap; time: string }[] = [
+  { value: 'low', icon: Zap, time: '~30 sec' },
+  { value: 'medium', icon: Cpu, time: '~1-2 min' },
+  { value: 'high', icon: Brain, time: '~3-5 min' },
 ];
 
 export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: FraudAnalysisPanelProps) {
   const t = useTranslations('fraudAnalysis');
+  const locale = useLocale();
   const [result, setResult] = useState<FraudAnalysisResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +140,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
       setProgress(100);
       setDialogOpen(true); // Auto-open dialog with results
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fraud analysis failed');
+      setError(err instanceof Error ? err.message : t('analysisFailed'));
       setProgress(0);
     } finally {
       setIsLoading(false);
@@ -149,19 +151,19 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
   const generateMarkdown = useCallback((): string => {
     if (!result) return '';
     const lines: string[] = [];
-    lines.push(`# Rapport d'analyse de fraude`);
-    lines.push(`**Dossier** : ${result.application_id}`);
-    lines.push(`**Date** : ${result.analysis_timestamp || new Date().toISOString()}`);
+    lines.push(`# ${t('report.title')}`);
+    lines.push(`**${t('report.file')}** : ${result.application_id}`);
+    lines.push(`**${t('report.date')}** : ${result.analysis_timestamp || new Date().toISOString()}`);
     lines.push('');
 
     // Overall assessment
     const oa = result.overall_assessment;
     if (oa) {
-      lines.push(`## Évaluation globale`);
-      lines.push(`- **Niveau de risque** : ${oa.overall_fraud_risk}`);
-      lines.push(`- **Score de risque** : ${Math.round((oa.risk_score || 0) * 100)}%`);
+      lines.push(`## ${t('report.overallAssessment')}`);
+      lines.push(`- **${t('report.riskLevel')}** : ${oa.overall_fraud_risk}`);
+      lines.push(`- **${t('report.riskScore')}** : ${Math.round((oa.risk_score || 0) * 100)}%`);
       if (oa.siu_referral_recommended) {
-        lines.push(`- **⚠ Renvoi SIU recommandé** : ${oa.siu_referral_reason || 'Oui'}`);
+        lines.push(`- **⚠ ${t('report.siuReferral')}** : ${oa.siu_referral_reason || t('yes')}`);
       }
       if (oa.summary) {
         lines.push('');
@@ -171,7 +173,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
 
       // Attention items
       if (oa.attention_items && oa.attention_items.length > 0) {
-        lines.push(`### Points d'attention`);
+        lines.push(`### ${t('report.attentionPoints')}`);
         for (const item of oa.attention_items) {
           lines.push(`- **${item.label}** (${item.priority}) : ${item.detail}`);
         }
@@ -180,11 +182,11 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
 
       // Dossier concordance
       if (oa.dossier_concordance) {
-        lines.push(`### Concordance du dossier`);
-        lines.push(`Score : ${Math.round((oa.dossier_concordance.score || 0) * 100)}%`);
+        lines.push(`### ${t('report.fileConcordance')}`);
+        lines.push(`${t('report.score')} : ${Math.round((oa.dossier_concordance.score || 0) * 100)}%`);
         if (oa.dossier_concordance.field_checks) {
           lines.push('');
-          lines.push('| Champ | Déclaré | Observé | Concordance |');
+          lines.push(`| ${t('report.field')} | ${t('report.declared')} | ${t('report.observed')} | ${t('report.concordance')} |`);
           lines.push('|-------|---------|---------|-------------|');
           for (const fc of oa.dossier_concordance.field_checks) {
             lines.push(`| ${fc.field} | ${fc.declared} | ${fc.observed} | ${fc.match ? '✅' : '❌'} |`);
@@ -195,7 +197,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
 
       // Fraud indicators
       if (oa.fraud_indicators && oa.fraud_indicators.length > 0) {
-        lines.push(`### Indicateurs de fraude`);
+        lines.push(`### ${t('report.fraudIndicators')}`);
         for (const ind of oa.fraud_indicators) {
           lines.push(`- **${ind.indicator_type}** (${ind.severity}) : ${ind.description}`);
         }
@@ -205,22 +207,22 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
 
     // Image analyses
     if (result.image_analyses.length > 0) {
-      lines.push(`## Analyse d'authenticité des images`);
+      lines.push(`## ${t('report.imageAuthenticity')}`);
       for (const img of result.image_analyses) {
-        const status = img.error ? '⚠ Erreur' : img.is_likely_authentic ? '✅ Authentique' : '🔴 Suspect';
+        const status = img.error ? `⚠ ${t('report.error')}` : img.is_likely_authentic ? `✅ ${t('report.authentic')}` : `🔴 ${t('report.suspicious')}`;
         lines.push(`### ${img.filename}`);
-        lines.push(`**Statut** : ${status} | **Score** : ${Math.round((img.authenticity_score || 0) * 100)}%`);
+        lines.push(`**${t('report.status')}** : ${status} | **${t('report.score')}** : ${Math.round((img.authenticity_score || 0) * 100)}%`);
         if (img.filename_concordance) {
           const fc = img.filename_concordance;
           if (!fc.filename_is_descriptive) {
-            lines.push(`- Nom de fichier générique (non descriptif)`);
+            lines.push(`- ${t('report.genericFilename')}`);
           } else if (fc.matches_content === false) {
-            lines.push(`- ⚠ Nom de fichier ne correspond pas au contenu`);
+            lines.push(`- ⚠ ${t('report.filenameMismatch')}`);
             if (fc.expected_content && fc.actual_content) {
-              lines.push(`  - Déclaré : ${fc.expected_content} — Observé : ${fc.actual_content}`);
+              lines.push(`  - ${t('report.declared')} : ${fc.expected_content} — ${t('report.observed')} : ${fc.actual_content}`);
             }
           } else if (fc.matches_content) {
-            lines.push(`- ✅ Nom de fichier correspond au contenu`);
+            lines.push(`- ✅ ${t('report.filenameMatch')}`);
           }
         }
         if (img.manipulation_indicators && img.manipulation_indicators.length > 0) {
@@ -229,7 +231,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
           }
         }
         if (img.error) {
-          lines.push(`- Erreur : ${img.error}`);
+          lines.push(`- ${t('report.error')} : ${img.error}`);
         }
         lines.push('');
       }
@@ -238,12 +240,12 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
     // Declaration verification
     const dv = result.declaration_verification;
     if (dv) {
-      lines.push(`## Vérification déclaration vs preuves`);
-      lines.push(`**Cohérence globale** : ${dv.overall_consistent ? '✅ Cohérent' : '❌ Incohérences détectées'} — ${Math.round((dv.consistency_score || 0) * 100)}%`);
+      lines.push(`## ${t('report.declarationVerification')}`);
+      lines.push(`**${t('report.overallConsistency')}** : ${dv.overall_consistent ? `✅ ${t('report.consistent')}` : `❌ ${t('report.inconsistencies')}`} — ${Math.round((dv.consistency_score || 0) * 100)}%`);
       if (dv.discrepancies && dv.discrepancies.length > 0) {
         lines.push('');
         for (const d of dv.discrepancies) {
-          lines.push(`- **${d.aspect}** : Déclaré: ${d.declared} | Observé: ${d.observed}`);
+          lines.push(`- **${d.aspect}** : ${t('report.declared')}: ${d.declared} | ${t('report.observed')}: ${d.observed}`);
         }
       }
       lines.push('');
@@ -252,9 +254,9 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
     // Web Intelligence
     const wi = result.web_intelligence;
     if (wi && !wi.error) {
-      lines.push(`## Renseignement Web (Bing WebSearch)`);
+      lines.push(`## ${t('report.webIntelligence')}`);
       if (wi.event_verified !== undefined && wi.event_verified !== null) {
-        lines.push(`**Événement vérifié** : ${wi.event_verified ? '✅ Confirmé' : '❌ Non confirmé'}`);
+        lines.push(`**${t('report.eventVerified')}** : ${wi.event_verified ? `✅ ${t('report.confirmed')}` : `❌ ${t('report.notConfirmed')}`}`);
       }
       if (wi.overall_assessment) {
         lines.push('');
@@ -262,7 +264,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
       }
       if (wi.findings && wi.findings.length > 0) {
         lines.push('');
-        lines.push('### Résultats');
+        lines.push(`### ${t('report.results')}`);
         for (const f of wi.findings) {
           if (typeof f === 'string') {
             lines.push(`- ℹ️ ${f}`);
@@ -272,13 +274,13 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
             const source = f.source_url || f.source || '';
             const icon = f.supports_claim === true ? '✅' : f.supports_claim === false ? '❌' : 'ℹ️';
             lines.push(`- ${icon} **${title}** : ${summary}`);
-            if (source) lines.push(`  - Source : ${source}`);
+            if (source) lines.push(`  - ${t('report.source')} : ${source}`);
           }
         }
       }
       if (wi.source_urls && wi.source_urls.length > 0) {
         lines.push('');
-        lines.push('### Sources');
+        lines.push(`### ${t('report.sources')}`);
         for (const url of wi.source_urls) {
           lines.push(`- ${url}`);
         }
@@ -287,9 +289,9 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
     }
 
     lines.push('---');
-    lines.push(`*Rapport généré par ${brand.name} — ${new Date().toLocaleString('fr-FR')}*`);
+    lines.push(`*${t('report.generatedBy', { brand: brand.name, date: new Date().toLocaleString(locale) })}*`);
     return lines.join('\n');
-  }, [result]);
+  }, [result, locale, t]);
 
   const handleCopy = useCallback(async () => {
     const md = generateMarkdown();
@@ -403,7 +405,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
                   {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                 </button>
               )}
-              <button onClick={() => setDialogOpen(false)} title="Fermer" className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={() => setDialogOpen(false)} title={t('close')} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -631,7 +633,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
                     </div>
                   )}
 
-                  {/* Web Intelligence — Bing WebSearch findings */}
+                  {/* Web intelligence findings */}
                   {result.web_intelligence && !result.web_intelligence.error && (
                     <div>
                       <SectionHeader title={t('webIntelligence')} onExpand={() => setExpandedSection('webintel')} />
@@ -663,7 +665,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
                           <p className="text-xs text-slate-600 mb-2">{String(result.web_intelligence.overall_assessment)}</p>
                         )}
                         {result.web_intelligence.overall_assessment?.match(/sorry|cannot assist|can't assist|je ne peux pas/i) && (
-                          <p className="text-xs text-amber-600 mb-2">Service de vérification web temporairement indisponible. Les résultats de recherche internet n&apos;ont pas pu être obtenus pour ce dossier.</p>
+                          <p className="text-xs text-amber-600 mb-2">{t('webVerificationUnavailable')}</p>
                         )}
                         {result.web_intelligence.findings?.map((f, i) => {
                           const { title, summary, sourceUrl, supportsClaim, relevance, examples } = normalizeFinding(f);
@@ -770,10 +772,10 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
                             ? 'border-purple-300 bg-purple-50 text-purple-700'
                             : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
                         }`}
-                        title={opt.desc}
+                        title={t(`effort.${opt.value}.description`)}
                       >
                         <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-purple-600' : 'text-slate-400'}`} />
-                        {opt.label}
+                        {t(`effort.${opt.value}.label`)}
                       </button>
                     );
                   })}
@@ -781,7 +783,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
               </div>
               <div className="flex items-center justify-between">
                 <p className="text-xs text-slate-500">
-                  {EFFORT_OPTIONS.find(o => o.value === effort)?.desc} — durée estimée : <span className="font-medium">{EFFORT_OPTIONS.find(o => o.value === effort)?.time}</span>
+                  {t(`effort.${effort}.description`)} — {t('estimatedDuration')}: <span className="font-medium">{EFFORT_OPTIONS.find(o => o.value === effort)?.time}</span>
                 </p>
               <button
                 onClick={handleAnalyze}
@@ -838,7 +840,7 @@ export default function FraudAnalysisPanel({ applicationId, onFraudComplete }: F
                   <span className="text-lg font-medium">{t('concordanceScore')}: {Math.round((result.overall_assessment.dossier_concordance.score || 0) * 100)}%</span>
                 </div>
                 <table className="w-full text-sm border-collapse">
-                  <thead><tr className="bg-slate-50"><th className="text-left p-3 border-b font-medium text-slate-700">Champ</th><th className="text-left p-3 border-b font-medium text-slate-700">{t('declared')}</th><th className="text-left p-3 border-b font-medium text-slate-700">{t('observed')}</th><th className="p-3 border-b w-10"></th></tr></thead>
+                  <thead><tr className="bg-slate-50"><th className="text-left p-3 border-b font-medium text-slate-700">{t('field')}</th><th className="text-left p-3 border-b font-medium text-slate-700">{t('declared')}</th><th className="text-left p-3 border-b font-medium text-slate-700">{t('observed')}</th><th className="p-3 border-b w-10"></th></tr></thead>
                   <tbody>
                     {result.overall_assessment.dossier_concordance.field_checks?.map((fc, i) => (
                       <tr key={i} className="border-b border-slate-100">
