@@ -1,0 +1,185 @@
+{
+  "scenario": "swiss-chocolate-storm",
+  "title": "Hailstorm in Winterthur, 28.08.2026 — Schoggimanufaktur Eulachblick GmbH",
+  "persona": "habitation_claims",
+  "synthetic": true,
+  "notice": "Business, people, policy, references, amounts, documents and photos are fictitious and created for the PrevaIQ demo. Only the municipality (Winterthur) and the storm date are real. The photos are AI-generated (MAI-Image-2.6).",
+  "generator": "scripts/generate_swiss_storm_claim.py",
+  "policy_conditions": "assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf",
+  "identity": {
+    "company": "Schoggimanufaktur Eulachblick GmbH",
+    "uid": "CHE-482.135.757",
+    "address": "Kakaogasse 7, 8400 Winterthur",
+    "phone": "+41 52 048 21 37",
+    "iban": "CH93 0076 2011 6238 5295 7",
+    "policy": "PIQ-CH-KMU-2026-048213",
+    "claim": "PIQ-S-2026-082814"
+  },
+  "identity_checks": {
+    "company": "Zefix (incl. deleted firms): no result for 'Schoggimanufaktur Eulachblick' or 'Eulachblick'; no exact web match",
+    "uid": "eCH-0097 mod-11 check digit of 48213575 would be 10, so no valid UID has this number; Zefix: no result",
+    "street": "geo.admin.ch: no street 'Kakaogasse' anywhere in Switzerland",
+    "phone": "search.ch: no directory entry for 052 048 21 37",
+    "iban": "Example IBAN of the SWIFT IBAN registry for Switzerland",
+    "email": "Reserved .example domains (RFC 2606)"
+  },
+  "timeline": [
+    {
+      "when": "26.08.2026 18:34",
+      "event": "Photo of the fully stocked shop window (stock evidence, before the storm)"
+    },
+    {
+      "when": "28.08.2026 09:50-10:20",
+      "event": "Hailstorm (hail up to about 5 cm, gusts); water ingress, short circuit, main fuse tripped"
+    },
+    {
+      "when": "28.08.2026 10:41-11:26",
+      "event": "Four damage photos"
+    },
+    {
+      "when": "28.08.2026 11:30",
+      "event": "Emergency electrician cuts the power for safety"
+    },
+    {
+      "when": "28.08.2026 14:00",
+      "event": "Emergency glazing"
+    },
+    {
+      "when": "28.08.2026 16:52",
+      "event": "E-mail 1 (German): first notice of loss"
+    },
+    {
+      "when": "29.08.2026 15:00",
+      "event": "Power restored; cold room at 23.8 °C (photo 15:04)"
+    },
+    {
+      "when": "01.09.2026",
+      "event": "Claim form signed; e-mail 2 (English): consolidated estimate"
+    },
+    {
+      "when": "04.09.2026 09:00",
+      "event": "Loss adjuster's visit"
+    }
+  ],
+  "amounts_chf": {
+    "Building items: shop window glazing, workshop skylight, awning and facade panels": 184000,
+    "Stock in the shop and storeroom (pralines, bars, autumn and Christmas stock, packaging)": 312500,
+    "Refrigerated goods in the cold room": 96400,
+    "Production equipment (two tempering machines, enrobing machine, cooling tunnel, moulding line)": 486000,
+    "Shop fittings (counter, display cases, chilled display, lighting, till system)": 168000,
+    "Business interruption, September to December 2026 (Christmas season)": 398000,
+    "Clean-up, disposal, emergency glazing and drying": 52500,
+    "total": 1697400
+  },
+  "attention_points": [
+    "Building items (CHF 184,000) are insured by the cantonal building insurer GVZ in Zurich and were also reported there: risk of double compensation; tenant improvements are not part of the policy (AVB B1.3, A6).",
+    "Refrigerated goods (CHF 96,400) were lost through the power cut; the Kühlgut extension is not in the policy, even when an insured event caused the outage (AVB B4.1).",
+    "One photo predates the storm (26.08.2026, 18:34): legitimate stock evidence that must be checked, not damage evidence (AVB A4.3)."
+  ],
+  "documents": [
+    {
+      "file": "schadenmeldung-geschaeftsversicherung.pdf",
+      "kind": "claim form (German)",
+      "sha256": "40cb0ee500122adfb26a62eaecb996d889091cfd20db71fca8a61d19b697171a"
+    },
+    {
+      "file": "email-01-schadenmeldung-de.eml",
+      "kind": "first notice e-mail (German)",
+      "sha256": "c24387b70759c1c5bf11af935c1292224a245e8c0eb54d8656b8c40198eae0b4"
+    },
+    {
+      "file": "email-01-schadenmeldung-de.pdf",
+      "kind": "print of the first notice e-mail",
+      "sha256": "0689f83d261d944384f24ad6f386f66bddc369beeb9e3e3e690a5db327e0a272"
+    },
+    {
+      "file": "email-02-loss-estimate-en.eml",
+      "kind": "consolidated estimate e-mail (English)",
+      "sha256": "b518054a0d2708b31b4ebf6f71f1ba1af822b51a2db90591bbe94dac0e51c01f"
+    },
+    {
+      "file": "email-02-loss-estimate-en.pdf",
+      "kind": "print of the consolidated estimate e-mail",
+      "sha256": "2b3e3c7581d565a43ee2cd6db9473595c25e6b0df01cc87a20b9221046413ec3"
+    }
+  ],
+  "photos": [
+    {
+      "file": "IMG_20260826_183447.jpg",
+      "kind": "photo",
+      "scenario_time": "26.08.2026 18:34",
+      "caption_de": "Schaufenster am Mittwochabend (Bestand)",
+      "model": "MAI-Image-2.6",
+      "model_version": "2026-07-31",
+      "prompt": "Exterior of a small traditional artisan chocolate shop in the old town of Winterthur, Switzerland, on a late-summer evening around 6:30 pm. Ground floor of a historic three-storey building with a light ochre plastered facade, one large shop window full of neatly arranged pralines, truffles, chocolate bars and autumn gift boxes, a dark green fabric awning, a small hanging wooden sign reading 'Eulachblick' in simple gold letters, a wooden entrance door with a glass panel. Cobblestone pedestrian lane, warm golden light, two potted plants. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "edited_from": null,
+      "refinement_prompts": [],
+      "sha256": "a86470a7adcaac2469173951e91467cb822b7650f0fddcd6b59f4756d4d3fcc5"
+    },
+    {
+      "file": "IMG_20260828_104112.jpg",
+      "kind": "photo",
+      "scenario_time": "28.08.2026 10:41",
+      "caption_de": "Fassade nach dem Hagelzug",
+      "model": "MAI-Image-2.6",
+      "model_version": "2026-07-31",
+      "prompt": "The same chocolate shop and building as in the reference photo, now photographed on a grey morning twenty minutes after a violent hailstorm: the large shop window is shattered with a big hole and spider-web cracks, glass shards on the window display and the pavement, the green awning is torn and hangs down, hundreds of white hailstones up to 5 cm lie on the wet cobblestones together with torn leaves, the facade is wet. Keep the same building, facade colour, awning colour, door and hanging sign. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "edited_from": "IMG_20260826_183447.jpg",
+      "refinement_prompts": [],
+      "sha256": "89ecf52be10a8bdb733ad07db21d76cfde41b342ad768a2e33b18d14c31f6b3b"
+    },
+    {
+      "file": "IMG_20260828_104355.jpg",
+      "kind": "photo",
+      "scenario_time": "28.08.2026 10:43",
+      "caption_de": "Hagelkörner neben Meterstab (bis ca. 5 cm)",
+      "model": "MAI-Image-2.6",
+      "model_version": "2026-07-31",
+      "prompt": "Close-up from above of large hailstones, the biggest about 5 cm in diameter, lying on wet grey cobblestones next to a yellow wooden folding ruler with centimetre markings for scale, smaller hailstones melting, a few glass shards nearby, overcast daylight. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "edited_from": null,
+      "refinement_prompts": [
+        "Edit this photo: keep the wet cobblestones, the hailstones, the glass shards and the camera angle. Replace the folding ruler with a clean yellow wooden folding ruler whose centimetre graduations are numbered 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 in increasing order along one edge only, with no other numbers. Make the largest hailstone about 5 cm across measured against that ruler, and keep the other hailstones between 2 and 4 cm.",
+        "Edit this photo: on the folding ruler keep the numbers 1 to 10 along the left edge and remove every number from the right edge, leaving only plain tick marks there. Keep everything else unchanged."
+      ],
+      "sha256": "23e6706498d0b387415a8297a0e27ea2f3df0985b076e6b3181d949d6d16ec56"
+    },
+    {
+      "file": "IMG_20260828_105207.jpg",
+      "kind": "photo",
+      "scenario_time": "28.08.2026 10:52",
+      "caption_de": "Verkaufsraum mit Glasscherben und Wasser",
+      "model": "MAI-Image-2.6",
+      "model_version": "2026-07-31",
+      "prompt": "Interior of a small traditional Swiss chocolate shop right after a hailstorm: the shop window is broken, glass shards cover the wooden sales counter and a glass display case of pralines and truffles wet with rain water, puddles on the tiled floor, a fallen shelf of chocolate gift boxes with soaked packaging, grey daylight through the broken window, warm wooden fittings with dark green accents, lights off. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "edited_from": null,
+      "refinement_prompts": [
+        "Edit this photo: keep the shop interior, the broken window, the glass shards, the wet floor, the fallen gift boxes and the praline display unchanged. Make the window frame dark brown wood. Through the broken window show only a narrow wet cobblestone old-town lane with historic three-storey houses in ochre and white plaster on the opposite side under a grey overcast sky; remove the mountains, the flag, the traffic signs and the wide road."
+      ],
+      "sha256": "2d12c81f2c86a6ce50f27124ce8a0a735be4a9739256856961de4ae93337afae"
+    },
+    {
+      "file": "IMG_20260828_112604.jpg",
+      "kind": "photo",
+      "scenario_time": "28.08.2026 11:26",
+      "caption_de": "Atelier: zerbrochenes Oblicht, Wasser auf der Temperiermaschine",
+      "model": "MAI-Image-2.6",
+      "model_version": "2026-07-31",
+      "prompt": "Small artisan chocolate workshop behind a shop: a broken glass skylight in the ceiling with jagged glass, partly covered by a blue tarpaulin, rain water dripping onto a stainless-steel chocolate tempering machine filled with chocolate, water pooling on the stainless worktable and the floor, an enrobing machine and a small cooling tunnel in the background, lights off, only grey daylight from the skylight. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "edited_from": null,
+      "refinement_prompts": [],
+      "sha256": "1e742b0a5aa4f55fab544863500788e305cc6639774b7929b367460455cdc453"
+    },
+    {
+      "file": "IMG_20260829_150418.jpg",
+      "kind": "photo",
+      "scenario_time": "29.08.2026 15:04",
+      "caption_de": "Kühlraum nach dem Stromunterbruch (23,8 °C)",
+      "model": "MAI-Image-2.6",
+      "model_version": "2026-07-31",
+      "prompt": "Inside the small walk-in cold room of a chocolate workshop the day after a long power cut: the cooling unit is off, a wall-mounted digital thermometer clearly shows 23.8 °C, stacked cardboard boxes of seasonal chocolate products are soaked and sagging, condensation on the metal shelves, open trays of softened truffles, dim light from the open door. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "edited_from": null,
+      "refinement_prompts": [],
+      "sha256": "52a81841b582ca0b0c605381d7cdafe5040ee0087ab132871721c10d1b8a69ac"
+    }
+  ]
+}

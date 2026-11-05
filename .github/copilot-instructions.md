@@ -191,6 +191,9 @@ python scripts/index_pdf_policies.py --local --force   # Uses PyMuPDF fallback
 | Complémentaire santé | Health | life_health |
 | Conditions générales auto | Auto | automotive |
 | Conditions générales flotte auto | Fleet | automotive |
+| AVB KMU-Geschäftsversicherung (CH, German) | Property, Switzerland | property_casualty |
+
+Claims are jurisdiction-aware (`app/jurisdiction.py`): a Swiss claim (4-digit postcode with CHF, +41 or "Schweiz") gets CHF amounts, the CH policy set (`"jurisdiction": "CH"` entries of `prompts/property-casualty-claims-policies.json`, untagged entries are French), German or French Web IQ searches with `region: "CH"` and no Cat-Nat query. `application_to_dict` exposes `jurisdiction: {country, currency}` for the UI.
 
 ### Search Methods
 - `semantic_search()` — Pure vector similarity
@@ -208,6 +211,7 @@ python scripts/index_pdf_policies.py --local --force   # Uses PyMuPDF fallback
 - `MARKITDOWN_ENABLED` / `MARKITDOWN_MODE` — optional Markdown conversion path for document/RAG ingestion
 - `STORAGE_BACKEND` — `azure_blob` or `local`
 - `AGENTS_OPENAI_API` — `responses` (default) or `chat_completions` for MAF agents
+- `FRAUD_PROVENANCE_MODE` — `inform` (default: C2PA Content Credentials badge per photo, read locally with `c2pa-python`, never passed to the fraud model), `score` (also weighed by the fraud model) or `off`. Set in Bicep and Terraform.
 - `APPLICATIONINSIGHTS_CONNECTION_STRING` — enables OpenTelemetry → Application Insights (set by Bicep). Startup logs the masked connection and emits an `app_insights.connection_check` span; agent spans/logs come from `app/telemetry.py` (`start_span`)
 - `LOG_LEVEL` — `INFO` (default) or `DEBUG` for the app logger (`app.utils.setup_logging()`); use it to see agent/telemetry debug logs
 - `EXTRACTION_BUDGET_SECONDS` / `ANALYSIS_BUDGET_SECONDS` / `ANALYSIS_TOKEN_BUDGET` / `MAX_REEXTRACTIONS` / `REEXTRACTION_QUALITY_THRESHOLD` / `REVIEW_CONFIDENCE_THRESHOLD` — orchestration budgets and review thresholds
