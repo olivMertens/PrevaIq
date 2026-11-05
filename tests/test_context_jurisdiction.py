@@ -86,3 +86,17 @@ def test_french_claims_keep_euro_and_cat_nat():
     assert "catnat_confirmee" in labels and "evenement_confirme" not in labels
     assert tasks["verify_tempete_coverage"]["task"] == "Vérifier couverture tempête — CG Habitation"
     assert "€" in tasks["mandate_expert"]["task"]
+
+
+def _liability_label(description: str) -> bool:
+    fields = {
+        "llm_extracted:NatureSinistre": {"value": "Grêle / tempête"},
+        "llm_extracted:DescriptionSinistre": {"value": description},
+    }
+    return "rc_habitation" in {label["key"] for label in generate_context_labels(_claim(fields))}
+
+
+def test_liability_label_needs_the_rc_word_not_a_substring():
+    assert not _liability_label("Court-circuit sur la machine, marchandises perdues")
+    assert _liability_label("Mise en cause de la RC de l'occupant")
+    assert _liability_label("Recours en responsabilité civile")

@@ -2536,7 +2536,7 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "color": "cyan",
             }
         )
-    if re.search(r"responsabilité civile|rc|tiers|voisin", combined):
+    if re.search(r"responsabilité civile|\brc\b|tiers|voisin", combined):
         labels.append(
             {
                 "key": "rc_habitation",
