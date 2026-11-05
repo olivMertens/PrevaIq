@@ -1824,6 +1824,8 @@ class ImageFraudResult(BaseModel):
     is_likely_authentic: bool = True
     manipulation_indicators: List[dict] = []
     filename_concordance: Optional[dict] = None
+    # C2PA Content Credentials of the photo (see app/provenance.py)
+    provenance: Optional[dict] = None
     error: Optional[str] = None
 
 
@@ -1984,6 +1986,7 @@ async def run_fraud_analysis(
             is_likely_authentic=img.get("is_likely_authentic", True),
             manipulation_indicators=img.get("manipulation_indicators", []),
             filename_concordance=img.get("filename_concordance"),
+            provenance=img.get("provenance"),
             error=raw_error,
         ))
 

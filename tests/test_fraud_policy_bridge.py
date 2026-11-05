@@ -177,7 +177,18 @@ def test_fraud_endpoint_runs_the_analysis_off_the_event_loop(monkeypatch) -> Non
             seen["on_loop"] = True
         except RuntimeError:
             seen["on_loop"] = False
-        return json.dumps({"overall_assessment": {"overall_fraud_risk": "LOW", "risk_score": 0.1}})
+        return json.dumps(
+            {
+                "overall_assessment": {"overall_fraud_risk": "LOW", "risk_score": 0.1},
+                "image_analyses": [
+                    {
+                        "filename": "IMG.png",
+                        "authenticity_score": 0.9,
+                        "provenance": {"status": "c2pa", "ai_generated": True},
+                    }
+                ],
+            }
+        )
 
     settings = SimpleNamespace(
         fraud_detection=SimpleNamespace(enabled=True),
@@ -194,3 +205,5 @@ def test_fraud_endpoint_runs_the_analysis_off_the_event_loop(monkeypatch) -> Non
 
     assert response.status_code == 200
     assert seen == {"on_loop": False}
+    # The photo provenance reaches the UI (and the persisted analysis).
+    assert response.json()["image_analyses"][0]["provenance"]["ai_generated"] is True
