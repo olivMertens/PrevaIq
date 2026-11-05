@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -34,6 +35,7 @@ from app.customer360 import (
 from app.storage import (
     ApplicationMetadata,
     StoredFile,
+    save_application_file,
     save_application_metadata,
     get_application_dir,
 )
@@ -73,15 +75,49 @@ def _clean_old_seed_apps(storage_root: str) -> None:
             shutil.rmtree(app_dir)
 
 
-def _save_app_from_dict(storage_root: str, app_dict: dict) -> None:
-    """Create an ApplicationMetadata from a dict and save via provider."""
+DEMO_FILES_ROOT = Path(__file__).resolve().parent.parent
+DEMO_FILES_MANIFEST = DEMO_FILES_ROOT / "assets" / "demo-prevaiq" / "seeded" / "manifest.json"
+
+
+def _resolve_demo_files(apps: list[dict]) -> dict[tuple[str, str], Path]:
+    """Map every files[] entry of the seeded cases to its repo asset (see the manifest)."""
+    manifest = json.loads(DEMO_FILES_MANIFEST.read_text(encoding="utf-8"))
+    paths = {(e["app_id"], e["filename"]): DEMO_FILES_ROOT / e["path"] for e in manifest["files"]}
+    assets, missing = {}, []
+    for app_dict in apps:
+        for stored in app_dict.get("files", []):
+            key = (app_dict["id"], stored["filename"])
+            if key in paths and paths[key].is_file():
+                assets[key] = paths[key]
+            else:
+                missing.append(f"{key[0]}/{key[1]}")
+    if missing:
+        raise FileNotFoundError(
+            f"{len(missing)} demo file(s) referenced by the seeded cases are missing "
+            f"(manifest: {DEMO_FILES_MANIFEST.relative_to(DEMO_FILES_ROOT).as_posix()}): "
+            f"{', '.join(missing)}. Run scripts/generate_seeded_demo_files.py "
+            "(--photos for the photos)."
+        )
+    return assets
+
+
+def _save_app_from_dict(
+    storage_root: str, app_dict: dict, demo_files: dict[tuple[str, str], Path]
+) -> None:
+    """Create an ApplicationMetadata from a dict, save its files and metadata via provider."""
     get_application_dir(storage_root, app_dict["id"])
+    files = []
+    for stored in app_dict.get("files", []):
+        content = demo_files[(app_dict["id"], stored["filename"])].read_bytes()
+        path = save_application_file(storage_root, app_dict["id"], stored["filename"], content)
+        # Point the metadata where the content now lives (the seed keeps a legacy path).
+        files.append(StoredFile(**{**stored, "path": path}))
     metadata = ApplicationMetadata(
         id=app_dict["id"],
         created_at=app_dict["created_at"],
         external_reference=app_dict.get("external_reference"),
         status=app_dict.get("status", "completed"),
-        files=[StoredFile(**f) for f in app_dict.get("files", [])],
+        files=files,
         persona=app_dict.get("persona"),
         llm_outputs=app_dict.get("llm_outputs"),
         extracted_fields=app_dict.get("extracted_fields"),
@@ -93,10 +129,11 @@ def _save_app_from_dict(storage_root: str, app_dict: dict) -> None:
 
 def seed_applications(storage_root: str) -> int:
     """Seed all rich application data. Returns count of apps created."""
-    _clean_old_seed_apps(storage_root)
     all_apps = get_underwriting_apps() + get_claims_apps() + get_mortgage_apps()
+    demo_files = _resolve_demo_files(all_apps)  # fail before touching storage
+    _clean_old_seed_apps(storage_root)
     for app_dict in all_apps:
-        _save_app_from_dict(storage_root, app_dict)
+        _save_app_from_dict(storage_root, app_dict, demo_files)
     return len(all_apps)
 
 

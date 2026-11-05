@@ -364,6 +364,8 @@ out/
 # Package files
 *.tar.gz
 *.zip
+# Demo photo archive referenced by a seeded case (restored by scripts/restore_demo_files.py)
+!assets/demo-prevaiq/seeded/**/*.zip
 *.rar
 *-deploy.zip
 

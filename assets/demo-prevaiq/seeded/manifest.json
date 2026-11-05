@@ -1,0 +1,695 @@
+{
+  "version": 1,
+  "description": "Fictitious demo files referenced by the PrevaIQ demo cases (seeded by scripts/seed_customer360.py from scripts/seed_data, plus demo cases uploaded in production). origin=repo: existing repo asset, referenced as is; origin=generated: built by scripts/generate_seeded_demo_files.py (PDFs from the seed data with PyMuPDF, photos with MAI-Image-2.6). Restore a running environment with scripts/restore_demo_files.py.",
+  "files": [
+    {
+      "app_id": "app-house-hab-001",
+      "filename": "declaration_sinistre.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-house-hab-001/declaration_sinistre.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-house-hab-001",
+      "filename": "attestation_tempete.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-house-hab-001/attestation_tempete.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-house-hab-001",
+      "filename": "photo_toiture.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-house-hab-001/photo_toiture.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Photo taken from the garden of a detached 1930s house near Versailles, France, the day after a violent winter storm: on the brown mechanical clay tile roof, a ragged gap near the ridge where about twenty tiles were torn off, exposing wooden battens and dark underlay; a few displaced tiles hang over the edge, broken tile shards in the gutter and on the wet lawn. Grey overcast February sky, bare trees. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-house-hab-001",
+      "filename": "photo_tuiles_endommagees.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-house-hab-001/photo_tuiles_endommagees.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Close-up taken from a ladder at the eaves of a storm-damaged roof of brown mechanical interlocking clay tiles on a detached house in a French suburban town: several tiles cracked in half, others lifted and slipped out of their rows, sharp broken edges, moss in the joints, rain droplets, a gap revealing wooden battens. Overcast winter daylight. In the background typical French suburban houses with cream rendered walls, white shutters and clay tile roofs, bare trees; no landmark or monument. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-house-hab-001",
+      "filename": "rapport_expert.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-house-hab-001/rapport_expert.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-002",
+      "filename": "declaration_dde.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-002/declaration_dde.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-002",
+      "filename": "photo_parquet_gonflé.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-002/photo_parquet_gonflé.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Kitchen floor of a French apartment after a washing machine leak: light oak floating laminate boards swollen and warped, raised joints and cupped edges over about eight square metres in front of a white front-loading washing machine without any visible brand, a detached white skirting board, darker damp patches, a folded towel on the floor. Daylight from a window, slightly high angle. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-002",
+      "filename": "photo_plafond_voisin.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-002/photo_plafond_voisin.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Looking up at the white painted ceiling of a living room in an older French apartment: a large irregular yellow-brown water stain of about three square metres with darker tide-mark edges, small paint cracks and a slight bulge, a simple pendant light nearby, cornice moulding along the wall. Soft daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-002",
+      "filename": "devis_remise_en_etat.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-002/devis_remise_en_etat.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-003",
+      "filename": "declaration_vol.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-003/declaration_vol.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-003",
+      "filename": "depot_plainte.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-003/depot_plainte.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-003",
+      "filename": "photo_serrure_intacte.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-003/photo_serrure_intacte.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Close-up of the outside of the front door of an apartment in a residential building in Toulouse: a painted wooden door with an intact modern security lock cylinder, a brushed metal handle and escutcheon plate; the door edge, the strike plate and the frame are clean and undamaged, with no scratches, no pry marks, no splinters and no sign of forced entry. Corridor lighting, sharp focus, no brand markings on the lock. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-004",
+      "filename": "declaration_inondation.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-004/declaration_inondation.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-004",
+      "filename": "rapport_expert.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-004/rapport_expert.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-004",
+      "filename": "photo_cave_inondee.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-004/photo_cave_inondee.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Flooded basement cellar of a house in southern France after torrential rain, lit by a bare bulb and the phone flash: about sixty centimetres of murky brown water, floating cardboard boxes and plastic crates, two bicycles half submerged, an old chest freezer and a washing machine standing in the water, rough stone and concrete walls with a wet line, wooden steps leading down. Slightly grainy. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-004",
+      "filename": "photo_murs_rdc.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-004/photo_murs_rdc.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Ground-floor room of a house in southern France after a flood: painted plaster walls with damp staining rising to about 1.2 metres, a clear tide line, bubbling and peeling paint, white salt efflorescence, swollen skirting boards, bare tiled floor, an unbranded dehumidifier running in a corner, furniture moved away. Daylight from a window. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-005",
+      "filename": "declaration_grele.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-005/declaration_grele.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-005",
+      "filename": "photo_toiture_tuiles.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-005/photo_toiture_tuiles.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Roof of a house in Colmar, Alsace, two days after a violent June hailstorm, taken from a ladder: red mechanical clay tiles with about fifteen cracked or holed tiles, chips and fragments scattered on the slope, a blue plastic tarp temporarily covering part of the roof held by wooden battens, summer sky, vineyard hills in the background. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-005",
+      "filename": "photo_gouttiere.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-005/photo_gouttiere.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Close-up of a zinc half-round gutter along the edge of a red clay tile roof, dented and crushed over about three metres by large hailstones, many small round impact dents on the zinc, a bent bracket, a few broken tile chips lying in the gutter. Summer daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-005",
+      "filename": "photo_velux_fissure.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-005/photo_velux_fissure.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Inside an attic bedroom of a house: a roof window set in the sloping ceiling, its glass pane cracked by hail in a star pattern radiating from an impact point, water droplets running down the inside and a damp stain on the plaster below, a plastic bucket on the wooden floor catching drips. Overcast daylight through the window, no brand on the frame. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-005",
+      "filename": "devis_couvreur.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-005/devis_couvreur.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-006",
+      "filename": "declaration_sinistre.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-006/declaration_sinistre.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-006",
+      "filename": "photo_fissure_mur.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-006/photo_fissure_mur.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Load-bearing wall in the living room of an old Haussmann-style apartment in Lyon: a diagonal crack about two metres long running at 45 degrees across the painted plaster from the corner of a door frame towards the ceiling, three to five millimetres wide with crumbling edges, two small plaster crack-monitoring tell-tales across it, a wooden folding ruler resting against the wall for scale, parquet floor and moulded skirting. Daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-007",
+      "filename": "constat_dde.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-007/constat_dde.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-007",
+      "filename": "photo_plafond_chambre.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hab-007/photo_plafond_chambre.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Looking up at the ceiling of a small bedroom in a rented apartment in Rennes, France: white ceiling paint blistered and bubbling over about six square metres after a water leak from the flat above, peeling flakes, a yellowish damp stain running down the top of the adjacent wall over about two square metres, a simple ceiling light, the edge of a bed with a grey duvet. Daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hab-007",
+      "filename": "facture_plombier.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-007/facture_plombier.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hab-007",
+      "filename": "devis_peintre.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hab-007/devis_peintre.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mw-hc-001",
+      "filename": "declaration_sinistre_sante.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-mw-hc-001/declaration_sinistre_sante.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mw-hc-001",
+      "filename": "decompte_securite_sociale.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-mw-hc-001/decompte_securite_sociale.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mw-hc-001",
+      "filename": "compte_rendu_chirurgical.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-mw-hc-001/compte_rendu_chirurgical.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mw-hc-001",
+      "filename": "facture_hospitalisation.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-mw-hc-001/facture_hospitalisation.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-002",
+      "filename": "facture_opticien.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-002/facture_opticien.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-002",
+      "filename": "ordonnance_ophtalmo.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-002/ordonnance_ophtalmo.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-003",
+      "filename": "compte_rendu_hospitalisation.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-003/compte_rendu_hospitalisation.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-003",
+      "filename": "facture_clinique.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-003/facture_clinique.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-003",
+      "filename": "decompte_secu.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-003/decompte_secu.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-004",
+      "filename": "certificat_accouchement.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-004/certificat_accouchement.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-004",
+      "filename": "facture_maternite.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-004/facture_maternite.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-005",
+      "filename": "devis_dentaire.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-005/devis_dentaire.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-005",
+      "filename": "panoramique_dentaire.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-hc-005/panoramique_dentaire.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Grayscale dental panoramic radiograph (orthopantomogram) of an adult patient, realistic medical X-ray on a black background showing both jaws, all teeth with their roots, the mandible and the maxillary sinuses. On the left side of the image (the patient's upper right), the upper second premolar is missing and leaves a gap, the adjacent upper first molar shows deep decay under a large old filling, and the upper first premolar has a large filling. A few small fillings on other teeth. No text, no letters, no numbers, no labels, no names, no annotations, no orientation markers.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-hc-006",
+      "filename": "facture_dentiste.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-006/facture_dentiste.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-007",
+      "filename": "facture_cardiologue.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-007/facture_cardiologue.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-007",
+      "filename": "ordonnance.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-007/ordonnance.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-hc-008",
+      "filename": "prescription_irm.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-hc-008/prescription_irm.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-sc-auto-001",
+      "filename": "constat_amiable.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-sc-auto-001/constat_amiable.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-sc-auto-001",
+      "filename": "rapport_police.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-sc-auto-001/rapport_police.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-sc-auto-001",
+      "filename": "photo_pare_chocs_arriere.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-sc-auto-001/photo_pare_chocs_arriere.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Parked in front of the plain closed door of a garage workshop: the rear of a metallic grey modern compact hatchback after a low-speed rear-end collision, the rear bumper moderately deformed with a crack along its lower edge and white paint transfer marks from the other car, tail lights intact, no other vehicle in view. Daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-sc-auto-001",
+      "filename": "photo_coffre.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-sc-auto-001/photo_coffre.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Close-up of the lower edge of the tailgate of a metallic grey modern compact hatchback after a rear-end collision: slight buckling of the tailgate edge with small chips of missing paint, the bumper below scuffed, an intact tail light partly visible. Daylight in a garage. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-sc-auto-001",
+      "filename": "devis_reparation.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-sc-auto-001/devis_reparation.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-pp-auto-001",
+      "filename": "constat_amiable.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-pp-auto-001/constat_amiable.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-pp-auto-001",
+      "filename": "photo_dommages_avant.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-pp-auto-001/photo_dommages_avant.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Car body repair workshop under fluorescent lights: the front of a dark blue premium four-door saloon after a frontal impact against a concrete pole: front bumper shattered and partly torn off, grille broken, bonnet folded in a deep V shape in the middle, both headlights cracked with the left one partly dislodged, front crossmember pushed back, airbags not deployed, no emblem on the grille. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-pp-auto-001",
+      "filename": "photo_dommages_lateral.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-pp-auto-001/photo_dommages_lateral.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Car body repair workshop: left side view of a dark blue premium four-door saloon showing the front left wing creased with fresh stress folds from a frontal impact, and older pre-existing damage: long faded scratches and small rust and oxidation spots on the front left wing and on the driver's door, clearly older than the fresh impact damage. Fluorescent workshop lighting. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-pp-auto-001",
+      "filename": "devis_reparation.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-pp-auto-001/devis_reparation.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-pp-auto-001",
+      "filename": "facture_remorquage.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-pp-auto-001/facture_remorquage.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-003",
+      "filename": "constat_amiable.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-003/constat_amiable.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-003",
+      "filename": "photo_aile_droite.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-auto-003/photo_aile_droite.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "Underground shopping-centre car park with concrete pillars and fluorescent lighting: the front right wing of a white modern compact hatchback with a deep horizontal scratch about forty centimetres long scraped through the paint to bare metal and a slight dent, the right corner of the front bumper deformed and scuffed. Close three-quarter view. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-auto-003",
+      "filename": "devis_carrosserie.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-003/devis_carrosserie.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-004",
+      "filename": "declaration_bris_glace.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-004/declaration_bris_glace.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-004",
+      "filename": "facture_carglass.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-004/facture_carglass.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-005",
+      "filename": "depot_plainte.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-005/depot_plainte.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-005",
+      "filename": "photo_vehicule_retrouve.jpg",
+      "path": "assets/demo-prevaiq/seeded/app-auto-005/photo_vehicule_retrouve.jpg",
+      "origin": "generated",
+      "kind": "photo",
+      "generated_with": {
+        "model": "MAI-Image-2.6",
+        "version": "2026-07-31",
+        "prompt": "A dark grey compact five-door hatchback found abandoned in a nearly empty car park of an industrial estate near Bordeaux in February, overcast sky, warehouses behind: long scratches along the side bodywork, all windows intact with no broken glass, the driver's door lock cylinder torn out leaving a hole near the handle, cigarette butts and empty drink cans on the ground by the driver's door. Three-quarter side view. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+        "date": "2026-11-05"
+      }
+    },
+    {
+      "app_id": "app-auto-005",
+      "filename": "rapport_expert.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-005/rapport_expert.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-006",
+      "filename": "constat_amiable.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-006/constat_amiable.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-007",
+      "filename": "declaration_sinistre.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-007/declaration_sinistre.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-008",
+      "filename": "declaration_flotte.pdf",
+      "path": "assets/demo-prevaiq/seeded/app-auto-008/declaration_flotte.pdf",
+      "origin": "generated",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-auto-008",
+      "filename": "photos_dommages.zip",
+      "path": "assets/demo-prevaiq/seeded/app-auto-008/photos_dommages.zip",
+      "origin": "generated",
+      "kind": "archive",
+      "contents": [
+        {
+          "filename": "01_vue_arriere.jpg",
+          "generated_with": {
+            "model": "MAI-Image-2.6",
+            "version": "2026-07-31",
+            "prompt": "Delivery loading area of a business park: the rear of a white compact delivery van with two rear doors, the rear bumper cracked and pushed in on the right side and the right rear light cluster broken, a yellow and black steel protection post next to it. Overcast daylight, no company livery or lettering on the van. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+            "date": "2026-11-05"
+          }
+        },
+        {
+          "filename": "02_feux_de_recul.jpg",
+          "generated_with": {
+            "model": "MAI-Image-2.6",
+            "version": "2026-07-31",
+            "prompt": "Close-up of the broken rear light cluster of a white compact delivery van: cracked red and clear plastic lens with missing pieces, the reversing light bulb exposed, plastic shards on the bumper, scuff marks. Daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+            "date": "2026-11-05"
+          }
+        },
+        {
+          "filename": "03_pare_chocs_arriere.jpg",
+          "generated_with": {
+            "model": "MAI-Image-2.6",
+            "version": "2026-07-31",
+            "prompt": "Close-up of the cracked black plastic rear bumper corner of a white compact delivery van after reversing into a steel post: a split in the plastic, scrape marks with yellow paint transfer, a misaligned bumper edge. Daylight. Photorealistic smartphone photo, natural light, slight imperfections in framing and focus. No people, no faces, no text, no logos or brand names, no watermark. No badges or emblems; license plates out of frame or not readable.",
+            "date": "2026-11-05"
+          }
+        }
+      ]
+    },
+    {
+      "app_id": "app-mtg-004",
+      "filename": "demande_pret_immobilier.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/primo-accedant/app-mtg-004/demande_pret_immobilier.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-004",
+      "filename": "avis_imposition_2024.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/primo-accedant/app-mtg-004/avis_imposition_2024.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-004",
+      "filename": "compromis_vente.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/primo-accedant/app-mtg-004/compromis_vente.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-005",
+      "filename": "demande_pret_ptz.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/primo-accedant-ptz/app-mtg-005/demande_pret_ptz.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-005",
+      "filename": "simulation_pret.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/primo-accedant-ptz/app-mtg-005/simulation_pret.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-005",
+      "filename": "attestation_primo_accedant.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/primo-accedant-ptz/app-mtg-005/attestation_primo_accedant.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-006",
+      "filename": "demande_rachat_credit.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/rachat-credit/app-mtg-006/demande_rachat_credit.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-006",
+      "filename": "tableau_amortissement.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/rachat-credit/app-mtg-006/tableau_amortissement.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-007",
+      "filename": "demande_pret_frontalier.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/frontalier/app-mtg-007/demande_pret_frontalier.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-007",
+      "filename": "contrat_travail_suisse.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/frontalier/app-mtg-007/contrat_travail_suisse.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "app-mtg-008",
+      "filename": "demande_pret.pdf",
+      "path": "assets/demo-prevaiq/mortgage-underwriting/incomplet/app-mtg-008/demande_pret.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    },
+    {
+      "app_id": "b6fc2d4c",
+      "filename": "thread4-01-client-dentaire.pdf",
+      "path": "assets/demo-prevaiq/health-claims/dental/thread4-01-client-dentaire.pdf",
+      "origin": "repo",
+      "kind": "pdf"
+    }
+  ]
+}
