@@ -8,8 +8,17 @@ import TopNav from '@/components/TopNav';
 import { usePersona } from '@/lib/PersonaContext';
 import { ApplicationListItem } from '@/lib/types';
 import { PersonaId, PERSONAS } from '@/lib/personas';
+import { readCaseParams, writeCaseParams, type CaseView } from '@/lib/caseUrl';
 
 type ViewType = 'landing' | 'workbench';
+
+/** Case opened from the address bar: deep link, or the same case after a reload (language switch). */
+interface CaseLink {
+  appId: string;
+  conversationId: string | null;
+  view: CaseView | null;
+  page: number | null;
+}
 
 export default function Home() {
   return (
@@ -28,8 +37,7 @@ function HomeContent() {
   const { currentPersona, setPersona, isLoading: personaLoading } = usePersona();
   const searchParams = useSearchParams();
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
-  // Conversation to reopen, from a link in another case's chat history
-  const [conversationLink, setConversationLink] = useState<{ appId: string; conversationId: string } | null>(null);
+  const [caseLink, setCaseLink] = useState<CaseLink | null>(null);
   const isFirstRender = useRef(true);
 
   const fetchUsername = useCallback(async () => {
@@ -86,22 +94,22 @@ function HomeContent() {
     }
   };
 
-  // Handle deep-link query params: ?app=xxx&persona=yyy
+  // Case in the address bar (?app=…&persona=…&view=…&page=…&conversation=…), read once:
+  // a link from another case's chat history, or the open case after a reload.
   useEffect(() => {
     if (personaLoading) return; // Wait for persona to load from localStorage
     if (deepLinkHandled) return;
-    const appParam = searchParams.get('app');
-    const personaParam = searchParams.get('persona');
-    const conversationParam = searchParams.get('conversation');
+    setDeepLinkHandled(true);
+    const link = readCaseParams(searchParams.toString());
 
-    if (appParam) {
-      setDeepLinkHandled(true);
-      if (conversationParam) setConversationLink({ appId: appParam, conversationId: conversationParam });
-      
-      if (personaParam && personaParam in PERSONAS) {
-        setPersona(personaParam as PersonaId);
+    if (link.app) {
+      const appParam = link.app;
+      setCaseLink({ appId: appParam, conversationId: link.conversation, view: link.view, page: link.page });
+
+      if (link.persona && link.persona in PERSONAS) {
+        setPersona(link.persona as PersonaId);
         // Fetch apps for the target persona, then select the app
-        fetchApplications(personaParam).then(() => {
+        fetchApplications(link.persona).then(() => {
           setSelectedAppId(appParam);
           setView('workbench');
         });
@@ -112,15 +120,21 @@ function HomeContent() {
           setView('workbench');
         });
       }
-
-      // Clean the URL without triggering navigation
-      if (typeof window !== 'undefined') {
-        window.history.replaceState({}, '', '/');
-      }
     } else {
       fetchApplications();
     }
   }, [searchParams, personaLoading]);
+
+  // The open case stays in the address bar, so that a reload — the language switch reloads
+  // the page — reopens it instead of the dashboard (the workbench adds its tab and page).
+  useEffect(() => {
+    if (!deepLinkHandled) return;
+    if (view === 'workbench' && selectedAppId) {
+      writeCaseParams({ app: selectedAppId, persona: currentPersona, conversation: null });
+    } else {
+      writeCaseParams({ app: null, persona: null, view: null, page: null, conversation: null });
+    }
+  }, [deepLinkHandled, view, selectedAppId, currentPersona]);
 
   useEffect(() => {
     // Skip first render (initial load handled by deep-link or searchParams effect)
@@ -147,13 +161,16 @@ function HomeContent() {
   };
 
   if (view === 'workbench' && selectedAppId) {
+    const restore = caseLink?.appId === selectedAppId ? caseLink : null;
     return (
       <WorkbenchView 
         applicationId={selectedAppId}
         applications={applications}
         onBack={handleBackToLanding}
         onSelectApp={handleSelectApp}
-        initialConversationId={conversationLink?.appId === selectedAppId ? conversationLink.conversationId : null}
+        initialConversationId={restore?.conversationId ?? null}
+        initialView={restore?.view ?? null}
+        initialPage={restore?.page ?? null}
       />
     );
   }

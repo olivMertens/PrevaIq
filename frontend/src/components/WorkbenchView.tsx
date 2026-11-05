@@ -33,9 +33,10 @@ import { useToast } from '@/lib/ToastProvider';
 import { useLocale, useTranslations } from 'next-intl';
 import { getApplication, runRiskAnalysis } from '@/lib/api';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
+import { writeCaseParams, type CaseView } from '@/lib/caseUrl';
 import type { ApplicationMetadata, ApplicationListItem } from '@/lib/types';
 
-type ViewType = 'overview' | 'timeline' | 'documents' | 'source';
+type ViewType = CaseView;
 
 interface WorkbenchViewProps {
   applicationId: string;
@@ -44,6 +45,9 @@ interface WorkbenchViewProps {
   onSelectApp: (appId: string) => void;
   /** Chat conversation to reopen (link from another case's chat history). */
   initialConversationId?: string | null;
+  /** Tab and source page to reopen (address bar after a reload, e.g. a language switch). */
+  initialView?: ViewType | null;
+  initialPage?: number | null;
 }
 
 export default function WorkbenchView({ 
@@ -52,6 +56,8 @@ export default function WorkbenchView({
   onBack,
   onSelectApp,
   initialConversationId,
+  initialView,
+  initialPage,
 }: WorkbenchViewProps) {
   const [selectedApp, setSelectedApp] = useState<ApplicationMetadata | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,6 +67,10 @@ export default function WorkbenchView({
   const [isChatOpen, setIsChatOpen] = useState(!!initialConversationId);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
   const [sourcePageNumber, setSourcePageNumber] = useState<number | undefined>(undefined);
+  // Page being read in Documents & Pages, kept in the address bar with the tab.
+  const [readingPage, setReadingPage] = useState<number | null>(null);
+  // Applied once, when the first case loads; another case opens on its overview.
+  const restore = useRef({ view: initialView ?? null, page: initialPage ?? null });
   const { currentPersona, personaConfig } = usePersona();
   const locale = useLocale();
   const tw = useTranslations('workbench');
@@ -77,8 +87,12 @@ export default function WorkbenchView({
         console.log('Loading application:', applicationId);
         const app = await getApplication(applicationId);
         setSelectedApp(app);
-        // Reset view when app changes
-        setActiveView('overview');
+        // Reset view when app changes (or reopen the tab and page of the address bar)
+        const { view, page } = restore.current;
+        restore.current = { view: null, page: null };
+        setActiveView(view ?? 'overview');
+        setSourcePageNumber(page ?? undefined);
+        setReadingPage(null);
       } catch (err) {
         console.error('Failed to load application:', err);
         setError(tw('applicationLoadError'));
@@ -90,6 +104,15 @@ export default function WorkbenchView({
     
     loadApp();
   }, [applicationId]);
+
+  const loadedAppId = selectedApp?.id;
+  useEffect(() => {
+    if (!loadedAppId) return;
+    writeCaseParams({
+      view: activeView === 'overview' ? null : activeView,
+      page: activeView === 'source' ? readingPage : null,
+    });
+  }, [loadedAppId, activeView, readingPage]);
 
   // Poll for status updates if application is processing
   const lastProcessingTime = useRef(0);
@@ -168,7 +191,7 @@ export default function WorkbenchView({
           </div>
         );
       case 'source':
-        return <SourceReviewView application={selectedApp} initialPage={sourcePageNumber} />;
+        return <SourceReviewView application={selectedApp} initialPage={sourcePageNumber} onPageChange={setReadingPage} />;
       case 'overview':
       default:
         if (currentPersona === 'automotive_claims') {

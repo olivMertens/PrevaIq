@@ -1,26 +1,39 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import clsx from 'clsx';
 import { Copy, Check, ChevronDown, ChevronUp, FileText, Layers } from 'lucide-react';
 import type { MarkdownPage, BatchSummary } from '@/lib/types';
+import type { CaseDocument } from '@/lib/documentFiles';
 import type { TranslationState } from '@/lib/useContentTranslation';
 import { useTranslations } from 'next-intl';
 import ContentLanguageBar, { type ContentView } from './ContentLanguageBar';
 
 interface ExtractedTextPaneProps {
-  page: MarkdownPage | null;
+  document: CaseDocument<MarkdownPage> | null;
+  selectedPageNumber: number;
   batchSummary: BatchSummary | null;
   searchQuery: string;
   contentView?: ContentView;
   onContentViewChange?: (view: ContentView) => void;
-  /** Present only when the page is in another language than the UI. */
-  pageTranslation?: TranslationState | null;
+  /** Translation of a page in another language than the UI, null otherwise. */
+  pageTranslation: (page: MarkdownPage) => TranslationState | null;
   batchTranslation?: TranslationState | null;
+  /** Shows a page in the viewer (page dividers of the text). */
+  onSelectPage: (pageNumber: number) => void;
 }
 
 /** Translated text when shown and available, otherwise the original. */
 function shownText(original: string, view: ContentView, state: TranslationState | null | undefined): string {
   return view === 'translated' && state?.content?.translated ? state.content.text : original;
+}
+
+/** One state for the whole document: translating while a page is, failed when none could be. */
+function documentTranslation(states: TranslationState[]): TranslationState | null {
+  if (states.length === 0) return null;
+  const loading = states.some((state) => state.loading);
+  const translated = states.find((state) => state.content?.translated)?.content ?? null;
+  return { content: loading ? null : translated, loading, failed: !loading && !translated };
 }
 
 function escapeRegex(str: string): string {
@@ -177,34 +190,54 @@ function highlightInline(text: string, searchQuery: string): React.ReactNode[] {
 }
 
 export default function ExtractedTextPane({
-  page,
+  document,
+  selectedPageNumber,
   batchSummary,
   searchQuery,
   contentView = 'translated',
   onContentViewChange,
   pageTranslation,
   batchTranslation,
+  onSelectPage,
 }: ExtractedTextPaneProps) {
   const t = useTranslations('common');
+  const tv = useTranslations('documentViewer');
   const [copied, setCopied] = useState(false);
   const [batchExpanded, setBatchExpanded] = useState(false);
-  const pageText = page ? shownText(page.markdown, contentView, pageTranslation) : '';
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sections = useRef(new Map<number, HTMLElement>());
+  const shownFile = useRef<string | null>(null);
+
+  const pages = document?.pages ?? [];
+  const states = pages.map((page) => pageTranslation(page));
+  const texts = pages.map((page, index) => shownText(page.markdown, contentView, states[index]));
+  const foreign = states.filter((state): state is TranslationState => state !== null);
+  const translation = documentTranslation(foreign);
+  const sourceLanguage = pages.find((_, index) => states[index] !== null)?.language ?? null;
   const batchText = batchSummary ? shownText(batchSummary.summary, contentView, batchTranslation) : '';
+  const file = document?.file ?? null;
+
+  // The page chosen in the list or the viewer comes to the top of the text, without
+  // reloading it: the document is read as one text, translated as a whole.
+  useEffect(() => {
+    const container = scrollRef.current;
+    const section = sections.current.get(selectedPageNumber);
+    if (!container || !section) return;
+    const sameFile = shownFile.current === file;
+    shownFile.current = file;
+    container.scrollTo({ top: Math.max(0, section.offsetTop - 12), behavior: sameFile ? 'smooth' : 'auto' });
+  }, [selectedPageNumber, file]);
 
   const handleCopy = async () => {
-    if (pageText) {
-      await navigator.clipboard.writeText(pageText);
+    const text = texts.join('\n\n').trim();
+    if (text) {
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
-  const shortFileName = (file: string) => {
-    const parts = file.split('/');
-    return parts[parts.length - 1] || file;
-  };
-
-  if (!page) {
+  if (!document || pages.length === 0) {
     return (
       <div className="flex items-center justify-center h-full text-gray-400 text-sm">
         <div className="text-center">
@@ -215,39 +248,31 @@ export default function ExtractedTextPane({
     );
   }
 
+  const first = pages[0];
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Page header */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-white border-b border-gray-200">
+      {/* Document header */}
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
         <div className="min-w-0">
-          <div className="text-sm text-gray-600">
-            <span className="font-medium text-gray-900">{t('pageNumber', { page: page.page_number })}</span>
-            {' — '}
-            <span>{shortFileName(page.file)}</span>
+          <div className="truncate text-sm font-medium text-gray-900" title={document.name}>{document.name}</div>
+          <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-slate-500">
+            <span className="rounded-full bg-slate-100 px-2 py-0.5">{tv('pageCount', { count: pages.length })}</span>
+            {first.extraction_backend && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                {t('backend')}: {first.extraction_backend}
+              </span>
+            )}
+            {first.analyzer_id && (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5">
+                {t('analyzer')}: {first.analyzer_id}
+              </span>
+            )}
           </div>
-          {(page.extraction_backend || page.analyzer_id || page.source_page_number) && (
-            <div className="mt-1 flex flex-wrap gap-1.5 text-[11px] text-slate-500">
-              {page.extraction_backend && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                  {t('backend')}: {page.extraction_backend}
-                </span>
-              )}
-              {page.analyzer_id && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                  {t('analyzer')}: {page.analyzer_id}
-                </span>
-              )}
-              {page.source_page_number && page.source_page_number !== page.page_number && (
-                <span className="rounded-full bg-slate-100 px-2 py-0.5">
-                  {t('sourcePage')}: {page.source_page_number}
-                </span>
-              )}
-            </div>
-          )}
         </div>
         <button
+          type="button"
           onClick={handleCopy}
-          className="flex items-center gap-1 px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          className="flex flex-shrink-0 items-center gap-1 px-2.5 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
         >
           {copied ? (
             <>
@@ -263,24 +288,22 @@ export default function ExtractedTextPane({
         </button>
       </div>
 
-      {page.language && pageTranslation !== undefined && pageTranslation !== null && onContentViewChange && (
+      {sourceLanguage && translation && onContentViewChange && (
         <ContentLanguageBar
-          sourceLanguage={page.language}
+          sourceLanguage={sourceLanguage}
           view={contentView}
-          state={pageTranslation}
+          state={translation}
           onViewChange={onContentViewChange}
         />
       )}
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 bg-white">
-        {/* Contextual batch summary card — shown above extracted text */}
+      {/* Content: every page of the document, one after the other */}
+      <div ref={scrollRef} className="relative flex-1 overflow-y-auto px-5 py-4 bg-white">
         {batchSummary && (
           <div className="mb-4 pb-4 border-b border-gray-200">
-            <div
-              className="border border-blue-200 bg-blue-50 rounded-lg overflow-hidden"
-            >
+            <div className="border border-blue-200 bg-blue-50 rounded-lg overflow-hidden">
               <button
+                type="button"
                 onClick={() => setBatchExpanded(!batchExpanded)}
                 className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-blue-100 transition-colors"
               >
@@ -309,10 +332,37 @@ export default function ExtractedTextPane({
           </div>
         )}
 
-        {/* Extracted text rendered as prose */}
-        <div className="space-y-0">
-          {renderMarkdown(pageText, searchQuery)}
-        </div>
+        {pages.map((page, index) => {
+          const current = page.page_number === selectedPageNumber;
+          return (
+            <section
+              key={page.page_number}
+              ref={(node) => {
+                if (node) sections.current.set(page.page_number, node);
+                else sections.current.delete(page.page_number);
+              }}
+              aria-label={tv('pageOf', { page: index + 1, total: pages.length })}
+            >
+              {pages.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => onSelectPage(page.page_number)}
+                  aria-current={current ? 'page' : undefined}
+                  title={tv('showInViewer', { page: index + 1 })}
+                  className={clsx(
+                    'flex w-full items-center gap-2 text-xs font-semibold uppercase tracking-wide transition-colors',
+                    index === 0 ? 'mb-2' : 'mb-2 mt-6',
+                    current ? 'text-indigo-700' : 'text-slate-400 hover:text-slate-600',
+                  )}
+                >
+                  <span className="whitespace-nowrap">{tv('pageOf', { page: index + 1, total: pages.length })}</span>
+                  <span className="h-px flex-1 bg-current opacity-30" aria-hidden />
+                </button>
+              )}
+              <div className="space-y-0">{renderMarkdown(texts[index], searchQuery)}</div>
+            </section>
+          );
+        })}
       </div>
     </div>
   );

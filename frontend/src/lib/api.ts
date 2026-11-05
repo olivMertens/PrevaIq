@@ -2050,3 +2050,30 @@ export async function translateApplicationContent(
     body: JSON.stringify({ pages: [], batches: [], ...request }),
   });
 }
+
+export interface EmailAttachment {
+  filename: string;
+  content_type: string;
+  size: number;
+  /** The case holds a file with the same name, so the viewer can open it. */
+  in_case: boolean;
+}
+
+export interface EmailPreview {
+  subject: string;
+  from: string;
+  to: string;
+  cc: string;
+  date: string;
+  date_iso: string | null;
+  body: string;
+  body_format: 'text' | 'markdown';
+  attachments: EmailAttachment[];
+}
+
+/** Readable view of an e-mail file of a case (browsers download a raw .eml instead of showing it). */
+export async function getEmailPreview(applicationId: string, fileName: string): Promise<EmailPreview> {
+  return apiFetch(
+    `/api/applications/${encodeURIComponent(applicationId)}/emails/${encodeURIComponent(fileName)}`,
+  );
+}

@@ -192,6 +192,9 @@ For Azure Container Apps, read the FQDNs for `ca-frontend-demo` and `ca-api-demo
 | `POST` | `/api/applications/{id}/extract` | Run Content Understanding extraction |
 | `POST` | `/api/applications/{id}/analyze` | Run GPT analysis |
 | `POST` | `/api/applications/{id}/risk-analysis` | Run policy evaluation |
+| `GET` | `/api/applications/{id}/files/{filename}` | Download a case file (`?preview=thumb\|screen` for compressed images) |
+| `GET` | `/api/applications/{id}/emails/{filename}` | Read an `.eml` file: headers, body, attachments (flagged when the case holds them) |
+| `POST` | `/api/applications/{id}/content-translations` | Translate page text and batch summaries into a UI language (up to 8 items per request) |
 | **Customer 360** | | |
 | `GET` | `/api/customers` | List customer profiles |
 | `GET` | `/api/customers/{id}` | Get Customer 360 view with profile, journey, and risk correlations |
@@ -224,6 +227,9 @@ Ask IQ conversations are stored with their application, as hidden files
 They survive redeploys and are shared by all API replicas. `GET /api/agents/status` also
 returns `capabilities` (`fabric_data`, `web_iq`), so the chat panel only offers the modes
 that can answer in the current environment.
+
+The open case is kept in the address bar (`/?app=…&persona=…&view=…&page=…`), so a reload
+reopens it: the language switch reloads the page and stays on the same case, tab and page.
 
 ## Development tasks
 

@@ -1523,7 +1523,6 @@
     "runExtractionHint": "Run extraction from the admin panel to extract document text.",
     "backend": "Backend",
     "analyzer": "Analyzer",
-    "sourcePage": "Source page",
     "summary": "Summary",
     "documentInsights": "Document insights by section",
     "batchCount": "{count, plural, one {# batch} other {# batches}}",
@@ -1532,7 +1531,6 @@
     "pageRange": "Pages {start}–{end}",
     "notableFindings": "Notable findings",
     "pagesAnalyzed": "{count, plural, one {# page analyzed} other {# pages analyzed}}",
-    "pageNumber": "Page {page}",
     "aiBatchSummary": "AI summary — Batch {batch}",
     "pendingInvestigations": "Pending investigations",
     "urgency": {
@@ -1937,6 +1935,29 @@
     "pageOf": "Page {page} / {total}",
     "next": "Next",
     "pageNumber": "Page {page}"
+  },
+  "documentViewer": {
+    "documents": "Documents ({count})",
+    "photos": "Photos ({count})",
+    "pageCount": "{count, plural, one {# page} other {# pages}}",
+    "pageOf": "Page {page} / {total}",
+    "pageChip": "Page {page}",
+    "email": "E-mail",
+    "originalLanguage": "Original language: {language}",
+    "download": "Download",
+    "noPreview": "No preview for this file type",
+    "noPreviewHint": "Its extracted text is shown on the right.",
+    "loadingEmail": "Loading the e-mail…",
+    "emailUnavailable": "This e-mail cannot be displayed. You can download it.",
+    "noSubject": "(no subject)",
+    "from": "From",
+    "to": "To",
+    "cc": "Cc",
+    "date": "Date",
+    "attachments": "Attachments ({count})",
+    "openAttachment": "Open {file} in the viewer",
+    "attachmentNotInCase": "Not uploaded with this case",
+    "showInViewer": "Show page {page} in the viewer"
   },
   "searchBar": {
     "placeholder": "Search pages and summaries… (Ctrl+F)",
@@ -2704,9 +2725,7 @@
     "next": "Next"
   },
   "pageNavigator": {
-    "pages": "Pages",
     "summaries": "Summaries",
-    "pageLabel": "Page {num}",
     "batchLabel": "Batch {num} ({start}-{end})"
   },
   "sourcePages": {

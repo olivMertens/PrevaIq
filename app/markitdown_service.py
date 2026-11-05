@@ -124,29 +124,43 @@ def _conversion_result(
 
 def _email_to_markdown(file_bytes: bytes, markitdown_cls: Any, stream_info_cls: Any) -> str:
     """Headers, readable body and attachment names of an e-mail (never the attachment bytes)."""
-    from email import policy
-    from email.parser import BytesParser
+    from .email_preview import HEADERS, attachments, read_message, readable_body
 
     try:
-        message = BytesParser(policy=policy.default).parsebytes(file_bytes)
+        message = read_message(file_bytes)
         lines = [f"# {str(message.get('Subject') or 'E-mail').strip()}", ""]
-        for header in ("From", "To", "Cc", "Date"):
+        for header in HEADERS:
             if message.get(header):
                 lines.append(f"**{header}:** {message.get(header)}  ")
-        attachments = [name for part in message.iter_attachments() if (name := part.get_filename())]
-        if attachments:
-            lines.append(f"**Attachments:** {', '.join(attachments)}  ")
-        body = message.get_body(preferencelist=("plain", "html"))
-        text = body.get_content() if body is not None else ""
-        if body is not None and body.get_content_type() == "text/html":
-            converted = markitdown_cls(enable_plugins=False).convert_stream(
-                io.BytesIO(text.encode("utf-8")),
-                stream_info=stream_info_cls(extension=".html", charset="utf-8"),
-            )
-            text = getattr(converted, "markdown", None) or converted.text_content
+        names = [item["filename"] for item in attachments(message)]
+        if names:
+            lines.append(f"**Attachments:** {', '.join(names)}  ")
+        text, is_html = readable_body(message)
+        if is_html:
+            text = _html_to_markdown(text, markitdown_cls, stream_info_cls)
     except Exception as exc:
         raise MarkItDownConversionError(f"E-mail conversion failed: {exc}") from exc
     return "\n".join([*lines, "", text.replace("\r\n", "\n").strip()]).strip()
+
+
+def _html_to_markdown(html: str, markitdown_cls: Any, stream_info_cls: Any) -> str:
+    converted = markitdown_cls(enable_plugins=False).convert_stream(
+        io.BytesIO(html.encode("utf-8")),
+        stream_info=stream_info_cls(extension=".html", charset="utf-8"),
+    )
+    return getattr(converted, "markdown", None) or converted.text_content
+
+
+def html_to_markdown(html: str) -> str | None:
+    """Markdown of an HTML e-mail body, or None when MarkItDown is unavailable or fails."""
+    try:
+        from markitdown import MarkItDown
+        from markitdown._stream_info import StreamInfo
+
+        return _html_to_markdown(html, MarkItDown, StreamInfo).strip() or None
+    except Exception as exc:  # the viewer falls back to the plain text of the HTML
+        logger.warning("HTML e-mail body could not be converted to Markdown: %s", exc)
+        return None
 
 
 def _build_cu_credential(settings: ContentUnderstandingSettings) -> Any | None:

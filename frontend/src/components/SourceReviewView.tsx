@@ -1,33 +1,42 @@
 'use client';
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import type { ApplicationMetadata } from '@/lib/types';
+import type { ApplicationMetadata, MarkdownPage } from '@/lib/types';
 import SearchBar, { type SearchResult } from './SearchBar';
-import PageNavigator from './PageNavigator';
-import InlinePdfViewer from './InlinePdfViewer';
+import DocumentNavigator from './DocumentNavigator';
+import DocumentViewer from './DocumentViewer';
 import ExtractedTextPane from './ExtractedTextPane';
 import type { ContentView } from './ContentLanguageBar';
 import { usePersistentChoice } from './case/usePersistentState';
+import { groupDocuments, translationOrder } from '@/lib/documentFiles';
 import { useContentTranslation, type TranslatableItem } from '@/lib/useContentTranslation';
 import { FileStack } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 const CONTENT_VIEWS: readonly ContentView[] = ['translated', 'original'];
+// Pages of the open document translated at once (around the page being read in longer ones).
+const DOCUMENT_TRANSLATION_LIMIT = 24;
 
 /** Content written in another language than the UI (unclear languages are left as they are). */
 function isForeign(language: string | null | undefined, locale: string): language is string {
   return !!language && language !== locale;
 }
 
+function pageItem(page: MarkdownPage): TranslatableItem {
+  return { kind: 'page', id: page.page_number, text: page.markdown };
+}
+
 interface SourceReviewViewProps {
   application: ApplicationMetadata;
   initialPage?: number;
+  /** Page being read, kept in the address bar so that a reload reopens it. */
+  onPageChange?: (pageNumber: number) => void;
 }
 
-export default function SourceReviewView({ application, initialPage }: SourceReviewViewProps) {
+export default function SourceReviewView({ application, initialPage, onPageChange }: SourceReviewViewProps) {
   const t = useTranslations('common');
   // Use markdown_pages if available, otherwise synthesize from document_markdown
-  const pages = useMemo(() => {
+  const pages = useMemo<MarkdownPage[]>(() => {
     if (application.markdown_pages && application.markdown_pages.length > 0) {
       return application.markdown_pages;
     }
@@ -41,6 +50,7 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
     }
     return [];
   }, [application.markdown_pages, application.document_markdown, application.files]);
+  const documents = useMemo(() => groupDocuments(pages), [pages]);
   const batchSummaries = application.batch_summaries || [];
 
   // Selected page number (1-indexed)
@@ -55,26 +65,23 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
     }
   }, [initialPage]);
 
+  useEffect(() => {
+    onPageChange?.(selectedPageNum);
+  }, [onPageChange, selectedPageNum]);
+
   // Search state
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Current page object
-  const currentPage = useMemo(
-    () => pages.find((p) => p.page_number === selectedPageNum) || null,
-    [pages, selectedPageNum]
+  const currentDocument = useMemo(
+    () => documents.find((doc) => doc.pages.some((page) => page.page_number === selectedPageNum)) ?? documents[0] ?? null,
+    [documents, selectedPageNum],
   );
-
-  // Current file name for pdf viewer
-  const currentFileName = currentPage?.file || (pages.length > 0 ? pages[0].file : '');
-
-  // Compute the 0-based index of the current page within its file
-  // (used for PDF #page= fragment which needs the file-internal page number)
-  const filePageIndex = useMemo(() => {
-    if (!currentPage) return 0;
-    const filePages = pages.filter((p) => p.file === currentPage.file);
-    return filePages.indexOf(currentPage);
-  }, [pages, currentPage]);
+  const pageIndex = currentDocument
+    ? Math.max(0, currentDocument.pages.findIndex((page) => page.page_number === selectedPageNum))
+    : 0;
+  const currentPage = currentDocument?.pages[pageIndex] ?? null;
+  const globalIndex = pages.findIndex((page) => page.page_number === currentPage?.page_number);
 
   // Find the batch summary that covers the current page
   const contextualBatch = useMemo(() => {
@@ -87,23 +94,17 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
     );
   }, [currentPage, batchSummaries]);
 
-  // Content in another language is shown translated into the UI language (original on demand).
+  // Content in another language is shown translated into the UI language (original on demand),
+  // a whole document at a time so that reading it is never interrupted.
   const locale = useLocale();
   const [contentView, setContentView] = usePersistentChoice<ContentView>(
     'prevaiq.content.view',
     'translated',
     CONTENT_VIEWS,
   );
-  const nextPage = useMemo(() => {
-    const index = pages.findIndex((p) => p.page_number === selectedPageNum);
-    return index >= 0 ? pages[index + 1] ?? null : null;
-  }, [pages, selectedPageNum]);
-  const pageItem = useMemo<TranslatableItem | null>(
-    () =>
-      currentPage && isForeign(currentPage.language, locale)
-        ? { kind: 'page', id: currentPage.page_number, text: currentPage.markdown }
-        : null,
-    [currentPage, locale],
+  const readingOrder = useMemo(
+    () => (currentDocument ? translationOrder(currentDocument.pages, selectedPageNum, DOCUMENT_TRANSLATION_LIMIT) : []),
+    [currentDocument, selectedPageNum],
   );
   const batchItem = useMemo<TranslatableItem | null>(
     () =>
@@ -114,14 +115,17 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
   );
   const translationItems = useMemo<TranslatableItem[]>(() => {
     if (contentView !== 'translated') return [];
-    const items = [pageItem, batchItem].filter((item): item is TranslatableItem => item !== null);
-    // The next page is prepared in the background so that paging stays instant.
-    if (nextPage && isForeign(nextPage.language, locale)) {
-      items.push({ kind: 'page', id: nextPage.page_number, text: nextPage.markdown });
-    }
+    const items = readingOrder.filter((page) => isForeign(page.language, locale)).map(pageItem);
+    // The summary of the pages being read comes right after the first page.
+    if (batchItem) items.splice(1, 0, batchItem);
     return items;
-  }, [contentView, pageItem, batchItem, nextPage, locale]);
+  }, [contentView, readingOrder, batchItem, locale]);
   const translationOf = useContentTranslation(application.id, locale, translationItems);
+  const requested = useMemo(() => new Set(readingOrder.map((page) => page.page_number)), [readingOrder]);
+  const pageTranslation = (page: MarkdownPage) =>
+    isForeign(page.language, locale) && (contentView === 'original' || requested.has(page.page_number))
+      ? translationOf(pageItem(page))
+      : null;
 
   // Page navigation
   const goToPage = useCallback(
@@ -141,6 +145,16 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
     const idx = pages.findIndex((p) => p.page_number === selectedPageNum);
     if (idx >= 0 && idx < pages.length - 1) setSelectedPageNum(pages[idx + 1].page_number);
   }, [pages, selectedPageNum]);
+
+  // An e-mail attachment that is also a file of the case opens in the viewer.
+  const openFile = useCallback(
+    (fileName: string) => {
+      const wanted = fileName.toLowerCase();
+      const doc = documents.find((item) => item.file.toLowerCase() === wanted || item.name.toLowerCase() === wanted);
+      if (doc) setSelectedPageNum(doc.pages[0].page_number);
+    },
+    [documents]
+  );
 
   // Batch selection → navigate to first page of that batch
   const goToBatch = useCallback(
@@ -168,6 +182,14 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
     [goToPage, goToBatch]
   );
 
+  const { matchingPages, matchingBatches } = useMemo(() => {
+    const active = searchQuery.length >= 2;
+    return {
+      matchingPages: new Set(active ? searchResults.flatMap((r) => (r.type === 'page' && r.pageNumber != null ? [r.pageNumber] : [])) : []),
+      matchingBatches: new Set(active ? searchResults.flatMap((r) => (r.type === 'batch' && r.batchNum != null ? [r.batchNum] : [])) : []),
+    };
+  }, [searchResults, searchQuery]);
+
   // Keyboard shortcuts for page navigation
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -185,7 +207,7 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
   }, [goToPrevPage, goToNextPage]);
 
   // Empty state
-  if (pages.length === 0) {
+  if (pages.length === 0 || !currentDocument) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white rounded-xl border border-gray-200 m-6">
         <div className="text-center py-12 text-gray-500">
@@ -209,42 +231,43 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
         onNavigate={handleSearchNavigate}
       />
 
-      {/* Three-column layout */}
+      {/* Three-column layout: files, original document, text */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Page Navigator */}
-        <PageNavigator
-          pages={pages}
+        <DocumentNavigator
+          applicationId={application.id}
+          documents={documents}
+          selectedPageNumber={currentPage?.page_number ?? selectedPageNum}
+          matchingPages={matchingPages}
+          matchingBatches={matchingBatches}
           batchSummaries={batchSummaries}
-          selectedPageNumber={selectedPageNum}
-          searchResults={searchResults}
-          searchQuery={searchQuery}
           onSelectPage={goToPage}
           onSelectBatch={goToBatch}
         />
 
-        {/* Center: PDF Preview */}
         <div className="flex-1 min-w-0 border-r border-gray-200">
-          <InlinePdfViewer
+          <DocumentViewer
             applicationId={application.id}
-            fileName={currentFileName}
-            pageNumber={currentPage?.page_number || 1}
-            totalPages={pages.length}
-            filePageIndex={filePageIndex}
-            onPrevPage={goToPrevPage}
-            onNextPage={goToNextPage}
+            document={currentDocument}
+            pageIndex={pageIndex}
+            hasPrevious={globalIndex > 0}
+            hasNext={globalIndex >= 0 && globalIndex < pages.length - 1}
+            onPrevious={goToPrevPage}
+            onNext={goToNextPage}
+            onOpenFile={openFile}
           />
         </div>
 
-        {/* Right: Extracted Text + Batch Summary */}
         <div className="flex-1 min-w-0">
           <ExtractedTextPane
-            page={currentPage}
+            document={currentDocument}
+            selectedPageNumber={currentPage?.page_number ?? selectedPageNum}
             batchSummary={contextualBatch}
             searchQuery={searchQuery}
             contentView={contentView}
             onContentViewChange={setContentView}
-            pageTranslation={pageItem ? translationOf(pageItem) : null}
+            pageTranslation={pageTranslation}
             batchTranslation={batchItem ? translationOf(batchItem) : null}
+            onSelectPage={goToPage}
           />
         </div>
       </div>

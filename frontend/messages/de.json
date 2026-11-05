@@ -1523,7 +1523,6 @@
     "runExtractionHint": "Führen Sie die Extraktion aus dem Admin-Panel aus, um Dokumenttext zu extrahieren.",
     "backend": "Backend",
     "analyzer": "Analysegerät",
-    "sourcePage": "Quelle Seite",
     "summary": "Zusammenfassung",
     "documentInsights": "Dokumenterkenntnisse nach Abschnitt",
     "batchCount": "{count, plural, one {# Stapel} other {# Stapel}}",
@@ -1532,7 +1531,6 @@
     "pageRange": "Seiten {start}–{end}",
     "notableFindings": "Bemerkenswerte Ergebnisse",
     "pagesAnalyzed": "{count, plural, one {# Seite analysiert} other {# Seiten analysiert}}",
-    "pageNumber": "Seite {page}",
     "aiBatchSummary": "KI-Zusammenfassung — Stapel {batch}",
     "pendingInvestigations": "Ausstehende Untersuchungen",
     "urgency": {
@@ -1937,6 +1935,29 @@
     "pageOf": "Seite {page} / {total}",
     "next": "Weiter",
     "pageNumber": "Seite {page}"
+  },
+  "documentViewer": {
+    "documents": "Dokumente ({count})",
+    "photos": "Fotos ({count})",
+    "pageCount": "{count, plural, one {# Seite} other {# Seiten}}",
+    "pageOf": "Seite {page} / {total}",
+    "pageChip": "Seite {page}",
+    "email": "E-Mail",
+    "originalLanguage": "Originalsprache: {language}",
+    "download": "Herunterladen",
+    "noPreview": "Keine Vorschau für diesen Dateityp",
+    "noPreviewHint": "Der extrahierte Text erscheint rechts.",
+    "loadingEmail": "E-Mail wird geladen…",
+    "emailUnavailable": "Diese E-Mail kann nicht angezeigt werden. Sie können sie herunterladen.",
+    "noSubject": "(kein Betreff)",
+    "from": "Von",
+    "to": "An",
+    "cc": "Cc",
+    "date": "Datum",
+    "attachments": "Anhänge ({count})",
+    "openAttachment": "{file} im Viewer öffnen",
+    "attachmentNotInCase": "Nicht mit diesem Fall hochgeladen",
+    "showInViewer": "Seite {page} im Viewer anzeigen"
   },
   "searchBar": {
     "placeholder": "Suchseiten und Zusammenfassungen... (Strg+F)",
@@ -2704,9 +2725,7 @@
     "next": "Weiter"
   },
   "pageNavigator": {
-    "pages": "Seiten",
     "summaries": "Zusammenfassungen",
-    "pageLabel": "Seite {num}",
     "batchLabel": "Charge {num} ({start}-{end})"
   },
   "sourcePages": {

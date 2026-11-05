@@ -1523,7 +1523,6 @@
     "runExtractionHint": "Lancez l'extraction depuis le panneau d'administration pour extraire le texte des documents.",
     "backend": "Backend",
     "analyzer": "Analyseur",
-    "sourcePage": "Page source",
     "summary": "Résumé",
     "documentInsights": "Analyse du document par section",
     "batchCount": "{count, plural, one {# lot} other {# lots}}",
@@ -1532,7 +1531,6 @@
     "pageRange": "Pages {start}–{end}",
     "notableFindings": "Éléments notables",
     "pagesAnalyzed": "{count, plural, one {# page analysée} other {# pages analysées}}",
-    "pageNumber": "Page {page}",
     "aiBatchSummary": "Synthèse IA — Lot {batch}",
     "pendingInvestigations": "Examens en attente",
     "urgency": {
@@ -1937,6 +1935,29 @@
     "pageOf": "Page {page} / {total}",
     "next": "Suivant",
     "pageNumber": "Page {page}"
+  },
+  "documentViewer": {
+    "documents": "Documents ({count})",
+    "photos": "Photos ({count})",
+    "pageCount": "{count, plural, one {# page} other {# pages}}",
+    "pageOf": "Page {page} / {total}",
+    "pageChip": "Page {page}",
+    "email": "E-mail",
+    "originalLanguage": "Langue d'origine : {language}",
+    "download": "Télécharger",
+    "noPreview": "Pas d'aperçu pour ce type de fichier",
+    "noPreviewHint": "Son texte extrait s'affiche à droite.",
+    "loadingEmail": "Chargement de l'e-mail…",
+    "emailUnavailable": "Cet e-mail ne peut pas être affiché. Vous pouvez le télécharger.",
+    "noSubject": "(sans objet)",
+    "from": "De",
+    "to": "À",
+    "cc": "Cc",
+    "date": "Date",
+    "attachments": "Pièces jointes ({count})",
+    "openAttachment": "Ouvrir {file} dans la visionneuse",
+    "attachmentNotInCase": "Non déposé avec ce dossier",
+    "showInViewer": "Afficher la page {page} dans la visionneuse"
   },
   "searchBar": {
     "placeholder": "Rechercher dans les pages et résumés… (Ctrl+F)",
@@ -2704,9 +2725,7 @@
     "next": "Suivant"
   },
   "pageNavigator": {
-    "pages": "Pages",
     "summaries": "Résumés",
-    "pageLabel": "Page {num}",
     "batchLabel": "Lot {num} ({start}-{end})"
   },
   "sourcePages": {

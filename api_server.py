@@ -1659,6 +1659,34 @@ async def get_application_file(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/applications/{app_id}/emails/{filename:path}")
+async def get_application_email(app_id: str, filename: str):
+    """Readable view of an e-mail file of a case: headers, body and attachment list.
+
+    The raw .eml is downloaded by browsers instead of being displayed; the document viewer
+    shows this view instead. Attachments the case also holds are flagged so they can be opened.
+    """
+    from app.email_preview import MAX_EMAIL_BYTES, email_preview
+    from app.markitdown_service import html_to_markdown
+
+    if ".." in filename or filename.startswith("/") or not filename.lower().endswith(".eml"):
+        raise HTTPException(status_code=404, detail="E-mail not found")
+    settings = load_settings()
+    root = settings.app.storage_root
+    content = await asyncio.to_thread(load_file, root, app_id, filename)
+    if content is None:
+        raise HTTPException(status_code=404, detail="E-mail not found")
+    if len(content) > MAX_EMAIL_BYTES:
+        raise HTTPException(status_code=413, detail="E-mail too large to display")
+    app_md = await asyncio.to_thread(load_application, root, app_id)
+    case_files = [stored.filename for stored in (app_md.files if app_md else None) or []]
+    try:
+        return await asyncio.to_thread(email_preview, content, case_files, html_to_markdown)
+    except Exception as e:
+        logger.warning("E-mail %s of %s could not be read: %s", filename, app_id, e)
+        raise HTTPException(status_code=422, detail="E-mail could not be read") from e
+
+
 _RESTORE_MAX_BYTES = 50 * 1024 * 1024
 # Leading bytes of the formats demo cases use; other supported types are not sniffed.
 _FILE_SIGNATURES = {
