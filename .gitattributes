@@ -1,3 +1,6 @@
+# Shell scripts run in Linux containers: always LF, even with core.autocrlf=true.
+*.sh text eol=lf
+
 # Binary assets: never convert line endings (PDF byte offsets must stay intact)
 *.pdf binary
 *.png binary

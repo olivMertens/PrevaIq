@@ -43,6 +43,7 @@ locals {
     FRAUD_VISION_MODEL           = local.primary_model
     FRAUD_DETECTION_DEPLOYMENT   = local.primary_model
     FRAUD_DETECTION_MODEL        = local.primary_model
+    FRAUD_PROVENANCE_MODE        = "inform" # C2PA badge only; "score" lets the model weigh it
     STORAGE_BACKEND              = "azure_blob"
     AZURE_STORAGE_AUTH_MODE      = "default"
     AZURE_STORAGE_ACCOUNT_NAME   = azurerm_storage_account.this.name

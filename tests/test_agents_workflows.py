@@ -36,6 +36,7 @@ from app.agents.agents import (
 )
 from app.agents.workflows import _contains_refusal, _resp_text, _sanitize_refusal
 from app.config import load_settings
+from app.jurisdiction import Jurisdiction
 from app.languages import language_instruction, localized_message
 
 _MISSING = object()
@@ -414,6 +415,45 @@ def test_search_place_keeps_only_the_municipality(lieu, adresse, ville, expected
     assert agent_tools._search_place(lieu, adresse, ville) == expected
 
 
+@pytest.mark.parametrize(
+    ("lieu", "adresse", "ville", "expected"),
+    [
+        ("Kakaogasse 7, 8400 Winterthur", "", "", "Winterthur"),
+        ("", "Kakaogasse 7, CH-8400 Winterthur ZH", "", "Winterthur"),
+        ("", "Marktgasse 12, 9000 St. Gallen", "", "St. Gallen"),
+        ("Laden und Atelier (8400 Winterthur)", "", "", "Winterthur"),
+        ("Unwetter vom 28.08.2026 Winterthur", "", "", ""),
+        ("Schaden 1'697'400 CHF", "", "Winterthur", "Winterthur"),
+    ],
+)
+def test_search_place_reads_swiss_postcodes(lieu, adresse, ville, expected):
+    assert agent_tools._search_place(lieu, adresse, ville, country="CH") == expected
+
+
+def test_claim_search_place_detects_a_swiss_claim():
+    app_md = SimpleNamespace(
+        extracted_fields={
+            "llm_extracted:LieuSinistre": {"value": "Laden und Atelier, Kakaogasse 7"},
+            "cu_extracted:AdresseAssure": {"value": "Kakaogasse 7, 8400 Winterthur"},
+            "MontantEstime": "CHF 1'697'400.00",
+        }
+    )
+
+    assert agent_tools._claim_search_place(app_md) == "Winterthur"
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        ("28.08.2026", ("28. August 2026", "August 2026")),
+        ("2026-03-01", ("1. März 2026", "März 2026")),
+        ("unbekannt", ("", "")),
+    ],
+)
+def test_german_date_writes_dates_for_search(value, expected):
+    assert agent_tools._german_date(value) == expected
+
+
 def test_claim_search_place_reads_prefixed_extracted_fields():
     app_md = SimpleNamespace(
         extracted_fields={
@@ -451,8 +491,8 @@ def _fraud_settings():
 def test_claim_web_intelligence_builds_contextual_french_queries(monkeypatch):
     searches, prompts = [], []
 
-    async def fake_search(query, news=False, language="en"):
-        searches.append((query, news, language))
+    async def fake_search(query, news=False, language="en", region="FR"):
+        searches.append((query, news, language, region))
         return f"### Résultat\nSource: https://example.test/{len(searches)}\nPassage"
 
     def fake_completion(settings, messages, **kwargs):
@@ -476,14 +516,104 @@ def test_claim_web_intelligence_builds_contextual_french_queries(monkeypatch):
     )
 
     assert searches == [
-        ("météo Bordeaux 27 mars 2026 pluie vent orage", False, "fr"),
-        ("arrêté catastrophe naturelle Bordeaux mars 2026", False, "fr"),
-        ("Dégâts des eaux infiltration suite à tempête Bordeaux 27 mars 2026", True, "fr"),
+        ("météo Bordeaux 27 mars 2026 pluie vent orage", False, "fr", "FR"),
+        ("arrêté catastrophe naturelle Bordeaux mars 2026", False, "fr", "FR"),
+        ("Dégâts des eaux infiltration suite à tempête Bordeaux 27 mars 2026", True, "fr", "FR"),
     ]
-    assert not any("rue" in query or "42" in query for query, _, _ in searches)
-    assert result["search_queries"] == [query for query, _, _ in searches]
+    assert not any("rue" in query or "42" in query for query, *_ in searches)
+    assert result["search_queries"] == [query for query, *_ in searches]
+    assert result["search_region"] == "FR"
     assert result["source_urls"] == [f"https://example.test/{i}" for i in (1, 2, 3)]
     assert language_instruction("en") in prompts[0][0]["content"]
+    assert "Suisse" not in prompts[0][1]["content"]
+
+
+_SWISS_GERMAN = Jurisdiction(country="CH", language="de", currency="CHF", postal_code="8400")
+_SWISS_FRENCH = Jurisdiction(country="CH", language="fr", currency="CHF", postal_code="1003")
+
+
+@pytest.mark.parametrize(
+    ("jurisdiction", "place", "date", "nature", "expected"),
+    [
+        (
+            _SWISS_GERMAN,
+            "Winterthur",
+            "28.08.2026",
+            "Hagel / Sturm (Elementarschaden)",
+            [
+                ("Unwetter Winterthur 28. August 2026 Hagel Sturm", False, "de", "CH"),
+                ("Hagel Sturm Winterthur August 2026 Schäden", False, "de", "CH"),
+                ("Hagel Sturm Winterthur 28. August 2026", True, "de", "CH"),
+            ],
+        ),
+        (
+            _SWISS_FRENCH,
+            "Lausanne",
+            "2026-06-14",
+            "Grêle",
+            [
+                ("intempéries Lausanne 14 juin 2026 grêle orage", False, "fr", "CH"),
+                ("Grêle Lausanne juin 2026 dégâts", False, "fr", "CH"),
+                ("Grêle Lausanne 14 juin 2026", True, "fr", "CH"),
+            ],
+        ),
+    ],
+)
+def test_claim_web_intelligence_searches_swiss_sources_without_catnat(
+    monkeypatch, jurisdiction, place, date, nature, expected
+):
+    searches, prompts = [], []
+
+    async def fake_search(query, news=False, language="en", region="FR"):
+        searches.append((query, news, language, region))
+        return f"### Treffer\nQuelle: https://example.test/{len(searches)}\nPassage"
+
+    def fake_completion(settings, messages, **kwargs):
+        prompts.append(messages)
+        return {"content": '{"event_verified": true, "findings": [], "overall_assessment": "ok"}'}
+
+    monkeypatch.setattr(agent_tools, "webiq_search", fake_search)
+    monkeypatch.setattr("app.openai_client.chat_completion", fake_completion)
+
+    result = agent_tools._run_webiq_intelligence(
+        _fraud_settings(),
+        claim_date=date,
+        claim_location=place,
+        claim_nature=nature,
+        claim_type="habitation_claims",
+        declared_amount="CHF 1'697'400.00",
+        language="en",
+        jurisdiction=jurisdiction,
+    )
+
+    assert searches == expected
+    assert not any("catastrophe" in query.lower() for query, *_ in searches)
+    assert result["search_region"] == "CH"
+    assert result["source_urls"] == [f"https://example.test/{i}" for i in (1, 2, 3)]
+    assert "Suisse" in prompts[0][1]["content"]
+
+
+def test_webiq_search_region_is_sent_and_part_of_the_cache_key(monkeypatch):
+    from app.agents.tools import webiq_search
+
+    payload = {"webResults": [{"title": "Hagel", "url": "https://example.test/h", "content": "x"}]}
+    calls = []
+
+    class _RecordingFunction(_FakeWebIqFunction):
+        async def invoke(self, *, arguments):
+            calls.append((arguments["query"], arguments["region"]))
+            return await super().invoke(arguments=arguments)
+
+    function = _RecordingFunction([SimpleNamespace(text=json.dumps(payload))])
+    monkeypatch.setattr("app.agents.tools.create_webiq_tool", lambda s: _FakeWebIqTool(function))
+
+    query = "Unwetter Winterthur 28. August 2026 Hagel Sturm"
+    asyncio.run(webiq_search(query, language="de", region="ch"))
+    asyncio.run(webiq_search(query, language="de", region="CH"))
+    asyncio.run(webiq_search(query, language="de"))
+    asyncio.run(webiq_search(query, language="de", region="XX"))
+
+    assert calls == [(query, "CH"), (query, "FR")]
 
 
 def test_claim_web_intelligence_skips_search_without_municipality(monkeypatch):

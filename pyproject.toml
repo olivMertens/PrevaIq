@@ -32,6 +32,9 @@ dependencies = [
     "azure-ai-projects>=1.0.0",
     "azure-ai-contentunderstanding>=1.2.0b1",
     "markitdown[az-content-understanding]>=0.1.6",
+    # Reads C2PA Content Credentials embedded in claim photos (provenance badge).
+    # 0.38.0 is the latest release with Linux x86_64 and Windows wheels.
+    "c2pa-python==0.38.0",
 ]
 
 [project.optional-dependencies]

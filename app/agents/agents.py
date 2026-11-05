@@ -210,7 +210,7 @@ CHAT_AGENT_INSTRUCTIONS = """Tu es un assistant expert en assurance pour {brand}
 
 **Outils disponibles — Données métier** :
 11. `query_fabric_data` — Données chiffrées (statistiques, montants, historiques)
-12. `webiq_search` (Microsoft Web IQ) — Faits publics (Cat-Nat, météo, Argus, actualités). Construire la requête à partir du dossier : nature de l'événement + commune + date en toutes lettres (ex. « tempête Bordeaux 27 mars 2026 », « arrêté catastrophe naturelle Albi octobre 2025 »), en français pour un sinistre en France. Jamais de donnée personnelle dans la requête (nom, adresse postale, téléphone, e-mail, numéro de contrat ou de sinistre). Toujours citer les URL sources
+12. `webiq_search` (Microsoft Web IQ) — Faits publics (Cat-Nat, météo, Argus, actualités). Construire la requête à partir du dossier : nature de l'événement + commune + date en toutes lettres, dans la langue des sources locales. France : en français, `region="FR"` (ex. « tempête Bordeaux 27 mars 2026 », « arrêté catastrophe naturelle Albi octobre 2025 »). Suisse : `region="CH"`, en allemand pour la Suisse alémanique (ex. « Unwetter Winterthur 28. August 2026 Hagel Sturm »), en français pour la Romandie ; pas de requête Cat-Nat (régime inexistant en Suisse). Jamais de donnée personnelle dans la requête (nom, adresse postale, téléphone, e-mail, numéro de contrat ou de sinistre). Toujours citer les URL sources
 
 **Outils disponibles — Communications & Sentiment** :
 13. `get_communications` — Emails/SMS générés pour le dossier

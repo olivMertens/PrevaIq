@@ -66,6 +66,9 @@ CATEGORY_TABLE_MAP = {
 # ---------------------------------------------------------------------------
 PDF_CATEGORY_MAP = {
     "habitation": {"category": "property_casualty", "subcategory": "habitation"},
+    # Swiss SME property policy (AVB KMU-Geschäftsversicherung), German filename
+    "geschaeftsversicherung": {"category": "property_casualty", "subcategory": "kmu_ch"},
+    "geschäftsversicherung": {"category": "property_casualty", "subcategory": "kmu_ch"},
     "santé": {"category": "life_health", "subcategory": "complementaire_sante"},
     "sante": {"category": "life_health", "subcategory": "complementaire_sante"},
     "complémentaire": {"category": "life_health", "subcategory": "complementaire_sante"},

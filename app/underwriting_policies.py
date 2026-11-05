@@ -753,8 +753,20 @@ def format_plan_benefits_for_prompt(plan_benefits: dict) -> str:
     return "\n".join(formatted_parts)
 
 
+def filter_policies_by_jurisdiction(
+    policies: List[Dict[str, Any]], jurisdiction: str = "FR"
+) -> List[Dict[str, Any]]:
+    """Policies of one jurisdiction ("FR" when untagged); all of them when none match."""
+    wanted = (jurisdiction or "FR").upper()
+    matching = [p for p in policies if str(p.get("jurisdiction") or "FR").upper() == wanted]
+    return matching or list(policies)
+
+
 def format_policies_for_persona(
-    storage_root: str, persona: str, brand: str = DEFAULT_BRAND.brand_name
+    storage_root: str,
+    persona: str,
+    brand: str = DEFAULT_BRAND.brand_name,
+    jurisdiction: str = "FR",
 ) -> str:
     """
     Format all policies for a specific persona for injection into a prompt.
@@ -767,6 +779,8 @@ def format_policies_for_persona(
         storage_root: Path to the data storage directory
         persona: Persona type (underwriting, life_health_claims, etc.)
         brand: Brand name for substitution in policy templates
+        jurisdiction: "FR" (default) or "CH": policies tagged with another
+            ``jurisdiction`` (untagged ones are French) are left out, unless none match.
         
     Returns:
         Formatted string containing all policies for the persona
@@ -776,7 +790,7 @@ def format_policies_for_persona(
     formatted_parts = []
     
     # Format processing policies
-    policies = data.get("policies", [])
+    policies = filter_policies_by_jurisdiction(data.get("policies", []), jurisdiction)
     if policies:
         formatted_parts.append(format_policies_for_prompt(policies))
     

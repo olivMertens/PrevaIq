@@ -31,6 +31,7 @@ from pydantic import BaseModel
 from app.brands import DEFAULT_BRAND, get_brand_profile, get_current_brand_profile
 from app.agents.errors import AgentServiceError
 from app.config import load_settings, validate_settings
+from app.jurisdiction import application_jurisdiction
 from app.languages import (
     UnsupportedLanguageError,
     language_instruction,
@@ -157,7 +158,12 @@ except ImportError as e:
 @app.on_event("startup")
 async def startup_event():
     """Initialize application components on startup."""
+    from app.async_bridge import register_server_loop
     from app.storage_providers import init_storage_provider, StorageSettings
+
+    # Worker threads (fraud orchestrators, sync agent tools) reach the asyncpg pool
+    # through this loop.
+    register_server_loop()
 
     try:
         storage_settings = StorageSettings.from_env()
@@ -398,12 +404,15 @@ class DecisionRequest(BaseModel):
 
 def application_to_dict(app_md: ApplicationMetadata) -> dict:
     """Convert ApplicationMetadata to JSON-serializable dict."""
+    jurisdiction = application_jurisdiction(app_md)
     return {
         "id": app_md.id,
         "created_at": app_md.created_at,
         "external_reference": app_md.external_reference,
         "status": app_md.status,
         "persona": app_md.persona,
+        # Country and currency detected from the extracted fields (FR / EUR by default)
+        "jurisdiction": {"country": jurisdiction.country, "currency": jurisdiction.currency},
         "files": [{"filename": f.filename, "path": f.path, "url": f.url} for f in app_md.files],
         "document_markdown": app_md.document_markdown,
         "markdown_pages": app_md.markdown_pages,
@@ -1644,6 +1653,68 @@ async def get_application_file(
     except Exception as e:
         logger.error("Failed to serve file %s for app %s: %s", filename, app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+_RESTORE_MAX_BYTES = 50 * 1024 * 1024
+# Leading bytes of the formats demo cases use; other supported types are not sniffed.
+_FILE_SIGNATURES = {
+    ".pdf": (b"%PDF",),
+    ".png": (b"\x89PNG\r\n\x1a\n",),
+    ".jpg": (b"\xff\xd8\xff",),
+    ".jpeg": (b"\xff\xd8\xff",),
+    ".gif": (b"GIF87a", b"GIF89a"),
+    ".zip": (b"PK\x03\x04",),
+}
+
+
+@app.put("/api/applications/{app_id}/files/{filename:path}")
+async def restore_application_file(app_id: str, filename: str, request: Request):
+    """Restore the content of a file the application already references (raw request body).
+
+    For demo recovery: writes where ``GET …/files/{filename}`` and the analyses read, and
+    never adds files, changes the status or re-runs processing.
+    """
+    from app.file_capabilities import ALL_SUPPORTED_EXTENSIONS
+    from app.storage import save_application_file
+
+    if ".." in filename or filename.startswith(("/", ".")):
+        raise HTTPException(status_code=403, detail="Accès refusé")
+    suffix = Path(filename).suffix.lower()
+    if suffix not in ALL_SUPPORTED_EXTENSIONS | {".zip"}:
+        raise HTTPException(status_code=400, detail=f"Unsupported file type: {suffix or 'none'}")
+
+    settings = load_settings()
+    root = settings.app.storage_root
+    app_md = await asyncio.to_thread(load_application, root, app_id)
+    if not app_md:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+    stored = next((f for f in app_md.files if f.filename == filename), None)
+    if stored is None:
+        raise HTTPException(status_code=404, detail="File not referenced by this application")
+
+    content = await request.body()
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(content) > _RESTORE_MAX_BYTES:
+        raise HTTPException(status_code=413, detail="File too large")
+    signatures = _FILE_SIGNATURES.get(suffix)
+    if signatures and not content.startswith(signatures):
+        raise HTTPException(status_code=400, detail=f"Content does not match {suffix}")
+
+    path = await asyncio.to_thread(save_application_file, root, app_md.id, filename, content)
+    await asyncio.to_thread(_invalidate_previews, root, app_md.id, [filename])
+    # Seeded cases may keep a legacy path that extraction cannot read; point it here.
+    path_updated = bool(path) and stored.path != path
+    if path_updated:
+        stored.path = path
+        await asyncio.to_thread(save_application_metadata, root, app_md)
+    logger.info("Restored %s for %s (%d bytes)", filename, app_md.id, len(content))
+    return {
+        "application_id": app_md.id,
+        "filename": filename,
+        "bytes": len(content),
+        "path_updated": path_updated,
+    }
 
 
 def _save_in_background(root: str, app_id: str, filename: str, content: bytes) -> None:

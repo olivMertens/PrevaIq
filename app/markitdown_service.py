@@ -75,6 +75,12 @@ def convert_bytes_to_markdown(
     stream = io.BytesIO(file_bytes)
     stream_info = StreamInfo(filename=filename, extension=Path(filename).suffix.lower())
 
+    if stream_info.extension == ".eml":
+        # MarkItDown reads .eml as plain text: raw MIME, base64 attachments, broken accents.
+        return _conversion_result(
+            _email_to_markdown(file_bytes, MarkItDown, StreamInfo), filename, "email-parser", None
+        )
+
     try:
         converter = MarkItDown(**kwargs)
         result = converter.convert_stream(stream, stream_info=stream_info)
@@ -86,6 +92,12 @@ def convert_bytes_to_markdown(
     markdown = (
         getattr(result, "markdown", None) or getattr(result, "text_content", "") or ""
     ).strip()
+    return _conversion_result(markdown, filename, backend, analyzer_id)
+
+
+def _conversion_result(
+    markdown: str, filename: str, backend: str, analyzer_id: str | None
+) -> MarkItDownConversionResult:
     if not markdown:
         raise MarkItDownConversionError(f"MarkItDown returned empty markdown for {filename}")
 
@@ -108,6 +120,33 @@ def convert_bytes_to_markdown(
         backend=backend,
         analyzer_id=analyzer_id,
     )
+
+
+def _email_to_markdown(file_bytes: bytes, markitdown_cls: Any, stream_info_cls: Any) -> str:
+    """Headers, readable body and attachment names of an e-mail (never the attachment bytes)."""
+    from email import policy
+    from email.parser import BytesParser
+
+    try:
+        message = BytesParser(policy=policy.default).parsebytes(file_bytes)
+        lines = [f"# {str(message.get('Subject') or 'E-mail').strip()}", ""]
+        for header in ("From", "To", "Cc", "Date"):
+            if message.get(header):
+                lines.append(f"**{header}:** {message.get(header)}  ")
+        attachments = [name for part in message.iter_attachments() if (name := part.get_filename())]
+        if attachments:
+            lines.append(f"**Attachments:** {', '.join(attachments)}  ")
+        body = message.get_body(preferencelist=("plain", "html"))
+        text = body.get_content() if body is not None else ""
+        if body is not None and body.get_content_type() == "text/html":
+            converted = markitdown_cls(enable_plugins=False).convert_stream(
+                io.BytesIO(text.encode("utf-8")),
+                stream_info=stream_info_cls(extension=".html", charset="utf-8"),
+            )
+            text = getattr(converted, "markdown", None) or converted.text_content
+    except Exception as exc:
+        raise MarkItDownConversionError(f"E-mail conversion failed: {exc}") from exc
+    return "\n".join([*lines, "", text.replace("\r\n", "\n").strip()]).strip()
 
 
 def _build_cu_credential(settings: ContentUnderstandingSettings) -> Any | None:

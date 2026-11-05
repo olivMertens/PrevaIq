@@ -265,6 +265,214 @@
         {"factor": "Structured settlement", "impact": "Annuity quotes and documentation needed"}
       ],
       "references": ["Settlement Authority Matrix", "Release Form Library", "Medicare Set-Aside Guidelines"]
+    },
+    {
+      "id": "CH-AVB-ELE-001",
+      "jurisdiction": "CH",
+      "category": "coverage_verification",
+      "subcategory": "elementar",
+      "name": "Elementarschäden an Fahrhabe — Deckung und Selbstbehalt (AVB Ziff. B2)",
+      "description": "PrevaIQ Versicherungen (Schweiz) AG, AVB KMU-Geschäftsversicherung 2026: Elementarschäden an Waren, Einrichtungen und Maschinen nach der schweizerischen Elementarschadenregelung. In der Schweiz gibt es kein Cat-Nat-Regime.",
+      "criteria": [
+        {
+          "id": "CH-AVB-ELE-001-A",
+          "condition": "Schaden durch Hagel, Hochwasser, Überschwemmung, Sturm (Wind von mindestens 75 km/h), Lawine, Schneedruck, Felssturz, Steinschlag oder Erdrutsch",
+          "action": "Elementarschaden an der versicherten Fahrhabe anerkennen und das Ereignis mit Wetterdaten (MeteoSchweiz) oder Presseberichten belegen",
+          "rationale": "AVB Ziff. B2.1 — versicherte Elementarereignisse"
+        },
+        {
+          "id": "CH-AVB-ELE-001-B",
+          "condition": "Wasser dringt durch ein von Hagel oder Sturm zerstörtes Dach, Oberlicht oder Fenster ein",
+          "action": "Folgeschaden als Teil des Elementarschadens behandeln, nicht als Leitungswasserschaden",
+          "rationale": "AVB Ziff. B2.2"
+        },
+        {
+          "id": "CH-AVB-ELE-001-C",
+          "condition": "Entschädigung für Elementarschäden an Fahrhabe eines Betriebs",
+          "action": "Selbstbehalt von 10 % der Entschädigung abziehen, mindestens CHF 2'500 und höchstens CHF 50'000 pro Ereignis",
+          "rationale": "AVB Ziff. B2.3; AVO Art. 175 Abs. 1 lit. c"
+        }
+      ],
+      "modifying_factors": [
+        {
+          "factor": "Mehrere beschädigte Sachen desselben Ereignisses",
+          "impact": "Selbstbehalt nur einmal pro Ereignis für die Fahrhabe"
+        },
+        {
+          "factor": "Kein Cat-Nat-Regime in der Schweiz",
+          "impact": "Kein amtlicher Erlass nötig; massgebend ist das nachgewiesene Wetterereignis"
+        }
+      ],
+      "references": [
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. B2",
+        "AVO Art. 175 Abs. 1 lit. c"
+      ]
+    },
+    {
+      "id": "CH-AVB-GEB-002",
+      "jurisdiction": "CH",
+      "category": "exclusions",
+      "subcategory": "gebaeude_kantonal",
+      "name": "Gebäude bei der kantonalen Gebäudeversicherung — z. B. GVZ im Kanton Zürich (AVB Ziff. B1.3)",
+      "description": "Gebäude und Gebäudebestandteile (Verglasung, Schaufenster, Oblichter, Storen, Fassade) sind in Kantonen mit kantonaler Gebäudeversicherung gegen Feuer- und Elementarschäden ausschliesslich dort versichert, im Kanton Zürich bei der Gebäudeversicherung Kanton Zürich (GVZ).",
+      "criteria": [
+        {
+          "id": "CH-AVB-GEB-002-A",
+          "condition": "Gebäudeschaden in einem Kanton mit kantonaler Gebäudeversicherung (Kanton Zürich: GVZ) wird geltend gemacht",
+          "action": "Gebäudepositionen aus der Entschädigung ausschliessen und an die kantonale Gebäudeversicherung verweisen",
+          "rationale": "AVB Ziff. B1.3 — Gebäude sind nicht Gegenstand dieser Versicherung"
+        },
+        {
+          "id": "CH-AVB-GEB-002-B",
+          "condition": "Derselbe Gebäudeschaden ist zusätzlich bei der GVZ angemeldet",
+          "action": "Doppelentschädigung ausschliessen; Schadennummer und Leistungen der GVZ anfordern",
+          "rationale": "AVB Ziff. A6 — Bereicherungsverbot"
+        }
+      ],
+      "modifying_factors": [
+        {
+          "factor": "Mieterausbauten (Einbauten des Mieters)",
+          "impact": "Können als Fahrhabe versichert sein, wenn sie nicht Gebäudebestandteil sind — Abgrenzung durch die Expertin oder den Experten"
+        }
+      ],
+      "references": [
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. B1.3",
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. A6"
+      ]
+    },
+    {
+      "id": "CH-AVB-KUE-003",
+      "jurisdiction": "CH",
+      "category": "exclusions",
+      "subcategory": "kuehlgut",
+      "name": "Kühl- und Tiefkühlgut — nur mit Zusatzdeckung (AVB Ziff. B4)",
+      "description": "Verderb von Kühl- und Tiefkühlgut infolge Temperaturveränderung durch Ausfall oder Störung der Kühlanlage oder der Stromversorgung.",
+      "criteria": [
+        {
+          "id": "CH-AVB-KUE-003-A",
+          "condition": "Verderb von Kühlgut infolge Stromunterbruch oder Ausfall der Kühlanlage",
+          "action": "Nur entschädigen, wenn die Zusatzdeckung «Kühlgut» in der Police vereinbart ist — auch wenn der Ausfall durch ein versichertes Ereignis wie Hagel verursacht wurde",
+          "rationale": "AVB Ziff. B4.1"
+        },
+        {
+          "id": "CH-AVB-KUE-003-B",
+          "condition": "Kühlgut direkt durch eingedrungenes Wasser oder Hagel beschädigt",
+          "action": "Als Elementarschaden an Waren prüfen; die direkte Einwirkung muss nachgewiesen sein",
+          "rationale": "AVB Ziff. B4.2"
+        }
+      ],
+      "modifying_factors": [
+        {
+          "factor": "Temperaturprotokoll (Datenlogger) vorhanden",
+          "impact": "Belegt Beginn und Dauer der Temperaturüberschreitung"
+        }
+      ],
+      "references": [
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. B4"
+      ]
+    },
+    {
+      "id": "CH-AVB-BU-004",
+      "jurisdiction": "CH",
+      "category": "business_interruption",
+      "subcategory": "ertragsausfall",
+      "name": "Betriebsunterbruch (Ertragsausfall) — Haftzeit 12 Monate (AVB Ziff. C)",
+      "description": "Ertragsausfall und Mehrkosten infolge eines versicherten Sachschadens am Versicherungsort.",
+      "criteria": [
+        {
+          "id": "CH-AVB-BU-004-A",
+          "condition": "Betriebsunterbruch nach einem versicherten Sachschaden",
+          "action": "Ertragsausfall während höchstens 12 Monaten ab Schadeneintritt entschädigen; saisonale Umsätze (z. B. Weihnachtsgeschäft) anhand der Vorjahre berücksichtigen",
+          "rationale": "AVB Ziff. C1 und C2"
+        },
+        {
+          "id": "CH-AVB-BU-004-B",
+          "condition": "Der Unterbruch beruht ganz oder teilweise auf einem nicht versicherten Schaden (Gebäude bei der GVZ, Kühlgut ohne Zusatzdeckung)",
+          "action": "Den entsprechenden Anteil des Ertragsausfalls nicht übernehmen",
+          "rationale": "AVB Ziff. C1 — nur als Folge eines versicherten Sachschadens"
+        }
+      ],
+      "modifying_factors": [
+        {
+          "factor": "Schadenminderung (Provisorium, Notverkauf, Auslagerung der Produktion)",
+          "impact": "Mindert den Ertragsausfall; die Mehrkosten sind versichert"
+        }
+      ],
+      "references": [
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. C"
+      ]
+    },
+    {
+      "id": "CH-AVB-OBL-005",
+      "jurisdiction": "CH",
+      "category": "claims_obligations",
+      "subcategory": "anzeige_schadenminderung",
+      "name": "Obliegenheiten im Schadenfall — Anzeige, Schadenminderung, Belege (AVB Ziff. A4)",
+      "description": "Pflichten der versicherten Person nach Eintritt des Schadens.",
+      "criteria": [
+        {
+          "id": "CH-AVB-OBL-005-A",
+          "condition": "Schadenereignis eingetreten",
+          "action": "Prüfen, ob der Schaden unverzüglich angezeigt wurde; bei schuldhafter Verspätung Kürzung um den dadurch entstandenen Mehrschaden",
+          "rationale": "AVB Ziff. A4.1; VVG Art. 38"
+        },
+        {
+          "id": "CH-AVB-OBL-005-B",
+          "condition": "Massnahmen zur Schadenminderung (Notverglasung, Trocknung, Sicherung der Elektroinstallation)",
+          "action": "Angemessene Rettungskosten übernehmen; unterlassene Schadenminderung kann die Entschädigung kürzen",
+          "rationale": "AVB Ziff. A4.2; VVG Art. 61"
+        },
+        {
+          "id": "CH-AVB-OBL-005-C",
+          "condition": "Schadenaufstellung und Belege",
+          "action": "Detaillierte Schadenaufstellung, Fotos, Inventar- und Buchhaltungsnachweise verlangen; die Schadenstelle bis zur Besichtigung nicht verändern, ausser zur Schadenminderung",
+          "rationale": "AVB Ziff. A4.3 und A4.4"
+        }
+      ],
+      "modifying_factors": [
+        {
+          "factor": "Foto mit Zeitstempel vor dem Ereignis als Bestandesnachweis",
+          "impact": "Zulässig; Echtheit und Datum prüfen und mit Inventar und Buchhaltung abgleichen"
+        }
+      ],
+      "references": [
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. A4",
+        "VVG Art. 38",
+        "VVG Art. 61"
+      ]
+    },
+    {
+      "id": "CH-AVB-UNT-006",
+      "jurisdiction": "CH",
+      "category": "settlement",
+      "subcategory": "unterversicherung",
+      "name": "Versicherungswert, Unterversicherung und Aufräumungskosten (AVB Ziff. A3 und B5)",
+      "description": "Entschädigung zum Neuwert; eine Unterversicherung führt zu einer verhältnismässigen Kürzung.",
+      "criteria": [
+        {
+          "id": "CH-AVB-UNT-006-A",
+          "condition": "Versicherungssumme niedriger als der Ersatzwert (Neuwert) der versicherten Sachen",
+          "action": "Entschädigung im Verhältnis der Versicherungssumme zum Ersatzwert kürzen",
+          "rationale": "AVB Ziff. A3.2; VVG Art. 69 Abs. 2"
+        },
+        {
+          "id": "CH-AVB-UNT-006-B",
+          "condition": "Aufräumungs-, Entsorgungs- und Notmassnahmenkosten",
+          "action": "Auf Erstrisiko bis CHF 100'000 pro Ereignis entschädigen, ohne Anrechnung einer Unterversicherung",
+          "rationale": "AVB Ziff. B5"
+        }
+      ],
+      "modifying_factors": [
+        {
+          "factor": "Saisonaler Warenvorrat (Herbst und Weihnachten)",
+          "impact": "Höherer Warenwert vor Weihnachten — Versicherungssumme und Inventar prüfen"
+        }
+      ],
+      "references": [
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. A3",
+        "AVB KMU-Geschäftsversicherung 2026, Ziff. B5",
+        "VVG Art. 69"
+      ]
     }
   ]
 }

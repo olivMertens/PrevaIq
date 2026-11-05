@@ -24,6 +24,7 @@ from .large_document_processor import (
     get_document_stats,
 )
 from .languages import language_instruction, normalize_language, require_language
+from .jurisdiction import application_jurisdiction, format_amount, parse_amount
 from .file_capabilities import detect_media_type
 from .markitdown_service import (
     MarkItDownConversionError,
@@ -595,7 +596,10 @@ def load_underwriting_policies(prompts_root: str) -> str:
 
 
 def load_policies_for_persona_prompts(
-    prompts_root: str, persona: str, brand: str = DEFAULT_BRAND.brand_name
+    prompts_root: str,
+    persona: str,
+    brand: str = DEFAULT_BRAND.brand_name,
+    jurisdiction: str = "FR",
 ) -> str:
     """Load and format persona-specific policies for prompt injection.
 
@@ -606,12 +610,15 @@ def load_policies_for_persona_prompts(
         prompts_root: Path to the prompts directory
         persona: The persona type (underwriting, life_health_claims, etc.)
         brand: Brand name for substitution in policy templates
+        jurisdiction: "FR" or "CH" policy set (see format_policies_for_persona)
 
     Returns:
         Formatted string of policies suitable for prompt injection
     """
     try:
-        return format_policies_for_persona(prompts_root, persona, brand=brand)
+        return format_policies_for_persona(
+            prompts_root, persona, brand=brand, jurisdiction=jurisdiction
+        )
     except Exception as e:
         logger.warning(f"Failed to load {persona} policies: {e}")
         return ""
@@ -2370,22 +2377,30 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
     cause = _fv("NatureSinistre", "CauseOfLoss").lower()
     desc = _fv("DescriptionSinistre", "Description").lower()
     combined = f"{cause} {desc}"
+    # Swiss claims: no French conventions (IRSI) nor Cat-Nat regime, amounts in CHF.
+    jurisdiction = application_jurisdiction(app_md)
+    swiss = jurisdiction.country == "CH"
 
     # 1. Guarantee labels (from nature/cause) ----------------------------------
     import re
 
-    if re.search(r"dégâts? des eaux|dde|fuite|infiltration|inondation", combined):
-        labels.append(
-            {
-                "key": "convention_irsi",
-                "label": "Convention IRSI",
-                "type": "guarantee",
-                "urgency": "info",
-                "color": "blue",
-                "icon": "flag",
-                "tooltip": "Applicable aux DDE multi-lots (convention inter-assureurs)",
-            }
-        )
+    if re.search(
+        r"dégâts? des eaux|dde|fuite|infiltration|inondation"
+        r"|wasserschaden|leitungswasser|überschwemmung|hochwasser",
+        combined,
+    ):
+        if not swiss:
+            labels.append(
+                {
+                    "key": "convention_irsi",
+                    "label": "Convention IRSI",
+                    "type": "guarantee",
+                    "urgency": "info",
+                    "color": "blue",
+                    "icon": "flag",
+                    "tooltip": "Applicable aux DDE multi-lots (convention inter-assureurs)",
+                }
+            )
         labels.append(
             {
                 "key": "garantie_dde",
@@ -2395,7 +2410,9 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "color": "emerald",
             }
         )
-    if re.search(r"tempête|grêle|neige|vent|ouragan|tornade", combined):
+    if re.search(
+        r"tempête|grêle|neige|vent|ouragan|tornade|hagel|sturm|unwetter|gewitter", combined
+    ):
         labels.append(
             {
                 "key": "garantie_tempete",
@@ -2405,7 +2422,7 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "color": "sky",
             }
         )
-    if re.search(r"vol|cambriolage|effraction|vandalisme", combined):
+    if re.search(r"vol|cambriolage|effraction|vandalisme|diebstahl|einbruch", combined):
         labels.append(
             {
                 "key": "garantie_vol",
@@ -2425,7 +2442,7 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                     "color": "rose",
                 }
             )
-    if re.search(r"incendie|feu|explosion|fumée", combined):
+    if re.search(r"incendie|feu|explosion|fumée|brand|feuer", combined):
         labels.append(
             {
                 "key": "garantie_incendie",
@@ -2435,7 +2452,9 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "color": "orange",
             }
         )
-    if re.search(r"bris de glace|vitre|fenêtre|vitrage", combined):
+    if re.search(
+        r"bris de glace|vitre|fenêtre|vitrage|glasbruch|verglasung|schaufenster", combined
+    ):
         labels.append(
             {
                 "key": "bris_glace",
@@ -2455,7 +2474,7 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "color": "indigo",
             }
         )
-    if re.search(
+    if not swiss and re.search(
         r"cat.?nat|catastrophe naturelle|séisme|mouvement de terrain|sécheresse|avalanche|submersion|crue",
         combined,
     ):
@@ -2466,6 +2485,21 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "type": "guarantee",
                 "urgency": "warning",
                 "color": "amber",
+            }
+        )
+    if swiss and re.search(
+        r"elementar|hagel|sturm|unwetter|hochwasser|überschwemmung|lawine|erdrutsch"
+        r"|steinschlag|felssturz|schneedruck|grêle|tempête|inondation|crue|avalanche",
+        combined,
+    ):
+        labels.append(
+            {
+                "key": "regime_elementar",
+                "label": "Dommages naturels (Elementar)",
+                "type": "guarantee",
+                "urgency": "warning",
+                "color": "amber",
+                "tooltip": "Régime suisse des dommages naturels (pas de Cat-Nat)",
             }
         )
     if re.search(r"fraude|suspect", combined):
@@ -2514,12 +2548,9 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
 
     # 2. Severity labels (from amount) -----------------------------------------
     montant_str = _fv("MontantEstime", "TotalIncurred", "MontantTotal")
-    montant_num = 0.0
-    try:
-        montant_num = float(re.sub(r"[^\d.,]", "", montant_str).replace(",", ".") or "0")
-    except ValueError:
-        pass
+    montant_num = parse_amount(montant_str) or 0.0
     if montant_num > 5000:
+        currency = jurisdiction.currency
         labels.append(
             {
                 "key": "sinistre_majeur",
@@ -2527,7 +2558,10 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                 "type": "severity",
                 "urgency": "warning",
                 "color": "amber",
-                "tooltip": f"Montant {montant_num:,.0f}€ — expertise obligatoire au-delà de 5 000€",
+                "tooltip": (
+                    f"Montant {format_amount(montant_num, currency)} — expertise obligatoire "
+                    f"au-delà de {format_amount(5000, currency)}"
+                ),
             }
         )
 
@@ -2641,11 +2675,12 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
                     source_url = first.get("url", first.get("source_url", ""))
                 elif isinstance(first, str):
                     source_url = first
+            # Switzerland has no Cat-Nat regime: the check confirms the weather event.
             if verified:
                 labels.append(
                     {
-                        "key": "catnat_confirmee",
-                        "label": "✓ Cat-Nat confirmée",
+                        "key": "evenement_confirme" if swiss else "catnat_confirmee",
+                        "label": "✓ Événement confirmé" if swiss else "✓ Cat-Nat confirmée",
                         "type": "verification",
                         "urgency": "success",
                         "color": "emerald",
@@ -2656,8 +2691,8 @@ def generate_context_labels(app_md: ApplicationMetadata) -> List[Dict[str, Any]]
             else:
                 labels.append(
                     {
-                        "key": "catnat_non_confirmee",
-                        "label": "✗ Cat-Nat non confirmée",
+                        "key": "evenement_non_confirme" if swiss else "catnat_non_confirmee",
+                        "label": "✗ Événement non confirmé" if swiss else "✗ Cat-Nat non confirmée",
                         "type": "verification",
                         "urgency": "warning",
                         "color": "amber",
@@ -2808,49 +2843,65 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
 
     cause = _fv("NatureSinistre", "CauseOfLoss").lower()
     montant_str = _fv("MontantEstime", "TotalIncurred", "MontantTotal")
-    montant_num = 0.0
-    try:
-        montant_num = float(re.sub(r"[^\d.,]", "", montant_str).replace(",", ".") or "0")
-    except ValueError:
-        pass
+    montant_num = parse_amount(montant_str) or 0.0
     tiers = _fv("TiersImplique", "ThirdPartyInvolved").lower()
+    # Swiss claims follow the AVB (no French conventions nor Cat-Nat), amounts in CHF.
+    jurisdiction = application_jurisdiction(app_md)
+    swiss = jurisdiction.country == "CH"
+    policy_ref = "AVB (CH)" if swiss else "CG Habitation"
+
+    def _cause_has(*words: str) -> bool:
+        return any(word in cause for word in words)
 
     # Task 1: Verify coverage
-    if "dde" in cause or "dégât" in cause or "fuite" in cause or "inondation" in cause:
+    if _cause_has("dde", "dégât", "fuite", "inondation", "wasserschaden", "leitungswasser"):
         tasks.append(
             {
                 "key": "verify_dde_coverage",
-                "task": "Vérifier couverture DDE — CG Habitation",
+                "task": f"Vérifier couverture DDE — {policy_ref}",
                 "category": "coverage",
                 "priority": "high",
                 "due_offset_days": 0,
             }
         )
-    elif "tempête" in cause or "grêle" in cause:
+    elif _cause_has(
+        "tempête",
+        "grêle",
+        "hagel",
+        "sturm",
+        "unwetter",
+        "hochwasser",
+        "überschwemmung",
+        "elementar",
+    ):
         tasks.append(
             {
                 "key": "verify_tempete_coverage",
-                "task": "Vérifier couverture tempête — CG Habitation",
+                "task": (
+                    f"Vérifier couverture dommages naturels (Elementar) — {policy_ref}"
+                    if swiss
+                    else f"Vérifier couverture tempête — {policy_ref}"
+                ),
                 "category": "coverage",
                 "priority": "high",
                 "due_offset_days": 0,
             }
         )
-    elif "vol" in cause or "cambriolage" in cause:
+    elif _cause_has("vol", "cambriolage", "diebstahl", "einbruch"):
         tasks.append(
             {
                 "key": "verify_vol_coverage",
-                "task": "Vérifier couverture vol — CG Habitation",
+                "task": f"Vérifier couverture vol — {policy_ref}",
                 "category": "coverage",
                 "priority": "high",
                 "due_offset_days": 0,
             }
         )
-    elif "incendie" in cause:
+    elif _cause_has("incendie", "brand", "feuer"):
         tasks.append(
             {
                 "key": "verify_incendie_coverage",
-                "task": "Vérifier couverture incendie — CG Habitation",
+                "task": f"Vérifier couverture incendie — {policy_ref}",
                 "category": "coverage",
                 "priority": "high",
                 "due_offset_days": 0,
@@ -2860,19 +2911,23 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
         tasks.append(
             {
                 "key": "verify_coverage",
-                "task": "Vérifier couverture CG Habitation",
+                "task": f"Vérifier couverture {policy_ref}",
                 "category": "coverage",
                 "priority": "high",
                 "due_offset_days": 0,
             }
         )
 
-    # Task 2: Expert required if amount > 5000
+    # Task 2: Expert required above the (nominal) threshold of 5,000 in the claim currency
     if montant_num > 5000:
+        currency = jurisdiction.currency
         tasks.append(
             {
                 "key": "mandate_expert",
-                "task": f"Mandater expert — montant {montant_num:,.0f}€ > 5 000€",
+                "task": (
+                    f"Mandater expert — montant {format_amount(montant_num, currency)} > "
+                    f"{format_amount(5000, currency)}"
+                ),
                 "category": "expertise",
                 "priority": "high",
                 "due_offset_days": 1,
@@ -2903,11 +2958,15 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
         )
 
     # Task 4: Third party recourse
-    if tiers in ("oui", "yes", "true"):
+    if tiers in ("oui", "yes", "true", "ja"):
         tasks.append(
             {
                 "key": "third_party_recourse",
-                "task": "Engager recours tiers — convention IRSI / CIDE-COP",
+                "task": (
+                    "Engager recours tiers"
+                    if swiss
+                    else "Engager recours tiers — convention IRSI / CIDE-COP"
+                ),
                 "category": "recourse",
                 "priority": "medium",
                 "due_offset_days": 5,
@@ -2918,10 +2977,9 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
     files = app_md.files or []
     file_names_lower = " ".join(f.filename.lower() for f in files)
     missing: List[str] = []
-    if (
-        "déclaration" not in file_names_lower
-        and "declaration" not in file_names_lower
-        and "sinistre" not in file_names_lower
+    if not any(
+        word in file_names_lower
+        for word in ("déclaration", "declaration", "sinistre", "schadenmeldung")
     ):
         missing.append("Déclaration de sinistre")
     has_photos = any(
@@ -2931,7 +2989,10 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
     )
     if not has_photos:
         missing.append("Photos des dommages (min. 3)")
-    if "devis" not in file_names_lower and "facture" not in file_names_lower:
+    if not any(
+        word in file_names_lower
+        for word in ("devis", "facture", "offerte", "rechnung", "kostenvoranschlag")
+    ):
         missing.append("Devis ou facture de réparation")
     if tiers in ("oui", "yes", "true") and "constat" not in file_names_lower:
         missing.append("Constat amiable (tiers impliqué)")
@@ -2970,8 +3031,8 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
                 }
             )
 
-    # Task 7: Cat-Nat verification
-    if re.search(r"cat.?nat|catastrophe|séisme|inondation", cause):
+    # Task 7: Cat-Nat verification (French regime only)
+    if not swiss and re.search(r"cat.?nat|catastrophe|séisme|inondation", cause):
         wi = {}
         if fa and isinstance(fa, dict):
             wi = fa.get("web_intelligence") or fa.get("overall_assessment", {}).get(
@@ -3248,13 +3309,21 @@ def run_underwriting_prompts(
     # Claims personas need claims processing rules injected during analysis
     # Underwriting policies are only injected during explicit risk analysis
     persona_policies = ""
-    if app_md.persona and app_md.persona in [
-        "life_health_claims",
-        "automotive_claims",
+    jurisdiction = application_jurisdiction(app_md)
+    swiss_claim = jurisdiction.country == "CH" and app_md.persona in (
+        "habitation_claims",
         "property_casualty_claims",
-    ]:
+    )
+    if app_md.persona and (
+        app_md.persona in ["life_health_claims", "automotive_claims", "property_casualty_claims"]
+        # Habitation prompts assume French law: a Swiss claim needs the Swiss AVB.
+        or swiss_claim
+    ):
         persona_policies = load_policies_for_persona_prompts(
-            settings.app.prompts_root, app_md.persona, brand=settings.brand_name
+            settings.app.prompts_root,
+            app_md.persona,
+            brand=settings.brand_name,
+            jurisdiction=jurisdiction.country,
         )
         if persona_policies:
             logger.info(
@@ -3269,6 +3338,12 @@ def run_underwriting_prompts(
     else:
         logger.info(
             "Standard analysis - underwriting policies injected separately during risk analysis"
+        )
+    if swiss_claim:
+        policy_context += (
+            "\n\n---\n\nJURISDICTION: Switzerland. Apply the Swiss policy conditions (AVB) above. "
+            "The French Cat-Nat regime, the IRSI convention and EUR deductibles do not apply; "
+            "amounts are in CHF.\n"
         )
 
     # Load glossary for the current persona to help LLM understand domain terminology

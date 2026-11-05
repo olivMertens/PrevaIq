@@ -169,16 +169,22 @@ class FraudDetectionSettings:
     # Reasoning model — fraud detection
     deployment_name: str = "gpt-5.4-mini"
     model_name: str = "gpt-5.4-mini"
+    # C2PA provenance of photos: off, inform (badge only) or score (also weighed by the model)
+    provenance_mode: str = "inform"
 
     @classmethod
     def from_env(cls) -> "FraudDetectionSettings":
         """Load fraud detection settings from environment variables."""
+        provenance_mode = os.getenv("FRAUD_PROVENANCE_MODE", "inform").strip().lower()
         return cls(
             enabled=os.getenv("FRAUD_DETECTION_ENABLED", "true").lower() == "true",
             vision_deployment_name=os.getenv("FRAUD_VISION_DEPLOYMENT", "gpt-5.4-mini"),
             vision_model_name=os.getenv("FRAUD_VISION_MODEL", "gpt-5.4-mini"),
             deployment_name=os.getenv("FRAUD_DETECTION_DEPLOYMENT", "gpt-5.4-mini"),
             model_name=os.getenv("FRAUD_DETECTION_MODEL", "gpt-5.4-mini"),
+            provenance_mode=(
+                provenance_mode if provenance_mode in ("off", "inform", "score") else "inform"
+            ),
         )
 
 

@@ -10,6 +10,7 @@ FastAPI router providing endpoints for:
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 import re
 from datetime import datetime, UTC
@@ -1916,7 +1917,9 @@ async def run_fraud_analysis(
     effort = reasoning_effort if reasoning_effort in ("low", "medium", "high") else "medium"
 
     try:
-        raw_result = analyze_image_fraud(
+        # Off the event loop: the analysis takes 30-90 s and would freeze every other request.
+        raw_result = await asyncio.to_thread(
+            analyze_image_fraud,
             application_id=claim_id,
             filename=filename or "",
             declaration_text=declaration_text or "",

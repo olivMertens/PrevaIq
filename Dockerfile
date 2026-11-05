@@ -15,7 +15,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-editable
 
 # Verify the supported agent-framework-core 1.x package is correctly installed
-RUN .venv/bin/python -c "from agent_framework import Agent; from agent_framework.openai import OpenAIChatClient; from mcp import Client; import tenacity; print('OK:', Agent.__name__)"
+RUN .venv/bin/python -c "from agent_framework import Agent; from agent_framework.openai import OpenAIChatClient; from mcp import Client; import tenacity; import c2pa; print('OK:', Agent.__name__)"
 
 # Stage 2: Lean runtime image
 # Use GHCR base to avoid Docker Hub unauthenticated pull rate limits in ACR Tasks
@@ -47,8 +47,8 @@ COPY prompts/ ./prompts/
 COPY assets/pdf/ ./assets/pdf/
 COPY scripts/startup.sh ./scripts/startup.sh
 
-# Make startup script executable
-RUN chmod +x scripts/startup.sh
+# Make startup script executable (and LF-only, whatever the checkout's line endings)
+RUN sed -i 's/\r$//' scripts/startup.sh && chmod +x scripts/startup.sh
 
 EXPOSE 8000
 

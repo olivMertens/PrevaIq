@@ -551,8 +551,12 @@ async def create_fraud_workflow(
         "ROLE: Open-source intelligence analyst. Search public sources (Cat-Nat decrees, "
         "weather, Argus pricing, news) relevant to the declared event and cross-reference "
         "them with the dossier. Build each webiq_search query from the dossier: event type + "
-        "municipality + date written out, in French for a claim in France (e.g. 'tempête "
-        "Bordeaux 27 mars 2026'; 'arrêté catastrophe naturelle Albi octobre 2025'). Never put "
+        "municipality + date written out, in the language of the local sources: French with "
+        "region 'FR' for a claim in France (e.g. 'tempête Bordeaux 27 mars 2026'; 'arrêté "
+        "catastrophe naturelle Albi octobre 2025'); region 'CH' for a claim in Switzerland, "
+        "in German for German-speaking Switzerland (e.g. 'Unwetter Winterthur 28. August 2026 "
+        "Hagel Sturm') or French for Romandie, never a Cat-Nat query (no such regime in "
+        "Switzerland). Never put "
         "personal data in a query (names, street addresses, phone numbers, e-mails, policy or "
         "claim numbers). Always cite source URLs. Research only.",
         lang,

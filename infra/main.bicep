@@ -909,6 +909,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             { name: 'FRAUD_VISION_MODEL', value: 'gpt-5.4-mini' }
             { name: 'FRAUD_DETECTION_DEPLOYMENT', value: 'gpt-5.4-mini' }
             { name: 'FRAUD_DETECTION_MODEL', value: 'gpt-5.4-mini' }
+            { name: 'FRAUD_PROVENANCE_MODE', value: 'inform' }
             { name: 'STORAGE_BACKEND', value: 'azure_blob' }
             { name: 'AZURE_STORAGE_AUTH_MODE', value: 'default' }
             { name: 'AZURE_STORAGE_ACCOUNT_NAME', value: storageAccount.name }

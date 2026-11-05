@@ -16,6 +16,7 @@ import re
 import time
 from typing import Any
 
+from ..jurisdiction import FRANCE, Jurisdiction, application_jurisdiction
 from ..telemetry import record_span_error, start_span
 from ..utils import setup_logging
 
@@ -303,7 +304,7 @@ async def search_policies(query: str, category: str = "", top_k: int = 5) -> str
     )[:top_k]
 
     if not results:
-        return "Aucun article de police trouvé pour cette requête."
+        return _NO_POLICY_FOUND
 
     parts = []
     for r in results:
@@ -315,7 +316,69 @@ async def search_policies(query: str, category: str = "", top_k: int = 5) -> str
     return "\n---\n".join(parts)
 
 
-def _fallback_policy_search(settings, query: str, category: str) -> str:
+_NO_POLICY_FOUND = "Aucun article de police trouvé pour cette requête."
+
+# Persona → policy index category (see CATEGORY_TABLE_MAP in scripts/index_pdf_policies.py).
+_FRAUD_POLICY_CATEGORIES = {
+    "automotive_claims": "automotive",
+    "life_health_claims": "life_health",
+    "habitation_claims": "property_casualty",
+    "property_casualty_claims": "property_casualty",
+}
+_FRAUD_POLICY_MAX_CHARS = 6000
+_FRAUD_POLICY_TIMEOUT_SECONDS = 25
+
+
+def _fraud_policy_query(app_md) -> tuple[str, str]:
+    """(category, query) for the policy articles a fraud review needs: cover limits and duties."""
+    category = _FRAUD_POLICY_CATEGORIES.get(
+        getattr(app_md, "persona", None) or "", "property_casualty"
+    )
+    nature = _event_terms(
+        _get_ef_value(app_md, ["NatureSinistre", "CauseOfLoss", "DescriptionSinistre"], ""),
+        limit=12,
+    )
+    if application_jurisdiction(app_md).country == "CH":
+        terms = (
+            "Ausschlüsse Selbstbehalt Elementarschäden Anzeigepflicht "
+            "Schadenminderungspflicht Unterversicherung"
+        )
+    else:
+        terms = "exclusions franchise déchéance déclaration du sinistre fausse déclaration"
+    return category, " ".join(filter(None, [nature, terms]))
+
+
+def _fraud_policy_context(settings, app_md, *, use_server_loop: bool = True) -> str:
+    """Policy articles for the fraud merge, at most ~6,000 characters.
+
+    RAG search runs on the server loop (it owns the asyncpg pool); without it (no server
+    loop, this thread blocks it, error or no hit) the persona's policy text is used.
+    """
+    from ..async_bridge import ServerLoopUnavailable, run_on_server_loop, server_loop_available
+
+    category, query = _fraud_policy_query(app_md)
+    text = ""
+    rag_enabled = bool(getattr(getattr(settings, "rag", None), "enabled", False))
+    if use_server_loop and rag_enabled and server_loop_available():
+        try:
+            text = run_on_server_loop(
+                search_policies(query, category, 5), timeout=_FRAUD_POLICY_TIMEOUT_SECONDS
+            )
+        except ServerLoopUnavailable:
+            text = ""
+        except Exception as exc:
+            logger.warning("Fraud policy search failed, using policy text: %r", exc)
+            text = ""
+    if not text or text == _NO_POLICY_FOUND:
+        text = _fallback_policy_search(settings, query, category, _policy_jurisdiction(app_md))
+    return text[:_FRAUD_POLICY_MAX_CHARS]
+
+
+def _policy_jurisdiction(app_md) -> str:
+    return application_jurisdiction(app_md).country
+
+
+def _fallback_policy_search(settings, query: str, category: str, jurisdiction: str = "FR") -> str:
     """Fallback: return full policy text when RAG is disabled."""
     from ..underwriting_policies import format_policies_for_persona
 
@@ -327,7 +390,7 @@ def _fallback_policy_search(settings, query: str, category: str) -> str:
     }
     persona = persona_map.get(category, "underwriting")
     return format_policies_for_persona(
-        settings.app.prompts_root, persona, brand=settings.brand_name
+        settings.app.prompts_root, persona, brand=settings.brand_name, jurisdiction=jurisdiction
     )
 
 
@@ -1591,24 +1654,45 @@ _WEBIQ_MAX_CHARS = 12000
 # searches within a demo session reuse the previous result instead of the quota.
 _WEBIQ_CACHE_TTL_SECONDS = 1800
 _WEBIQ_CACHE_MAX_ENTRIES = 256
-_webiq_cache: dict[tuple[str, str, str], tuple[float, str]] = {}
+_webiq_cache: dict[tuple[str, str, str, str], tuple[float, str]] = {}
+# Countries whose local sources the claim searches target (see ``app.jurisdiction``).
+_WEBIQ_REGIONS = frozenset({"FR", "CH"})
 
 _FRENCH_MONTHS = (
     "janvier", "février", "mars", "avril", "mai", "juin",
     "juillet", "août", "septembre", "octobre", "novembre", "décembre",
 )
+_GERMAN_MONTHS = (
+    "Januar", "Februar", "März", "April", "Mai", "Juni",
+    "Juli", "August", "September", "Oktober", "November", "Dezember",
+)
 # Municipality after a French postcode, up to a separator ("33000 Bordeaux - cave" -> "Bordeaux").
 _POSTCODE_CITY_RE = re.compile(
     r"\b\d{5}\s+([A-Za-zÀ-ÖØ-öø-ÿ'’][A-Za-zÀ-ÖØ-öø-ÿ'’\- ]*?)(?=\s*(?:[,;()—–\d]|\s-\s|$))"
 )
+# Swiss postcode ("8400 Winterthur", "CH-9000 St. Gallen"), never the end of a date or amount.
+_SWISS_POSTCODE_CITY_RE = re.compile(
+    r"(?:\bCH-\s?|(?<![\d'’.,]))\b\d{4}\s+"
+    r"([A-Za-zÀ-ÖØ-öø-ÿ'’][A-Za-zÀ-ÖØ-öø-ÿ'’.\-/ ]*?)(?=\s*(?:[,;()—–\d]|\s-\s|$))"
+)
+_SWISS_CANTON_SUFFIX_RE = re.compile(
+    r"\s+(?:AG|AI|AR|BE|BL|BS|FR|GE|GL|GR|JU|LU|NE|NW|OW|SG|SH|SO|SZ|TG|TI|UR|VD|VS|ZG|ZH)$"
+)
 
 
-def _search_place(lieu: str, adresse: str = "", ville: str = "") -> str:
-    """Municipality used in public-source searches; never the street address (personal data)."""
+def _search_place(lieu: str, adresse: str = "", ville: str = "", country: str = "FR") -> str:
+    """Municipality used in public-source searches; never the street address (personal data).
+
+    ``country`` selects the postcode format: 5 digits in France, 4 digits in Switzerland.
+    """
+    swiss = country == "CH"
+    pattern = _SWISS_POSTCODE_CITY_RE if swiss else _POSTCODE_CITY_RE
     for value in (lieu, adresse, ville):
-        match = _POSTCODE_CITY_RE.search(value or "")
+        match = pattern.search(value or "")
         if match:
             city = re.sub(r"\bcedex\b.*$", "", match.group(1), flags=re.I).strip(" -'’")
+            if swiss:
+                city = _SWISS_CANTON_SUFFIX_RE.sub("", city.rstrip(" ./")).strip()
             if city:
                 return city
     ville = (ville or "").strip()
@@ -1621,11 +1705,12 @@ def _claim_search_place(app_md) -> str:
         _get_ef_value(app_md, ["LieuSinistre"], ""),
         _get_ef_value(app_md, ["AdresseAssure", "Adresse"], ""),
         _get_ef_value(app_md, ["Ville", "Commune"], ""),
+        country=application_jurisdiction(app_md).country,
     )
 
 
-def _french_date(value: str) -> tuple[str, str]:
-    """Return ("27 mars 2026", "mars 2026") for DD/MM/YYYY or ISO dates, ("", "") otherwise."""
+def _claim_date_parts(value: str) -> tuple[int, int, str] | None:
+    """(day, month, year) of a DD/MM/YYYY, DD.MM.YYYY or ISO date, None otherwise."""
     text = (value or "").strip()
     match = re.search(r"\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b", text)
     if match:
@@ -1633,12 +1718,31 @@ def _french_date(value: str) -> tuple[str, str]:
     else:
         match = re.search(r"\b(\d{4})-(\d{2})-(\d{2})\b", text)
         if not match:
-            return "", ""
+            return None
         year, month, day = match.group(1), int(match.group(2)), int(match.group(3))
     if not (1 <= month <= 12 and 1 <= day <= 31):
+        return None
+    return day, month, year
+
+
+def _french_date(value: str) -> tuple[str, str]:
+    """Return ("27 mars 2026", "mars 2026") for DD/MM/YYYY or ISO dates, ("", "") otherwise."""
+    parts = _claim_date_parts(value)
+    if not parts:
         return "", ""
+    day, month, year = parts
     month_name = _FRENCH_MONTHS[month - 1]
     return f"{day} {month_name} {year}", f"{month_name} {year}"
+
+
+def _german_date(value: str) -> tuple[str, str]:
+    """Return ("28. August 2026", "August 2026") for DD.MM.YYYY or ISO dates, ("", "") otherwise."""
+    parts = _claim_date_parts(value)
+    if not parts:
+        return "", ""
+    day, month, year = parts
+    month_name = _GERMAN_MONTHS[month - 1]
+    return f"{day}. {month_name} {year}", f"{month_name} {year}"
 
 
 def _event_terms(nature: str, limit: int = 8) -> str:
@@ -1672,7 +1776,9 @@ def create_webiq_tool(settings) -> Any | None:
     )
 
 
-async def webiq_search(query: str, news: bool = False, language: str = "en") -> str:
+async def webiq_search(
+    query: str, news: bool = False, language: str = "en", region: str = "FR"
+) -> str:
     """Search public sources with Microsoft Web IQ (web pages or recent news).
 
     Use this tool to verify facts about a claim: Cat-Nat decrees, weather
@@ -1680,14 +1786,18 @@ async def webiq_search(query: str, news: bool = False, language: str = "en") -> 
     source URLs returned.
 
     Build the query from the dossier context: event type + municipality + date
-    written out, in French for a claim in France (e.g. "tempête Bordeaux 27 mars 2026",
-    "arrêté catastrophe naturelle Albi octobre 2025"). Never put personal data in the
-    query: no names, street addresses, phone numbers, e-mails, or policy/claim numbers.
+    written out, in the language of the local sources. France: French, region "FR"
+    (e.g. "tempête Bordeaux 27 mars 2026", "arrêté catastrophe naturelle Albi octobre 2025").
+    Switzerland: region "CH", German for German-speaking Switzerland (e.g. "Unwetter
+    Winterthur 28. August 2026 Hagel Sturm"), French for Romandie; Switzerland has no
+    Cat-Nat regime. Never put personal data in the query: no names, street addresses,
+    phone numbers, e-mails, or policy/claim numbers.
 
     Args:
         query: Search query without personal data, e.g. "arrêté catastrophe naturelle inondation Nîmes juin 2026".
         news: True to search recent news articles instead of web pages.
         language: Language of the query and results (en, fr, or de); fr for French sources.
+        region: Country of the sources: "FR" (default) for France, "CH" for Switzerland.
 
     Returns:
         Source passages and URLs in the requested Web IQ search language.
@@ -1696,22 +1806,29 @@ async def webiq_search(query: str, news: bool = False, language: str = "en") -> 
     from ..languages import localized_message, require_language
 
     locale = require_language(language)
+    region = (region or "FR").strip().upper()
+    if region not in _WEBIQ_REGIONS:
+        region = "FR"
     tool = create_webiq_tool(load_settings())
     if tool is None:
         return localized_message("webiq_not_configured", locale)
     target = "webiq_news" if news else "webiq_web"
-    cache_key = (target, " ".join(query.split()).lower(), locale)
+    cache_key = (target, " ".join(query.split()).lower(), locale, region)
     cached = _webiq_cache.get(cache_key)
     if cached and time.monotonic() - cached[0] < _WEBIQ_CACHE_TTL_SECONDS:
-        logger.info("Web IQ %s cached (language=%s): %s", target, locale, query[:200])
+        logger.info(
+            "Web IQ %s cached (language=%s, region=%s): %s", target, locale, region, query[:200]
+        )
         return cached[1]
-    logger.info("Web IQ %s search (language=%s): %s", target, locale, query[:200])
+    logger.info(
+        "Web IQ %s search (language=%s, region=%s): %s", target, locale, region, query[:200]
+    )
     # Connect per call (~2-6 s) so questions that never search pay nothing.
     wanted = {
         "query": query,
         "maxResults": 5,
         "language": locale,
-        "region": "FR",
+        "region": region,
         "contentFormat": "passage",
         "maxLength": 1500,
     }
@@ -1903,7 +2020,13 @@ async def _fraud_orchestrator(
                     claim_type=app_md.persona or "sinistre",
                     claim_date=claim_date,
                 )
-                return {"filename": fname, **result}
+                return await asyncio.to_thread(
+                    _image_with_provenance,
+                    {"filename": fname, **result},
+                    file_bytes,
+                    fname,
+                    fraud_settings,
+                )
 
         # Preserve partial results: a per-image failure is captured, not fatal.
         settled = await asyncio.gather(
@@ -1953,17 +2076,10 @@ async def _fraud_orchestrator(
 
         return context
 
-    # ── Branch C: Policy search (applicable fraud + coverage articles) ──
+    # ── Branch C: Policy search (cover limits, exclusions and duties of this claim type) ──
     async def _policy_branch() -> str:
         try:
-            claim_type = app_md.persona or "sinistre"
-            policy_result = await asyncio.to_thread(
-                search_policies,
-                f"fraude assurance {claim_type} exclusions indicateurs suspicion",
-                "fraud_detection",
-                5,
-            )
-            return policy_result
+            return await asyncio.to_thread(_fraud_policy_context, settings, app_md)
         except Exception as exc:
             logger.warning("Context: policy search failed: %s", exc)
             return ""
@@ -1985,6 +2101,7 @@ async def _fraud_orchestrator(
                 claim_type=app_md.persona or "sinistre",
                 declared_amount=declared_amount,
                 language=language,
+                jurisdiction=application_jurisdiction(app_md),
             )
         except Exception as exc:
             logger.warning("Web intelligence branch failed: %s", exc)
@@ -1999,6 +2116,7 @@ async def _fraud_orchestrator(
     )
 
     # ── Merge: reasoning — cross-reference all data ──
+    reasoning_images = _images_for_reasoning(vision_results, fraud_settings)
     declaration_result = {}
     if decl_text and decl_text != "Déclaration non disponible.":
         try:
@@ -2006,7 +2124,7 @@ async def _fraud_orchestrator(
                 settings,
                 fraud_settings,
                 prompts,
-                image_analyses=vision_results,
+                image_analyses=reasoning_images,
                 declaration_text=decl_text,
                 claim_type=app_md.persona or "sinistre",
                 reasoning_effort=reasoning_effort,
@@ -2023,7 +2141,7 @@ async def _fraud_orchestrator(
             settings,
             fraud_settings,
             prompts,
-            vision_results,
+            reasoning_images,
             declaration_result,
             context_data=context_data,
             policy_data=policy_data,
@@ -2108,6 +2226,7 @@ def _fraud_orchestrator_sync(
     with ThreadPoolExecutor(max_workers=8) as executor:
         # Submit vision tasks
         vision_futures = {}
+        image_bytes: dict[str, bytes] = {}
         for fname in image_files:
             file_bytes = _load_file_bytes(settings, application_id, fname)
             if not file_bytes:
@@ -2118,6 +2237,7 @@ def _fraud_orchestrator_sync(
                     }
                 )
                 continue
+            image_bytes[fname] = file_bytes
             future = executor.submit(
                 _analyze_single_image,
                 settings,
@@ -2142,16 +2262,22 @@ def _fraud_orchestrator_sync(
                 get_customer_360, settings.app.storage_root, customer_id
             )
 
-        claim_type = app_md.persona or "sinistre"
         # Submit context tasks — skip Fabric (too slow for interactive chat, not critical for fraud)
         ctx_fabric_future = None
 
-        # Submit policy search
+        # Submit policy search. When this thread is the server loop's, a RAG call handed to
+        # that loop would wait on itself: use the policy text instead.
+        from ..async_bridge import is_server_loop
+
+        try:
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
         policy_future = executor.submit(
-            search_policies,
-            f"fraude assurance {claim_type} exclusions indicateurs suspicion",
-            "fraud_detection",
-            5,
+            _fraud_policy_context,
+            settings,
+            app_md,
+            use_server_loop=not is_server_loop(running_loop),
         )
 
         # Submit web intelligence (if enabled)
@@ -2168,6 +2294,7 @@ def _fraud_orchestrator_sync(
                 claim_type=app_md.persona or "sinistre",
                 declared_amount=declared_amount,
                 language=language,
+                jurisdiction=application_jurisdiction(app_md),
             )
 
         # Collect vision results
@@ -2175,7 +2302,11 @@ def _fraud_orchestrator_sync(
             fname = vision_futures[future]
             try:
                 result = future.result()
-                vision_results.append({"filename": fname, **result})
+                vision_results.append(
+                    _image_with_provenance(
+                        {"filename": fname, **result}, image_bytes[fname], fname, fraud_settings
+                    )
+                )
             except Exception as exc:
                 logger.warning("Vision analysis failed for %s: %s", fname, exc)
                 vision_results.append({"filename": fname, "error": str(exc)})
@@ -2220,6 +2351,7 @@ def _fraud_orchestrator_sync(
                 web_intel = {"error": str(exc)}
 
     # ── Merge: reasoning ──
+    reasoning_images = _images_for_reasoning(vision_results, fraud_settings)
     declaration_result = {}
     if decl_text and decl_text != "Déclaration non disponible.":
         try:
@@ -2227,7 +2359,7 @@ def _fraud_orchestrator_sync(
                 settings,
                 fraud_settings,
                 prompts,
-                image_analyses=vision_results,
+                image_analyses=reasoning_images,
                 declaration_text=decl_text,
                 claim_type=app_md.persona or "sinistre",
                 reasoning_effort=reasoning_effort,
@@ -2243,7 +2375,7 @@ def _fraud_orchestrator_sync(
             settings,
             fraud_settings,
             prompts,
-            vision_results,
+            reasoning_images,
             declaration_result,
             context_data=context_data,
             policy_data=policy_data,
@@ -2322,6 +2454,47 @@ def _run_claim_web_intelligence(settings, **claim) -> dict:
     return _run_webiq_intelligence(settings, **claim)
 
 
+def _webiq_claim_queries(
+    claim_date: str, place: str, claim_nature: str, jurisdiction: Jurisdiction
+) -> tuple[list[tuple[str, bool]], str, str, str]:
+    """(queries, source language, written date, event terms) for the claim's country.
+
+    France: weather, Cat-Nat decree and news in French. Switzerland has no Cat-Nat regime:
+    severe-weather, damage and news searches in German, or French for Romandie.
+    """
+    swiss = jurisdiction.country == "CH"
+    source_language = "de" if swiss and jurisdiction.language != "fr" else "fr"
+    when, month = (_german_date if source_language == "de" else _french_date)(claim_date)
+    if not when and claim_date and claim_date != "non spécifiée":
+        when = month = claim_date.strip()
+
+    def query(*parts: str) -> str:
+        return " ".join(filter(None, parts))
+
+    if source_language == "de":
+        nature = _event_terms(claim_nature) or "Unwetter"
+        queries = [
+            (query("Unwetter", place, when, "Hagel Sturm"), False),
+            (query(nature, place, month, "Schäden"), False),
+            (query(nature, place, when), True),
+        ]
+    elif swiss:
+        nature = _event_terms(claim_nature) or "intempéries"
+        queries = [
+            (query("intempéries", place, when, "grêle orage"), False),
+            (query(nature, place, month, "dégâts"), False),
+            (query(nature, place, when), True),
+        ]
+    else:
+        nature = _event_terms(claim_nature) or "sinistre"
+        queries = [
+            (query("météo", place, when, "pluie vent orage"), False),
+            (query("arrêté catastrophe naturelle", place, month), False),
+            (query(nature, place, when), True),
+        ]
+    return queries, source_language, when, nature
+
+
 def _run_webiq_intelligence(
     settings,
     claim_date: str,
@@ -2330,17 +2503,19 @@ def _run_webiq_intelligence(
     claim_type: str,
     declared_amount: str,
     language: str = "en",
+    jurisdiction: Jurisdiction | None = None,
 ) -> dict:
-    """Branch D via Microsoft Web IQ: weather, Cat-Nat decrees and local news at the claim date.
+    """Branch D via Microsoft Web IQ: weather, Cat-Nat decrees (France) and local news.
 
-    ``claim_location`` is the municipality only. Runs targeted French searches (the
-    sources are French, region FR), then asks the fraud model to turn the passages into
-    the structured result, written in the requested language.
+    ``claim_location`` is the municipality only. Searches use the local sources of the
+    claim's country (see ``_webiq_claim_queries``), then the fraud model turns the passages
+    into the structured result, written in the requested language.
     """
     from ..openai_client import chat_completion
     from ..languages import language_instruction, localized_message, require_language
 
     language = require_language(language)
+    jurisdiction = jurisdiction or FRANCE
 
     fraud_settings = settings.fraud_detection
     place = (claim_location or "").strip()
@@ -2356,19 +2531,16 @@ def _run_webiq_intelligence(
             "provider": "webiq",
             "skipped": "missing_location",
         }
-    when, month = _french_date(claim_date)
-    if not when and claim_date and claim_date != "non spécifiée":
-        when = month = claim_date.strip()
-    nature = _event_terms(claim_nature) or "sinistre"
-    queries = [
-        (" ".join(filter(None, ["météo", place, when, "pluie vent orage"])), False),
-        (" ".join(filter(None, ["arrêté catastrophe naturelle", place, month])), False),
-        (" ".join(filter(None, [nature, place, when])), True),
-    ]
+    queries, source_language, when, nature = _webiq_claim_queries(
+        claim_date, place, claim_nature, jurisdiction
+    )
 
     async def _search_all():
         return await asyncio.gather(
-            *(webiq_search(q, news=n, language="fr") for q, n in queries)
+            *(
+                webiq_search(q, news=n, language=source_language, region=jurisdiction.country)
+                for q, n in queries
+            )
         )
 
     started = time.perf_counter()
@@ -2400,7 +2572,14 @@ def _run_webiq_intelligence(
         {
             "role": "user",
             "content": (
-                f"Sinistre : {claim_type} — {nature}\nLieu : {place}\nDate déclarée : {when or 'non précisée'}\n"
+                f"Sinistre : {claim_type} — {nature}\n"
+                + (
+                    "Pays : Suisse — pas de régime Cat-Nat ; l'événement se vérifie dans les "
+                    "sources suisses (météo, presse locale).\n"
+                    if jurisdiction.country == "CH"
+                    else ""
+                )
+                + f"Lieu : {place}\nDate déclarée : {when or 'non précisée'}\n"
                 f"Montant déclaré : {declared_amount}\n\nPassages Web IQ :\n{corpus}"
             ),
         },
@@ -2423,10 +2602,11 @@ def _run_webiq_intelligence(
         parsed = {"overall_assessment": corpus[:1500], "findings": []}
     parsed["source_urls"] = source_urls
     parsed["search_queries"] = [q for q, _ in queries]
+    parsed["search_region"] = jurisdiction.country
     parsed["provider"] = "webiq"
     logger.info(
-        "Web IQ fraud branch completed: duration_ms=%d sources=%d",
-        (time.perf_counter() - started) * 1000, len(source_urls),
+        "Web IQ fraud branch completed: duration_ms=%d sources=%d region=%s",
+        (time.perf_counter() - started) * 1000, len(source_urls), jurisdiction.country,
     )
     return parsed
 
@@ -2440,6 +2620,31 @@ def _load_file_bytes(settings, application_id: str, filename: str) -> bytes | No
     except Exception as exc:
         logger.warning("Failed to load file %s/%s: %s", application_id, filename, exc)
         return None
+
+
+def _image_with_provenance(entry: dict, file_bytes: bytes, filename: str, fraud_settings) -> dict:
+    """Attach the C2PA provenance of a photo to its analysis (unless the mode is off)."""
+    mode = getattr(fraud_settings, "provenance_mode", "inform")
+    if mode != "off":
+        from ..provenance import detect_provenance
+
+        entry["provenance"] = {
+            **detect_provenance(file_bytes, filename),
+            "used_in_score": mode == "score",
+        }
+    return entry
+
+
+def _images_for_reasoning(image_analyses: list, fraud_settings) -> list:
+    """Image analyses given to the fraud model: provenance is only weighed in ``score`` mode."""
+    if getattr(fraud_settings, "provenance_mode", "inform") == "score":
+        return image_analyses
+    return [
+        {key: value for key, value in image.items() if key != "provenance"}
+        if isinstance(image, dict)
+        else image
+        for image in image_analyses
+    ]
 
 
 def _analyze_single_image(
