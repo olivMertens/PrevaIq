@@ -205,7 +205,7 @@ CHAT_AGENT_INSTRUCTIONS = """Tu es un assistant expert en assurance pour {brand}
 8. `get_page_reference` — Contenu d'une page spécifique par numéro
 
 **Outils disponibles — Politiques & Glossaire** :
-9. `search_policies` — Articles de police par sujet
+9. `search_policies` — Articles de police par sujet (catégorie `property_casualty_ch` pour les conditions suisses (AVB) d'un sinistre en Suisse)
 10. `get_glossary` — Définitions des termes techniques
 
 **Outils disponibles — Données métier** :

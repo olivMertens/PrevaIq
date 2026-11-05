@@ -58,6 +58,7 @@ CATEGORY_TABLE_MAP = {
     "automotive": "claim_policy_chunks",  # Sinistres Auto persona
     "life_health": "health_claims_policy_chunks",  # Sinistres Santé persona
     "property_casualty": "policy_chunks",  # Souscription persona (default)
+    "property_casualty_ch": "policy_chunks",  # Swiss property conditions (AVB), kept apart
     "general": "policy_chunks",  # Fallback
 }
 
@@ -66,9 +67,10 @@ CATEGORY_TABLE_MAP = {
 # ---------------------------------------------------------------------------
 PDF_CATEGORY_MAP = {
     "habitation": {"category": "property_casualty", "subcategory": "habitation"},
-    # Swiss SME property policy (AVB KMU-Geschäftsversicherung), German filename
-    "geschaeftsversicherung": {"category": "property_casualty", "subcategory": "kmu_ch"},
-    "geschäftsversicherung": {"category": "property_casualty", "subcategory": "kmu_ch"},
+    # Swiss SME property policy (AVB KMU-Geschäftsversicherung), German filename. Its own
+    # category keeps Swiss articles out of the searches of French claims.
+    "geschaeftsversicherung": {"category": "property_casualty_ch", "subcategory": "kmu_ch"},
+    "geschäftsversicherung": {"category": "property_casualty_ch", "subcategory": "kmu_ch"},
     "santé": {"category": "life_health", "subcategory": "complementaire_sante"},
     "sante": {"category": "life_health", "subcategory": "complementaire_sante"},
     "complémentaire": {"category": "life_health", "subcategory": "complementaire_sante"},

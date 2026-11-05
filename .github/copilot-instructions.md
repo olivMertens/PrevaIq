@@ -191,7 +191,7 @@ python scripts/index_pdf_policies.py --local --force   # Uses PyMuPDF fallback
 | Complémentaire santé | Health | life_health |
 | Conditions générales auto | Auto | automotive |
 | Conditions générales flotte auto | Fleet | automotive |
-| AVB KMU-Geschäftsversicherung (CH, German) | Property, Switzerland | property_casualty |
+| AVB KMU-Geschäftsversicherung (CH, German) | Property, Switzerland | property_casualty_ch (kept apart from French property terms) |
 
 Claims are jurisdiction-aware (`app/jurisdiction.py`): a Swiss claim (4-digit postcode with CHF, +41 or "Schweiz") gets CHF amounts, the CH policy set (`"jurisdiction": "CH"` entries of `prompts/property-casualty-claims-policies.json`, untagged entries are French), German or French Web IQ searches with `region: "CH"` and no Cat-Nat query. `application_to_dict` exposes `jurisdiction: {country, currency}` for the UI.
 

@@ -573,7 +573,8 @@ async def create_fraud_workflow(
         instructions=_role(
             "ROLE: Fraud-investigation synthesizer. Cross-reference the image analysis with "
             "the web intelligence and the customer history, use search_policies when a "
-            "clause matters, and produce: documented_siu_recommendation (REFER | CLEAR | "
+            "clause matters (category property_casualty_ch for a claim in Switzerland), and "
+            "produce: documented_siu_recommendation (REFER | CLEAR | "
             "review_needed), confidence_score, evidence_summary, rationale. Never refuse.",
             lang,
         ),

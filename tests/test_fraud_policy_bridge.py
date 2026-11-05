@@ -77,8 +77,14 @@ def test_swiss_claims_search_in_german() -> None:
             MontantEstime="CHF 1'697'400",
         )
     )
-    assert category == "property_casualty"
+    assert category == "property_casualty_ch"
     assert "Selbstbehalt" in query and "franchise" not in query
+
+
+def test_swiss_category_falls_back_to_the_swiss_policy_text() -> None:
+    text = agent_tools._fallback_policy_search(_settings(), "Kühlgut", "property_casualty_ch")
+
+    assert "CH-AVB-KUE-003" in text and "PC-COV-001" not in text
 
 
 def test_rag_runs_on_the_server_loop_from_a_worker_thread(server_loop, monkeypatch) -> None:

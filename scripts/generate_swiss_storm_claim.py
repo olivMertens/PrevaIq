@@ -5,7 +5,7 @@ The business, people, policy, references and amounts are fictitious; only the mu
 no real company, street, UID or phone number is used. Writes:
 
 * ``assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf`` — fictitious Swiss
-  policy conditions (German), indexed by the RAG as ``property_casualty``;
+  policy conditions (German), indexed by the RAG as ``property_casualty_ch``;
 * ``assets/demo-prevaiq/property-claims/swiss-chocolate-storm/`` — claim form (German), the
   first notice e-mail (German) and the consolidated estimate e-mail (English) as ``.eml`` and
   print PDF, six photos and ``manifest.json`` (provenance and scenario facts).

@@ -255,7 +255,8 @@ async def search_policies(query: str, category: str = "", top_k: int = 5) -> str
     Args:
         query: Natural language question about insurance policies.
         category: Optional policy category filter (automotive, life_health,
-                  property_casualty, mortgage).
+                  property_casualty, property_casualty_ch for the Swiss property
+                  conditions (AVB) of a claim in Switzerland, mortgage).
         top_k: Number of policy chunks to retrieve (default 5).
 
     Returns:
@@ -339,6 +340,9 @@ def _fraud_policy_query(app_md) -> tuple[str, str]:
         limit=12,
     )
     if application_jurisdiction(app_md).country == "CH":
+        # Swiss property conditions are indexed apart so French claims never cite them.
+        if category == "property_casualty":
+            category = "property_casualty_ch"
         terms = (
             "Ausschlüsse Selbstbehalt Elementarschäden Anzeigepflicht "
             "Schadenminderungspflicht Unterversicherung"
@@ -386,9 +390,12 @@ def _fallback_policy_search(settings, query: str, category: str, jurisdiction: s
         "automotive": "automotive_claims",
         "life_health": "life_health_claims",
         "property_casualty": "habitation_claims",
+        "property_casualty_ch": "habitation_claims",
         "mortgage": "mortgage_underwriting",
     }
     persona = persona_map.get(category, "underwriting")
+    if category.endswith("_ch"):
+        jurisdiction = "CH"
     return format_policies_for_persona(
         settings.app.prompts_root, persona, brand=settings.brand_name, jurisdiction=jurisdiction
     )
