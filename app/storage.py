@@ -453,7 +453,7 @@ def canonical_analysis_payload(metadata: ApplicationMetadata) -> Dict[str, Any]:
 
 # Bump to rebuild every cached translation when the localization contract changes
 # (per-part source languages, translation prompt).
-_LOCALIZATION_CONTRACT_VERSION = 2
+_LOCALIZATION_CONTRACT_VERSION = 3
 
 
 def analysis_source_revision(metadata: ApplicationMetadata) -> str:

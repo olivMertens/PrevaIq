@@ -184,6 +184,39 @@ def test_translation_keeps_web_iq_queries_verbatim(monkeypatch: pytest.MonkeyPat
     assert sent == [{"0": "La tempête n'est pas confirmée."}]
 
 
+def test_prose_citing_a_url_is_translated_but_bare_urls_are_not(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    sent: list[dict] = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        chunk = json.loads(messages[1]["content"])
+        sent.append(chunk)
+        return {"content": json.dumps({key: f"EN {text}" for key, text in chunk.items()})}
+
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+    detail = "La vérification web contredit la tempête. Source : https://x.test/a"
+    payload = {
+        "fraud_analysis": {
+            "overall_assessment": {
+                "attention_items": [{"label": "Tempête non confirmée", "detail": detail}],
+                "source_urls": ["https://x.test/a"],
+                "contact": "gestion@prevaiq.example",
+            }
+        }
+    }
+
+    translated = translate_analysis_payload(
+        SimpleNamespace(openai=object()), payload, source_language="fr", target_language="en"
+    )
+
+    assessment = translated["fraud_analysis"]["overall_assessment"]
+    assert sent == [{"0": "Tempête non confirmée", "1": detail}]
+    assert assessment["attention_items"][0]["detail"] == f"EN {detail}"
+    assert assessment["source_urls"] == ["https://x.test/a"]
+    assert assessment["contact"] == "gestion@prevaiq.example"
+
+
 def test_legacy_analysis_without_locale_is_treated_as_french(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

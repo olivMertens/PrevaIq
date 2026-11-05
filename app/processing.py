@@ -135,15 +135,13 @@ def _localizable_strings(
         return items
     if not isinstance(value, str) or not value.strip():
         return []
-    # Codes, dates, URLs, e-mail addresses, and short enum-like tokens are data.
-    if (
-        "://" in value
-        or "@" in value
-        or (
-            key not in _HUMAN_TEXT_KEYS
-            and value.replace("-", "").replace("_", "").replace(".", "").isalnum()
-            and ("_" in value or len(value.split()) == 1)
-        )
+    # Codes, dates, URLs, e-mail addresses, and short enum-like tokens are data. Prose that
+    # cites a source URL or an address is still translated (the prompt keeps them verbatim).
+    single_token = len(value.split()) == 1
+    if (single_token and ("://" in value or "@" in value)) or (
+        key not in _HUMAN_TEXT_KEYS
+        and value.replace("-", "").replace("_", "").replace(".", "").isalnum()
+        and ("_" in value or single_token)
     ):
         return []
     return [(path, value)]
