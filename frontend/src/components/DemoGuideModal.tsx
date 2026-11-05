@@ -4,7 +4,7 @@ import BrandMark from './BrandMark';
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { HelpCircle, X, ChevronDown, ChevronRight, Upload, MessageSquare, CheckCircle, Search, CloudRain, FileText, ClipboardList, Car, Home, Shield, Users, Stethoscope } from 'lucide-react';
+import { HelpCircle, X, ChevronDown, ChevronRight, Upload, MessageSquare, CheckCircle, Search, CloudRain, CloudHail, FileText, ClipboardList, Car, Home, Shield, Users, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
 import { brand } from '@/lib/brand';
 
@@ -37,6 +37,20 @@ const SCENARIOS: Scenario[] = [
     demoPdf: `${DEMO_DIR}/property-claims/wine-cellar/declaration-sinistre-habitation.pdf`,
     steps: [
       { icon: CloudRain },
+      { icon: Upload },
+      { icon: FileText },
+      { icon: Shield },
+      { icon: MessageSquare },
+      { icon: CheckCircle },
+    ],
+  },
+  {
+    id: "habitation-ch",
+    icon: CloudHail,
+    color: "#92400e",
+    demoPdf: `${DEMO_DIR}/property-claims/swiss-chocolate-storm/schadenmeldung-geschaeftsversicherung.pdf`,
+    steps: [
+      { icon: CloudHail },
       { icon: Upload },
       { icon: FileText },
       { icon: Shield },

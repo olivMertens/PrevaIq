@@ -2651,7 +2651,24 @@
     },
     "close": "Close",
     "field": "Field",
-    "analysisFailed": "Fraud analysis failed"
+    "analysisFailed": "Fraud analysis failed",
+    "provenance": {
+      "reportLine": "Provenance (C2PA)",
+      "label": {
+        "aiGenerated": "AI-generated (C2PA)",
+        "credentials": "Content Credentials",
+        "none": "No provenance data",
+        "unavailable": "Provenance not checked"
+      },
+      "tooltip": {
+        "aiGenerated": "The photo carries Content Credentials that declare AI generation: {details}.",
+        "credentials": "The photo carries Content Credentials (C2PA): {details}.",
+        "none": "No Content Credentials (C2PA) in this file. This is common for photos sent from phones or messaging apps and proves nothing either way.",
+        "unavailable": "This file format could not be checked for Content Credentials."
+      },
+      "informationOnly": "Information only: not used in the fraud score.",
+      "usedInScore": "Taken into account by the fraud analysis."
+    }
   },
   "gallery": {
     "download": "Download",
@@ -2808,6 +2825,41 @@
           {
             "title": "6. Adjuster decision",
             "detail": "The verdict bar shows the AI recommendation and why. \"Validate\" opens the decision pre-filled from it; \"Other decision\" offers Approve / Approve with conditions / Defer / Decline, with notes.\nEx: \"Covered per Art. 3.2, €250 deductible applied.\""
+          }
+        ]
+      },
+      "habitation-ch": {
+        "label": "Sinistres Habitation (CH)",
+        "summary": "Schoggimanufaktur Eulachblick GmbH (fictitious) — Hailstorm in Winterthur 08/28/2026 — Shop, workshop and cold room damaged — CHF 1,697,400 claimed\nGerman claim form + German and English e-mails + 6 AI photos (MAI-Image-2.6) — 3 points to check: GVZ building, refrigerated goods, photo taken before the storm",
+        "emptyDemo": "Swiss demo files",
+        "steps": [
+          {
+            "title": "1. Select \"Sinistres Habitation\"",
+            "detail": "Same persona as the French home claims: the jurisdiction (Switzerland, CHF, German sources) is detected from the documents.",
+            "tip": "Amounts are shown in CHF and Web IQ searches Swiss sources (region CH)."
+          },
+          {
+            "title": "2. Upload the Swiss claim",
+            "detail": "• schadenmeldung-geschaeftsversicherung.pdf (German claim form)\n• email-01-schadenmeldung-de.eml or .pdf (first notice, German)\n• email-02-loss-estimate-en.eml or .pdf (consolidated estimate, English)\n• 6 photos IMG_2026…jpg",
+            "tip": "Files are in assets/demo-prevaiq/property-claims/swiss-chocolate-storm/; manifest.json documents the synthetic data."
+          },
+          {
+            "title": "3. Watch AI processing (2-3 min)",
+            "detail": "German and English documents are read as they are; the analysis is shown in your UI language and applies the Swiss policy conditions (AVB KMU-Geschäftsversicherung 2026)."
+          },
+          {
+            "title": "4. Fraud analysis, Web IQ and provenance",
+            "detail": "Run the fraud analysis:\n• Web IQ searches in German, region CH (\"Unwetter Winterthur 28. August 2026 Hagel Sturm\"), without a Cat-Nat query\n• Expected points: building items also reported to the GVZ, refrigerated goods without the Kühlgut extension, a photo dated 26.08 (before the storm)\n• Each photo shows its Content Credentials (C2PA) badge, for information only",
+            "tip": "The photos are AI-generated demo images; their JPEG copies carry no C2PA data."
+          },
+          {
+            "title": "5. Ask IQ in German",
+            "detail": "Switch to DE and ask:\n→ \"Ist das Kühlgut versichert?\"\n→ \"Welcher Selbstbehalt gilt für Elementarschäden?\"\n→ \"Wer deckt den Gebäudeschaden im Kanton Zürich?\"",
+            "tip": "Answers cite the Swiss AVB articles (CH-AVB-…)."
+          },
+          {
+            "title": "6. Adjuster decision",
+            "detail": "Ex: \"Stock, equipment and business interruption covered per AVB B2 and C; building items referred to the GVZ (B1.3); refrigerated goods excluded without the extension (B4.1); Elementar deductible 10%, max. CHF 50,000.\""
           }
         ]
       },

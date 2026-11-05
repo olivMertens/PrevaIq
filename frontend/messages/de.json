@@ -2651,7 +2651,24 @@
     },
     "close": "Schließen",
     "field": "Feld",
-    "analysisFailed": "Betrugsanalyse fehlgeschlagen"
+    "analysisFailed": "Betrugsanalyse fehlgeschlagen",
+    "provenance": {
+      "reportLine": "Herkunft (C2PA)",
+      "label": {
+        "aiGenerated": "KI-generiert (C2PA)",
+        "credentials": "Content Credentials",
+        "none": "Keine Herkunftsdaten",
+        "unavailable": "Herkunft nicht geprüft"
+      },
+      "tooltip": {
+        "aiGenerated": "Das Foto enthält Content Credentials, die eine KI-Erzeugung angeben: {details}.",
+        "credentials": "Das Foto enthält Content Credentials (C2PA): {details}.",
+        "none": "Keine Content Credentials (C2PA) in dieser Datei. Das ist bei Fotos vom Handy oder aus Messengern häufig und beweist weder das eine noch das andere.",
+        "unavailable": "Dieses Dateiformat konnte nicht auf Content Credentials geprüft werden."
+      },
+      "informationOnly": "Nur zur Information: fließt nicht in den Betrugsscore ein.",
+      "usedInScore": "Wird von der Betrugsanalyse berücksichtigt."
+    }
   },
   "gallery": {
     "download": "Herunterladen",
@@ -2808,6 +2825,41 @@
           {
             "title": "6. Entscheidung der Sachbearbeitung",
             "detail": "Die Fallbewertung zeigt die KI-Empfehlung und ihre Begründung. „Bestätigen“ öffnet die daraus vorausgefüllte Entscheidung; „Andere Entscheidung“ bietet Genehmigen / Unter Auflagen genehmigen / Zurückstellen / Ablehnen, mit Notizen.\nBeispiel: „Gedeckt nach Art. 3.2, 250 € Selbstbehalt angewendet.“"
+          }
+        ]
+      },
+      "habitation-ch": {
+        "label": "Sinistres Habitation (CH)",
+        "summary": "Schoggimanufaktur Eulachblick GmbH (fiktiv) — Hagelunwetter in Winterthur am 28.08.2026 — Laden, Atelier und Kühlraum beschädigt — CHF 1'697'400 geltend gemacht\nSchadenmeldung auf Deutsch + E-Mails auf Deutsch und Englisch + 6 KI-Fotos (MAI-Image-2.6) — 3 Prüfpunkte: Gebäude bei der GVZ, Kühlgut, Foto vor dem Unwetter",
+        "emptyDemo": "Schweizer Demodateien",
+        "steps": [
+          {
+            "title": "1. „Sinistres Habitation“ auswählen",
+            "detail": "Dieselbe Persona wie für französische Hausratschäden: Die Rechtsordnung (Schweiz, CHF, deutschsprachige Quellen) wird aus den Dokumenten erkannt.",
+            "tip": "Beträge erscheinen in CHF und Web IQ durchsucht Schweizer Quellen (Region CH)."
+          },
+          {
+            "title": "2. Den Schweizer Schadenfall hochladen",
+            "detail": "• schadenmeldung-geschaeftsversicherung.pdf (Schadenmeldung auf Deutsch)\n• email-01-schadenmeldung-de.eml oder .pdf (Erstmeldung, Deutsch)\n• email-02-loss-estimate-en.eml oder .pdf (konsolidierte Schätzung, Englisch)\n• 6 Fotos IMG_2026…jpg",
+            "tip": "Die Dateien liegen in assets/demo-prevaiq/property-claims/swiss-chocolate-storm/; manifest.json dokumentiert die synthetischen Daten."
+          },
+          {
+            "title": "3. KI-Verarbeitung verfolgen (2–3 Min.)",
+            "detail": "Deutsche und englische Dokumente werden unverändert gelesen; die Analyse erscheint in der Sprache der Oberfläche und wendet die Schweizer Bedingungen an (AVB KMU-Geschäftsversicherung 2026)."
+          },
+          {
+            "title": "4. Betrugsanalyse, Web IQ und Herkunft",
+            "detail": "Betrugsanalyse starten:\n• Web IQ sucht auf Deutsch, Region CH („Unwetter Winterthur 28. August 2026 Hagel Sturm“), ohne Cat-Nat-Abfrage\n• Erwartete Punkte: Gebäude auch der GVZ gemeldet, Kühlgut ohne Zusatzdeckung, Foto vom 26.08. (vor dem Unwetter)\n• Jedes Foto zeigt sein Content-Credentials-Badge (C2PA), nur zur Information",
+            "tip": "Die Fotos sind KI-generierte Demobilder; ihre JPEG-Kopien enthalten keine C2PA-Daten."
+          },
+          {
+            "title": "5. Ask IQ auf Deutsch",
+            "detail": "Auf DE umschalten und fragen:\n→ „Ist das Kühlgut versichert?“\n→ „Welcher Selbstbehalt gilt für Elementarschäden?“\n→ „Wer deckt den Gebäudeschaden im Kanton Zürich?“",
+            "tip": "Die Antworten zitieren die Artikel der Schweizer AVB (CH-AVB-…)."
+          },
+          {
+            "title": "6. Entscheidung der Sachbearbeitung",
+            "detail": "Bsp.: „Waren, Einrichtungen und Betriebsunterbruch gedeckt (AVB B2 und C); Gebäude an die GVZ verwiesen (B1.3); Kühlgut ohne Zusatzdeckung ausgeschlossen (B4.1); Selbstbehalt Elementar 10 %, max. CHF 50'000.“"
           }
         ]
       },

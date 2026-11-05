@@ -2651,7 +2651,24 @@
     },
     "close": "Fermer",
     "field": "Champ",
-    "analysisFailed": "Échec de l’analyse de fraude"
+    "analysisFailed": "Échec de l’analyse de fraude",
+    "provenance": {
+      "reportLine": "Provenance (C2PA)",
+      "label": {
+        "aiGenerated": "Générée par IA (C2PA)",
+        "credentials": "Content Credentials",
+        "none": "Aucune donnée de provenance",
+        "unavailable": "Provenance non vérifiée"
+      },
+      "tooltip": {
+        "aiGenerated": "La photo porte des Content Credentials qui déclarent une génération par IA : {details}.",
+        "credentials": "La photo porte des Content Credentials (C2PA) : {details}.",
+        "none": "Aucun Content Credentials (C2PA) dans ce fichier. C'est fréquent pour les photos envoyées depuis un téléphone ou une messagerie, et cela ne prouve rien.",
+        "unavailable": "Le format de ce fichier n'a pas pu être vérifié."
+      },
+      "informationOnly": "Information seulement : non utilisée dans le score de fraude.",
+      "usedInScore": "Prise en compte par l'analyse de fraude."
+    }
   },
   "gallery": {
     "download": "Télécharger",
@@ -2808,6 +2825,41 @@
           {
             "title": "6. Décision du gestionnaire",
             "detail": "Le bandeau de verdict affiche la recommandation IA et sa raison. « Valider » ouvre la décision préremplie ; « Autre décision » propose Approuver / Approuver sous conditions / Différer / Refuser, avec notes.\nEx : « Couvert Art. 3.2 CG Habitation, franchise 250 € déduite. »"
+          }
+        ]
+      },
+      "habitation-ch": {
+        "label": "Sinistres Habitation (CH)",
+        "summary": "Schoggimanufaktur Eulachblick GmbH (fictive) — Grêle à Winterthur le 28/08/2026 — Magasin, atelier et chambre froide sinistrés — 1 697 400 CHF déclarés\nDéclaration en allemand + e-mails en allemand et en anglais + 6 photos IA (MAI-Image-2.6) — 3 points à vérifier : bâtiment GVZ, denrées réfrigérées, photo antérieure à la tempête",
+        "emptyDemo": "Fichiers de démo suisses",
+        "steps": [
+          {
+            "title": "1. Sélectionner \"Sinistres Habitation\"",
+            "detail": "Même persona que les sinistres habitation français : la juridiction (Suisse, CHF, sources en allemand) est détectée à partir des documents.",
+            "tip": "Les montants s'affichent en CHF et Web IQ interroge des sources suisses (région CH)."
+          },
+          {
+            "title": "2. Déposer le dossier suisse",
+            "detail": "• schadenmeldung-geschaeftsversicherung.pdf (déclaration en allemand)\n• email-01-schadenmeldung-de.eml ou .pdf (première déclaration, en allemand)\n• email-02-loss-estimate-en.eml ou .pdf (estimation consolidée, en anglais)\n• 6 photos IMG_2026…jpg",
+            "tip": "Les fichiers sont dans assets/demo-prevaiq/property-claims/swiss-chocolate-storm/ ; manifest.json documente les données synthétiques."
+          },
+          {
+            "title": "3. Suivre le traitement IA (2-3 min)",
+            "detail": "Les documents allemands et anglais sont lus tels quels ; l'analyse s'affiche dans la langue de l'interface et applique les conditions suisses (AVB KMU-Geschäftsversicherung 2026)."
+          },
+          {
+            "title": "4. Fraude, Web IQ et provenance",
+            "detail": "Lancer l'analyse fraude :\n• Web IQ cherche en allemand, région CH (« Unwetter Winterthur 28. August 2026 Hagel Sturm »), sans requête Cat-Nat\n• Points attendus : bâtiment aussi déclaré à la GVZ, denrées réfrigérées sans l'extension Kühlgut, photo datée du 26.08 (avant la tempête)\n• Chaque photo affiche son badge Content Credentials (C2PA), à titre d'information",
+            "tip": "Les photos sont des images de démo générées par IA ; leurs copies JPEG ne portent pas de données C2PA."
+          },
+          {
+            "title": "5. Ask IQ en allemand",
+            "detail": "Passer en DE et demander :\n→ « Ist das Kühlgut versichert? »\n→ « Welcher Selbstbehalt gilt für Elementarschäden? »\n→ « Wer deckt den Gebäudeschaden im Kanton Zürich? »",
+            "tip": "Les réponses citent les articles des AVB suisses (CH-AVB-…)."
+          },
+          {
+            "title": "6. Décision du gestionnaire",
+            "detail": "Ex. : « Marchandises, équipements et perte d'exploitation couverts (AVB B2 et C) ; bâtiment renvoyé à la GVZ (B1.3) ; denrées réfrigérées exclues sans l'extension (B4.1) ; franchise Elementar 10 %, max. 50 000 CHF. »"
           }
         ]
       },

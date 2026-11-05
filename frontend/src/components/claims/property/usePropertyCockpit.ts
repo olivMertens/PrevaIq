@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ApplicationDecision, FraudAnalysisResponse } from '@/lib/api';
+import { applicationCurrency, formatAmount } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import { mergeSignals } from '@/components/case/caseSignals';
 import { collectCaseUpdates, type CaseUpdateSource } from '@/components/case/caseUpdates';
@@ -58,7 +59,8 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
     const field = (...keys: string[]) => getFieldValue(ef, keys, '');
     const amountRaw = field('MontantEstime', 'TotalIncurred', 'MontantTotal');
     const amount = parseAmount(amountRaw);
-    const money = (value: number) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+    const currency = applicationCurrency(application);
+    const money = (value: number) => formatAmount(value, currency, locale, { maximumFractionDigits: 0 });
     const hasAmount = Number.isFinite(amount) && amount > 0;
     const overclaimPercent = amountComparison?.hasOverclaim ? Math.round(amountComparison.pctDelta) : undefined;
 

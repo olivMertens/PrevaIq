@@ -2,6 +2,7 @@
 
 import { useLocale } from 'next-intl';
 import type { FraudAnalysisResponse } from '@/lib/api';
+import { applicationCurrency, formatAmount } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import type { DeepDiveTab } from '@/components/case/caseSignals';
 import { PipelineDetails } from '@/components/case/PipelineStatusPill';
@@ -55,8 +56,8 @@ export default function PropertyDeepDive({
   const locale = useLocale();
   const { ef, aiSummary, amountComparison } = data;
   const field = (...keys: string[]) => getFieldValue(ef, keys, '');
-  const money = (value: number) =>
-    new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+  const currency = applicationCurrency(application);
+  const money = (value: number) => formatAmount(value, currency, locale, { maximumFractionDigits: 0 });
 
   switch (tab) {
     case 'summary':

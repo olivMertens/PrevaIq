@@ -80,6 +80,7 @@ test('localized messages have valid ICU syntax and matching arguments', () => {
 test('demo guide content is next-intl backed for all locales', () => {
   const demoPaths = {
     habitation: 'assets/demo-prevaiq/property-claims/wine-cellar/',
+    'habitation-ch': 'assets/demo-prevaiq/property-claims/swiss-chocolate-storm/',
     auto: 'assets/demo-prevaiq/automotive-claims/parking-impact/',
     sante: 'assets/demo-prevaiq/health-underwriting/',
     'sante-sinistre': 'assets/demo-prevaiq/health-claims/dental/',

@@ -1875,6 +1875,17 @@ export async function fetchCorrectionStats(): Promise<CorrectionStats> {
 // Fraud Detection APIs
 // ============================================================================
 
+export interface ImageProvenance {
+  status: 'c2pa' | 'none' | 'unsupported' | 'error';
+  ai_generated?: boolean | null;
+  generator?: string | null;
+  issuer?: string | null;
+  created_at?: string | null;
+  watermark_declared?: boolean;
+  validation?: string | null;
+  used_in_score?: boolean;
+}
+
 export interface ImageFraudResult {
   filename: string;
   authenticity_score: number;
@@ -1891,6 +1902,8 @@ export interface ImageFraudResult {
     actual_content?: string;
     note?: string;
   };
+  /** Content Credentials (C2PA) of the photo, for information unless used_in_score */
+  provenance?: ImageProvenance;
   error?: string;
 }
 

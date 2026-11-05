@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { ApplicationMetadata } from '@/lib/types';
 import { brand, isWorkbenchSystem } from '@/lib/brand';
+import { applicationCurrency, formatAmount } from '@/lib/currency';
 import ConfidenceIndicator from './ConfidenceIndicator';
 import clsx from 'clsx';
 
@@ -468,7 +469,7 @@ function buildHabitationTimeline(application: ApplicationMetadata, locale: strin
     const numMontant = Number(String(montant).replace(/[^\d.,]/g, '').replace(',', '.'));
     const montantDisplay = isNaN(numMontant)
       ? montant
-      : new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(numMontant);
+      : formatAmount(numMontant, applicationCurrency(application), locale);
     entries.push({
       date: d.date, year: d.year,
       title: t('damageEstimate', { amount: montantDisplay }),

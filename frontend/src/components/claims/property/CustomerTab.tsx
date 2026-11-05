@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { applicationCurrency } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import ClientSentimentPanel from '../ClientSentimentPanel';
 import CommunicationGenerator from '../CommunicationGenerator';
@@ -55,6 +56,7 @@ export default function CustomerTab({
           customerData={customerData}
           claimNature={claimNature}
           estimatedAmount={estimatedAmount}
+          currency={applicationCurrency(application)}
           daysSinceClaim={daysSinceClaim}
           backendSentiment={application.sentiment_analysis ?? null}
           mode="full"

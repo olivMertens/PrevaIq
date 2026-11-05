@@ -6,9 +6,10 @@ const vm = require('node:vm');
 const ts = require('typescript');
 
 const caseDir = path.resolve(__dirname, '..', 'src', 'components', 'case');
+const libDir = path.resolve(__dirname, '..', 'src', 'lib');
 
-function load(name) {
-  const filename = path.join(caseDir, name);
+function load(name, dir = caseDir) {
+  const filename = path.join(dir, name);
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   });
@@ -25,6 +26,24 @@ const signals = load('caseSignals.ts');
 const updates = load('caseUpdates.ts');
 const health = load('pipelineHealth.ts');
 const recommendation = load('recommendation.ts');
+const currency = load('currency.ts', libDir);
+
+test('amounts follow the claim currency (CHF in Switzerland) and the UI language', () => {
+  const { applicationCurrency, formatAmount } = currency;
+  assert.equal(applicationCurrency({ jurisdiction: { country: 'CH', currency: 'CHF' } }), 'CHF');
+  assert.equal(applicationCurrency({ jurisdiction: { country: 'FR', currency: 'EUR' } }), 'EUR');
+  assert.equal(applicationCurrency({}), 'EUR');
+  assert.equal(applicationCurrency(null), 'EUR');
+
+  for (const locale of ['en', 'fr', 'de']) {
+    const chf = formatAmount(1697400, 'CHF', locale, { maximumFractionDigits: 0 });
+    assert.match(chf, /CHF/);
+    assert.match(chf, /1.697.400/);
+    assert.doesNotMatch(chf, /€/);
+  }
+  assert.match(formatAmount(6560, 'EUR', 'fr', { maximumFractionDigits: 0 }), /6\s?560\s?€/);
+  assert.equal(formatAmount(6560, 'EUR', 'en', { maximumFractionDigits: 0 }), '€6,560');
+});
 
 test('model findings are filed under a theme in English, French and German', () => {
   const { classifyTheme } = signals;

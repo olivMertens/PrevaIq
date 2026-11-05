@@ -1,5 +1,7 @@
 // API types matching the Python backend data structures
 
+import type { CurrencyCode } from './currency';
+
 // ============================================================================
 // Persona Types
 // ============================================================================
@@ -441,6 +443,8 @@ export interface ApplicationMetadata {
   } | null;
   // Fraud analysis
   fraud_analysis?: Record<string, unknown> | null;
+  // Country and currency detected by the backend from the extracted fields
+  jurisdiction?: { country: 'FR' | 'CH'; currency: CurrencyCode };
   // Background processing status
   processing_status?: 'extracting' | 'analyzing' | 'error' | null;
   processing_error?: string | null;

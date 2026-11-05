@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { Loader2, TriangleAlert, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { getApplication, type FraudAnalysisResponse } from '@/lib/api';
+import { applicationCurrency } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import GalleryLightbox from '../GalleryLightbox';
 import AttentionList, { type Density } from '@/components/case/AttentionList';
@@ -169,7 +170,8 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
       propertyAddress: field(['PropertyAddress', 'AdresseRisque', 'AdresseBien']),
       lineOfBusiness: field(['LineOfBusiness', 'NatureContrat', 'BrancheAssurance'], 'Habitation MRH'),
       totalEstimated: field(['TotalIncurred', 'MontantEstime', 'MontantTotal', 'MontantDevis', 'MontantReparation'], '—'),
-      deductible: field(['FranchiseApplicable', 'Franchise'], '250 €'),
+      // The 250 € fallback is the French standard deductible; other currencies show none.
+      deductible: field(['FranchiseApplicable', 'Franchise'], applicationCurrency(application) === 'EUR' ? '250 €' : '—'),
       settlementAmount: field(['SettlementAmount', 'MontantIndemnisation', 'IndemniteRecommandee']),
       aiSummary: data.aiSummary,
       extractedFields: ef as Record<string, { field_name?: string; value?: unknown; confidence?: number }>,

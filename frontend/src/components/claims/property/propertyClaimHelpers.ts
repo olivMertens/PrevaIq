@@ -1,5 +1,6 @@
 // Pure helpers for the property-claims cockpit (moved unchanged from the former overview).
 import { textValue } from '@/lib/applicationDisplay';
+import { formatAmount, type CurrencyCode } from '@/lib/currency';
 
 // Extract a field value from extracted_fields, searching with multiple key patterns
 export function getFieldValue(extractedFields: Record<string, unknown>, keys: string[], defaultValue: string = ''): string {
@@ -138,7 +139,13 @@ export function classifyDocument(filename: string, t: TranslateFn): { type: stri
 // Format parsed JSON into human-readable labels for AI summary display
 // NOTE: Do NOT use t() for dynamic field names — next-intl throws MISSING_MESSAGE
 // errors that crash React. Use a static lookup map + auto-formatting fallback instead.
-export function formatParsedFields(parsed: Record<string, unknown>, prefix = '', t?: TranslateFn, locale = 'en'): string[] {
+export function formatParsedFields(
+  parsed: Record<string, unknown>,
+  prefix = '',
+  t?: TranslateFn,
+  locale = 'en',
+  currency: CurrencyCode = 'EUR',
+): string[] {
   const lines: string[] = [];
   // Comprehensive static label map — covers all known LLM output field names
   const labelMap: Record<string, string> = {
@@ -173,19 +180,19 @@ export function formatParsedFields(parsed: Record<string, unknown>, prefix = '',
       lines.push(`${prefix}${label} : ${value}`);
     } else if (typeof value === 'number') {
       const formatted = key.toLowerCase().includes('montant') || key.toLowerCase().includes('franchise') || key.toLowerCase().includes('indemnisation') || key.toLowerCase().includes('total') || key.toLowerCase().includes('plafond')
-        ? new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value)
+        ? formatAmount(value, currency, locale)
         : String(value);
       lines.push(`${prefix}${label} : ${formatted}`);
     } else if (typeof value === 'boolean') {
       lines.push(`${prefix}${label} : ${value ? t?.('parsedFields.yes') || 'Yes' : t?.('parsedFields.no') || 'No'}`);
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       lines.push(`${prefix}${label} :`);
-      lines.push(...formatParsedFields(value as Record<string, unknown>, prefix + '  ', t, locale));
+      lines.push(...formatParsedFields(value as Record<string, unknown>, prefix + '  ', t, locale, currency));
     } else if (Array.isArray(value) && value.length > 0) {
       lines.push(`${prefix}${label} :`);
       for (const item of value) {
         if (typeof item === 'object' && item !== null) {
-          lines.push(...formatParsedFields(item as Record<string, unknown>, prefix + '  - ', t, locale));
+          lines.push(...formatParsedFields(item as Record<string, unknown>, prefix + '  - ', t, locale, currency));
         } else {
           lines.push(`${prefix}  - ${String(item)}`);
         }
@@ -195,7 +202,7 @@ export function formatParsedFields(parsed: Record<string, unknown>, prefix = '',
   return lines;
 }
 
-/** Parse an amount such as "6560 EUR", "10 825 €" or "6,560.00" into a number (NaN if absent). */
+/** Parse an amount such as "6560 EUR", "10 825 €", "CHF 1'697'400.00" or "6,560.00" (NaN if absent). */
 export function parseAmount(raw: string): number {
   const cleaned = String(raw || '').replace(/[^\d.,]/g, '');
   if (!cleaned) return NaN;

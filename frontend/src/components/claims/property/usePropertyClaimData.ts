@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { ApplicationMetadata, ContextTask } from '@/lib/types';
 import { getMediaUrl } from '@/lib/api';
 import { brand, isWorkbenchSystem } from '@/lib/brand';
+import { applicationCurrency, formatAmount } from '@/lib/currency';
 import type { GalleryItem } from '../../GalleryLightbox';
 import type { StepItem } from '@/components/case/NextSteps';
 import {
@@ -21,6 +22,7 @@ import {
 export function usePropertyClaimData(application: ApplicationMetadata | null) {
   const t = useTranslations('claims');
   const locale = useLocale();
+  const currency = applicationCurrency(application);
   // Stable references: the Client 360 lookup effect and every derived memo depend on them.
   const ef = useMemo(() => application?.extracted_fields || {}, [application?.extracted_fields]);
   const llmOutputs = useMemo(
@@ -234,7 +236,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
             }
             // Fallback: format parsed JSON into readable text
             else {
-              const lines = formatParsedFields(sub.parsed, '', t, locale);
+              const lines = formatParsedFields(sub.parsed, '', t, locale, currency);
               if (lines.length > 0) {
                 parts.push(lines.join('\n'));
               }
@@ -249,7 +251,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
       parts.push(t('analysisDialog.analysisComplete', { count: sectionCount }));
     }
     return parts.join('\n\n');
-  }, [llmOutputs, locale, t]);
+  }, [currency, llmOutputs, locale, t]);
 
   // Amount comparison: customer claimed vs AI-assessed
   const amountComparison = useMemo(() => {
@@ -364,7 +366,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
 
       if (montant) {
         const formatted = !isNaN(Number(montant))
-          ? new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(Number(montant))
+          ? formatAmount(Number(montant), currency, locale)
           : montant;
         events.push({ date: fmtDate(twoDaysAfter), type: t('timeline.estimation', { amount: formatted }), desc: t('timeline.estimationDesc'), impact: 'neutral', sort: twoDaysAfter.getTime() + 1 });
       }
@@ -465,7 +467,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
       const classification = classifyDocument(f.filename, t);
       return { date: fmtDate(createdDate), type: classification.type, desc: f.filename, impact: 'supports' };
     });
-  }, [files, application, ef, llmOutputs, locale, t]);
+  }, [currency, files, application, ef, llmOutputs, locale, t]);
 
   // Build damage items from extracted fields — only damage-related fields with French labels
   const injuries = useMemo(() => {

@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Heart, Phone, Clock, MessageCircle, TrendingUp, UserCheck, Handshake, ChevronRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
+import { formatAmount, type CurrencyCode } from '@/lib/currency';
 
 interface BackendSentiment {
   score: number;
@@ -23,6 +24,8 @@ interface ClientSentimentPanelProps {
   claimNature: string;
   /** Estimated amount */
   estimatedAmount: number;
+  /** Currency of the estimated amount (default EUR) */
+  currency?: CurrencyCode;
   /** Number of days since claim was filed */
   daysSinceClaim: number;
   /** Backend sentiment from the Sentiment Agent (preferred when available) */
@@ -62,6 +65,7 @@ export default function ClientSentimentPanel({
   customerData,
   claimNature,
   estimatedAmount,
+  currency = 'EUR',
   daysSinceClaim,
   backendSentiment,
   mode = 'compact',
@@ -70,11 +74,7 @@ export default function ClientSentimentPanel({
   const t = useTranslations('claimsModals');
   const tSentiment = useTranslations('clientSentiment');
   const locale = useLocale();
-  const formattedAmount = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(estimatedAmount);
+  const formattedAmount = formatAmount(estimatedAmount, currency, locale, { maximumFractionDigits: 0 });
   const sentiment = useMemo<SentimentResult>(() => {
     // ── Prefer backend Sentiment Agent result ──
     if (backendSentiment && typeof backendSentiment.score === 'number') {

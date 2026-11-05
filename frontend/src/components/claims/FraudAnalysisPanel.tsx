@@ -6,6 +6,7 @@ import { FraudAnalysisResponse, runFraudAnalysis, getFraudAnalysis } from '@/lib
 import { useLocale, useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import ConfidenceIndicator from '../ConfidenceIndicator';
+import ProvenanceBadge, { provenanceDetails, provenanceKind } from './ProvenanceBadge';
 
 type ReasoningEffort = 'low' | 'medium' | 'high';
 
@@ -246,6 +247,10 @@ export default function FraudAnalysisPanel({
         const status = img.error ? `⚠ ${t('report.error')}` : img.is_likely_authentic ? `✅ ${t('report.authentic')}` : `🔴 ${t('report.suspicious')}`;
         lines.push(`### ${img.filename}`);
         lines.push(`**${t('report.status')}** : ${status} | **${t('report.score')}** : ${Math.round((img.authenticity_score || 0) * 100)}%`);
+        if (img.provenance) {
+          const details = provenanceDetails(img.provenance);
+          lines.push(`- ${t('provenance.reportLine')} : ${t(`provenance.label.${provenanceKind(img.provenance)}`)}${details ? ` (${details})` : ''}`);
+        }
         if (img.filename_concordance) {
           const fc = img.filename_concordance;
           if (!fc.filename_is_descriptive) {
@@ -591,6 +596,9 @@ export default function FraudAnalysisPanel({
                                 )}
                               </div>
                             </div>
+                            {img.provenance && (
+                              <div className="mb-2"><ProvenanceBadge provenance={img.provenance} /></div>
+                            )}
                             {/* Filename concordance indicator */}
                             {img.filename_concordance && (
                               <div className="mb-2">
@@ -926,6 +934,9 @@ export default function FraudAnalysisPanel({
                       {!img.error && <ConfidenceIndicator confidence={img.authenticity_score || 0} />}
                     </div>
                   </div>
+                  {img.provenance && (
+                    <div className="mb-2"><ProvenanceBadge provenance={img.provenance} size="md" /></div>
+                  )}
                   {img.filename_concordance && !img.filename_concordance.filename_is_descriptive && (
                     <div className="flex items-center gap-2 text-sm text-slate-400 mb-2"><Info className="w-4 h-4" />{t('genericFilename')}</div>
                   )}
