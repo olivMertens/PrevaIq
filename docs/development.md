@@ -219,6 +219,12 @@ For Azure Container Apps, read the FQDNs for `ca-frontend-demo` and `ca-api-demo
 | `GET` | `/api/analyzer/status` | Get custom analyzer status |
 | `POST` | `/api/analyzer/create` | Create a custom analyzer |
 
+Ask IQ conversations are stored with their application, as hidden files
+`.conversation-<id>.json` among the application's files (Blob Storage or local storage).
+They survive redeploys and are shared by all API replicas. `GET /api/agents/status` also
+returns `capabilities` (`fabric_data`, `web_iq`), so the chat panel only offers the modes
+that can answer in the current environment.
+
 ## Development tasks
 
 ### Running tests

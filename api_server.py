@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import uuid
 from datetime import datetime, UTC
 from pathlib import Path
@@ -42,10 +43,13 @@ from app.database.settings import DatabaseSettings
 from app.database.pool import init_pool
 from app.telemetry import configure_telemetry, install_claim_correlation_middleware
 from app.storage import (
+    delete_application_file,
+    list_application_files,
     list_applications,
     load_application,
     load_file,
     new_metadata,
+    save_application_file,
     save_uploaded_files,
     save_application_metadata,
     ApplicationMetadata,
@@ -4342,9 +4346,9 @@ async def chat_with_application(app_id: str, request: ChatRequest):
 async def generate_chat_suggestions(app_id: str, body: dict | None = None):
     """Generate dossier-aware chat suggestion pills using the LLM.
 
-    Returns 3-4 short French questions a claims/underwriting handler is likely
-    to ask about THIS specific dossier, based on its persona, status, decision,
-    context labels and tasks.
+    Returns 3-4 short questions, in the requested language, that a claims/underwriting
+    handler is likely to ask about THIS specific dossier, based on its persona, status,
+    decision, context labels and tasks.
 
     Body (all optional):
         { "language": "fr", "agent": "auto|data|policy|analysis|dashboard" }
@@ -4359,9 +4363,22 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
         language = require_language(_body.get("language"))
         agent = _body.get("agent", "auto")
 
-        # Build a compact, structured context for the LLM
-        labels = app_md.context_labels or []
-        tasks = app_md.context_tasks or []
+        # Context labels and tasks are written in French: use their cached translation so
+        # the suggestions do not quote French labels in an English or German UI.
+        localized: dict = {}
+        try:
+            from app.processing import cached_localized_analysis_payload
+
+            localized = (
+                await asyncio.to_thread(
+                    cached_localized_analysis_payload, settings, app_md, language
+                )
+                or {}
+            )
+        except Exception:  # noqa: BLE001 — the stored labels are still usable
+            logger.debug("No localized context for suggestions of %s", app_id, exc_info=True)
+        labels = localized.get("context_labels") or app_md.context_labels or []
+        tasks = localized.get("context_tasks") or app_md.context_tasks or []
         decision = None
         if isinstance(app_md.llm_outputs, dict):
             decision = app_md.llm_outputs.get("decision") or app_md.llm_outputs.get(
@@ -4375,14 +4392,20 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
                 or app_md.llm_outputs.get("synthese")
             )
 
-        # Compact labels/tasks to just key + label/category to keep prompt small
+        def plain(text: Any) -> str:
+            # Leading symbols such as "✓ " would otherwise be echoed in the suggestions.
+            return re.sub(r"^\W+", "", str(text or "")).strip()
+
+        # Compact labels/tasks to keep the prompt small
         compact_labels = [
-            {"key": l.get("key"), "type": l.get("type"), "label": l.get("label")}
-            for l in labels[:20]
+            {"type": label.get("type"), "label": plain(label.get("label"))}
+            for label in labels[:20]
+            if label.get("label")
         ]
         compact_tasks = [
-            {"category": t.get("category"), "label": t.get("label") or t.get("title")}
-            for t in tasks[:10]
+            {"category": task.get("category"), "task": plain(task.get("task"))}
+            for task in tasks[:10]
+            if task.get("task")
         ]
 
         dossier_ctx: dict[str, Any] = {
@@ -4404,7 +4427,8 @@ async def generate_chat_suggestions(app_id: str, body: dict | None = None):
             "- Return 3 to 4 short suggestions (at most 12 words), as questions or direct commands.\n"
             "- Make them application-specific using the supplied labels, tasks, status and persona.\n"
             "- Each suggestion must cover a distinct angle (coverage, evidence, fraud, recovery, compliance).\n"
-            f"- Professional tone; preserve insurance terms such as CG, IRSI, HCSF, Cat-Nat, LTV and franchise.\n"
+            "- Professional tone. Keep acronyms (CG, AVB, IRSI, HCSF, Cat-Nat, LTV, SIU) unchanged; "
+            "translate every other term, including labels quoted from the context.\n"
             "- For pending/processing applications, ask about progress.\n"
             "- If a decision exists, ask about next steps.\n"
             f"- {language_instruction(language)}\n\n"
@@ -4527,6 +4551,7 @@ async def run_workflow(app_id: str, workflow_id: str, body: dict | None = None):
 async def get_agent_status():
     """Return Agent Framework status, agents and workflows actually wired in the backend."""
     from app.agents.api_integration import FRAMEWORK_LABEL
+    from app.agents.tools import fabric_data_configured
     from app.agents.workflows import WORKFLOWS
 
     settings = load_settings()
@@ -4538,6 +4563,11 @@ async def get_agent_status():
     return {
         "enabled": True,
         "framework": FRAMEWORK_LABEL,
+        # Lets the UI offer only the chat modes that can answer in this environment.
+        "capabilities": {
+            "fabric_data": fabric_data_configured(),
+            "web_iq": bool(settings.webiq.enabled),
+        },
         "agents": [
             {
                 "name": "ChatAgent",
@@ -4573,75 +4603,103 @@ async def get_agent_status():
 # Conversation History API Endpoints
 # =============================================================================
 
+# Conversations are hidden files of their application (Blob storage in Azure): they
+# survive restarts and redeployments, are shared by every API replica and are deleted
+# with the application.
+_CONVERSATION_FILE_PREFIX = ".conversation-"
+_STORAGE_ID_RE = re.compile(r"[A-Za-z0-9_-]{1,64}")
+_CONVERSATION_LIST_WORKERS = 8
 
-def get_conversations_dir(storage_root: str) -> Path:
-    """Get the conversations directory path."""
-    return Path(storage_root) / "conversations"
+
+def _conversation_filename(conversation_id: str) -> str:
+    return f"{_CONVERSATION_FILE_PREFIX}{conversation_id}.json"
 
 
-def get_app_conversations_dir(storage_root: str, app_id: str) -> Path:
-    """Get the conversations directory for a specific application."""
-    return get_conversations_dir(storage_root) / app_id
+def _valid_storage_ids(*values: Any) -> bool:
+    """Ids used in storage paths: letters, digits, '-' and '_' only."""
+    return all(isinstance(value, str) and _STORAGE_ID_RE.fullmatch(value) for value in values)
 
 
 def load_conversation(storage_root: str, app_id: str, conversation_id: str) -> Optional[dict]:
-    """Load a conversation from disk."""
-    conv_file = get_app_conversations_dir(storage_root, app_id) / f"{conversation_id}.json"
-    if conv_file.exists():
-        try:
-            return json.loads(conv_file.read_text(encoding="utf-8"))
-        except Exception as e:
-            logger.error("Failed to load conversation %s: %s", conversation_id, e)
-    return None
+    """Load a conversation stored with its application."""
+    if not _valid_storage_ids(app_id, conversation_id):
+        return None
+    content = load_file(storage_root, app_id, _conversation_filename(conversation_id))
+    if content is None:
+        return None
+    try:
+        conversation = json.loads(content.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        logger.error("Invalid conversation %s for application %s", conversation_id, app_id)
+        return None
+    return conversation if isinstance(conversation, dict) else None
 
 
 def save_conversation(storage_root: str, app_id: str, conversation: dict) -> None:
-    """Save a conversation to disk."""
-    conv_dir = get_app_conversations_dir(storage_root, app_id)
-    conv_dir.mkdir(parents=True, exist_ok=True)
-    conv_file = conv_dir / f"{conversation['id']}.json"
-    conv_file.write_text(json.dumps(conversation, indent=2), encoding="utf-8")
+    """Save a conversation with its application (Blob storage in Azure)."""
+    if not _valid_storage_ids(app_id, conversation.get("id")):
+        raise ValueError("Invalid application or conversation id")
+    content = json.dumps(conversation, ensure_ascii=False, indent=2).encode("utf-8")
+    save_application_file(storage_root, app_id, _conversation_filename(conversation["id"]), content)
 
 
-def list_conversations(storage_root: str, app_id: str) -> List[dict]:
-    """List all conversations for an application."""
-    conv_dir = get_app_conversations_dir(storage_root, app_id)
-    if not conv_dir.exists():
+def delete_stored_conversation(storage_root: str, app_id: str, conversation_id: str) -> bool:
+    """Delete a stored conversation; False when it does not exist."""
+    if not _valid_storage_ids(app_id, conversation_id):
+        return False
+    return delete_application_file(storage_root, app_id, _conversation_filename(conversation_id))
+
+
+def _conversation_summary(conversation: dict, app_id: str) -> dict:
+    messages = conversation.get("messages") or []
+    first_question = next(
+        (str(msg.get("content") or "") for msg in messages if msg.get("role") == "user"), None
+    )
+    preview = None
+    if first_question is not None:
+        preview = first_question[:100] + ("..." if len(first_question) > 100 else "")
+    return {
+        "id": conversation.get("id"),
+        "application_id": conversation.get("application_id", app_id),
+        "persona": conversation.get("persona"),
+        "title": conversation.get("title", "Untitled Conversation"),
+        "created_at": conversation.get("created_at", ""),
+        "updated_at": conversation.get("updated_at", ""),
+        "message_count": len(messages),
+        "preview": preview,
+    }
+
+
+def list_conversations(
+    storage_root: str, app_id: Optional[str] = None, limit: Optional[int] = None
+) -> List[dict]:
+    """Summaries of stored conversations, newest first (``app_id=None``: every application)."""
+    if app_id is not None and not _valid_storage_ids(app_id):
+        return []
+    stored = [
+        item
+        for item in list_application_files(storage_root, app_id, _CONVERSATION_FILE_PREFIX)
+        if item[1].endswith(".json")
+    ]
+    stored.sort(key=lambda item: item[2], reverse=True)
+    refs = [
+        (stored_app_id, filename[len(_CONVERSATION_FILE_PREFIX) : -len(".json")])
+        for stored_app_id, filename, _ in stored[:limit]
+    ]
+    if not refs:
         return []
 
-    conversations = []
-    for conv_file in conv_dir.glob("*.json"):
-        try:
-            conv = json.loads(conv_file.read_text(encoding="utf-8"))
-            # Create summary
-            messages = conv.get("messages", [])
-            preview = None
-            if messages:
-                # Get first user message as preview
-                for msg in messages:
-                    if msg.get("role") == "user":
-                        preview = msg.get("content", "")[:100]
-                        if len(msg.get("content", "")) > 100:
-                            preview += "..."
-                        break
+    from concurrent.futures import ThreadPoolExecutor
 
-            conversations.append(
-                {
-                    "id": conv["id"],
-                    "application_id": conv.get("application_id", app_id),
-                    "title": conv.get("title", "Untitled Conversation"),
-                    "created_at": conv.get("created_at", ""),
-                    "updated_at": conv.get("updated_at", ""),
-                    "message_count": len(messages),
-                    "preview": preview,
-                }
-            )
-        except Exception as e:
-            logger.error("Failed to read conversation file %s: %s", conv_file, e)
-
-    # Sort by updated_at descending
-    conversations.sort(key=lambda c: c.get("updated_at", ""), reverse=True)
-    return conversations
+    with ThreadPoolExecutor(max_workers=min(_CONVERSATION_LIST_WORKERS, len(refs))) as pool:
+        loaded = list(pool.map(lambda ref: load_conversation(storage_root, *ref), refs))
+    summaries = [
+        _conversation_summary(conversation, ref_app_id)
+        for (ref_app_id, _), conversation in zip(refs, loaded)
+        if conversation
+    ]
+    summaries.sort(key=lambda summary: summary.get("updated_at", ""), reverse=True)
+    return summaries
 
 
 def generate_conversation_title(first_message: str) -> str:
@@ -4658,80 +4716,27 @@ async def get_application_conversations(app_id: str):
     """List all conversations for an application."""
     try:
         settings = load_settings()
-        conversations = list_conversations(settings.app.storage_root, app_id)
+        conversations = await asyncio.to_thread(
+            list_conversations, settings.app.storage_root, app_id
+        )
         return {"conversations": conversations}
     except Exception as e:
         logger.error("Failed to list conversations for %s: %s", app_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Conversations could not be listed") from e
 
 
 @app.get("/api/conversations")
 async def get_all_conversations(limit: int = 50):
-    """List conversations across all applications."""
+    """List the most recent conversations across all applications."""
     try:
         settings = load_settings()
-        storage_root = Path(settings.app.storage_root)
-
-        all_conversations = []
-
-        # Iterate through all application directories
-        if storage_root.exists():
-            # Check for conversations in data/conversations/ (legacy)
-            conversations_dir = storage_root / "conversations"
-            if conversations_dir.exists():
-                for app_dir in conversations_dir.iterdir():
-                    if app_dir.is_dir():
-                        app_id = app_dir.name
-                        convs = list_conversations(settings.app.storage_root, app_id)
-                        all_conversations.extend(convs)
-
-            # Check for conversations in data/applications/*/conversations/
-            applications_dir = storage_root / "applications"
-            if applications_dir.exists():
-                for app_dir in applications_dir.iterdir():
-                    if app_dir.is_dir():
-                        app_id = app_dir.name
-                        app_conv_dir = app_dir / "conversations"
-                        if app_conv_dir.exists():
-                            for conv_file in app_conv_dir.glob("*.json"):
-                                try:
-                                    conv = json.loads(conv_file.read_text(encoding="utf-8"))
-                                    messages = conv.get("messages", [])
-                                    preview = None
-                                    if messages:
-                                        for msg in messages:
-                                            if msg.get("role") == "user":
-                                                preview = msg.get("content", "")[:100]
-                                                if len(msg.get("content", "")) > 100:
-                                                    preview += "..."
-                                                break
-
-                                    all_conversations.append(
-                                        {
-                                            "id": conv["id"],
-                                            "application_id": app_id,
-                                            "title": conv.get("title", "Untitled Conversation"),
-                                            "created_at": conv.get("created_at", ""),
-                                            "updated_at": conv.get("updated_at", ""),
-                                            "message_count": len(messages),
-                                            "preview": preview,
-                                        }
-                                    )
-                                except Exception as e:
-                                    logger.error(
-                                        "Failed to read conversation file %s: %s", conv_file, e
-                                    )
-
-        # Sort by updated_at descending (most recent first)
-        all_conversations.sort(key=lambda x: x.get("updated_at", ""), reverse=True)
-
-        # Apply limit
-        all_conversations = all_conversations[:limit]
-
-        return {"conversations": all_conversations}
+        conversations = await asyncio.to_thread(
+            list_conversations, settings.app.storage_root, None, max(1, min(limit, 200))
+        )
+        return {"conversations": conversations}
     except Exception as e:
         logger.error("Failed to list all conversations: %s", e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Conversations could not be listed") from e
 
 
 @app.get("/api/applications/{app_id}/conversations/{conversation_id}")
@@ -4739,7 +4744,9 @@ async def get_conversation(app_id: str, conversation_id: str):
     """Get a specific conversation with all messages."""
     try:
         settings = load_settings()
-        conversation = load_conversation(settings.app.storage_root, app_id, conversation_id)
+        conversation = await asyncio.to_thread(
+            load_conversation, settings.app.storage_root, app_id, conversation_id
+        )
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation introuvable")
         return conversation
@@ -4747,7 +4754,7 @@ async def get_conversation(app_id: str, conversation_id: str):
         raise
     except Exception as e:
         logger.error("Failed to get conversation %s: %s", conversation_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Conversation could not be loaded") from e
 
 
 @app.delete("/api/applications/{app_id}/conversations/{conversation_id}")
@@ -4755,18 +4762,17 @@ async def delete_conversation(app_id: str, conversation_id: str):
     """Delete a conversation."""
     try:
         settings = load_settings()
-        conv_file = (
-            get_app_conversations_dir(settings.app.storage_root, app_id) / f"{conversation_id}.json"
+        deleted = await asyncio.to_thread(
+            delete_stored_conversation, settings.app.storage_root, app_id, conversation_id
         )
-        if not conv_file.exists():
+        if not deleted:
             raise HTTPException(status_code=404, detail="Conversation introuvable")
-        conv_file.unlink()
         return {"success": True}
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Failed to delete conversation %s: %s", conversation_id, e, exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Conversation could not be deleted") from e
 
 
 @app.post("/api/applications/{app_id}/conversations")
@@ -4825,6 +4831,8 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
         app_md = await asyncio.to_thread(load_application, settings.app.storage_root, app_id)
         if not app_md:
             raise HTTPException(status_code=404, detail=f"Application {app_id} not found")
+        # Conversations are stored under the canonical id (the URL may carry a reference).
+        app_id = getattr(app_md, "id", None) or app_id
 
         # Determine persona - use from request, then app's persona, then default
         persona = request.persona or app_md.persona or "underwriting"

@@ -111,6 +111,23 @@ _MESSAGES: Final = {
         "fr": "Vérification web non effectuée : aucune commune du sinistre à rechercher.",
         "de": "Keine Webprüfung durchgeführt: Für den Schaden ist keine Gemeinde angegeben.",
     },
+    "fabric_not_configured": {
+        "en": (
+            "Portfolio data (claim volumes, amounts, statistics) is not connected in this "
+            "environment. Ask about this case instead, or ask an administrator to connect the "
+            "Microsoft Fabric data agent."
+        ),
+        "fr": (
+            "Les données du portefeuille (volumes, montants, statistiques de sinistres) ne sont "
+            "pas connectées dans cet environnement. Posez plutôt une question sur ce dossier, ou "
+            "demandez à un administrateur de connecter l'agent de données Microsoft Fabric."
+        ),
+        "de": (
+            "Portfoliodaten (Schadenvolumen, Beträge, Statistiken) sind in dieser Umgebung "
+            "nicht angebunden. Stellen Sie stattdessen eine Frage zu diesem Fall oder bitten Sie "
+            "einen Administrator, den Microsoft-Fabric-Datenagenten anzubinden."
+        ),
+    },
     "fraud_siu_suspect_images": {
         "en": "{count} suspicious image(s) — SIU review recommended.",
         "fr": "{count} image(s) suspecte(s) — contrôle SIU recommandé.",

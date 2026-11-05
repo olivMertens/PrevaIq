@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Protocol, runtime_checkable
+from typing import Any, Dict, List, Optional, Protocol, Tuple, runtime_checkable
 import os
 
 
@@ -119,4 +119,15 @@ class StorageProvider(Protocol):
     
     def delete_application(self, app_id: str) -> bool:
         """Delete an application and all its files."""
+        ...
+
+    def list_files(self, app_id: Optional[str], prefix: str) -> List[Tuple[str, str, float]]:
+        """(app_id, filename, modified timestamp) of application files starting with prefix.
+
+        ``app_id=None`` scans every application.
+        """
+        ...
+
+    def delete_file(self, app_id: str, filename: str) -> bool:
+        """Delete one application file; False when it does not exist."""
         ...

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.storage_providers.base import StorageSettings
 
@@ -337,3 +337,32 @@ class AzureBlobStorageProvider:
             logger.info("Deleted application %s for brand %s", app_id, self._brand_name)
         
         return deleted
+
+    def list_files(self, app_id: Optional[str], prefix: str) -> List[Tuple[str, str, float]]:
+        """(app_id, filename, modified timestamp) of application files starting with prefix.
+
+        ``app_id=None`` scans every application of the brand in one listing.
+        """
+        apps_prefix = f"{self._brand_prefix}/applications/"
+        name_prefix = self._get_blob_path(app_id, "files", prefix) if app_id else apps_prefix
+        found: List[Tuple[str, str, float]] = []
+        for blob in self._container_client.list_blobs(name_starts_with=name_prefix):
+            blob_app_id, separator, filename = blob.name[len(apps_prefix):].partition("/files/")
+            if not separator or "/" in filename or not filename.startswith(prefix):
+                continue
+            modified = blob.last_modified.timestamp() if blob.last_modified else 0.0
+            found.append((blob_app_id, filename, modified))
+        return found
+
+    def delete_file(self, app_id: str, filename: str) -> bool:
+        """Delete one application file; False when it does not exist."""
+        from azure.core.exceptions import ResourceNotFoundError
+
+        blob_client = self._container_client.get_blob_client(
+            self._get_blob_path(app_id, "files", filename)
+        )
+        try:
+            blob_client.delete_blob()
+        except ResourceNotFoundError:
+            return False
+        return True

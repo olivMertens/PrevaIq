@@ -288,7 +288,7 @@ def test_agent_chat_logs_completion_with_token_usage(monkeypatch, spans, caplog)
             usage = {"input_token_count": 10, "output_token_count": 5}
             return SimpleNamespace(text="Réponse", messages=[], usage_details=usage)
 
-    async def fake_analysis_agent(settings):
+    async def fake_analysis_agent(settings, **kwargs):
         return FakeAgent()
 
     monkeypatch.setattr(agents, "create_analysis_agent", fake_analysis_agent)
@@ -324,7 +324,7 @@ def test_agent_chat_failure_sets_the_error_code_on_the_span(monkeypatch, spans):
         async def run(self, message):
             raise RuntimeError("provider down")
 
-    async def fake_analysis_agent(settings):
+    async def fake_analysis_agent(settings, **kwargs):
         return BrokenAgent()
 
     monkeypatch.setattr(agents, "create_analysis_agent", fake_analysis_agent)

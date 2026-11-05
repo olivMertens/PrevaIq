@@ -28,6 +28,8 @@ function HomeContent() {
   const { currentPersona, setPersona, isLoading: personaLoading } = usePersona();
   const searchParams = useSearchParams();
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
+  // Conversation to reopen, from a link in another case's chat history
+  const [conversationLink, setConversationLink] = useState<{ appId: string; conversationId: string } | null>(null);
   const isFirstRender = useRef(true);
 
   const fetchUsername = useCallback(async () => {
@@ -90,9 +92,11 @@ function HomeContent() {
     if (deepLinkHandled) return;
     const appParam = searchParams.get('app');
     const personaParam = searchParams.get('persona');
+    const conversationParam = searchParams.get('conversation');
 
     if (appParam) {
       setDeepLinkHandled(true);
+      if (conversationParam) setConversationLink({ appId: appParam, conversationId: conversationParam });
       
       if (personaParam && personaParam in PERSONAS) {
         setPersona(personaParam as PersonaId);
@@ -149,6 +153,7 @@ function HomeContent() {
         applications={applications}
         onBack={handleBackToLanding}
         onSelectApp={handleSelectApp}
+        initialConversationId={conversationLink?.appId === selectedAppId ? conversationLink.conversationId : null}
       />
     );
   }

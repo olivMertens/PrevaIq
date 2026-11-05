@@ -18,6 +18,7 @@ import {
 export interface ConversationSummary {
   id: string;
   application_id: string;
+  persona?: string;
   title: string;
   created_at: string;
   updated_at: string;
@@ -30,7 +31,7 @@ type HistoryTab = 'app' | 'all';
 interface ChatHistoryPanelProps {
   applicationId: string;
   currentConversationId: string | null;
-  onSelectConversation: (id: string | null, applicationId?: string) => void;
+  onSelectConversation: (id: string | null, applicationId?: string, persona?: string) => void;
   onNewConversation: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
@@ -286,7 +287,7 @@ export default function ChatHistoryPanel({
             return (
               <button
                 key={`${conv.application_id}-${conv.id}`}
-                onClick={() => onSelectConversation(conv.id, conv.application_id)}
+                onClick={() => onSelectConversation(conv.id, conv.application_id, conv.persona)}
                 className={`w-full text-left p-2 rounded-lg transition-colors group ${
                   currentConversationId === conv.id && conv.application_id === applicationId
                     ? 'bg-indigo-100 border border-indigo-200'

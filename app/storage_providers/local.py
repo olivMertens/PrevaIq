@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from app.storage_providers.base import StorageSettings
 
@@ -218,3 +218,31 @@ class LocalStorageProvider:
         if deleted:
             logger.info("Deleted application %s for brand %s", app_id, self._brand_name)
         return deleted
+
+    def list_files(self, app_id: Optional[str], prefix: str) -> List[Tuple[str, str, float]]:
+        """(app_id, filename, modified timestamp) of application files starting with prefix."""
+        return list_local_files(self._brand_root / "applications", app_id, prefix)
+
+    def delete_file(self, app_id: str, filename: str) -> bool:
+        """Delete one application file; False when it does not exist."""
+        file_path = self._get_application_dir(app_id, create=False) / "files" / filename
+        if not file_path.is_file():
+            return False
+        file_path.unlink()
+        return True
+
+
+def list_local_files(
+    applications_dir: Path, app_id: Optional[str], prefix: str
+) -> List[Tuple[str, str, float]]:
+    """(app_id, filename, modified timestamp) of ``<app>/files/<prefix>*`` files.
+
+    ``app_id=None`` scans every application directory.
+    """
+    if not applications_dir.is_dir():
+        return []
+    return [
+        (path.parent.parent.name, path.name, path.stat().st_mtime)
+        for path in applications_dir.glob(f"{app_id or '*'}/files/{prefix}*")
+        if path.is_file()
+    ]

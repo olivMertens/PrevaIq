@@ -41,7 +41,7 @@ def test_suggestions_provider_does_not_block_other_requests(monkeypatch):
         finally:
             release.set()
         result = await request
-        assert result == {"suggestions": ["Statut ?"], "source": "llm"}
+        assert result == {"suggestions": ["Statut ?"], "source": "llm", "language": "en"}
 
     asyncio.run(exercise())
 

@@ -1,524 +1,31 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { X, Send, MessageSquare, Bot, User, Loader2, Info, BookOpen, ChevronDown, ChevronUp, ExternalLink, ThumbsUp, ThumbsDown, Database, Shield, FileSearch, FileText, BarChart3, Globe, Workflow } from 'lucide-react';
+import { X, Send, MessageSquare, Bot, Loader2 } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import type { ContextLabel, ContextTask } from '@/lib/types';
-import { StructuredContentRenderer } from './chat/ChatCards';
 import ChatHistoryPanel from './chat/ChatHistoryPanel';
 import PolicyDetailModal from './chat/PolicyDetailModal';
 import { useConversationRequest } from './chat/useConversationRequest';
 import ChatMessageSkeleton from './chat/ChatMessageSkeleton';
+import MessageBubble from './chat/MessageBubble';
+import ChatModeBar from './chat/ChatModeBar';
+import WorkflowPicker, { RecommendedWorkflow } from './chat/WorkflowPicker';
+import WorkflowProgress from './chat/WorkflowProgress';
+import { useAgentCapabilities } from './chat/useAgentCapabilities';
+import type { ChatMessage, ChatMode, ChatRecommendation } from './chat/types';
+import CaseTitle from './case/CaseTitle';
 import { useToast } from '@/lib/ToastProvider';
 import { APIError, submitFeedback } from '@/lib/api';
 
-// Citation data from RAG response
-interface RAGCitation {
-  policy_id: string;
-  policy_name: string;
-  chunk_type: string;
-  criteria_id?: string;
-}
-
-// RAG metadata from API response
-interface RAGMetadata {
-  enabled: boolean;
-  chunks_retrieved?: number;
-  tokens_used?: number;
-  latency_ms?: number;
-  citations?: RAGCitation[];
-  inferred_categories?: string[];
-  fallback?: boolean;
-  fallback_reason?: string;
-}
-
-// Agent metadata from API response
-interface AgentMetadata {
-  name: string;
-  tools_available?: string[];
-  tools_called?: string[];
-  framework?: string;
-}
-
-interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-  rag?: RAGMetadata;
-  agent?: AgentMetadata;
-  feedbackGiven?: 'positive' | 'negative' | null;
-  userQuery?: string; // The user query this assistant message responds to
-}
-
-// Loading status phases
-type LoadingPhase = 'retrieving' | 'analyzing' | 'formulating' | string | null;
-
-// RAG Stats Tooltip Component
-function RAGStatsTooltip({ rag }: { rag: RAGMetadata }) {
-  const [isVisible, setIsVisible] = useState(false);
-  const t = useTranslations('chat');
-  
-  if (!rag?.enabled || rag.fallback) return null;
-  
-  return (
-    <div className="relative inline-block ml-1">
-      <button
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-        onClick={() => setIsVisible(!isVisible)}
-        className="text-slate-400 hover:text-indigo-500 transition-colors"
-        aria-label={t('viewRagStats')}
-      >
-        <Info className="w-3.5 h-3.5" />
-      </button>
-      
-      {isVisible && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50">
-          <div className="bg-slate-800 text-white text-xs rounded-lg shadow-lg p-3 min-w-[180px]">
-            <div className="font-semibold mb-2 text-indigo-300">{t('ragStats')}</div>
-            <div className="space-y-1">
-              <div className="flex justify-between">
-                <span className="text-slate-300">{t('chunksRetrieved')}</span>
-                <span className="font-mono">{rag.chunks_retrieved || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-300">{t('tokensUsed')}</span>
-                <span className="font-mono">{rag.tokens_used || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-300">{t('latency')}</span>
-                <span className="font-mono">{rag.latency_ms || 0}ms</span>
-              </div>
-              {rag.inferred_categories && rag.inferred_categories.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-slate-600">
-                  <span className="text-slate-300">{t('categories')}</span>
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {rag.inferred_categories.map((cat, i) => (
-                      <span key={i} className="px-1.5 py-0.5 bg-indigo-600/30 rounded text-indigo-200 text-[10px]">
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            {/* Tooltip arrow */}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-800" />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Expandable Citations Component with clickable policy viewer
-function PolicyCitations({ 
-  citations, 
-  onPolicyClick 
-}: { 
-  citations?: RAGCitation[];
-  onPolicyClick?: (policyId: string) => void;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const t = useTranslations('chat');
-  
-  if (!citations || citations.length === 0) return null;
-  
-  // Get unique policies
-  const uniquePolicies = Array.from(
-    new Map(citations.map(c => [c.policy_id, c])).values()
-  );
-  
-  const handleCitationClick = (policyId: string) => {
-    if (onPolicyClick) {
-      onPolicyClick(policyId);
-    }
-  };
-  
-  return (
-    <div className="mt-2 pt-2 border-t border-slate-200">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 transition-colors"
-      >
-        <BookOpen className="w-3.5 h-3.5" />
-        <span>{t('policiesReferenced', { count: uniquePolicies.length })}</span>
-        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-      </button>
-      
-      {isExpanded && (
-        <div className="mt-2 space-y-1">
-          {uniquePolicies.map((citation, idx) => (
-            <div
-              key={idx}
-              className="relative"
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-            >
-              <button
-                onClick={() => handleCitationClick(citation.policy_id)}
-                className="w-full flex items-center justify-between gap-2 text-xs bg-slate-50 rounded px-2 py-1.5 cursor-pointer hover:bg-indigo-50 hover:border-indigo-200 border border-transparent transition-colors text-left"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-mono text-indigo-600">{citation.policy_id}</span>
-                  <span className="text-slate-500 truncate">{citation.policy_name}</span>
-                </div>
-                <ExternalLink className="w-3 h-3 text-slate-400 flex-shrink-0" />
-              </button>
-              
-              {/* Hover tooltip with details */}
-              {hoveredIdx === idx && (
-                <div className="absolute left-0 bottom-full mb-1 z-50 bg-white border border-slate-200 rounded-lg shadow-lg p-3 min-w-[250px] max-w-[350px]">
-                  <div className="font-semibold text-sm text-slate-800">{citation.policy_name}</div>
-                  <div className="mt-1 space-y-1 text-xs">
-                    <div className="flex gap-2">
-                      <span className="text-slate-500">{t('policyId')}</span>
-                      <span className="font-mono text-indigo-600">{citation.policy_id}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-slate-500">{t('chunkType')}</span>
-                      <span className="capitalize">{citation.chunk_type}</span>
-                    </div>
-                    {citation.criteria_id && (
-                      <div className="flex gap-2">
-                        <span className="text-slate-500">{t('criteriaId')}</span>
-                        <span className="font-mono">{citation.criteria_id}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-slate-100 text-xs text-indigo-600">
-                    {t('clickToViewPolicy')}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Agent badge config — maps tool names & agent hints to display badges
-const TOOL_BADGES: Record<string, { labelKey: string; color: string; icon: typeof Bot }> = {
-  search_policies: { labelKey: 'toolBadges.policies', color: 'bg-amber-100 text-amber-700', icon: Shield },
-  get_application_summary: { labelKey: 'toolBadges.data', color: 'bg-emerald-100 text-emerald-700', icon: Database },
-  get_glossary: { labelKey: 'toolBadges.glossary', color: 'bg-violet-100 text-violet-700', icon: BookOpen },
-  query_fabric_data: { labelKey: 'toolBadges.fabric', color: 'bg-cyan-100 text-cyan-700', icon: BarChart3 },
-  analyze_image_fraud: { labelKey: 'toolBadges.fraudDetection', color: 'bg-purple-100 text-purple-700', icon: Shield },
-  web_search: { labelKey: 'toolBadges.webSearch', color: 'bg-blue-100 text-blue-700', icon: Globe },
-  webiq_search: { labelKey: 'toolBadges.webIq', color: 'bg-blue-100 text-blue-700', icon: Globe },
+const PLACEHOLDER_KEYS: Record<ChatMode, string> = {
+  auto: 'placeholderAuto',
+  data: 'placeholderData',
+  policy: 'placeholderPolicy',
+  analysis: 'placeholderAnalysis',
+  dashboard: 'placeholderDashboard',
+  workflow: 'placeholderWorkflow',
 };
-
-// Detect which agents/tools contributed to a response
-function detectAgentBadges(msg: ChatMessage, t: (key: string) => string): { label: string; color: string; icon: typeof Bot }[] {
-  const badges: { label: string; color: string; icon: typeof Bot }[] = [];
-
-  // From RAG citations
-  if (msg.rag?.citations && msg.rag.citations.length > 0) {
-    badges.push({ ...TOOL_BADGES.search_policies, label: t(TOOL_BADGES.search_policies.labelKey) });
-  }
-
-  for (const tool of msg.agent?.tools_called ?? []) {
-    if (TOOL_BADGES[tool]) {
-      badges.push({ ...TOOL_BADGES[tool], label: t(TOOL_BADGES[tool].labelKey) });
-    }
-  }
-
-  // Deduplicate by label
-  const seen = new Set<string>();
-  return badges.filter(b => { if (seen.has(b.label)) return false; seen.add(b.label); return true; });
-}
-
-// Quick-link toolbox for policy PDFs referenced in message
-function PolicyToolbox({ content, citations, t }: { content: string; citations?: RAGCitation[]; t: (key: string, values?: Record<string, string | number>) => string }) {
-  // Collect policy IDs from inline references (e.g. PC-COV-001) and from RAG citations
-  const policyIds = new Set<string>();
-  const inlineMatches = content.match(/\b[A-Z]+-[A-Z]+-\d+\b/g);
-  if (inlineMatches) inlineMatches.forEach(id => policyIds.add(id));
-  if (citations) citations.forEach(c => policyIds.add(c.policy_id));
-
-  if (policyIds.size === 0) return null;
-
-  // Map policy ID prefixes to PDF filenames and labels
-  const policyPdfMap: Record<string, { label: string; pdf: string }> = {
-    'PC': { label: t('policyDocs.property'), pdf: 'habitation' },
-    'LH': { label: t('policyDocs.health'), pdf: 'sante' },
-    'AU': { label: t('policyDocs.auto'), pdf: 'auto' },
-    'MO': { label: t('policyDocs.mortgage'), pdf: 'hypothecaire' },
-  };
-
-  // Group by PDF
-  const pdfLinks = new Map<string, { label: string; pdf: string; ids: string[] }>();
-  for (const id of policyIds) {
-    const prefix = id.split('-')[0];
-    const mapping = policyPdfMap[prefix];
-    if (mapping) {
-      const existing = pdfLinks.get(mapping.pdf);
-      if (existing) {
-        existing.ids.push(id);
-      } else {
-        pdfLinks.set(mapping.pdf, { ...mapping, ids: [id] });
-      }
-    }
-  }
-
-  if (pdfLinks.size === 0) return null;
-
-  return (
-    <div className="flex flex-wrap items-center gap-1.5 mt-1.5 pt-1.5 border-t border-slate-200/80">
-      <FileText className="w-3 h-3 text-slate-400 flex-shrink-0" />
-      {Array.from(pdfLinks.values()).map(({ label, pdf, ids }) => (
-        <a
-          key={pdf}
-          href={`/api/policy-pdfs/${pdf}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-50 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-300 rounded text-[10px] font-medium text-slate-600 hover:text-indigo-700 transition-colors"
-          title={t('openPolicy', { label, references: ids.join(', ') })}
-        >
-          <ExternalLink className="w-2.5 h-2.5" />
-          {label}
-          <span className="text-slate-400">({ids.length})</span>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-// Message Bubble Component with RAG enhancements
-function MessageBubble({ 
-  msg, 
-  onPolicyClick,
-  onFeedback,
-}: { 
-  msg: ChatMessage;
-  onPolicyClick?: (policyId: string) => void;
-  onFeedback?: (msg: ChatMessage, type: 'positive' | 'negative') => void;
-}) {
-  const t = useTranslations('chat');
-  const locale = useLocale();
-  const agentBadges = msg.role === 'assistant' ? detectAgentBadges(msg, t) : [];
-
-  return (
-    <div className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-      {msg.role === 'assistant' && (
-        <div className="w-8 h-8 rounded-lg bg-indigo-100 flex items-center justify-center flex-shrink-0">
-          <Bot className="w-5 h-5 text-indigo-600" />
-        </div>
-      )}
-      <div
-        className={`max-w-[85%] rounded-lg px-4 py-2 ${
-          msg.role === 'user'
-            ? 'bg-indigo-600 text-white'
-            : 'bg-white text-slate-800 border border-slate-200 shadow-sm'
-        }`}
-      >
-        {/* Agent badges — which tools/agents contributed */}
-        {msg.role === 'assistant' && agentBadges.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1 mb-1.5 pb-1 border-b border-slate-100">
-            {agentBadges.map((badge) => {
-              const BadgeIcon = badge.icon;
-              return (
-                <span key={badge.label} className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${badge.color}`}>
-                  <BadgeIcon className="w-2.5 h-2.5" />
-                  {badge.label}
-                </span>
-              );
-            })}
-            {msg.agent?.framework && (
-              <span className="text-[9px] text-slate-400 ml-auto">{msg.agent.name}</span>
-            )}
-          </div>
-        )}
-
-        <div className="text-sm">
-          {msg.role === 'assistant' ? (
-            <StructuredContentRenderer content={msg.content} onPolicyClick={onPolicyClick} />
-          ) : (
-            <span className="whitespace-pre-wrap">{msg.content}</span>
-          )}
-        </div>
-        
-        {/* Citations for assistant messages with RAG */}
-        {msg.role === 'assistant' && msg.rag?.citations && (
-          <PolicyCitations citations={msg.rag.citations} onPolicyClick={onPolicyClick} />
-        )}
-
-        {/* Policy PDF toolbox — quick links to referenced CG documents */}
-        {msg.role === 'assistant' && (
-          <PolicyToolbox content={msg.content} citations={msg.rag?.citations} t={t} />
-        )}
-        
-        <div className={`flex items-center gap-1 text-xs mt-1 ${
-          msg.role === 'user' ? 'text-indigo-200' : 'text-slate-400'
-        }`}>
-          <span>{msg.timestamp.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
-          {msg.role === 'assistant' && msg.rag && <RAGStatsTooltip rag={msg.rag} />}
-          {/* Feedback buttons for assistant messages */}
-          {msg.role === 'assistant' && onFeedback && (
-            <div className="flex items-center gap-1 ml-2">
-              <button
-                onClick={() => onFeedback(msg, 'positive')}
-                disabled={msg.feedbackGiven != null}
-                className={`p-0.5 rounded transition-colors ${
-                  msg.feedbackGiven === 'positive'
-                    ? 'text-emerald-500'
-                    : msg.feedbackGiven != null
-                      ? 'text-slate-300 cursor-not-allowed'
-                      : 'text-slate-400 hover:text-emerald-500'
-                }`}
-                title={t('goodAnswer')}
-              >
-                <ThumbsUp className="w-3.5 h-3.5" />
-              </button>
-              <button
-                onClick={() => onFeedback(msg, 'negative')}
-                disabled={msg.feedbackGiven != null}
-                className={`p-0.5 rounded transition-colors ${
-                  msg.feedbackGiven === 'negative'
-                    ? 'text-rose-500'
-                    : msg.feedbackGiven != null
-                      ? 'text-slate-300 cursor-not-allowed'
-                      : 'text-slate-400 hover:text-rose-500'
-                }`}
-                title={t('badAnswer')}
-              >
-                <ThumbsDown className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-      {msg.role === 'user' && (
-        <div className="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center flex-shrink-0">
-          <User className="w-5 h-5 text-slate-600" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Agent output formatting — convert raw JSON emitted by structured agents
-// (DecisionAgent, PolicyAgent, etc.) into readable markdown so the chat UI
-// looks consistent across all agents instead of dumping `{...}` blocks.
-// ─────────────────────────────────────────────────────────────────────────────
-
-const DECISION_LABELS: Record<string, string> = {
-  documented_recommendation: 'recommendation',
-  recommendation: 'recommendation',
-  decision: 'decision',
-  rationale: 'rationale',
-  reasoning: 'rationale',
-  conditions_or_franchise: 'conditionsOrDeductible',
-  conditions: 'conditions',
-  next_steps: 'nextSteps',
-  actions: 'actions',
-  missing_items: 'missingItems',
-  missing_documents: 'missingDocuments',
-  requires_human_review: 'humanReview',
-  confidence: 'confidence',
-  risk_level: 'riskLevel',
-  citations: 'citations',
-  sources: 'sources',
-};
-
-function tryParseAgentJson(text: string): Record<string, unknown> | null {
-  if (!text) return null;
-  const trimmed = text.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)```\s*$/i);
-  const candidate = fenced ? fenced[1].trim() : trimmed;
-  if (!(candidate.startsWith('{') && candidate.endsWith('}'))) return null;
-  try {
-    const parsed = JSON.parse(candidate);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-}
-
-function humanizeKey(key: string, t: (key: string) => string): string {
-  return DECISION_LABELS[key]
-    ? t(`decisionFields.${DECISION_LABELS[key]}`)
-    : key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function renderAgentValue(value: unknown, t: (key: string) => string, indent = 0): string {
-  if (value === null || value === undefined) return '_—_';
-  if (typeof value === 'boolean') return value ? `✅ ${t('yes')}` : `❌ ${t('no')}`;
-  if (typeof value === 'number') return String(value);
-  if (typeof value === 'string') return value.trim();
-  if (Array.isArray(value)) {
-    if (value.length === 0) return `_(${t('none')})_`;
-    return value
-      .map(v => {
-        if (typeof v === 'string') return `${'  '.repeat(indent)}- ${v.trim()}`;
-        if (v && typeof v === 'object') {
-          const inner = Object.entries(v as Record<string, unknown>)
-            .map(([k, val]) => `**${humanizeKey(k, t)}** : ${renderAgentValue(val, t, indent + 1)}`)
-            .join(' · ');
-          return `${'  '.repeat(indent)}- ${inner}`;
-        }
-        return `${'  '.repeat(indent)}- ${String(v)}`;
-      })
-      .join('\n');
-  }
-  if (typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>)
-      .map(([k, v]) => `- **${humanizeKey(k, t)}** : ${renderAgentValue(v, t, indent + 1)}`)
-      .join('\n');
-  }
-  return String(value);
-}
-
-function formatAgentObject(obj: Record<string, unknown>, t: (key: string) => string): string | null {
-  const keys = Object.keys(obj);
-  const known = ['documented_recommendation', 'recommendation', 'decision', 'rationale', 'next_steps', 'missing_items', 'conditions_or_franchise', 'requires_human_review'];
-  if (!keys.some(k => known.includes(k))) return null;
-
-  const parts: string[] = [];
-  const reco = (obj.documented_recommendation || obj.recommendation || obj.decision) as string | undefined;
-  if (typeof reco === 'string' && reco) {
-    const lower = reco.toLowerCase();
-    const badge = lower.includes('approve') || lower.includes('accept') || lower === 'approuve' ? '🟢'
-      : lower.includes('deny') || lower.includes('reject') || lower === 'refuse' ? '🔴'
-      : lower.includes('review') ? '🟡'
-      : '🔵';
-    parts.push(`**${badge} ${humanizeKey('documented_recommendation', t)} :** \`${reco}\``);
-  }
-
-  const order = [
-    'rationale', 'reasoning',
-    'conditions_or_franchise', 'conditions',
-    'missing_items', 'missing_documents',
-    'next_steps', 'actions',
-    'risk_level', 'confidence',
-    'requires_human_review',
-    'citations', 'sources',
-  ];
-  const skip = new Set(['documented_recommendation', 'recommendation', 'decision']);
-  const remaining = [...order.filter(k => k in obj), ...keys.filter(k => !order.includes(k) && !skip.has(k))];
-
-  for (const key of remaining) {
-    if (skip.has(key)) continue;
-    const val = obj[key];
-    if (val === undefined) continue;
-    if (Array.isArray(val) && val.length === 0) continue;
-    parts.push(`\n**${humanizeKey(key, t)}**`);
-    parts.push(renderAgentValue(val, t));
-  }
-
-  return parts.join('\n');
-}
-
-function formatAgentText(text: string, t: (key: string) => string): string {
-  const parsed = tryParseAgentJson(text);
-  if (!parsed) return text;
-  const md = formatAgentObject(parsed, t);
-  return md ?? text;
-}
 
 interface ChatDrawerProps {
   isOpen: boolean;
@@ -531,6 +38,8 @@ interface ChatDrawerProps {
   applicationStatus?: string;     // 'pending' | 'extracted' | 'completed' | 'error'
   processingStatus?: string | null; // 'extracting' | 'analyzing' | null
   hasDecision?: boolean;           // Whether a decision has been taken on this dossier
+  caseTitle?: string;              // Full case title, shown compact in the header
+  initialConversationId?: string | null; // Conversation to open on mount (link from another case)
 }
 
 export default function ChatDrawer({
@@ -544,6 +53,8 @@ export default function ChatDrawer({
   applicationStatus,
   processingStatus,
   hasDecision,
+  caseTitle,
+  initialConversationId,
 }: ChatDrawerProps) {
   const { addToast } = useToast();
   const t = useTranslations('chat');
@@ -553,7 +64,6 @@ export default function ChatDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const requestGenerationRef = useRef(0);
   const { send: sendChatRequest, cancel: cancelChatRequest } = useConversationRequest(applicationId);
-  const [loadingPhase, setLoadingPhase] = useState<LoadingPhase>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState<string>(t('newChat'));
   const [historyCollapsed, setHistoryCollapsed] = useState(true);
@@ -561,13 +71,13 @@ export default function ChatDrawer({
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [workflowRunning, setWorkflowRunning] = useState<string | null>(null);
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
-  const [activeAgent, setActiveAgent] = useState<string>('auto');
-  const [hoveredAgent, setHoveredAgent] = useState<string | null>(null);
+  // Free questions go to the Auto agent by default; workflows are one click away.
+  const [activeAgent, setActiveAgent] = useState<ChatMode>('auto');
   const [llmSuggestions, setLlmSuggestions] = useState<string[]>([]);
+  const capabilities = useAgentCapabilities(isOpen);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
-  const loadingPhaseTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // ── LLM-generated dynamic suggestions (dossier-aware pills) ──
   // Fetches 3-4 questions tailored to THIS dossier from the backend.
@@ -642,7 +152,7 @@ export default function ChatDrawer({
     const hasMortgageDocs = labelKeys.has('pieces_manquantes') || taskCategories.has('documents');
     const isMortgagePersona = persona === 'mortgage' || persona === 'mortgage_underwriting';
 
-    type Rec = { id: string; score: number; reason: string };
+    type Rec = ChatRecommendation;
     const recs: Rec[] = [];
 
     // Fraude workflow — high fraud indicators
@@ -820,14 +330,6 @@ export default function ChatDrawer({
     return fallback[persona] || fallback.habitation_claims || [];
   }, [persona, contextLabels, contextTasks, applicationStatus, processingStatus, hasDecision, activeAgent, llmSuggestions, t]);
 
-  const stopLoadingPhases = useCallback(() => {
-    if (loadingPhaseTimerRef.current) {
-      clearTimeout(loadingPhaseTimerRef.current);
-      loadingPhaseTimerRef.current = null;
-    }
-    setLoadingPhase(null);
-  }, []);
-
   // Handle clicking on a policy citation to open the detail modal
   const handlePolicyClick = useCallback((policyId: string) => {
     setSelectedPolicyId(policyId);
@@ -857,26 +359,22 @@ export default function ChatDrawer({
       ));
       addToast('error', t('feedbackError'));
     }
-  }, [persona, conversationId, applicationId, addToast]);
+  }, [persona, conversationId, applicationId, addToast, t]);
 
   // Reset state when application changes
   useEffect(() => {
     requestGenerationRef.current += 1;
     cancelChatRequest();
-    stopLoadingPhases();
     setMessages([]);
     setConversationId(null);
     setConversationTitle(t('newChat'));
     setIsLoading(false);
-  }, [applicationId, t, cancelChatRequest, stopLoadingPhases]);
+  }, [applicationId, t, cancelChatRequest]);
 
-  // Cleanup timers on unmount
+  // Ignore late answers after unmount
   useEffect(() => {
     return () => {
       requestGenerationRef.current += 1;
-      if (loadingPhaseTimerRef.current) {
-        clearTimeout(loadingPhaseTimerRef.current);
-      }
     };
   }, []);
 
@@ -885,7 +383,6 @@ export default function ChatDrawer({
     const generation = ++requestGenerationRef.current;
     cancelChatRequest();
     setIsLoading(false);
-    stopLoadingPhases();
     if (!convId) {
       // Start new conversation
       setMessages([]);
@@ -905,13 +402,15 @@ export default function ChatDrawer({
         const data = await response.json();
         if (generation !== requestGenerationRef.current) return;
         setMessages(
-          (data.messages || []).map((m: any) => ({
+          (data.messages || []).map((m: ChatMessage & { timestamp: string }) => ({
             ...m,
             timestamp: new Date(m.timestamp),
           }))
         );
         setConversationId(data.id);
         setConversationTitle(data.title || t('conversation'));
+      } else if (generation === requestGenerationRef.current) {
+        addToast('error', t('conversationLoadError'));
       }
     } catch (e) {
       if (generation !== requestGenerationRef.current) return;
@@ -920,23 +419,20 @@ export default function ChatDrawer({
     } finally {
       if (generation === requestGenerationRef.current) setIsLoadingConversation(false);
     }
-  }, [applicationId, addToast, t, cancelChatRequest, stopLoadingPhases]);
+  }, [applicationId, addToast, t, cancelChatRequest]);
+
+  // Conversation opened from another case's history (?conversation= link)
+  const openedConversationRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialConversationId || openedConversationRef.current === initialConversationId) return;
+    openedConversationRef.current = initialConversationId;
+    loadConversation(initialConversationId);
+  }, [initialConversationId, loadConversation]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Auto-activate Workflows pill when dossier finishes processing
-  useEffect(() => {
-    if (
-      (applicationStatus === 'extracted' || applicationStatus === 'completed') &&
-      messages.length === 0 &&
-      activeAgent === 'auto'
-    ) {
-      setActiveAgent('workflow');
-    }
-  }, [applicationStatus, messages.length, activeAgent]);
+  }, [messages, workflowRunning]);
 
   // Focus input when drawer opens
   useEffect(() => {
@@ -963,41 +459,12 @@ export default function ChatDrawer({
   const handleWorkflow = useCallback(async (workflowId: string, workflowName: string) => {
     if (isLoading || workflowRunning) return;
     setWorkflowRunning(workflowId);
-
-    // Start workflow-specific loading phases
-    const phaseConfigs: Record<string, {key: string, delay: number}[]> = {
-      express: [
-        { key: 'workflowPhaseExtract', delay: 0 },
-        { key: 'workflowPhaseDecision', delay: 8000 },
-      ],
-      complet: [
-        { key: 'workflowPhaseExtract', delay: 0 },
-        { key: 'workflowPhaseAnalysis', delay: 10000 },
-        { key: 'workflowPhaseRisk', delay: 40000 },
-      ],
-      fraude: [
-        { key: 'workflowPhaseFraud', delay: 0 },
-        { key: 'workflowPhaseWebIntel', delay: 15000 },
-        { key: 'workflowPhaseCrossCheck', delay: 35000 },
-      ],
-    };
-    const phases = phaseConfigs[workflowId];
-    if (phases) {
-      setLoadingPhase('retrieving'); // initial
-      const timers: ReturnType<typeof setTimeout>[] = [];
-      phases.forEach((p, i) => {
-        timers.push(setTimeout(() => setLoadingPhase(p.key as LoadingPhase), p.delay));
-      });
-      loadingPhaseTimerRef.current = timers[timers.length - 1];
-    }
-
-    // Add a system message showing workflow started
-    const startMsg: ChatMessage = {
-      role: 'assistant',
-      content: `## 🚀 Workflow: ${workflowName}\n\n${t('workflowStarting', { name: workflowName })}`,
+    const started = Date.now();
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: t('workflowRequest', { name: workflowName }),
       timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, startMsg]);
+    }]);
 
     try {
       const response = await fetch(
@@ -1015,47 +482,29 @@ export default function ChatDrawer({
       }
 
       const result = await response.json();
-      const needsReview = result.status === 'needs_review';
-      const workflowStatus = needsReview
-        ? t('workflowNeedsReviewStatus')
-        : result.status === 'completed'
-          ? t('workflowCompletedStatus')
-          : result.status || t('workflowCompletedStatus');
-
-      // Build a rich response from workflow steps
-      const parts: string[] = [
-        `## ${needsReview ? '⚠️' : '✅'} ${t('workflowLabel')}: ${workflowName}\n`,
-      ];
-      if (result.steps && Array.isArray(result.steps)) {
-        for (const step of result.steps) {
-          parts.push(`### 🤖 ${step.agent}`);
-          parts.push(formatAgentText(step.text, t));
-          parts.push('');
-        }
-      }
-      if (result.summary) {
-        // Use blank lines around the summary so markdown headings (e.g. "### …")
-        // inside `result.summary` are rendered as real headings instead of literal text.
-        parts.push(`---\n\n**${t('workflowSummary')}**\n\n${formatAgentText(result.summary, t)}`);
-      }
-      parts.push(`\n_${t('workflowStatus')}: ${workflowStatus}_`);
-
-      const resultMsg: ChatMessage = {
+      const steps = Array.isArray(result.steps) ? result.steps : [];
+      const summary = String(result.summary || steps[steps.length - 1]?.text || '');
+      setMessages(prev => [...prev, {
         role: 'assistant',
-        content: parts.join('\n'),
+        content: summary,
         timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, resultMsg]);
+        workflow: {
+          id: workflowId,
+          name: workflowName,
+          status: result.status === 'needs_review' ? 'needs_review' : 'completed',
+          steps,
+          summary,
+          durationMs: Date.now() - started,
+        },
+      }]);
     } catch (err) {
-      const errorMsg: ChatMessage = {
+      setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `## ❌ ${t('workflowErrorTitle')}\n\n${err instanceof Error ? err.message : t('unknownError')}`,
+        content: `**${t('workflowErrorTitle')}** — ${err instanceof Error ? err.message : t('unknownError')}`,
         timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      }]);
     } finally {
       setWorkflowRunning(null);
-      stopLoadingPhases();
     }
   }, [applicationId, isLoading, locale, t, workflowRunning]);
 
@@ -1074,11 +523,15 @@ export default function ChatDrawer({
     setIsLoading(true);
 
     try {
+      // Workflows run from their cards; a question typed in that mode goes to the Auto agent.
+      const agentType = activeAgent === 'workflow' || (activeAgent === 'data' && !capabilities.fabric_data)
+        ? 'auto'
+        : activeAgent;
       const data = await sendChatRequest({
         message: userMessage.content,
         conversation_id: conversationId,
         persona,
-        agent_type: activeAgent,
+        agent_type: agentType,
         use_corrections: useCorrections,
         language: locale,
       });
@@ -1128,20 +581,18 @@ export default function ChatDrawer({
     } finally {
       if (generation === requestGenerationRef.current) {
         setIsLoading(false);
-        stopLoadingPhases();
       }
     }
   }, [
     inputValue,
     isLoading,
-    applicationId,
     conversationId,
     persona,
     activeAgent,
+    capabilities.fabric_data,
     useCorrections,
     t,
     addToast,
-    stopLoadingPhases,
     sendChatRequest,
     locale,
   ]);
@@ -1156,7 +607,6 @@ export default function ChatDrawer({
   const handleNewConversation = () => {
     requestGenerationRef.current += 1;
     cancelChatRequest();
-    stopLoadingPhases();
     setIsLoading(false);
     setIsLoadingConversation(false);
     setMessages([]);
@@ -1165,15 +615,20 @@ export default function ChatDrawer({
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  const handleSelectConversation = (id: string | null, convApplicationId?: string) => {
-    // If selecting a conversation from a different application, navigate to that application
-    if (convApplicationId && convApplicationId !== applicationId) {
-      // Navigate to the other application and open that conversation
-      window.location.href = `/applications/${convApplicationId}?conversation=${id}`;
+  const handleSelectConversation = (id: string | null, convApplicationId?: string, convPersona?: string) => {
+    // A conversation of another case opens that case, with the chat on this conversation.
+    if (id && convApplicationId && convApplicationId !== applicationId) {
+      const params = new URLSearchParams({ app: convApplicationId, conversation: id });
+      if (convPersona) params.set('persona', convPersona);
+      window.location.href = `/?${params.toString()}`;
       return;
     }
     loadConversation(id);
   };
+
+  const canRunWorkflows = applicationStatus === 'completed' || applicationStatus === 'extracted';
+  const busy = isLoading || !!workflowRunning;
+  const isEmpty = messages.length === 0 && !isLoadingConversation;
 
   return (
     <>
@@ -1217,25 +672,29 @@ export default function ChatDrawer({
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Header */}
-          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+          <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between gap-3 bg-slate-50">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="w-8 h-8 flex-none bg-indigo-100 rounded-lg flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-indigo-600" />
               </div>
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900">
+              <div className="min-w-0">
+                <h2 className="truncate text-sm font-semibold text-slate-900" title={conversationTitle}>
                   {conversationTitle}
                 </h2>
-                <p className="text-xs text-slate-500">
-                  {conversationId ? t('messagesCount', { count: messages.length }) : t('startNewConversation')}
-                </p>
+                {caseTitle ? (
+                  <CaseTitle title={caseTitle} className="text-xs text-slate-600" />
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    {conversationId ? t('messagesCount', { count: messages.length }) : t('startNewConversation')}
+                  </p>
+                )}
               </div>
             </div>
             <button
               onClick={onClose}
               title={t('closeChat')}
               aria-label={t('closeChat')}
-              className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
+              className="flex-none p-2 hover:bg-slate-200 rounded-lg transition-colors"
             >
               <X className="w-5 h-5 text-slate-500" />
             </button>
@@ -1247,26 +706,34 @@ export default function ChatDrawer({
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
               </div>
-            ) : messages.length === 0 ? (
-              <div className="text-center py-8">
+            ) : isEmpty ? (
+              <div className="text-center py-6">
                 <Bot className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                 <p className="text-sm text-slate-500">
                   {t('emptyStateAsk')}
                 </p>
-                <div className="mt-4 space-y-2">
-                  <p className="text-xs text-slate-400">{t('tryForExample')}</p>
-                  <div className="flex flex-wrap gap-2 justify-center">
-                    {contextualSuggestions.slice(0, 3).map((suggestion, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setInputValue(suggestion)}
-                        className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
+                {contextualSuggestions.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-xs text-slate-400">{t('tryForExample')}</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      {contextualSuggestions.slice(0, 3).map((suggestion, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => {
+                            setInputValue(suggestion);
+                            inputRef.current?.focus();
+                          }}
+                          className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
+                {canRunWorkflows && activeAgent !== 'workflow' && (
+                  <RecommendedWorkflow recommendations={recommendations} disabled={busy} onRun={handleWorkflow} />
+                )}
               </div>
             ) : (
               messages.map((msg, idx) => (
@@ -1276,131 +743,20 @@ export default function ChatDrawer({
             
             {isLoading && <ChatMessageSkeleton />}
 
-            {workflowRunning && (
-              <div className="flex gap-3 justify-start">
-                <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-5 h-5 text-violet-600" />
-                </div>
-                <div className="bg-violet-50 rounded-lg px-4 py-3 border border-violet-200 min-w-[240px]">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 text-violet-600 animate-spin" />
-                    <div className="text-sm">
-                      <span className="text-violet-700 font-medium animate-pulse">
-                        {loadingPhase && loadingPhase.startsWith('workflow') ? t(loadingPhase) : t('workflowRunning')}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 mt-2">
-                    {(workflowRunning === 'express' ? ['workflowPhaseExtract', 'workflowPhaseDecision'] :
-                      workflowRunning === 'complet' ? ['workflowPhaseExtract', 'workflowPhaseAnalysis', 'workflowPhaseRisk'] :
-                      ['workflowPhaseFraud', 'workflowPhaseWebIntel', 'workflowPhaseCrossCheck']
-                    ).map((phase, i, arr) => {
-                      const currentIdx = arr.indexOf(loadingPhase as string);
-                      const thisIdx = i;
-                      return (
-                        <div key={phase} className={`h-1.5 rounded-full flex-1 transition-colors duration-700 ${
-                          loadingPhase === phase ? 'bg-violet-500 animate-pulse' :
-                          currentIdx > thisIdx ? 'bg-violet-300' : 'bg-violet-100'
-                        }`} />
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
+            {workflowRunning && <WorkflowProgress workflowId={workflowRunning} />}
             
             <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
           <div className="p-3 border-t border-slate-200 bg-white">
-            {/* Agent pills + corrections toggle — single row */}
-            <div className="flex items-center gap-1 mb-2">
-              <div className="flex items-center gap-1 flex-1 overflow-x-auto">
-              {([
-                { id: 'auto', labelKey: 'agentAuto', descKey: 'agentAutoDesc', icon: Bot, activeClass: 'bg-indigo-100 text-indigo-700 ring-1 ring-indigo-300' },
-                { id: 'data', labelKey: 'agentData', descKey: 'agentDataDesc', icon: Database, activeClass: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300', fabric: true },
-                { id: 'policy', labelKey: 'agentPolicy', descKey: 'agentPolicyDesc', icon: Shield, activeClass: 'bg-amber-100 text-amber-700 ring-1 ring-amber-300' },
-                { id: 'analysis', labelKey: 'agentAnalysis', descKey: 'agentAnalysisDesc', icon: FileSearch, activeClass: 'bg-violet-100 text-violet-700 ring-1 ring-violet-300' },
-                { id: 'dashboard', labelKey: 'agentDashboard', descKey: 'agentDashboardDesc', icon: BarChart3, activeClass: 'bg-cyan-100 text-cyan-700 ring-1 ring-cyan-300' },
-                { id: 'workflow', labelKey: 'agentWorkflow', descKey: 'agentWorkflowDesc', icon: Workflow, activeClass: 'bg-fuchsia-100 text-fuchsia-700 ring-1 ring-fuchsia-300' },
-              ] as const).map((agent) => {
-                const Icon = agent.icon;
-                const isActive = activeAgent === agent.id;
-                const isFabric = 'fabric' in agent && agent.fabric;
-                return (
-                  <div key={agent.id} className="relative">
-                  <button
-                    onMouseEnter={() => setHoveredAgent(agent.id)}
-                    onMouseLeave={() => setHoveredAgent(null)}
-                    onClick={() => setActiveAgent(agent.id)}
-                    className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap ${
-                      isActive
-                        ? agent.activeClass
-                        : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    }`}
-                  >
-                    {isFabric ? (
-                      <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 1L14.5 5v6L8 15 1.5 11V5L8 1z" fill={isActive ? '#E8680C' : '#94a3b8'} opacity="0.85"/>
-                        <path d="M8 1L14.5 5 8 9 1.5 5 8 1z" fill={isActive ? '#F59E0B' : '#cbd5e1'}/>
-                      </svg>
-                    ) : (
-                      <Icon className="w-3 h-3" />
-                    )}
-                    {t(agent.labelKey)}
-                    {isFabric && (
-                      <span className={`ml-0.5 px-1 py-px rounded text-[8px] font-semibold leading-tight ${
-                        isActive
-                          ? 'bg-orange-200 text-orange-800'
-                          : 'bg-slate-200 text-slate-500'
-                      }`}>
-                        Fabric
-                      </span>
-                    )}
-                  </button>
-                  {hoveredAgent === agent.id && (
-                    <div className="absolute left-0 bottom-full mb-1.5 z-50 bg-slate-800 text-white text-[10px] rounded-lg shadow-lg px-3 py-2 min-w-[180px] max-w-[220px] pointer-events-none">
-                      <div className="font-semibold mb-0.5">{t(agent.labelKey)}</div>
-                      <div className="text-slate-300 leading-snug">{t(agent.descKey)}</div>
-                      {isFabric && <div className="text-orange-300 mt-1 text-[9px]">Microsoft Fabric Data Agent — NL→SQL</div>}
-                      <div className="absolute left-3 top-full w-2 h-2 bg-slate-800 transform rotate-45 -translate-y-1" />
-                    </div>
-                  )}
-                  </div>
-                );
-              })}
-              </div>
-              {/* Corrections toggle — compact inline */}
-              <div className="relative">
-              <button
-                onClick={() => setUseCorrections(prev => !prev)}
-                onMouseEnter={() => setHoveredAgent('hitl')}
-                onMouseLeave={() => setHoveredAgent(null)}
-                title={t('correctionsToggle')}
-                aria-label={t('correctionsToggle')}
-                className={`flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium transition-all whitespace-nowrap flex-shrink-0 ${
-                  useCorrections
-                    ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300'
-                    : 'bg-slate-100 text-slate-400'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${useCorrections ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                HITL
-              </button>
-              {hoveredAgent === 'hitl' && (
-                <div className="absolute right-0 bottom-full mb-1.5 z-50 bg-slate-800 text-white text-[10px] rounded-lg shadow-lg px-3 py-2 min-w-[200px] max-w-[240px] pointer-events-none">
-                  <div className="font-semibold mb-0.5">{t('correctionsTitle')}</div>
-                  <div className="text-slate-300 leading-snug">
-                    {useCorrections
-                      ? t('correctionsOn')
-                      : t('correctionsOff')}
-                  </div>
-                  <div className="absolute right-3 top-full w-2 h-2 bg-slate-800 transform rotate-45 -translate-y-1" />
-                </div>
-              )}
-              </div>
-            </div>
+            <ChatModeBar
+              mode={activeAgent}
+              onModeChange={setActiveAgent}
+              fabricAvailable={capabilities.fabric_data}
+              useCorrections={useCorrections}
+              onToggleCorrections={() => setUseCorrections(prev => !prev)}
+            />
             {/* Fabric indicator */}
             {activeAgent === 'data' && (
               <div className="flex items-center gap-1.5 mb-1.5 px-1">
@@ -1413,8 +769,8 @@ export default function ChatDrawer({
                 </span>
               </div>
             )}
-            {/* Contextual suggestion chips — always visible, derived from dossier context */}
-            {contextualSuggestions.length > 0 && !isLoading && !workflowRunning && activeAgent !== 'workflow' && (
+            {/* Suggestions: in the empty state above, here once the conversation has started */}
+            {!isEmpty && contextualSuggestions.length > 0 && !busy && activeAgent !== 'workflow' && (
               <div className="flex gap-1.5 mb-2 overflow-x-auto pb-0.5 scrollbar-thin">
                 {contextualSuggestions.slice(0, 4).map((suggestion, idx) => (
                   <button
@@ -1430,106 +786,14 @@ export default function ChatDrawer({
                 ))}
               </div>
             )}
-            {/* Workflow panel — visible when Workflows pill is active */}
-            {activeAgent === 'workflow' && (applicationStatus === 'completed' || applicationStatus === 'extracted') && !isLoading && (
-              <div className="mb-2 space-y-1.5">
-                <div className="flex items-center gap-2 px-1">
-                  <Workflow className="w-3.5 h-3.5 text-fuchsia-500" />
-                  <span className="text-[11px] font-medium text-fuchsia-700">{t('workflowsTitle')}</span>
-                </div>
-                {/* Recommended workflow reason */}
-                {recommendations.length > 0 && recommendations[0].id.startsWith('agent:') === false && (
-                  <div className="px-2 py-1.5 bg-fuchsia-50 border border-fuchsia-100 rounded-lg">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-fuchsia-600 uppercase tracking-wide">{t('recommended')}</span>
-                    </div>
-                    <p className="text-[10px] text-fuchsia-700 mt-0.5">{recommendations[0].reason}</p>
-                  </div>
-                )}
-                {(() => {
-                  const workflows = [
-                    {
-                      id: 'express',
-                      name: t('workflowExpressName'),
-                      icon: '⚡',
-                      pattern: t('workflowExpressPattern'),
-                      duration: t('workflowExpressDuration'),
-                      topClass: 'bg-emerald-100 border-emerald-300 text-emerald-900 ring-2 ring-emerald-200',
-                      idleClass: 'bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-800 opacity-75',
-                    },
-                    {
-                      id: 'complet',
-                      name: t('workflowCompleteName'),
-                      icon: '🔍',
-                      pattern: t('workflowCompletePattern'),
-                      duration: t('workflowCompleteDuration'),
-                      topClass: 'bg-indigo-100 border-indigo-300 text-indigo-900 ring-2 ring-indigo-200',
-                      idleClass: 'bg-indigo-50 hover:bg-indigo-100 border-indigo-200 text-indigo-800 opacity-75',
-                    },
-                    {
-                      id: 'fraude',
-                      name: t('workflowFraudName'),
-                      icon: '🔎',
-                      pattern: t('workflowFraudPattern'),
-                      duration: t('workflowFraudDuration'),
-                      topClass: 'bg-rose-100 border-rose-300 text-rose-900 ring-2 ring-rose-200',
-                      idleClass: 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-800 opacity-75',
-                    },
-                  ] as const;
-                  // Sort by recommendation score (recommended first)
-                  const recMap = new Map(recommendations.filter(r => !r.id.startsWith('agent:')).map(r => [r.id, r]));
-                  const sorted = [...workflows].sort((a, b) => (recMap.get(b.id)?.score || 0) - (recMap.get(a.id)?.score || 0));
-                  return sorted.map((wf) => {
-                    const rec = recMap.get(wf.id);
-                    const isTop = rec && recommendations[0]?.id === wf.id;
-                    return (
-                      <button
-                        key={wf.id}
-                        onClick={() => handleWorkflow(wf.id, wf.name)}
-                        disabled={!!workflowRunning}
-                        className={`w-full text-left px-3 py-2 rounded-lg border transition-all disabled:opacity-50 hover:shadow-sm ${isTop ? wf.topClass : wf.idleClass}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{wf.icon}</span>
-                            <span className="text-xs font-semibold">{wf.name}</span>
-                            {isTop && <span className="text-[9px] px-1.5 py-0.5 bg-fuchsia-200 text-fuchsia-800 rounded-full font-bold">★ {t('recommended')}</span>}
-                          </div>
-                          <span className="text-[10px] text-slate-400">{wf.duration}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 font-mono">{wf.pattern}</div>
-                      </button>
-                    );
-                  });
-                })()}
-                {/* Agent pill recommendations */}
-                {recommendations.filter(r => r.id.startsWith('agent:')).length > 0 && (
-                  <div className="mt-1 pt-1.5 border-t border-slate-100">
-                    <span className="text-[10px] text-slate-400 px-1">{t('suggestedAgents')}</span>
-                    <div className="flex gap-1 mt-1">
-                      {recommendations.filter(r => r.id.startsWith('agent:')).map(r => (
-                        <button
-                          key={r.id}
-                          onClick={() => setActiveAgent(r.id.replace('agent:', ''))}
-                          className="text-[10px] px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
-                          title={r.reason}
-                        >
-                          {r.id === 'agent:policy'
-                            ? `🛡️ ${t('agentPolicy')}`
-                            : r.id === 'agent:analysis'
-                              ? `🔍 ${t('agentAnalysis')}`
-                              : r.id.replace('agent:', '')}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            {activeAgent === 'workflow' && applicationStatus !== 'completed' && applicationStatus !== 'extracted' && (
-              <div className="mb-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-500 text-center">
-                {t('workflowsRequireData')}
-              </div>
+            {activeAgent === 'workflow' && (
+              <WorkflowPicker
+                recommendations={recommendations}
+                available={canRunWorkflows}
+                disabled={busy}
+                onRun={handleWorkflow}
+                onPickMode={setActiveAgent}
+              />
             )}
             <div className="flex gap-2">
               <textarea
@@ -1537,7 +801,7 @@ export default function ChatDrawer({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={t(`placeholder${activeAgent === 'auto' ? 'Auto' : activeAgent === 'data' ? 'Data' : activeAgent === 'policy' ? 'Policy' : activeAgent === 'analysis' ? 'Analysis' : activeAgent === 'dashboard' ? 'Dashboard' : 'Workflow'}`)}
+                placeholder={t(PLACEHOLDER_KEYS[activeAgent])}
                 className="flex-1 resize-none rounded-lg border border-slate-300 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 rows={2}
                 disabled={isLoading}

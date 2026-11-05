@@ -121,17 +121,18 @@ test('all locale selectors and agent languages include German', () => {
 });
 
 test('Ask IQ agent and workflow buttons preserve their API contracts', () => {
-  const drawer = fs.readFileSync(
-    path.join(root, 'src', 'components', 'ChatDrawer.tsx'),
-    'utf8'
-  );
+  const read = (...parts) => fs.readFileSync(path.join(root, 'src', 'components', ...parts), 'utf8');
+  const drawer = read('ChatDrawer.tsx');
+  const modeBar = read('chat', 'ChatModeBar.tsx');
+  const picker = read('chat', 'WorkflowPicker.tsx');
+  const workflowResult = read('chat', 'WorkflowResult.tsx');
   const api = fs.readFileSync(path.join(root, 'src', 'lib', 'api.ts'), 'utf8');
 
   for (const agent of ['auto', 'data', 'policy', 'analysis', 'dashboard', 'workflow']) {
-    assert.match(drawer, new RegExp(`id: '${agent}'`), `missing ${agent} agent button`);
+    assert.match(modeBar, new RegExp(`id: '${agent}'`), `missing ${agent} agent button`);
   }
   for (const workflow of ['express', 'complet', 'fraude']) {
-    assert.match(drawer, new RegExp(`id: '${workflow}'`), `missing ${workflow} workflow button`);
+    assert.match(picker, new RegExp(`id: '${workflow}'`), `missing ${workflow} workflow button`);
   }
 
   assert.match(
@@ -140,12 +141,14 @@ test('Ask IQ agent and workflow buttons preserve their API contracts', () => {
   );
   assert.match(drawer, /body: JSON\.stringify\(\{ language: locale \}\)/);
   assert.match(drawer, /result\.status === 'needs_review'/);
-  assert.match(drawer, /workflowNeedsReviewStatus/);
+  assert.match(workflowResult, /workflowNeedsReviewStatus/);
   assert.match(
     api,
     /\/api\/applications\/\$\{encodeURIComponent\(appId\)\}\/conversations/
   );
-  assert.match(drawer, /agent_type: activeAgent/);
+  // Typed questions never reach the workflow mode, nor Fabric when it is not configured.
+  assert.match(drawer, /activeAgent === 'workflow' \|\| \(activeAgent === 'data' && !capabilities\.fabric_data\)/);
+  assert.match(drawer, /agent_type: agentType/);
   assert.match(drawer, /language: locale/);
 });
 

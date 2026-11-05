@@ -360,7 +360,7 @@ async def agent_chat(
             "search_policies",
             "get_application_summary",
         ]
-        agent = await create_analysis_agent(settings)
+        agent = await create_analysis_agent(settings, language=language)
 
     elif agent_type == "dashboard":
         # KPIs pill → Dashboard/KPI agent
@@ -376,13 +376,17 @@ async def agent_chat(
             name="DashboardAgent",
             default_options=_agent_options(settings, effort=settings.openai.chat_reasoning_effort),
             instructions=(
-                "Tu es un agent spécialisé dans les indicateurs clés (KPIs) et tableaux de bord.\n"
-                "Réponds avec des données structurées : montants, délais, taux, volumes, tendances.\n"
+                "Tu es un agent spécialisé dans les indicateurs clés (KPIs) d'un dossier "
+                "d'assurance.\n"
+                "Présente uniquement les indicateurs utiles au gestionnaire : montant déclaré, "
+                "estimation et indemnité recommandée, franchise, risque de fraude, statut et "
+                "délais, tâches ouvertes, historique client.\n"
+                "N'affiche pas d'identifiants techniques (identifiant de dossier, persona, statut "
+                "brut, numéro d'entreprise).\n"
                 "Utilise les outils pour récupérer les données du dossier et du client.\n"
-                "Présente les résultats sous forme de tableau Markdown ou liste structurée.\n"
-                "Format recommandé :\n"
-                "## KPIs Dossier\n"
-                "| Indicateur | Valeur |\n|---|---|\n| ... | ... |\n\n"
+                "Format : un titre court puis un tableau Markdown à deux colonnes (indicateur, "
+                "valeur), avec le titre, les en-têtes et les libellés dans la langue de "
+                "réponse demandée.\n"
                 f"Contexte : Persona={persona}, Dossier={app_id}.\n"
                 f"{language_instruction(language)}"
             ),

@@ -313,8 +313,19 @@ def _cached_agent(
     return agent
 
 
+# Workflow results are read by case handlers in the chat panel: prose, not data dumps.
+# The closing review marker is what ``_result`` reads to flag the run for human review.
+_OUTPUT_FORMAT = (
+    "OUTPUT FORMAT: write for an insurance case handler, in concise Markdown. Start with a "
+    "one-sentence conclusion, then short sections with bullet points; bold the key figures "
+    "and cite policy articles inline. No JSON, no YAML, no code blocks, no internal "
+    "identifiers other than the claim and policy numbers. When human review is needed, end "
+    "with the line `requires_human_review: true`. "
+)
+
+
 def _role(text: str, lang: str) -> str:
-    return f"{_DEMO_CONTEXT_PREFIX}{text} {lang}"
+    return f"{_DEMO_CONTEXT_PREFIX}{text} {_OUTPUT_FORMAT}{lang}"
 
 
 def _result(workflow: str, steps: list[tuple[str, str]]) -> dict[str, Any]:

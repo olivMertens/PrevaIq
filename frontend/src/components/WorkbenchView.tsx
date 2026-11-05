@@ -42,20 +42,23 @@ interface WorkbenchViewProps {
   applications: ApplicationListItem[];
   onBack: () => void;
   onSelectApp: (appId: string) => void;
+  /** Chat conversation to reopen (link from another case's chat history). */
+  initialConversationId?: string | null;
 }
 
 export default function WorkbenchView({ 
   applicationId, 
   applications, 
   onBack,
-  onSelectApp 
+  onSelectApp,
+  initialConversationId,
 }: WorkbenchViewProps) {
   const [selectedApp, setSelectedApp] = useState<ApplicationMetadata | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewType>('overview');
   const [isPolicyReportOpen, setIsPolicyReportOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(!!initialConversationId);
   const [isDeepDiveOpen, setIsDeepDiveOpen] = useState(false);
   const [sourcePageNumber, setSourcePageNumber] = useState<number | undefined>(undefined);
   const { currentPersona, personaConfig } = usePersona();
@@ -410,6 +413,8 @@ export default function WorkbenchView({
           applicationStatus={selectedApp.status}
           processingStatus={selectedApp.processing_status}
           hasDecision={!!(selectedApp.llm_outputs as Record<string, unknown> | undefined)?.decision}
+          caseTitle={getApplicationDisplayTitle(selectedApp, locale)}
+          initialConversationId={initialConversationId}
         />
       )}
     </div>

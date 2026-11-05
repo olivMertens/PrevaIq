@@ -529,13 +529,16 @@ async def create_chat_agent(
 async def create_analysis_agent(
     settings: Settings | None = None,
     instructions_override: str | None = None,
+    language: str = "en",
 ) -> Agent:
     """Create the AnalysisAgent (Phase 2) — prompt-based analysis."""
     if settings is None:
         settings = load_settings()
 
-    instructions = instructions_override or ANALYSIS_AGENT_INSTRUCTIONS.format(
-        brand=settings.brand_name
+    instructions = instructions_override or (
+        ANALYSIS_AGENT_INSTRUCTIONS.format(brand=settings.brand_name)
+        + "\n"
+        + language_instruction(require_language(language))
     )
 
     return _create_agent(

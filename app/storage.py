@@ -244,6 +244,44 @@ def load_file(root: str, app_id: str, filename: str) -> Optional[bytes]:
         return brand_file_path.read_bytes()
 
 
+def list_application_files(
+    root: str, app_id: Optional[str], prefix: str
+) -> List[Tuple[str, str, float]]:
+    """(app_id, filename, modified timestamp) of application files starting with prefix.
+
+    ``app_id=None`` scans every application of the current brand.
+    """
+    provider = _get_provider()
+    if provider:
+        return provider.list_files(app_id, prefix)
+
+    from app.storage_providers.local import list_local_files
+
+    applications_dir = get_storage_root(root) / "brands" / current_brand_key() / "applications"
+    return list_local_files(applications_dir, app_id, prefix)
+
+
+def delete_application_file(root: str, app_id: str, filename: str) -> bool:
+    """Delete one internal application file; False when it does not exist."""
+    provider = _get_provider()
+    if provider:
+        return provider.delete_file(app_id, filename)
+
+    file_path = (
+        get_storage_root(root)
+        / "brands"
+        / current_brand_key()
+        / "applications"
+        / app_id
+        / "files"
+        / filename
+    )
+    if not file_path.is_file():
+        return False
+    file_path.unlink()
+    return True
+
+
 # =============================================================================
 # Legacy Local Storage Helpers
 # =============================================================================

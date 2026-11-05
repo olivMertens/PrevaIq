@@ -1432,6 +1432,13 @@ def get_page_reference(application_id: str, page_number: int) -> str:
 # ---------------------------------------------------------------------------
 
 
+def fabric_data_configured() -> bool:
+    """True when the Fabric data agent (Foundry project + Fabric connection) is configured."""
+    from ..config import load_settings
+
+    return bool(load_settings().foundry.project_endpoint and os.getenv("FABRIC_CONNECTION_NAME"))
+
+
 def query_fabric_data(
     question: str,
     persona: str = "",
@@ -1454,23 +1461,18 @@ def query_fabric_data(
         message if the Data Agent is not configured.
     """
     from ..config import load_settings
-    from ..languages import language_instruction, require_language
+    from ..languages import language_instruction, localized_message, require_language
 
     language = require_language(language)
 
     project_endpoint = load_settings().foundry.project_endpoint
     fabric_conn_name = os.getenv("FABRIC_CONNECTION_NAME", "")
 
-    if not project_endpoint or not fabric_conn_name:
+    if not fabric_data_configured():
         logger.info(
             "Fabric Data Agent not configured — missing FOUNDRY_PROJECT_ENDPOINT or FABRIC_CONNECTION_NAME"
         )
-        return (
-            "Le Data Agent Fabric n'est pas configuré. "
-            "Pour répondre aux questions sur les données métier (montants, volumes, statistiques), "
-            "les variables FOUNDRY_PROJECT_ENDPOINT et FABRIC_CONNECTION_NAME doivent être définies. "
-            "Contactez l'administrateur pour configurer la connexion Fabric dans le projet Foundry."
-        )
+        return localized_message("fabric_not_configured", language)
 
     fabric_agent_name = "WorkbenchIQ-FabricQuery"
     started = time.perf_counter()
