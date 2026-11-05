@@ -3,6 +3,7 @@
 import { CircleCheck, CircleHelp, OctagonAlert } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
+import { previewUrl } from '@/lib/media';
 import { CockpitCard } from './caseUi';
 
 export interface EvidencePhoto {
@@ -76,7 +77,7 @@ export default function EvidenceStrip({ photos, documentCount, onOpenPhoto, onOp
                   )}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- authenticated proxy URL, not a static asset */}
-                  <img src={photo.url} alt={photo.filename} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                  <img src={previewUrl(photo.url, 'thumb')} alt={photo.filename} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   {isLast ? (
                     <span className="absolute inset-0 flex items-center justify-center bg-slate-900/60 text-lg font-semibold text-white">
                       +{extra}

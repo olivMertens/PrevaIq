@@ -23,6 +23,7 @@ import CustomerAffiliationBanner from './CustomerAffiliationBanner';
 import UnderwritingDecisionFooter from '@/components/UnderwritingDecisionFooter';
 import { MediaItem, getMediaUrl, runUnderwritingAnalysis, getApplication } from '@/lib/api';
 import type { FraudAnalysisResponse } from '@/lib/api';
+import { previewUrl } from '@/lib/media';
 import { getApplicationDisplayTitle, textValue } from '@/lib/applicationDisplay';
 import useAutomotiveClaimData from './useAutomotiveClaimData';
 import { useTranslations, useLocale } from 'next-intl';
@@ -342,7 +343,7 @@ export function AutomotiveClaimsOverview({
                   <div className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mb-1">{t('photos')} ({d.images.length})</div>
                   {d.images.slice(0, 4).map((img) => (
                     <div key={img.media_id} className="flex items-center gap-2 p-1 rounded hover:bg-slate-50 cursor-pointer" onClick={() => setSelectedImage(img)}>
-                      <div className="w-8 h-8 rounded overflow-hidden bg-slate-100 flex-shrink-0"><img src={getMediaUrl(img.url)} alt={img.filename} className="w-full h-full object-cover" /></div>
+                      <div className="w-8 h-8 rounded overflow-hidden bg-slate-100 flex-shrink-0"><img src={previewUrl(getMediaUrl(img.url), 'thumb')} alt={img.filename} loading="lazy" decoding="async" className="w-full h-full object-cover" /></div>
                       <p className="text-[11px] text-slate-900 truncate flex-1">{img.filename}</p>
                       <Eye className="w-3 h-3 text-slate-400" />
                     </div>
@@ -428,7 +429,7 @@ export function AutomotiveClaimsOverview({
       {selectedImage && (
         <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center" onClick={() => setSelectedImage(null)}>
           <button onClick={() => setSelectedImage(null)} title={t('closeImage')} aria-label={t('closeImage')} className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"><XCircle className="w-6 h-6 text-white" /></button>
-          <img src={getMediaUrl(selectedImage.url)} alt={selectedImage.filename} className="max-w-[90vw] max-h-[90vh] object-contain" />
+          <img src={previewUrl(getMediaUrl(selectedImage.url), 'screen')} alt={selectedImage.filename} decoding="async" className="max-w-[90vw] max-h-[90vh] object-contain" />
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-4 py-2 rounded-lg">{selectedImage.filename}</div>
         </div>
       )}

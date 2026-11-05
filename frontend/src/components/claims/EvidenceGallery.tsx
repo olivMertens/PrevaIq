@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Image, Video, FileText, ZoomIn, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { MediaItem, DamageArea, getMediaUrl } from '@/lib/api';
+import { previewUrl } from '@/lib/media';
 
 interface EvidenceGalleryProps {
   mediaItems: MediaItem[];
@@ -164,8 +165,9 @@ const MediaLightbox: React.FC<MediaLightboxProps> = ({
         {media.media_type === 'image' ? (
           <div className="relative">
             <img
-              src={getMediaUrl(media.url)}
+              src={previewUrl(getMediaUrl(media.url), 'screen')}
               alt={media.filename}
+              decoding="async"
               className="max-w-full max-h-[80vh] object-contain"
             />
             {/* Damage Overlay */}

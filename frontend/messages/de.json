@@ -17,7 +17,9 @@
     "noReference": "Keine Referenz",
     "signOut": "Abmelden",
     "applicationsSection": "Vorgänge",
-    "pages": "Seiten"
+    "pages": "Seiten",
+    "userMenu": "Konto und Einstellungen",
+    "signedInAs": "Angemeldet als {user}"
   },
   "auth": {
     "splashEyebrow": "KI-Arbeitsbereich für Versicherungen",
@@ -645,7 +647,9 @@
       "cu_and_markitdown_failed": "Content Understanding und MarkItDown konnten die Datei nicht lesen",
       "low_quality_cu_output": "Ergebnis von Content Understanding zu schwach",
       "below_quality_threshold": "Extraktionsqualität unter dem Schwellenwert"
-    }
+    },
+    "translatingAnalysis": "Analyse wird übersetzt…",
+    "analysisTranslationFailed": "Analyse in der Originalsprache angezeigt"
   },
   "actions": {
     "cancel": "Stornierung",
@@ -1537,6 +1541,14 @@
       "consult": "Konsultation",
       "imaging": "Bildgebung",
       "procedure": "Verfahren"
+    },
+    "contentLanguage": {
+      "translating": "Wird übersetzt (Original: {language})…",
+      "translatedFrom": "Maschinelle Übersetzung (Original: {language})",
+      "failed": "Übersetzung nicht verfügbar (Original: {language})",
+      "original": "Original ({language})",
+      "showOriginal": "Original anzeigen",
+      "showTranslation": "Übersetzung anzeigen ({language})"
     }
   },
   "customer360": {

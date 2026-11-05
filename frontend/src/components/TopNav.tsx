@@ -6,10 +6,7 @@ import {
   Clock,
   FileText,
   FileStack,
-  Settings,
   ChevronDown,
-  LogOut,
-  User,
   Users,
 } from 'lucide-react';
 import type { ApplicationListItem, ApplicationMetadata } from '@/lib/types';
@@ -21,8 +18,7 @@ import GlossaryDropdown from './GlossaryDropdown';
 import { brand } from '@/lib/brand';
 import { usePersona } from '@/lib/PersonaContext';
 import { useTranslations } from 'next-intl';
-import LanguageSwitcher from './LanguageSwitcher';
-import DemoGuideModal from './DemoGuideModal';
+import UserMenu from './UserMenu';
 import BrandMark from './BrandMark';
 import StatusBadge from './landing/StatusBadge';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
@@ -121,7 +117,7 @@ export default function TopNav({
               <button
                 onClick={() => setAppDropdownOpen(!appDropdownOpen)}
                 title={selectedApplication ? getAppDisplayTitle(selectedApplication) : undefined}
-                className="flex w-full min-w-0 max-w-[11rem] items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm lg:max-w-[15rem] xl:max-w-[22rem]"
+                className="flex w-full min-w-0 max-w-[11rem] items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm lg:max-w-[15rem] xl:max-w-[18rem] 2xl:max-w-[26rem]"
               >
                 <span className="truncate text-slate-700">
                   {selectedApplication ? getAppDisplayTitle(selectedApplication) : t('selectApplication')}
@@ -176,8 +172,8 @@ export default function TopNav({
           )}
         </div>
 
-        {/* Right Side Actions: labels collapse to icons below 2xl so nothing overlaps on laptop widths */}
-        <div className="ml-auto flex flex-shrink-0 items-center justify-end gap-1.5 2xl:gap-2">
+        {/* Right Side Actions: language, demo guide, admin and sign-out live in the user menu */}
+        <div className="ml-auto flex flex-shrink-0 items-center justify-end gap-1.5 xl:gap-2">
           {/* Glossary Dropdown - Only in workbench view */}
           {showWorkbenchControls && <GlossaryDropdown />}
           
@@ -185,52 +181,18 @@ export default function TopNav({
             href="/customers"
             aria-label={t('customer360')}
             title={t('customer360')}
-            className="flex items-center gap-2 px-2.5 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors 2xl:px-3"
+            className="flex items-center gap-2 px-2.5 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors xl:px-3"
           >
             <Users className="w-4 h-4" aria-hidden />
-            <span className="hidden 2xl:inline">{t('customer360')}</span>
+            <span className="hidden whitespace-nowrap xl:inline">{t('customer360')}</span>
           </Link>
-          {canAdmin && (
-          <Link
-            href="/admin"
-            aria-label={t('admin')}
-            title={t('admin')}
-            className="flex items-center gap-2 px-2.5 py-2 text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors 2xl:px-3"
-          >
-            <Settings className="w-4 h-4" aria-hidden />
-            <span className="hidden 2xl:inline">{t('admin')}</span>
-          </Link>
-          )}
 
-          {/* Language Switcher */}
-          <LanguageSwitcher />
-
-          {/* Demo Guide */}
-          <DemoGuideModal />
-
-          {/* Auth: username & logout */}
-          {authEnabled && (
-            <div className="ml-1 flex items-center gap-2 border-l border-slate-200 pl-2 2xl:ml-2">
-              {authUser && (
-                <span
-                  className="hidden min-w-0 max-w-36 items-center gap-1.5 text-sm text-slate-500 2xl:flex"
-                  title={authUser}
-                >
-                  <User className="w-3.5 h-3.5" />
-                  <span className="truncate">{authUserLabel}</span>
-                </span>
-              )}
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded-lg transition-colors"
-                style={{ color: brand.primary, backgroundColor: `${brand.primary}0D` }}
-                title={authUser ? `${t('signOut')} (${authUser})` : t('signOut')}
-                aria-label={t('signOut')}
-              >
-                <LogOut className="w-4 h-4" aria-hidden />
-              </button>
-            </div>
-          )}
+          <UserMenu
+            user={authUser}
+            userLabel={authUserLabel}
+            canAdmin={canAdmin}
+            onSignOut={authEnabled ? handleLogout : undefined}
+          />
         </div>
       </div>
 

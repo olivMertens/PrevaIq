@@ -3,12 +3,24 @@
 import { useMemo, useState } from 'react';
 import { Copy, Check, ChevronDown, ChevronUp, FileText, Layers } from 'lucide-react';
 import type { MarkdownPage, BatchSummary } from '@/lib/types';
+import type { TranslationState } from '@/lib/useContentTranslation';
 import { useTranslations } from 'next-intl';
+import ContentLanguageBar, { type ContentView } from './ContentLanguageBar';
 
 interface ExtractedTextPaneProps {
   page: MarkdownPage | null;
   batchSummary: BatchSummary | null;
   searchQuery: string;
+  contentView?: ContentView;
+  onContentViewChange?: (view: ContentView) => void;
+  /** Present only when the page is in another language than the UI. */
+  pageTranslation?: TranslationState | null;
+  batchTranslation?: TranslationState | null;
+}
+
+/** Translated text when shown and available, otherwise the original. */
+function shownText(original: string, view: ContentView, state: TranslationState | null | undefined): string {
+  return view === 'translated' && state?.content?.translated ? state.content.text : original;
 }
 
 function escapeRegex(str: string): string {
@@ -168,14 +180,20 @@ export default function ExtractedTextPane({
   page,
   batchSummary,
   searchQuery,
+  contentView = 'translated',
+  onContentViewChange,
+  pageTranslation,
+  batchTranslation,
 }: ExtractedTextPaneProps) {
   const t = useTranslations('common');
   const [copied, setCopied] = useState(false);
   const [batchExpanded, setBatchExpanded] = useState(false);
+  const pageText = page ? shownText(page.markdown, contentView, pageTranslation) : '';
+  const batchText = batchSummary ? shownText(batchSummary.summary, contentView, batchTranslation) : '';
 
   const handleCopy = async () => {
-    if (page?.markdown) {
-      await navigator.clipboard.writeText(page.markdown);
+    if (pageText) {
+      await navigator.clipboard.writeText(pageText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -245,6 +263,15 @@ export default function ExtractedTextPane({
         </button>
       </div>
 
+      {page.language && pageTranslation !== undefined && pageTranslation !== null && onContentViewChange && (
+        <ContentLanguageBar
+          sourceLanguage={page.language}
+          view={contentView}
+          state={pageTranslation}
+          onViewChange={onContentViewChange}
+        />
+      )}
+
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 py-4 bg-white">
         {/* Contextual batch summary card — shown above extracted text */}
@@ -275,7 +302,7 @@ export default function ExtractedTextPane({
 
               {batchExpanded && (
                 <div className="px-4 pb-4 text-sm text-blue-900 space-y-0">
-                  {renderMarkdown(batchSummary.summary, searchQuery)}
+                  {renderMarkdown(batchText, searchQuery)}
                 </div>
               )}
             </div>
@@ -284,7 +311,7 @@ export default function ExtractedTextPane({
 
         {/* Extracted text rendered as prose */}
         <div className="space-y-0">
-          {renderMarkdown(page.markdown, searchQuery)}
+          {renderMarkdown(pageText, searchQuery)}
         </div>
       </div>
     </div>

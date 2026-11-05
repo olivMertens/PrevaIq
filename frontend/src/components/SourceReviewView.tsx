@@ -6,8 +6,18 @@ import SearchBar, { type SearchResult } from './SearchBar';
 import PageNavigator from './PageNavigator';
 import InlinePdfViewer from './InlinePdfViewer';
 import ExtractedTextPane from './ExtractedTextPane';
+import type { ContentView } from './ContentLanguageBar';
+import { usePersistentChoice } from './case/usePersistentState';
+import { useContentTranslation, type TranslatableItem } from '@/lib/useContentTranslation';
 import { FileStack } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+
+const CONTENT_VIEWS: readonly ContentView[] = ['translated', 'original'];
+
+/** Content written in another language than the UI (unclear languages are left as they are). */
+function isForeign(language: string | null | undefined, locale: string): language is string {
+  return !!language && language !== locale;
+}
 
 interface SourceReviewViewProps {
   application: ApplicationMetadata;
@@ -76,6 +86,42 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
       ) || null
     );
   }, [currentPage, batchSummaries]);
+
+  // Content in another language is shown translated into the UI language (original on demand).
+  const locale = useLocale();
+  const [contentView, setContentView] = usePersistentChoice<ContentView>(
+    'prevaiq.content.view',
+    'translated',
+    CONTENT_VIEWS,
+  );
+  const nextPage = useMemo(() => {
+    const index = pages.findIndex((p) => p.page_number === selectedPageNum);
+    return index >= 0 ? pages[index + 1] ?? null : null;
+  }, [pages, selectedPageNum]);
+  const pageItem = useMemo<TranslatableItem | null>(
+    () =>
+      currentPage && isForeign(currentPage.language, locale)
+        ? { kind: 'page', id: currentPage.page_number, text: currentPage.markdown }
+        : null,
+    [currentPage, locale],
+  );
+  const batchItem = useMemo<TranslatableItem | null>(
+    () =>
+      contextualBatch && isForeign(contextualBatch.language, locale)
+        ? { kind: 'batch', id: contextualBatch.batch_num, text: contextualBatch.summary }
+        : null,
+    [contextualBatch, locale],
+  );
+  const translationItems = useMemo<TranslatableItem[]>(() => {
+    if (contentView !== 'translated') return [];
+    const items = [pageItem, batchItem].filter((item): item is TranslatableItem => item !== null);
+    // The next page is prepared in the background so that paging stays instant.
+    if (nextPage && isForeign(nextPage.language, locale)) {
+      items.push({ kind: 'page', id: nextPage.page_number, text: nextPage.markdown });
+    }
+    return items;
+  }, [contentView, pageItem, batchItem, nextPage, locale]);
+  const translationOf = useContentTranslation(application.id, locale, translationItems);
 
   // Page navigation
   const goToPage = useCallback(
@@ -195,6 +241,10 @@ export default function SourceReviewView({ application, initialPage }: SourceRev
             page={currentPage}
             batchSummary={contextualBatch}
             searchQuery={searchQuery}
+            contentView={contentView}
+            onContentViewChange={setContentView}
+            pageTranslation={pageItem ? translationOf(pageItem) : null}
+            batchTranslation={batchItem ? translationOf(batchItem) : null}
           />
         </div>
       </div>

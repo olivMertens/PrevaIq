@@ -124,6 +124,29 @@ export default function WorkbenchView({
     return () => clearInterval(interval);
   }, [selectedApp]);
 
+  // In a new language the analysis is shown as generated while the API translates it;
+  // the translated case replaces it as soon as it is ready (bounded: 3 minutes).
+  const pendingLanguage = selectedApp?.analysis_translation_pending;
+  const selectedAppId = selectedApp?.id;
+  useEffect(() => {
+    if (!pendingLanguage || !selectedAppId) return;
+    let attempts = 0;
+    const timer = setInterval(async () => {
+      attempts += 1;
+      if (attempts >= 60) clearInterval(timer);
+      try {
+        const updated = await getApplication(selectedAppId);
+        if (!updated.analysis_translation_pending) {
+          clearInterval(timer);
+          setSelectedApp((current) => (current?.id === updated.id ? updated : current));
+        }
+      } catch {
+        // The analysis stays as it is; the next attempt may succeed.
+      }
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [pendingLanguage, selectedAppId]);
+
   const renderContent = () => {
     if (!selectedApp) return null;
 
@@ -147,6 +170,8 @@ export default function WorkbenchView({
         if (currentPersona === 'automotive_claims') {
           return (
             <AutomotiveClaimsOverview 
+                // Reloads its own data once the analysis has been translated.
+                key={`${selectedApp.id}-${selectedApp.analysis_language ?? ''}`}
                 applicationId={selectedApp.id}
                 displayTitle={getApplicationDisplayTitle(selectedApp, locale)}
             />
@@ -298,7 +323,18 @@ export default function WorkbenchView({
             </span>
              {loading && <span className="ml-1 text-xs text-slate-400 animate-pulse">{tw('loading')}</span>}
             {selectedApp && (
-              <div className="ml-auto flex-shrink-0 pl-2">
+              <div className="ml-auto flex flex-shrink-0 items-center gap-3 pl-2">
+                {selectedApp.analysis_translation_pending && (
+                  <span role="status" className="hidden items-center gap-1.5 text-xs text-indigo-700 md:flex">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                    {tw('translatingAnalysis')}
+                  </span>
+                )}
+                {selectedApp.analysis_translation_failed && (
+                  <span role="status" className="hidden text-xs text-amber-800 md:inline">
+                    {tw('analysisTranslationFailed')}
+                  </span>
+                )}
                 <PipelineStatusPill application={selectedApp} />
               </div>
             )}

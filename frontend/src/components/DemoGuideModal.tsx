@@ -116,15 +116,25 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-export default function DemoGuideModal() {
+interface DemoGuideModalProps {
+  /** Controlled visibility, e.g. opened from the user menu (the trigger button is then hidden). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalProps = {}) {
   const t = useTranslations('demoGuide');
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const controlled = open !== undefined;
+  const isOpen = controlled ? open : internalOpen;
+  const setIsOpen = (value: boolean) => (onOpenChange ? onOpenChange(value) : setInternalOpen(value));
   const [expandedStep, setExpandedStep] = useState<number | null>(0);
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const scenario = SCENARIOS[scenarioIdx];
   const scenarioContent = t.raw(`scenarios.${scenario.id}`) as ScenarioContent;
 
   if (!isOpen) {
+    if (controlled) return null;
     return (
       <button
         onClick={() => setIsOpen(true)}

@@ -17,7 +17,9 @@
     "noReference": "Aucune référence",
     "signOut": "Déconnexion",
     "applicationsSection": "Dossiers",
-    "pages": "Pages"
+    "pages": "Pages",
+    "userMenu": "Compte et paramètres",
+    "signedInAs": "Connecté en tant que {user}"
   },
   "auth": {
     "splashEyebrow": "Atelier IA de l’assurance",
@@ -645,7 +647,9 @@
       "cu_and_markitdown_failed": "Content Understanding et MarkItDown n'ont pas pu lire le fichier",
       "low_quality_cu_output": "résultat de Content Understanding trop faible",
       "below_quality_threshold": "qualité d'extraction sous le seuil"
-    }
+    },
+    "translatingAnalysis": "Traduction de l'analyse…",
+    "analysisTranslationFailed": "Analyse affichée dans sa langue d'origine"
   },
   "actions": {
     "cancel": "Annuler",
@@ -1537,6 +1541,14 @@
       "consult": "Consultation",
       "imaging": "Imagerie",
       "procedure": "Procédure"
+    },
+    "contentLanguage": {
+      "translating": "Traduction en cours (original : {language})…",
+      "translatedFrom": "Traduction automatique (original : {language})",
+      "failed": "Traduction indisponible (original : {language})",
+      "original": "Original ({language})",
+      "showOriginal": "Voir l'original",
+      "showTranslation": "Voir la traduction ({language})"
     }
   },
   "customer360": {

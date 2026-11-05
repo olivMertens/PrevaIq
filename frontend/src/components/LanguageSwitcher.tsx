@@ -6,19 +6,14 @@ import clsx from 'clsx';
 import { brand } from '@/lib/brand';
 import loginStyles from './auth/login.module.css';
 
-const LOCALES = [
+export const LOCALES = [
   { code: 'en', label: 'EN', flag: '🇬🇧' },
   { code: 'fr', label: 'FR', flag: '🇫🇷' },
   { code: 'de', label: 'DE', flag: '🇩🇪' },
 ] as const;
 
-/**
- * Language switcher toggle button (EN / FR / DE).
- * Sets a cookie and reloads to apply the new locale across the app.
- */
-export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'default' | 'login' }) {
-  const t = useTranslations('auth');
-  const isLogin = variant === 'login';
+/** Current locale and a switch that stores the cookie and reloads to apply it everywhere. */
+export function useLocaleSwitch() {
   const locale = useLocale();
   const [isPending, startTransition] = useTransition();
 
@@ -29,6 +24,18 @@ export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'd
       window.location.reload();
     });
   }
+
+  return { locale, isPending, switchLocale };
+}
+
+/**
+ * Language switcher toggle button (EN / FR / DE).
+ * Sets a cookie and reloads to apply the new locale across the app.
+ */
+export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'default' | 'login' }) {
+  const t = useTranslations('auth');
+  const isLogin = variant === 'login';
+  const { locale, isPending, switchLocale } = useLocaleSwitch();
 
   return (
     <div

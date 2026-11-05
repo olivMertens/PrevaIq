@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Loader2, TriangleAlert, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { getApplication, type FraudAnalysisResponse } from '@/lib/api';
@@ -82,9 +82,14 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
   const [launchOpen, setLaunchOpen] = useState(false);
   const [decision, setDecision] = useState<{ open: boolean; draft: DecisionDraft | null }>({ open: false, draft: null });
   const [fraudOpen, setFraudOpen] = useState(false);
-  const [fraudResult, setFraudResult] = useState<FraudAnalysisResponse | null>(() => savedFraud(application));
   const [fraudStatus, setFraudStatus] = useState<FraudStatus>(IDLE_FRAUD);
-  const fraudStamp = useRef(fraudResult?.analysis_timestamp);
+  // The case carries the fraud analysis in the UI language; a fresh run wins until the case
+  // is reloaded with it.
+  const appFraud = useMemo(() => savedFraud(application), [application]);
+  const [runFraud, setRunFraud] = useState<FraudAnalysisResponse | null>(null);
+  const fraudResult =
+    runFraud && runFraud.analysis_timestamp !== appFraud?.analysis_timestamp ? runFraud : appFraud ?? runFraud;
+  const appFraudStamp = appFraud?.analysis_timestamp;
   const applicationId = application?.id;
 
   const refresh = useCallback(() => {
@@ -93,13 +98,11 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
     }
   }, [applicationId, onApplicationUpdate]);
 
-  // The panel also reports the saved result on mount: only a new analysis refreshes the case.
   const handleFraudComplete = useCallback((result: FraudAnalysisResponse) => {
-    setFraudResult(result);
-    if (result.analysis_timestamp === fraudStamp.current) return;
-    fraudStamp.current = result.analysis_timestamp;
+    if (result.analysis_timestamp === appFraudStamp) return;
+    setRunFraud(result);
     refresh();
-  }, [refresh]);
+  }, [appFraudStamp, refresh]);
 
   const handleFraudStatus = useCallback(({ isLoading, progress }: FraudStatus) => {
     setFraudStatus((current) =>
@@ -270,6 +273,7 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
         onOpenChange={setFraudOpen}
         onFraudComplete={handleFraudComplete}
         onStatusChange={handleFraudStatus}
+        savedResult={appFraud}
       />
 
       <DeepDiveDrawer

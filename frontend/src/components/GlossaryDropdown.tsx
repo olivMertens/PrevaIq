@@ -140,7 +140,7 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
         aria-label={t('buttonLabel')}
       >
         <Book className="w-4 h-4 text-indigo-600" aria-hidden />
-        <span className="hidden 2xl:inline text-slate-700">{t('buttonLabel')}</span>
+        <span className="hidden xl:inline text-slate-700">{t('buttonLabel')}</span>
         <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 

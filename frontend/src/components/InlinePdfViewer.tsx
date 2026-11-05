@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { ZoomIn, ZoomOut, ExternalLink, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getMediaUrl } from '@/lib/api';
+import { previewUrl } from '@/lib/media';
 import { useTranslations } from 'next-intl';
 
 interface InlinePdfViewerProps {
@@ -42,7 +43,7 @@ export default function InlinePdfViewer({
 
   // Construct full URL pointing directly to the API backend
   const fileBaseUrl = useMemo(
-    () => getMediaUrl(`/api/applications/${applicationId}/files/${fileName}`),
+    () => getMediaUrl(`/api/applications/${applicationId}/files/${encodeURIComponent(fileName)}`),
     [applicationId, fileName]
   );
   // For PDFs, use the file-internal page number (1-based) for the #page= fragment
@@ -134,8 +135,9 @@ export default function InlinePdfViewer({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={fileName}
-              src={fileBaseUrl}
+              src={previewUrl(fileBaseUrl, 'screen')}
               alt={fileName}
+              decoding="async"
               className="max-w-full max-h-[75vh] object-contain rounded"
               onLoad={() => setLoading(false)}
               onError={() => {

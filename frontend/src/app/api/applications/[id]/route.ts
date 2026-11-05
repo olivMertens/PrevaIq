@@ -21,7 +21,8 @@ export async function GET(
   const apiBaseUrl = getApiBaseUrl(request);
   
   try {
-    const response = await fetch(`${apiBaseUrl}/api/applications/${appId}`, {
+    // Forward the query (e.g. ?language=de): the API returns the analysis in that language.
+    const response = await fetch(`${apiBaseUrl}/api/applications/${appId}${request.nextUrl.search}`, {
       headers: getHeaders(),
       cache: 'no-store',
     });

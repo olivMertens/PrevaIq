@@ -54,6 +54,8 @@ export interface MarkdownPage {
   markdown: string;
   extraction_backend?: string;
   analyzer_id?: string | null;
+  /** Detected language of the text (en/fr/de), null when unclear. */
+  language?: string | null;
 }
 
 export interface ExtractionFileProvenance {
@@ -386,6 +388,8 @@ export interface BatchSummary {
   page_end: number;
   page_count: number;
   summary: string;
+  /** Detected language of the summary (en/fr/de), null when unclear. */
+  language?: string | null;
 }
 
 export interface ContextLabel {
@@ -468,6 +472,12 @@ export interface ApplicationMetadata {
     systems: string[];
     trace_summary?: { system: string; call: string; status: string }[];
   }[];
+  /** Language of the AI analysis in this payload. */
+  analysis_language?: string;
+  /** Requested language still being translated in the background (analysis shown as generated). */
+  analysis_translation_pending?: string;
+  /** Requested language whose translation failed recently (analysis shown as generated). */
+  analysis_translation_failed?: string;
 }
 
 export interface SouscriaRiskAlert {

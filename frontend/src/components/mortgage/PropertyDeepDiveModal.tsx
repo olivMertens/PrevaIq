@@ -11,6 +11,7 @@ import {
 import type { PropertyDeepDiveData, PropertyDeepDiveComparable, PropertyFeature } from '@/lib/types';
 import { getPropertyDeepDive, runPropertyDeepDive } from '@/lib/api';
 import { brand } from '@/lib/brand';
+import { previewUrl } from '@/lib/media';
 import { useTranslations, useLocale } from 'next-intl';
 
 interface PropertyDeepDiveModalProps {
@@ -368,7 +369,7 @@ ${sections.join('\n')}
                   <div className="relative aspect-[4/3] bg-slate-100">
                     {currentPhoto ? (
                       <img
-                        src={currentPhoto.url}
+                        src={previewUrl(currentPhoto.url, 'thumb')}
                         alt={currentPhoto.caption || 'Property photo'}
                         className="w-full h-full object-cover"
                       />

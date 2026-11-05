@@ -437,17 +437,97 @@ def localized_application_to_dict(
     settings: Any,
     app_md: ApplicationMetadata,
     language: str,
+    *,
+    wait: bool = True,
 ) -> dict:
-    """Project derived analysis into a locale while leaving source data untouched."""
-    from app.processing import localized_analysis_payload
+    """Project derived analysis into a locale while leaving source data untouched.
+
+    With ``wait=False`` an uncached translation is not awaited: the analysis is returned
+    in its source language and ``analysis_translation_pending`` names the requested one.
+    """
+    from app.processing import (
+        analysis_source_locale,
+        cached_localized_analysis_payload,
+        localized_analysis_payload,
+    )
 
     locale = require_language(language)
     payload = application_to_dict(app_md)
-    localized = localized_analysis_payload(settings, app_md, locale)
-    payload.update(localized)
-    payload["analysis_language"] = locale
+    if wait:
+        localized = localized_analysis_payload(settings, app_md, locale)
+    else:
+        localized = cached_localized_analysis_payload(settings, app_md, locale)
+    if localized is None:
+        payload["analysis_language"] = analysis_source_locale(app_md)
+        payload["analysis_translation_pending"] = locale
+    else:
+        payload.update(localized)
+        payload["analysis_language"] = locale
     payload["analysis_source_revision"] = app_md.analysis_source_revision
     return payload
+
+
+def _annotate_content_languages(payload: dict) -> None:
+    """Tag pages and batch summaries with their detected language (copies, not metadata).
+
+    The client then requests a translation only for content in another language.
+    """
+    from app.content_translation import detect_language
+
+    for key, text_key in (("markdown_pages", "markdown"), ("batch_summaries", "summary")):
+        items = payload.get(key)
+        if isinstance(items, list):
+            payload[key] = [
+                {**item, "language": detect_language(str(item.get(text_key) or ""))}
+                if isinstance(item, dict)
+                else item
+                for item in items
+            ]
+
+
+# Background analysis translations: one job per case and language, and a cooldown after a
+# failure so that client polling cannot trigger repeated model calls.
+_analysis_translation_jobs: set[str] = set()
+_analysis_translation_failures: Dict[str, float] = {}
+_ANALYSIS_TRANSLATION_BUDGET_SECONDS = 180
+_ANALYSIS_TRANSLATION_COOLDOWN_SECONDS = 600
+
+
+def _analysis_translation_failed_recently(app_id: str, language: str) -> bool:
+    failed_at = _analysis_translation_failures.get(f"{app_id}:{language}")
+    return failed_at is not None and (
+        asyncio.get_running_loop().time() - failed_at < _ANALYSIS_TRANSLATION_COOLDOWN_SECONDS
+    )
+
+
+def _schedule_analysis_translation(app_id: str, language: str) -> None:
+    """Translate the derived analysis of a case in the background, once at a time."""
+    key = f"{app_id}:{language}"
+    if key in _analysis_translation_jobs or _analysis_translation_failed_recently(app_id, language):
+        return
+    _analysis_translation_jobs.add(key)
+    loop = asyncio.get_running_loop()
+
+    async def run() -> None:
+        from app.processing import localized_analysis_payload
+
+        try:
+            settings = load_settings()
+            latest = await asyncio.to_thread(load_application, settings.app.storage_root, app_id)
+            if latest is not None:
+                await asyncio.wait_for(
+                    asyncio.to_thread(localized_analysis_payload, settings, latest, language),
+                    timeout=_ANALYSIS_TRANSLATION_BUDGET_SECONDS,
+                )
+                _analysis_translation_failures.pop(key, None)
+        except Exception as exc:
+            _analysis_translation_failures[key] = loop.time()
+            logger.warning("Analysis translation failed for %s (%s): %s", app_id, language, exc)
+        finally:
+            _analysis_translation_jobs.discard(key)
+
+    task = asyncio.create_task(run())
+    task.add_done_callback(_log_task_exception)
 
 
 # ============================================================================
@@ -1152,7 +1232,18 @@ async def get_application(app_id: str, language: str = "en"):
                 logger.warning("Lazy context label generation failed for %s: %s", app_id, label_err)
 
         locale = require_language(language)
-        payload = await asyncio.to_thread(localized_application_to_dict, settings, app_md, locale)
+        payload = await asyncio.to_thread(
+            localized_application_to_dict, settings, app_md, locale, wait=False
+        )
+        pending = payload.get("analysis_translation_pending")
+        if pending:
+            if _analysis_translation_failed_recently(app_md.id, pending):
+                # Shown in its source language; the client stops waiting for a translation.
+                payload.pop("analysis_translation_pending")
+                payload["analysis_translation_failed"] = pending
+            else:
+                _schedule_analysis_translation(app_md.id, pending)
+        _annotate_content_languages(payload)
 
         # Enrich with live Souscr'IA front-office context when this dossier
         # originated from a Souscr'IA conversation (external_reference == thread_id).
@@ -1421,25 +1512,71 @@ async def get_validation_stats(persona: Optional[str] = None):
 
 
 @app.get("/api/applications/{app_id}/files/{filename:path}")
-async def get_application_file(app_id: str, filename: str, request: Request):
+async def get_application_file(
+    app_id: str,
+    filename: str,
+    request: Request,
+    preview: Optional[str] = Query(None, pattern="^(thumb|screen)$"),
+):
     """Serve a file from an application's files directory.
 
-    Supports HTTP Range requests for video/audio streaming.
+    Supports HTTP Range requests for video/audio streaming, conditional requests
+    (ETag / If-None-Match) and compressed image previews (``?preview=thumb|screen``)
+    that are rendered once and cached next to the original.
     """
     from fastapi.responses import Response
 
+    from app.media_previews import (
+        PREVIEW_MEDIA_TYPE,
+        content_etag,
+        etag_matches,
+        is_previewable,
+        preview_cache_name,
+        render_preview,
+    )
+
     try:
         settings = load_settings()
+        root = settings.app.storage_root
 
         # Security: prevent path traversal
         if ".." in filename or filename.startswith("/"):
             raise HTTPException(status_code=403, detail="Accès refusé")
 
+        # Short private cache plus ETag revalidation: a re-uploaded file is picked up quickly.
+        cache_headers = {"Cache-Control": "private, max-age=600"}
+        if_none_match = request.headers.get("if-none-match")
+
+        file_content: Optional[bytes] = None
+        if preview and is_previewable(filename):
+            cache_name = preview_cache_name(filename, preview)
+            preview_content = await asyncio.to_thread(load_file, root, app_id, cache_name)
+            if not preview_content:
+                file_content = await asyncio.to_thread(load_file, root, app_id, filename)
+                if file_content is None:
+                    raise HTTPException(status_code=404, detail="Fichier introuvable")
+                preview_content = await asyncio.to_thread(render_preview, file_content, preview)
+                if preview_content:
+                    _save_in_background(root, app_id, cache_name, preview_content)
+            if preview_content:
+                etag = content_etag(preview_content)
+                headers = {**cache_headers, "ETag": etag}
+                if etag_matches(if_none_match, etag):
+                    return Response(status_code=304, headers=headers)
+                return Response(
+                    content=preview_content, media_type=PREVIEW_MEDIA_TYPE, headers=headers
+                )
+
         # Load file using storage provider (supports both local and Azure Blob)
-        file_content = load_file(settings.app.storage_root, app_id, filename)
+        if file_content is None:
+            file_content = await asyncio.to_thread(load_file, root, app_id, filename)
 
         if file_content is None:
             raise HTTPException(status_code=404, detail="Fichier introuvable")
+
+        etag = content_etag(file_content)
+        if etag_matches(if_none_match, etag):
+            return Response(status_code=304, headers={**cache_headers, "ETag": etag})
 
         # Determine media type from filename
         suffix = Path(filename).suffix.lower()
@@ -1465,6 +1602,8 @@ async def get_application_file(app_id: str, filename: str, request: Request):
         headers = {
             "Accept-Ranges": "bytes",
             "Content-Length": str(total_size),
+            "ETag": etag,
+            **cache_headers,
         }
 
         if suffix == ".pdf":
@@ -1504,6 +1643,70 @@ async def get_application_file(app_id: str, filename: str, request: Request):
         raise
     except Exception as e:
         logger.error("Failed to serve file %s for app %s: %s", filename, app_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _save_in_background(root: str, app_id: str, filename: str, content: bytes) -> None:
+    """Persist a presentation cache without delaying the response."""
+    from app.storage import save_application_file
+
+    def save() -> None:
+        try:
+            save_application_file(root, app_id, filename, content)
+        except Exception as exc:
+            logger.warning("Could not cache %s for %s: %s", filename, app_id, exc)
+
+    asyncio.get_running_loop().run_in_executor(None, save)
+
+
+def _invalidate_previews(root: str, app_id: str, filenames: List[str]) -> None:
+    """A re-uploaded file replaces the original: empty its cached previews."""
+    from app.media_previews import is_previewable, preview_cache_names
+    from app.storage import save_application_file
+
+    for filename in filenames:
+        if not is_previewable(filename):
+            continue
+        for cache_name in preview_cache_names(filename):
+            try:
+                save_application_file(root, app_id, cache_name, b"")
+            except Exception as exc:
+                logger.warning("Could not reset preview %s for %s: %s", cache_name, app_id, exc)
+
+
+class ContentTranslationRequest(BaseModel):
+    language: str
+    pages: List[int] = []
+    batches: List[int] = []
+
+
+@app.post("/api/applications/{app_id}/content-translations")
+async def translate_application_content(app_id: str, request: ContentTranslationRequest):
+    """Translate page text, photo descriptions and batch summaries into a UI language.
+
+    Source content is never modified: each translation is cached by content hash, and
+    texts already in the requested language are returned as they are.
+    """
+    try:
+        settings = load_settings()
+        locale = require_language(request.language)
+        app_md = await asyncio.to_thread(load_application, settings.app.storage_root, app_id)
+        if not app_md:
+            raise HTTPException(
+                status_code=404, detail=localized_message("application_not_found", locale)
+            )
+
+        from app.content_translation import translate_case_content
+
+        return await asyncio.to_thread(
+            translate_case_content, settings, app_md, locale, request.pages, request.batches
+        )
+    except HTTPException:
+        raise
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error("Content translation failed for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -1607,11 +1810,17 @@ async def add_files_to_application(
             file_data.append({"name": f.filename, "content": content})
 
         # Save new files to storage
+        existing_names = {stored.filename for stored in app_md.files}
         new_stored = save_uploaded_files(
             settings.app.storage_root,
             app_id,
             file_data,
             public_base_url=settings.app.public_files_base_url,
+        )
+        _invalidate_previews(
+            settings.app.storage_root,
+            app_id,
+            [stored.filename for stored in new_stored if stored.filename in existing_names],
         )
 
         # Append to existing files list

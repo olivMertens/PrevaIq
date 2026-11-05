@@ -2012,3 +2012,28 @@ export async function submitApplicationDecision(
     body: JSON.stringify(body),
   });
 }
+
+export interface TranslatedContent {
+  text: string;
+  /** Detected language of the original, null when unclear (shown as is). */
+  source_language: string | null;
+  translated: boolean;
+  error?: 'translation_failed' | 'too_long';
+}
+
+export interface ContentTranslationResponse {
+  language: string;
+  pages: Array<TranslatedContent & { page_number: number }>;
+  batches: Array<TranslatedContent & { batch_num: number }>;
+}
+
+/** Page text, photo descriptions and batch summaries in a UI language (originals unchanged). */
+export async function translateApplicationContent(
+  applicationId: string,
+  request: { language: string; pages?: number[]; batches?: number[] },
+): Promise<ContentTranslationResponse> {
+  return apiFetch(`/api/applications/${encodeURIComponent(applicationId)}/content-translations`, {
+    method: 'POST',
+    body: JSON.stringify({ pages: [], batches: [], ...request }),
+  });
+}

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { previewUrl } from '@/lib/media';
 
 export interface GalleryItem {
   url: string;
@@ -86,7 +87,7 @@ export default function GalleryLightbox({ items, currentIndex, onClose, onNaviga
 
         {isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={current.url} alt={current.filename}
+          <img src={previewUrl(current.url, 'screen')} alt={current.filename} decoding="async"
             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" />
         ) : (
           <iframe src={current.url} title={current.filename}

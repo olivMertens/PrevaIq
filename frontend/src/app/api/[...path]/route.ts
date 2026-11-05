@@ -40,6 +40,25 @@ export async function PATCH(
   return proxyRequest(request, (await params).path, 'PATCH');
 }
 
+const CACHE_HEADERS = ['cache-control', 'etag', 'last-modified'];
+const BINARY_HEADERS = [
+  ...CACHE_HEADERS,
+  'content-length',
+  'content-disposition',
+  'accept-ranges',
+  'content-range',
+  'x-content-type-options',
+];
+
+function pickHeaders(response: Response, names: string[]): Record<string, string> {
+  const picked: Record<string, string> = {};
+  for (const name of names) {
+    const value = response.headers.get(name);
+    if (value) picked[name] = value;
+  }
+  return picked;
+}
+
 async function proxyRequest(
   request: NextRequest,
   pathSegments: string[],
@@ -76,6 +95,12 @@ async function proxyRequest(
       (headers as Record<string, string>)['Range'] = rangeHeader;
     }
 
+    // Conditional requests let the browser reuse a cached file (HTTP 304, no body)
+    const ifNoneMatch = request.headers.get('if-none-match');
+    if (ifNoneMatch) {
+      (headers as Record<string, string>)['If-None-Match'] = ifNoneMatch;
+    }
+
     const fetchOptions: RequestInit = {
       method: method || request.method,
       headers,
@@ -105,32 +130,27 @@ async function proxyRequest(
 
     const response = await fetch(url, fetchOptions);
 
+    if (response.status === 304) {
+      return new NextResponse(null, { status: 304, headers: pickHeaders(response, CACHE_HEADERS) });
+    }
+
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type') || '';
     if (contentType.includes('application/json')) {
       const data = await response.json();
       return NextResponse.json(data, { status: response.status });
     } else {
-      // For binary content (PDFs, images, video), use arrayBuffer to
-      // preserve bytes. Using response.text() corrupts binary data and
-      // causes browsers to show "password protected" for PDFs.
+      // Binary content (PDFs, images, video) is streamed as-is: never decoded as text
+      // (which corrupts PDFs) and never buffered, so the first bytes reach the browser
+      // while the rest is still downloading.
       const isBinary = /^(application\/(pdf|octet-stream)|image\/|video\/|audio\/)/.test(contentType);
       if (isBinary) {
-        const buffer = await response.arrayBuffer();
-        const responseHeaders: Record<string, string> = {
-          'Content-Type': contentType,
-        };
-        const contentLength = response.headers.get('content-length');
-        if (contentLength) responseHeaders['Content-Length'] = contentLength;
-        const contentDisposition = response.headers.get('content-disposition');
-        if (contentDisposition) responseHeaders['Content-Disposition'] = contentDisposition;
-        const acceptRanges = response.headers.get('accept-ranges');
-        if (acceptRanges) responseHeaders['Accept-Ranges'] = acceptRanges;
-        const contentRange = response.headers.get('content-range');
-        if (contentRange) responseHeaders['Content-Range'] = contentRange;
-        return new NextResponse(buffer, {
+        const binaryHeaders = pickHeaders(response, BINARY_HEADERS);
+        // fetch() decodes compressed bodies, so an upstream length would no longer match.
+        if (response.headers.get('content-encoding')) delete binaryHeaders['content-length'];
+        return new NextResponse(response.body, {
           status: response.status,
-          headers: responseHeaders,
+          headers: { 'Content-Type': contentType, ...binaryHeaders },
         });
       }
       const text = await response.text();

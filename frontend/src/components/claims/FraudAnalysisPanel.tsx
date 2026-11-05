@@ -71,6 +71,8 @@ interface FraudAnalysisPanelProps {
   onOpenChange?: (open: boolean) => void;
   /** Background run status, so a host can show progress while the dialog is closed. */
   onStatusChange?: (status: { isLoading: boolean; progress: number; error: string | null }) => void;
+  /** Saved analysis supplied by the host, already in the UI language (skips the extra fetch). */
+  savedResult?: FraudAnalysisResponse | null;
 }
 
 // Estimated duration in seconds per effort level (used for progress simulation)
@@ -89,11 +91,18 @@ export default function FraudAnalysisPanel({
   open,
   onOpenChange,
   onStatusChange,
+  savedResult,
 }: FraudAnalysisPanelProps) {
   const t = useTranslations('fraudAnalysis');
   const locale = useLocale();
-  const [result, setResult] = useState<FraudAnalysisResponse | null>(null);
+  const [result, setResult] = useState<FraudAnalysisResponse | null>(savedResult ?? null);
   const [isLoading, setIsLoading] = useState(false);
+  // Follow the host's saved analysis (e.g. once translated), except during a run.
+  const [syncedSavedResult, setSyncedSavedResult] = useState(savedResult);
+  if (savedResult !== undefined && savedResult !== syncedSavedResult && !isLoading) {
+    setSyncedSavedResult(savedResult);
+    if (savedResult) setResult(savedResult);
+  }
   const [error, setError] = useState<string | null>(null);
   const [effort, setEffort] = useState<ReasoningEffort>('medium');
   const [internalOpen, setInternalOpen] = useState(false);
@@ -119,7 +128,9 @@ export default function FraudAnalysisPanel({
   }, [isLoading, progress, error, onStatusChange]);
 
   // Load previously saved fraud analysis on mount (from application metadata)
+  const hostProvidesResult = savedResult !== undefined;
   useEffect(() => {
+    if (hostProvidesResult) return;
     // Use the applications endpoint which already includes fraud_analysis
     // This avoids 404 errors on /api/claims/{id}/fraud-analysis for new dossiers
     import('@/lib/api').then(({ getApplication }) => {
@@ -137,7 +148,7 @@ export default function FraudAnalysisPanel({
         }).catch(() => {});
       });
     });
-  }, [applicationId, locale, onFraudComplete]);
+  }, [applicationId, hostProvidesResult, locale, onFraudComplete]);
 
   const handleAnalyze = useCallback(async () => {
     setIsLoading(true);
