@@ -117,13 +117,14 @@ export default function TopNav({
             <div className="relative min-w-0">
               <button
                 onClick={() => setAppDropdownOpen(!appDropdownOpen)}
-                className="flex w-full min-w-0 max-w-[11rem] items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm lg:max-w-[15rem] xl:max-w-[18rem] 2xl:max-w-[26rem]"
+                className="flex w-full min-w-0 max-w-[12.5rem] items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm lg:max-w-[16rem] xl:max-w-[18rem] 2xl:max-w-[26rem]"
               >
                 {selectedApplication ? (
+                  // The breadcrumb below shows holder and subject; here the subject only fits on 2xl.
                   <CaseTitle
                     title={getAppDisplayTitle(selectedApplication)}
                     className="min-w-0 text-slate-700"
-                    subjectClassName="hidden xl:inline"
+                    subjectClassName="hidden 2xl:inline"
                   />
                 ) : (
                   <span className="truncate text-slate-700">{t('selectApplication')}</span>
