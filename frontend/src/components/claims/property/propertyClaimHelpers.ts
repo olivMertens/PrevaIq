@@ -138,15 +138,4 @@ export function formatParsedFields(
   return markdown ? markdown.split('\n') : [];
 }
 
-/** Parse an amount such as "6560 EUR", "10 825 €", "CHF 1'697'400.00" or "6,560.00" (NaN if absent). */
-export function parseAmount(raw: string): number {
-  const cleaned = String(raw || '').replace(/[^\d.,]/g, '');
-  if (!cleaned) return NaN;
-  const lastSeparator = Math.max(cleaned.lastIndexOf(','), cleaned.lastIndexOf('.'));
-  const decimals = lastSeparator >= 0 ? cleaned.length - lastSeparator - 1 : 0;
-  if (lastSeparator >= 0 && decimals > 0 && decimals <= 2) {
-    const integer = cleaned.slice(0, lastSeparator).replace(/[.,]/g, '');
-    return Number(`${integer}.${cleaned.slice(lastSeparator + 1)}`);
-  }
-  return Number(cleaned.replace(/[.,]/g, ''));
-}
+export { parseAmount } from '@/lib/currency';

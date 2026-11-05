@@ -1,8 +1,7 @@
 'use client';
 
-import { useLocale } from 'next-intl';
 import type { FraudAnalysisResponse } from '@/lib/api';
-import { applicationCurrency, formatAmount } from '@/lib/currency';
+import { applicationCurrency } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import type { DeepDiveTab } from '@/components/case/caseSignals';
 import { PipelineDetails } from '@/components/case/PipelineStatusPill';
@@ -14,7 +13,7 @@ import FraudTab from './FraudTab';
 import SummaryTab from './SummaryTab';
 import TimelineTab from './TimelineTab';
 import WebCheckTab from './WebCheckTab';
-import { getFieldValue, parseAiSummary, parseAmount } from './propertyClaimHelpers';
+import { getFieldValue, parseAiSummary } from './propertyClaimHelpers';
 import type { usePropertyClaimData } from './usePropertyClaimData';
 
 export const DEEP_DIVE_TABS: DeepDiveTab[] = [
@@ -53,11 +52,8 @@ export default function PropertyDeepDive({
   onOpenFile,
   onRefresh,
 }: PropertyDeepDiveProps) {
-  const locale = useLocale();
-  const { ef, aiSummary, amountComparison } = data;
+  const { ef, aiSummary } = data;
   const field = (...keys: string[]) => getFieldValue(ef, keys, '');
-  const currency = applicationCurrency(application);
-  const money = (value: number) => formatAmount(value, currency, locale, { maximumFractionDigits: 0 });
 
   switch (tab) {
     case 'summary':
@@ -77,24 +73,17 @@ export default function PropertyDeepDive({
       return <FraudTab result={fraud} running={fraudStatus.isLoading} progress={fraudStatus.progress} onOpenReport={onOpenFraudReport} />;
     case 'web':
       return <WebCheckTab web={fraud?.web_intelligence} />;
-    case 'cover': {
-      const claimedRaw = field('MontantEstime', 'TotalIncurred', 'MontantTotal');
-      const claimedValue = parseAmount(claimedRaw);
+    case 'cover':
       return (
         <CoverTab
           labels={application.context_labels ?? []}
-          claimed={
-            amountComparison
-              ? money(amountComparison.claimed)
-              : Number.isFinite(claimedValue) && claimedValue > 0 ? money(claimedValue) : claimedRaw || null
-          }
-          recommended={amountComparison ? money(amountComparison.recommended) : null}
-          deltaPercent={amountComparison?.hasOverclaim ? Math.round(amountComparison.pctDelta) : undefined}
-          deductible={field('FranchiseApplicable', 'Franchise') || undefined}
+          llmOutputs={data.llmOutputs}
+          currency={applicationCurrency(application)}
+          claimedText={field('MontantEstime', 'TotalIncurred', 'MontantTotal')}
+          deductibleText={field('FranchiseApplicable', 'Franchise') || undefined}
           coverageText={parseAiSummary(aiSummary || '').decision}
         />
       );
-    }
     case 'evidence':
       return (
         <EvidenceTab

@@ -7,17 +7,31 @@ const ts = require('typescript');
 
 const caseDir = path.resolve(__dirname, '..', 'src', 'components', 'case');
 const libDir = path.resolve(__dirname, '..', 'src', 'lib');
+const srcDir = path.resolve(__dirname, '..', 'src');
+const propertyDir = path.join(srcDir, 'components', 'claims', 'property');
+const loaded = new Map();
 
+/** Load a pure TS module; its relative and "@/" imports are loaded the same way. */
 function load(name, dir = caseDir) {
   const filename = path.join(dir, name);
+  if (loaded.has(filename)) return loaded.get(filename).exports;
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 },
   });
   const sourceModule = { exports: {} };
+  loaded.set(filename, sourceModule);
+  const localRequire = (specifier) => {
+    if (!specifier.startsWith('.') && !specifier.startsWith('@/')) return require(specifier);
+    const target = specifier.startsWith('@/')
+      ? path.join(srcDir, specifier.slice(2))
+      : path.resolve(path.dirname(filename), specifier);
+    return load(`${path.basename(target)}.ts`, path.dirname(target));
+  };
   // Same realm as the test, so deepStrictEqual compares plain arrays and objects.
-  vm.runInThisContext(`(function (module, exports) {${outputText}\n})`, { filename })(
+  vm.runInThisContext(`(function (module, exports, require) {${outputText}\n})`, { filename })(
     sourceModule,
     sourceModule.exports,
+    localRequire,
   );
   return sourceModule.exports;
 }
@@ -29,7 +43,211 @@ const recommendation = load('recommendation.ts');
 const currency = load('currency.ts', libDir);
 const display = load('applicationDisplay.ts', libDir);
 const timelineDates = load('timelineDates.ts', libDir);
-const analysisMarkdown = load('analysisMarkdown.ts', path.resolve(__dirname, '..', 'src', 'components', 'claims', 'property'));
+const analysisMarkdown = load('analysisMarkdown.ts', propertyDir);
+const coverageView = load('coverageView.ts', propertyDir);
+
+// Coverage and settlement analyses as the LLM wrote them (trimmed from production cases).
+const citation = (criteria, article, why) => ({
+  policy_id: criteria.slice(0, -2),
+  criteria_id: criteria,
+  policy_name: `Gebäude bei der kantonalen Gebäudeversicherung (${article})`,
+  matched_condition: 'Gebäudeschaden in einem Kanton mit kantonaler Gebäudeversicherung',
+  applied_action: 'Gebäudepositionen ausschliessen',
+  rationale: why,
+});
+const swissCoverage = {
+  overall_status: 'partially_covered',
+  event_assessment: { cause: 'Hagel / Sturm (Elementarschaden)', covered_event: true },
+  coverage_decisions: [
+    { risk: 'DDE', covered: true, coverage_status: 'covered_as_consequential_water_damage', explanation: 'Water came in through broken skylights.', policy_citations: [] },
+    { risk: 'tempête', covered: true, coverage_status: 'covered', explanation: 'Hail and storm are insured perils.' },
+    { risk: 'incendie', covered: false, coverage_status: 'not_triggered', explanation: 'No fire is described.' },
+  ],
+  exclusions_applicable: [
+    { item: 'Building items', status: 'excluded_from_this_policy', explanation: 'Insured by the GVZ.', policy_citations: [citation('CH-AVB-GEB-002-A', 'AVB Ziff. B1.3', 'Building items are claimed.')] },
+  ],
+  franchise: { applies: true, deductible_rule: "10% of the indemnity, minimum CHF 2'500, maximum CHF 50'000" },
+  irsi: { applies: false, reason: 'French convention only.' },
+  cat_nat: { applies: false, reason: 'No Cat-Nat regime in Switzerland.' },
+  applicable_articles: ['AVB Ziff. B2.1', 'AVB Ziff. B1.3'],
+  claim_level_summary: { status: 'partial_coverage', covered_core_peril: 'Hail and storm', main_uncovered_items: ['building items under GVZ'] },
+};
+const swissSettlement = {
+  currency: 'CHF',
+  estimated_repairs: 798500,
+  deductible_applicable: 50000,
+  recommended_indemnity: 748500,
+  complementary_expertise_required: true,
+  third_party_recourse_possible: true,
+  third_party_recourse_basis: ['GVZ', 'third_party_liability_if_identified'],
+  conditions: [
+    { item: 'Building items', amount: 184000, coverage_status: 'excluded_from_this_settlement', reason: 'GVZ.' },
+    { item: 'Stock', amount: 312500, coverage_status: 'covered', reason: 'Elementar damage.' },
+    { item: 'Business interruption', amount: 398000, coverage_status: 'provisional_review_needed', reason: 'To separate.' },
+    { item: 'Production equipment', amount: 486000, coverage_status: 'covered', reason: 'Elementar damage.' },
+  ],
+  policy_citations: [citation('CH-AVB-GEB-002-A', 'AVB Ziff. B1.3', 'Duplicate of the coverage citation.')],
+};
+
+test('coverage view reads a Swiss analysis: verdict, items, guarantees, rules and articles', () => {
+  const { buildCoverageView, sortByTone, amountBreakdown } = coverageView;
+  const view = buildCoverageView(swissCoverage, swissSettlement);
+
+  assert.equal(view.tone, 'partial');
+  assert.equal(view.coveredHighlight, 'Hail and storm');
+  assert.deepEqual(view.notCoveredHighlights, ['building items under GVZ']);
+  assert.deepEqual(view.event, { cause: 'Hagel / Sturm (Elementarschaden)', covered: true });
+  assert.deepEqual(view.amounts, { eligible: 798500, deductible: 50000, recommended: 748500 });
+  assert.deepEqual(view.guarantees.map((item) => [item.peril, item.tone]), [
+    ['water', 'covered'], ['storm', 'covered'], ['fire', 'notConcerned'],
+  ]);
+  // The exclusion matches an excluded claim item: shown once, on the item, with its article.
+  assert.deepEqual(view.exclusions, []);
+  assert.deepEqual(sortByTone(view.lines).map((item) => [item.name, item.tone, item.references]), [
+    ['Stock', 'covered', []],
+    ['Production equipment', 'covered', []],
+    ['Business interruption', 'review', []],
+    ['Building items', 'excluded', ['AVB Ziff. B1.3']],
+  ]);
+  assert.deepEqual(amountBreakdown(view, 1380500), [
+    { kind: 'covered', amount: 798500, percent: 58 },
+    { kind: 'review', amount: 398000, percent: 29 },
+    { kind: 'excluded', amount: 184000, percent: 13 },
+  ]);
+  assert.deepEqual(view.rules.deductible, {
+    applies: true, amount: undefined, detail: "10% of the indemnity, minimum CHF 2'500, maximum CHF 50'000", reason: undefined,
+  });
+  assert.equal(view.rules.catNat.applies, false);
+  assert.equal(view.rules.irsi.reason, 'French convention only.');
+  assert.equal(view.rules.expertise.applies, true);
+  assert.deepEqual(view.rules.recourse, { applies: true, against: ['GVZ', 'third_party_liability_if_identified'] });
+  // Codes are shown humanized, and only in an English UI (the backend does not translate them).
+  assert.equal(coverageView.isCode('third_party_liability_if_identified'), true);
+  assert.equal(coverageView.isCode('GVZ'), false);
+  assert.equal(coverageView.humanizeCode('third_party_liability_if_identified'), 'Third party liability if identified');
+  assert.equal(view.deductibleMismatch, undefined);
+  // One card per policy criterion; the article moves out of the quoted policy name.
+  assert.deepEqual(view.citations.map((item) => [item.reference, item.id, item.name, item.why]), [
+    ['AVB Ziff. B1.3', 'CH-AVB-GEB-002-A', 'Gebäude bei der kantonalen Gebäudeversicherung', 'Building items are claimed.'],
+  ]);
+  assert.deepEqual(view.articles.map((item) => item.reference), ['AVB Ziff. B2.1', 'AVB Ziff. B1.3']);
+});
+
+test('coverage view reads French analyses written as maps and nested objects', () => {
+  const { buildCoverageView, amountBreakdown } = coverageView;
+  const mapForm = buildCoverageView(
+    {
+      statut_couverture: 'couvert_partiellement_sous_reserve',
+      garantie: {
+        dde: { couvert: true, motif: 'Infiltration after the storm.', observations: ['Water came through a vent.'] },
+        rc: { couvert: false, motif: 'No third party.' },
+      },
+      exclusions_applicables: [{ exclusion: 'Lack of maintenance', impact: 'Point of attention', motif: 'Blocked gutter.' }],
+      franchise: { franchise_applicable: 250, devise: 'EUR', motif: 'DDE deductible.' },
+      articles_applicables: [{ article: 'Garantie Dégâts des eaux', effet: 'Covers infiltrations.' }],
+      synthese: 'Covered under water damage, subject to an expert appraisal.',
+    },
+    {
+      montant_estime_reparations: 10825,
+      franchise_applicable: 380,
+      montant_indemnisation_recommandee: 10445,
+      expertise_complementaire_necessaire: { requise: true, motif: 'Above €5,000.', delai_suggere: 'Within 5 business days' },
+      recours_possible: { irsi: { applicable: false, motif: 'Detached house.' }, tiers: { applicable: false, motif: 'No liable third party.' } },
+      conditions: ['Subject to supporting documents.'],
+      commentaire: 'Settle €10,445 after the €380 deductible.',
+    },
+  );
+  assert.equal(mapForm.tone, 'partial');
+  assert.equal(mapForm.summary, 'Covered under water damage, subject to an expert appraisal.');
+  assert.deepEqual(mapForm.guarantees.map((item) => [item.name, item.peril, item.tone, item.notes]), [
+    ['dde', 'water', 'covered', ['Water came through a vent.']],
+    ['rc', 'liability', 'notConcerned', []],
+  ]);
+  assert.deepEqual(mapForm.exclusions.map((item) => [item.name, item.tone]), [['Lack of maintenance', 'review']]);
+  assert.deepEqual(mapForm.amounts, { eligible: 10825, deductible: 380, recommended: 10445 });
+  assert.deepEqual(mapForm.deductibleMismatch, { coverage: 250, settlement: 380 });
+  assert.deepEqual(mapForm.rules.expertise, { applies: true, detail: 'Within 5 business days', reason: 'Above €5,000.' });
+  assert.deepEqual(mapForm.rules.recourse, { applies: false, reason: 'No liable third party.', against: [] });
+  assert.deepEqual(mapForm.conditions, ['Subject to supporting documents.']);
+  assert.equal(mapForm.settlementNote, 'Settle €10,445 after the €380 deductible.');
+  assert.deepEqual(mapForm.articles, [{ reference: 'Garantie Dégâts des eaux', status: undefined, tone: 'unknown', effect: 'Covers infiltrations.' }]);
+  assert.deepEqual(amountBreakdown(mapForm, 10825), []);
+
+  const nested = buildCoverageView(
+    {
+      statut_couverture: {
+        decision: 'couvert_partiellement',
+        resume: 'Covered as storm water damage.',
+        garanties_concernees: [
+          { garantie: 'Tempête', couverture: 'oui', motif: 'Storm Gérard.' },
+          { garantie: 'Theft / vandalism', couverture: 'non_demontree', motif: 'Not confirmed.' },
+        ],
+      },
+      exclusions_applicables: { decision: 'aucune_exclusion_certaine_identifiee', resume: 'No certain exclusion.', points_de_vigilance: ['Old seepage is not covered.'] },
+      articles_applicables: [{ article: 'Régime Cat-Nat', conclusion: 'Not retained as it stands', motif: 'No order.' }],
+    },
+    {
+      montants: { montant_estime_reparations: 2728, franchise_applicable: 380, montant_indemnisation_recommande: 2348 },
+      conditions: {
+        base_de_calcul: ["Plumber's invoice: €1,556.50"],
+        franchise: 'Storm deductible applied at €380.',
+        expertise_complementaire: { necessaire: false, motif: 'Below €5,000.' },
+        recours_possible: { irsi: false, responsabilite_tiers: false, commentaire: 'No liable third party.' },
+      },
+      decision_recommandee: { statut: 'accord_partiel', montant_recommande: 2348, commentaire: 'Settle the justified repairs.' },
+    },
+  );
+  assert.equal(nested.tone, 'partial');
+  assert.equal(nested.summary, 'Covered as storm water damage.');
+  assert.deepEqual(nested.guarantees.map((item) => [item.peril, item.tone]), [['storm', 'covered'], ['theft', 'review']]);
+  assert.equal(nested.exclusionsSummary, 'No certain exclusion.');
+  assert.deepEqual(nested.attention, ['Old seepage is not covered.']);
+  assert.deepEqual(nested.amounts, { eligible: 2728, deductible: 380, recommended: 2348 });
+  assert.deepEqual(nested.basis, ["Plumber's invoice: €1,556.50"]);
+  assert.deepEqual(nested.conditions, ['Storm deductible applied at €380.']);
+  assert.deepEqual(nested.rules.expertise, { applies: false, detail: undefined, reason: 'Below €5,000.' });
+  assert.equal(nested.rules.recourse.applies, false);
+  assert.equal(nested.settlementNote, 'Settle the justified repairs.');
+  assert.deepEqual(nested.articles.map((item) => [item.status, item.tone]), [['Not retained as it stands', 'notConcerned']]);
+  // Without item amounts, the claimed amount splits into retained and not retained.
+  assert.deepEqual(amountBreakdown(nested, 6560), [
+    { kind: 'covered', amount: 2728, percent: 42 },
+    { kind: 'notRetained', amount: 3832, percent: 58 },
+  ]);
+});
+
+test('coverage statuses and perils are read in English, French and German', () => {
+  const { statusTone, perilKey, coverageOutputs, buildCoverageView } = coverageView;
+  const cases = [
+    [true, 'covered'], [false, 'excluded'], ['oui', 'covered'], ['non', 'excluded'], ['Gedeckt', 'covered'],
+    ['partially_covered', 'partial'], ['couvert_partiellement_sous_reserve', 'partial'],
+    ['excluded_without_additional_coverage', 'excluded'], ['provisional_review_needed', 'review'],
+    ['Applicable subject to confirmation', 'review'], ['confirmed', 'covered'], ['not_triggered', 'notConcerned'],
+    ['Not applicable', 'notConcerned'], ['', 'unknown'], [undefined, 'unknown'],
+  ];
+  for (const [status, tone] of cases) assert.equal(statusTone(status), tone, String(status));
+  assert.equal(perilKey('Dégâts des eaux'), 'water');
+  assert.equal(perilKey('Third-party liability'), 'liability');
+  assert.equal(perilKey('Hagel'), 'hail');
+  assert.equal(perilKey('Water damage caused by the neighbour upstairs'), undefined);
+
+  const outputs = coverageOutputs({
+    liability_assessment: { coverage_verification: { parsed: { overall_status: 'covered' } } },
+    payout_recommendation: { settlement_analysis: { parsed: { recommended_amount: '€1,900.00' } } },
+    damage_assessment: { visual_damage_analysis: { parsed: { _error: 'Failed to parse JSON response.' } } },
+  });
+  assert.deepEqual(outputs, { coverage: { overall_status: 'covered' }, settlement: { recommended_amount: '€1,900.00' } });
+  assert.equal(buildCoverageView(outputs.coverage, outputs.settlement).amounts.recommended, 1900);
+  assert.equal(buildCoverageView(undefined, undefined).hasContent, false);
+  // A sentence is not an amount.
+  assert.equal(buildCoverageView(undefined, { franchise: 'Storm deductible applied at €380 per the policy terms.' }).amounts.deductible, undefined);
+
+  // Booleans of the analyses read as yes / no in every language.
+  for (const [locale, answers] of Object.entries({ en: ['Yes', 'No'], fr: ['Oui', 'Non'], de: ['Ja', 'Nein'] })) {
+    const fields = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8')).claims.parsedFields;
+    assert.deepEqual([fields.yes, fields.no], answers, locale);
+  }
+});
 
 test('structured analyses render as readable Markdown, not run-together lines', () => {
   const { analysisFieldsMarkdown, parseAiSummary, humanizeFieldKey } = analysisMarkdown;
@@ -290,6 +508,11 @@ test('every dynamic cockpit key exists in English, French and German', () => {
       `caseCockpit.webTab.verdict.${verdict}`,
     ]),
     ...['ok', 'review', 'problem'].map((status) => `workbench.pipelineState.${status}`),
+    ...coverageView.COVERAGE_TONES.map((tone) => `caseCockpit.coverTab.tone.${tone}`),
+    ...coverageView.PERIL_KEYS.map((peril) => `caseCockpit.coverTab.perils.${peril}`),
+    ...['deductible', 'catNat', 'irsi', 'expertise', 'recourse'].map((rule) => `caseCockpit.coverTab.rule.${rule}`),
+    ...['applies', 'notApplicable', 'required', 'notRequired', 'possible', 'notPossible', 'unknown']
+      .map((answer) => `caseCockpit.coverTab.ruleValue.${answer}`),
   ];
 
   // Every recommendation (and alternative) the rules can produce, as translation keys.

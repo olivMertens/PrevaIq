@@ -1,16 +1,25 @@
 'use client';
 
-import { CircleCheck, CircleX, ExternalLink, TriangleAlert, Umbrella } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useMemo } from 'react';
+import { ChevronRight, CircleCheck, CircleX, ExternalLink, FileText, TriangleAlert, Umbrella } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
+import { formatAmount, parseAmount, type CurrencyCode } from '@/lib/currency';
 import type { ContextLabel } from '@/lib/types';
 import MarkdownText from './MarkdownText';
+import { ANALYSIS_SEPARATOR } from './analysisMarkdown';
+import { CoverageAmounts, CoverageVerdict, SECTION_TITLE } from './CoverageSummary';
+import { CoverageList, CoverageRules, GuaranteeList, PolicyArticles, TextList } from './CoverageSections';
+import { buildCoverageView, coverageOutputs, sortByTone } from './coverageView';
+import { formatParsedFields } from './propertyClaimHelpers';
 
 interface CoverTabProps {
   labels: ContextLabel[];
-  claimed: string | null;
-  recommended: string | null;
-  deltaPercent?: number;
-  deductible?: string;
+  llmOutputs: Record<string, unknown>;
+  currency: CurrencyCode;
+  /** Claimed amount as written in the claim. */
+  claimedText: string;
+  deductibleText?: string;
+  /** AI text about cover and decision, shown when the case has no structured coverage analysis. */
   coverageText: string;
 }
 
@@ -44,51 +53,79 @@ function LabelRow({ label }: { label: ContextLabel }) {
   );
 }
 
-/** Guarantees concerned, coverage checks, amounts and the AI's coverage reasoning. */
-export default function CoverTab({ labels, claimed, recommended, deltaPercent, deductible, coverageText }: CoverTabProps) {
+function LabelSection({ title, labels }: { title: string; labels: ContextLabel[] }) {
+  if (labels.length === 0) return null;
+  return (
+    <section>
+      <h3 className={SECTION_TITLE}>{title}</h3>
+      <ul className="space-y-2">{labels.map((label) => <LabelRow key={label.key} label={label} />)}</ul>
+    </section>
+  );
+}
+
+/**
+ * Cover & amounts: the coverage verdict and the indemnity first, then the claim items,
+ * guarantees, exclusions and rules applied; policy articles and the full analysis on demand.
+ */
+export default function CoverTab({ labels, llmOutputs, currency, claimedText, deductibleText, coverageText }: CoverTabProps) {
   const t = useTranslations('caseCockpit.coverTab');
-  const guarantees = labels.filter((label) => label.type === 'guarantee');
+  const tClaims = useTranslations('claims');
+  const locale = useLocale();
+  const money = (value: number) => formatAmount(value, currency, locale, { maximumFractionDigits: 0 });
+  const { coverage, settlement } = useMemo(() => coverageOutputs(llmOutputs), [llmOutputs]);
+  const view = useMemo(() => buildCoverageView(coverage, settlement), [coverage, settlement]);
+  const fullAnalysis = useMemo(
+    () => [coverage, settlement]
+      .flatMap((parsed) => (parsed ? [formatParsedFields(parsed, tClaims, locale, currency).join('\n')] : []))
+      .filter(Boolean)
+      .join(ANALYSIS_SEPARATOR),
+    [coverage, settlement, tClaims, locale, currency],
+  );
+  const claimedValue = parseAmount(claimedText);
+  const claimed = Number.isFinite(claimedValue) && claimedValue > 0 ? claimedValue : undefined;
   const checks = labels.filter((label) => label.type === 'verification' || label.type === 'alert');
+  const guaranteeLabels = labels.filter((label) => label.type === 'guarantee');
+
+  if (!view.hasContent) {
+    return (
+      <div className="space-y-5 text-sm">
+        <CoverageAmounts view={view} claimed={claimed} claimedText={claimedText} deductibleText={deductibleText} money={money} />
+        <LabelSection title={t('checks')} labels={checks} />
+        <LabelSection title={t('guarantees')} labels={guaranteeLabels} />
+        <section>
+          <h3 className={SECTION_TITLE}>{t('aiCoverage')}</h3>
+          {coverageText ? <MarkdownText>{coverageText}</MarkdownText> : <p className="text-slate-500">{t('noCoverage')}</p>}
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 text-sm">
-      <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('amounts')}</h3>
-        <dl className="grid grid-cols-[auto,1fr] gap-x-6 gap-y-1.5">
-          <dt className="text-slate-500">{t('claimed')}</dt>
-          <dd className="font-medium text-slate-900">{claimed ?? '—'}</dd>
-          <dt className="text-slate-500">{t('aiEstimate')}</dt>
-          <dd className="font-medium text-slate-900">
-            {recommended ?? '—'}
-            {deltaPercent !== undefined && <span className="ml-2 text-rose-700">{t('delta', { percent: deltaPercent })}</span>}
-          </dd>
-          {deductible && (
-            <>
-              <dt className="text-slate-500">{t('deductible')}</dt>
-              <dd className="font-medium text-slate-900">{deductible}</dd>
-            </>
-          )}
-        </dl>
-      </section>
-
-      {checks.length > 0 && (
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('checks')}</h3>
-          <ul className="space-y-2">{checks.map((label) => <LabelRow key={label.key} label={label} />)}</ul>
-        </section>
+      <CoverageVerdict view={view} claimed={claimed} money={money} />
+      <CoverageAmounts view={view} claimed={claimed} claimedText={claimedText} deductibleText={deductibleText} money={money} />
+      <CoverageList title={t('items', { count: view.lines.length })} entries={sortByTone(view.lines)} money={money} />
+      {view.guarantees.length > 0
+        ? <GuaranteeList guarantees={view.guarantees} />
+        : <LabelSection title={t('guarantees')} labels={guaranteeLabels} />}
+      <CoverageList title={t('exclusions')} intro={view.exclusionsSummary} entries={view.exclusions} attention={view.attention} />
+      <CoverageRules rules={view.rules} money={money} />
+      <LabelSection title={t('checks')} labels={checks} />
+      <TextList title={t('basis')} items={view.basis} />
+      <TextList title={t('conditions')} items={view.conditions} />
+      <PolicyArticles articles={view.articles} citations={view.citations} />
+      {fullAnalysis && (
+        <details className="group rounded-lg border border-slate-200">
+          <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 font-medium text-slate-800 [&::-webkit-details-marker]:hidden">
+            <ChevronRight className="h-4 w-4 flex-shrink-0 text-slate-400 transition-transform group-open:rotate-90" aria-hidden />
+            <FileText className="h-4 w-4 flex-shrink-0 text-slate-500" aria-hidden />
+            {t('fullAnalysis')}
+          </summary>
+          <div className="border-t border-slate-200 p-3">
+            <MarkdownText>{fullAnalysis}</MarkdownText>
+          </div>
+        </details>
       )}
-
-      {guarantees.length > 0 && (
-        <section>
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('guarantees')}</h3>
-          <ul className="space-y-2">{guarantees.map((label) => <LabelRow key={label.key} label={label} />)}</ul>
-        </section>
-      )}
-
-      <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('aiCoverage')}</h3>
-        {coverageText ? <MarkdownText>{coverageText}</MarkdownText> : <p className="text-slate-500">{t('noCoverage')}</p>}
-      </section>
     </div>
   );
 }
