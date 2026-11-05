@@ -1857,6 +1857,8 @@ class FraudAnalysisResponse(BaseModel):
     overall_assessment: Optional[FraudOverallAssessment] = None
     web_intelligence: Optional[dict] = None
     analysis_timestamp: str = ""
+    # Language the prose was generated in (localized projections translate from it)
+    language: Optional[str] = None
 
 
 @router.get("/{claim_id}/fraud-analysis", response_model=FraudAnalysisResponse)
@@ -1942,6 +1944,7 @@ async def run_fraud_analysis(
                 summary=raw_result,
             ),
             analysis_timestamp=datetime.now(UTC).isoformat(),
+            language=locale,
         )
 
     # Build typed response
@@ -2020,6 +2023,7 @@ async def run_fraud_analysis(
         overall_assessment=overall,
         web_intelligence=result.get("web_intelligence"),
         analysis_timestamp=datetime.now(UTC).isoformat(),
+        language=locale,
     )
 
     # Persist results to application metadata so they survive page reloads

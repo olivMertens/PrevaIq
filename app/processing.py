@@ -259,6 +259,57 @@ def analysis_source_locale(app_md: ApplicationMetadata) -> str:
     return require_language(app_md.analysis_locale or "fr")
 
 
+# generate_context_labels() and generate_context_tasks() write French text whatever the
+# analysis language, so localized projections translate them from French.
+_CONTEXT_SOURCE_LOCALE = "fr"
+_CONTEXT_KEYS = ("context_labels", "context_tasks")
+
+
+def _analysis_part_sources(
+    app_md: ApplicationMetadata, canonical: Dict[str, Any]
+) -> Dict[str, str]:
+    """Source language of each non-empty canonical analysis part.
+
+    A fraud analysis can be run in another language than the case analysis; it records
+    its own language (older results without one follow the case analysis).
+    """
+    analysis_locale = analysis_source_locale(app_md)
+    sources: Dict[str, str] = {}
+    for key, value in canonical.items():
+        if not value:
+            continue
+        source = analysis_locale
+        if key in _CONTEXT_KEYS:
+            source = _CONTEXT_SOURCE_LOCALE
+        elif key == "fraud_analysis" and isinstance(value, dict):
+            source = normalize_language(value.get("language"), default=analysis_locale)
+        sources[key] = source
+    return sources
+
+
+def _translate_canonical_payload(
+    settings: Settings,
+    app_md: ApplicationMetadata,
+    canonical: Dict[str, Any],
+    target_language: str,
+) -> Dict[str, Any]:
+    """Translate each canonical part from its own source language."""
+    import copy
+
+    sources = _analysis_part_sources(app_md, canonical)
+    translated = copy.deepcopy(canonical)
+    for source in sorted(set(sources.values()) - {target_language}):
+        part = {
+            key: canonical[key] for key, part_source in sources.items() if part_source == source
+        }
+        translated.update(
+            translate_analysis_payload(
+                settings, part, source_language=source, target_language=target_language
+            )
+        )
+    return translated
+
+
 def cached_localized_analysis_payload(
     settings: Settings,
     app_md: ApplicationMetadata,
@@ -267,7 +318,7 @@ def cached_localized_analysis_payload(
     """Localized analysis when no translation is needed or it is cached, else None."""
     locale = require_language(language)
     canonical = canonical_analysis_payload(app_md)
-    if locale == analysis_source_locale(app_md):
+    if all(source == locale for source in _analysis_part_sources(app_md, canonical).values()):
         return canonical
 
     revision = analysis_source_revision(app_md)
@@ -304,12 +355,7 @@ def localized_analysis_payload(
 
     canonical = canonical_analysis_payload(app_md)
     revision = analysis_source_revision(app_md)
-    translated = translate_analysis_payload(
-        settings,
-        canonical,
-        source_language=analysis_source_locale(app_md),
-        target_language=locale,
-    )
+    translated = _translate_canonical_payload(settings, app_md, canonical, locale)
 
     # Translation may take long enough for a newer canonical analysis to be persisted.
     # Cache only when the revision is still current. The locale/revision cache is a

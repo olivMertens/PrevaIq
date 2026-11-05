@@ -9,7 +9,11 @@ import pytest
 
 import api_server
 from app.languages import UnsupportedLanguageError, require_language
-from app.processing import localized_analysis_payload, translate_analysis_payload
+from app.processing import (
+    cached_localized_analysis_payload,
+    localized_analysis_payload,
+    translate_analysis_payload,
+)
 from app.storage import (
     ApplicationMetadata,
     StoredFile,
@@ -305,3 +309,87 @@ def test_save_invalidates_stale_translation_cache(tmp_path) -> None:
 
     assert metadata.localized_analyses == {}
     assert metadata.analysis_source_revision
+
+
+def _english_case() -> ApplicationMetadata:
+    metadata = _metadata()
+    metadata.analysis_locale = "en"
+    metadata.llm_outputs = {"summary": {"parsed": {"summary": "Manual review required."}}}
+    metadata.context_labels = [{"key": "event_confirmed", "label": "✓ Événement confirmé"}]
+    metadata.context_tasks = [{"key": "siu", "task": "Transmettre au SIU", "priority": "high"}]
+    return metadata
+
+
+def _record_translations(monkeypatch: pytest.MonkeyPatch, metadata: ApplicationMetadata) -> list:
+    calls: list[tuple[str, str, list[str]]] = []
+
+    def fake_translate(settings, payload, *, source_language, target_language):
+        calls.append((source_language, target_language, sorted(payload)))
+        return {key: f"{source_language}->{target_language}" for key in payload}
+
+    monkeypatch.setattr("app.processing.translate_analysis_payload", fake_translate)
+    monkeypatch.setattr("app.processing.load_application", lambda *args: metadata)
+    monkeypatch.setattr("app.processing.load_localized_analysis_cache", lambda *args: None)
+    monkeypatch.setattr("app.processing.save_localized_analysis_cache", lambda *args: "cache")
+    return calls
+
+
+def test_french_context_items_are_translated_for_an_english_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = _english_case()
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+    calls = _record_translations(monkeypatch, metadata)
+
+    assert cached_localized_analysis_payload(settings, metadata, "en") is None
+    localized = localized_analysis_payload(settings, metadata, "en")
+
+    assert calls == [("fr", "en", ["context_labels", "context_tasks"])]
+    assert localized["context_tasks"] == "fr->en"
+    assert localized["llm_outputs"] == metadata.llm_outputs
+
+
+def test_french_context_items_need_no_translation_in_french(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = _english_case()
+    metadata.analysis_locale = "fr"
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+    calls = _record_translations(monkeypatch, metadata)
+
+    localized = cached_localized_analysis_payload(settings, metadata, "fr")
+
+    assert calls == []
+    assert localized["context_labels"] == metadata.context_labels
+
+
+def test_fraud_analysis_is_translated_from_its_own_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = _english_case()
+    metadata.context_labels = []
+    metadata.context_tasks = []
+    metadata.fraud_analysis = {"language": "de", "overall_assessment": {"summary": "Hoch."}}
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+    calls = _record_translations(monkeypatch, metadata)
+
+    localized = localized_analysis_payload(settings, metadata, "en")
+
+    assert calls == [("de", "en", ["fraud_analysis"])]
+    assert localized["fraud_analysis"] == "de->en"
+
+
+def test_fraud_analysis_without_language_follows_the_case_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = _english_case()
+    metadata.context_labels = []
+    metadata.context_tasks = []
+    metadata.fraud_analysis = {"overall_assessment": {"summary": "High."}}
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+    calls = _record_translations(monkeypatch, metadata)
+
+    assert cached_localized_analysis_payload(settings, metadata, "en") is not None
+    localized_analysis_payload(settings, metadata, "de")
+
+    assert calls == [("en", "de", ["fraud_analysis", "llm_outputs"])]
