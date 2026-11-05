@@ -23,6 +23,7 @@ PrevaIQ (technical name *WorkbenchIQ*) is a brand-agnostic, AI-powered insurance
 - `api_server.py` — FastAPI entry point
 - `app/` — Application modules (config, auth, storage, processing, claims, rag, mortgage, multimodal)
 - `app/orchestration.py` — Controlled orchestration: `StageBudget` (time/tokens/re-extractions), validation (`assess_extraction`, `assess_analysis`), review status (`needs_review` / `auto_ok` / `reviewed`) persisted in `ApplicationMetadata.orchestration`. Never add open-ended retry loops: every retry must be bounded by a stage budget.
+- Localized analysis (`localized_analysis_payload` in `app/processing.py`): each canonical part is translated from its own language — `analysis_locale` for LLM outputs, French for `generate_context_labels/tasks` (they always write French), the fraud result's `language` field for `fraud_analysis`. Translations are cached per `analysis_source_revision`; bump `_LOCALIZATION_CONTRACT_VERSION` in `app/storage.py` whenever the sources or the translation prompt change, so cached translations are rebuilt.
 - `app/claims/` — Claims processing engine (engine.py, api.py, policies.py, search.py)
 - `app/rag/` — RAG pipeline (indexer.py, chunker.py, embeddings.py, search.py, repository.py)
 - `app/storage_providers/` — Azure Blob or local file storage
