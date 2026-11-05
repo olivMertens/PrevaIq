@@ -547,6 +547,17 @@ _SWISS_FRENCH = Jurisdiction(country="CH", language="fr", currency="CHF", postal
             ],
         ),
         (
+            _SWISS_GERMAN,
+            "Winterthur",
+            "28/08/2026",
+            "Grêle / tempête (dommage élémentaire)",
+            [
+                ("Unwetter Winterthur 28. August 2026 Hagel Sturm", False, "de", "CH"),
+                ("Hagel Sturm Winterthur August 2026 Schäden", False, "de", "CH"),
+                ("Hagel Sturm Winterthur 28. August 2026", True, "de", "CH"),
+            ],
+        ),
+        (
             _SWISS_FRENCH,
             "Lausanne",
             "2026-06-14",

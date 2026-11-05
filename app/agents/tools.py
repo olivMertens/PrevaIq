@@ -1758,6 +1758,30 @@ def _event_terms(nature: str, limit: int = 8) -> str:
     return " ".join(words[:limit])
 
 
+# The habitation extraction labels the nature in French: German keywords for Swiss searches.
+_GERMAN_EVENT_TERMS = (
+    (r"d[ée]g[âa]ts? des eaux|fuite", "Wasserschaden"),
+    (r"gr[êe]le", "Hagel"),
+    (r"temp[êe]te|ouragan|vent violent", "Sturm"),
+    (r"orage", "Gewitter"),
+    (r"inondation|submersion", "Überschwemmung"),
+    (r"\bcrue", "Hochwasser"),
+    (r"incendie", "Brand"),
+    (r"foudre", "Blitzschlag"),
+    (r"avalanche", "Lawine"),
+    (r"glissement de terrain|coul[ée]e de boue", "Erdrutsch"),
+    (r"cambriolage|\bvol\b", "Einbruchdiebstahl"),
+    (r"bris de glace", "Glasbruch"),
+)
+
+
+def _german_event_terms(nature: str) -> str:
+    """German keywords for a claim nature written in French, else the nature's own words."""
+    text = (nature or "").lower()
+    terms = [german for pattern, german in _GERMAN_EVENT_TERMS if re.search(pattern, text)]
+    return " ".join(dict.fromkeys(terms)) if terms else _event_terms(nature)
+
+
 def create_webiq_tool(settings) -> Any | None:
     """Return a Web IQ MCP tool (not connected), or None when no key / no ``mcp`` package."""
     import importlib.util
@@ -2479,7 +2503,7 @@ def _webiq_claim_queries(
         return " ".join(filter(None, parts))
 
     if source_language == "de":
-        nature = _event_terms(claim_nature) or "Unwetter"
+        nature = _german_event_terms(claim_nature) or "Unwetter"
         queries = [
             (query("Unwetter", place, when, "Hagel Sturm"), False),
             (query(nature, place, month, "Schäden"), False),
