@@ -185,8 +185,11 @@ def _translate_json_chunk(
     prompt = (
         f"Translate each JSON string value from {source} to {target}. "
         "Return exactly the same object keys and string values only. "
-        "Do not translate French legal terms, quotations, citations, identifiers, codes, "
-        "names, dates, numbers, URLs, or enum tokens. Do not add commentary."
+        "Translate every label, title and sentence, including insurance cover and guarantee "
+        "names; keep acronyms such as DDE, IRSI, Cat-Nat, AVB or SIU unchanged inside the "
+        "translated text. Leave unchanged only verbatim quotations, legal article references, "
+        "personal and company names, identifiers, codes, dates, numbers, amounts, URLs and "
+        "enum tokens. Do not add commentary."
     )
     result = chat_completion(
         settings.openai,

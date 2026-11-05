@@ -451,10 +451,21 @@ def canonical_analysis_payload(metadata: ApplicationMetadata) -> Dict[str, Any]:
     }
 
 
+# Bump to rebuild every cached translation when the localization contract changes
+# (per-part source languages, translation prompt).
+_LOCALIZATION_CONTRACT_VERSION = 2
+
+
 def analysis_source_revision(metadata: ApplicationMetadata) -> str:
-    """Stable revision for the canonical derived analysis, excluding translation caches."""
+    """Stable revision of the canonical derived analysis and of its localization contract.
+
+    Translation caches are excluded; they are keyed by this revision.
+    """
     encoded = json.dumps(
-        canonical_analysis_payload(metadata),
+        {
+            "localization_contract": _LOCALIZATION_CONTRACT_VERSION,
+            "analysis": canonical_analysis_payload(metadata),
+        },
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),

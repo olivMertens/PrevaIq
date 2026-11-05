@@ -17,6 +17,7 @@ from app.processing import (
 from app.storage import (
     ApplicationMetadata,
     StoredFile,
+    analysis_source_revision,
     load_localized_analysis_cache,
     save_application_metadata,
     save_localized_analysis_cache,
@@ -393,3 +394,19 @@ def test_fraud_analysis_without_language_follows_the_case_analysis(
     localized_analysis_payload(settings, metadata, "de")
 
     assert calls == [("en", "de", ["fraud_analysis", "llm_outputs"])]
+
+
+def test_localization_contract_bump_invalidates_cached_translations(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = _metadata()
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+    cached = {"llm_outputs": {"summary": "cached"}}
+    metadata.localized_analyses = {
+        "en": {"source_revision": analysis_source_revision(metadata), "payload": cached}
+    }
+    monkeypatch.setattr("app.processing.load_localized_analysis_cache", lambda *args: None)
+
+    assert cached_localized_analysis_payload(settings, metadata, "en") == cached
+    monkeypatch.setattr("app.storage._LOCALIZATION_CONTRACT_VERSION", 999)
+    assert cached_localized_analysis_payload(settings, metadata, "en") is None
