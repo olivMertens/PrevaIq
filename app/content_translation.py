@@ -23,7 +23,7 @@ MAX_ITEMS_PER_REQUEST: Final = 8
 MAX_TRANSLATABLE_CHARS: Final = 30_000
 _MAX_WORKERS: Final = 4
 # Bump when the prompt changes so cached translations are rebuilt.
-_CACHE_VERSION: Final = "v1"
+_CACHE_VERSION: Final = "v2"
 
 _STOPWORDS: Final = {
     "en": {
@@ -128,15 +128,15 @@ def _cache_name(text: str, target: str) -> str:
 
 
 def translate_markdown(settings: Settings, text: str, source: str, target: str) -> str:
-    """Single bounded model call; raises on an empty or truncated answer."""
+    """Single bounded model call; raises on an empty, truncated or untranslated answer."""
     prompt = (
-        f"You translate insurance claim documents from {language_name(source)} to "
-        f"{language_name(target)}. Return only the translated Markdown, with no preamble. "
-        "Keep the Markdown and HTML structure exactly: headings, lists, tables, line breaks, "
-        "HTML tags and attributes. Do not translate personal or company names, addresses, "
+        f"Translate this insurance claim document from {language_name(source)} to "
+        f"{language_name(target)}. Translate every heading, list label, bold or italic text "
+        "and sentence. Return only the translated Markdown, with no preamble. Keep the "
+        "Markdown and HTML structure exactly: headings, lists, tables, line breaks, HTML "
+        "tags and attributes. Keep unchanged only personal and company names, addresses, "
         "e-mail addresses, URLs, file names, identifiers (contract, policy, claim or SIRET "
-        "numbers), amounts, dates, codes, or text in quotation marks. Keep French insurance "
-        "terms that have no exact equivalent, such as Cat-Nat, unchanged."
+        "numbers), amounts, dates and codes."
     )
     result = chat_completion(
         settings.openai,
@@ -150,6 +150,8 @@ def translate_markdown(settings: Settings, text: str, source: str, target: str) 
     translated = str(result.get("content") or "").strip()
     if len(translated) < 0.3 * len(text.strip()):
         raise RuntimeError("Content translation returned an empty or truncated text.")
+    if detect_language(translated) == source:
+        raise RuntimeError("Content translation returned the text in its source language.")
     return translated
 
 

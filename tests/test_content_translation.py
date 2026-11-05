@@ -101,13 +101,26 @@ def test_failed_translation_returns_the_original(
     assert storage == {}
 
 
+def test_untranslated_answers_are_not_cached(
+    monkeypatch: pytest.MonkeyPatch, storage: dict[str, bytes]
+) -> None:
+    monkeypatch.setattr(content_translation, "chat_completion", lambda *a, **k: {"content": FRENCH})
+
+    result = translate_text_cached(_settings(), "APP-1", FRENCH, "de")
+
+    assert result["translated"] is False
+    assert result["error"] == "translation_failed"
+    assert storage == {}
+
+
 def test_case_content_translates_requested_pages_and_summaries(
     monkeypatch: pytest.MonkeyPatch, storage: dict[str, bytes]
 ) -> None:
+    translation = "The cellar of the house is flooded and the walls of the room are wet."
     monkeypatch.setattr(
         content_translation,
         "chat_completion",
-        lambda settings, messages, **kwargs: {"content": "EN " + messages[1]["content"]},
+        lambda settings, messages, **kwargs: {"content": translation},
     )
     app_md = ApplicationMetadata(
         id="APP-1",
@@ -130,7 +143,7 @@ def test_case_content_translates_requested_pages_and_summaries(
         (2, False),
     ]
     assert result["batches"][0]["batch_num"] == 1
-    assert result["batches"][0]["text"] == "EN " + FRENCH
+    assert result["batches"][0]["text"] == translation
 
 
 def test_large_analyses_are_translated_in_parallel_chunks(
