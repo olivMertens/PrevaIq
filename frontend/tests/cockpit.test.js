@@ -28,6 +28,67 @@ const health = load('pipelineHealth.ts');
 const recommendation = load('recommendation.ts');
 const currency = load('currency.ts', libDir);
 const display = load('applicationDisplay.ts', libDir);
+const timelineDates = load('timelineDates.ts', libDir);
+const analysisMarkdown = load('analysisMarkdown.ts', path.resolve(__dirname, '..', 'src', 'components', 'claims', 'property'));
+
+test('structured analyses render as readable Markdown, not run-together lines', () => {
+  const { analysisFieldsMarkdown, parseAiSummary, humanizeFieldKey } = analysisMarkdown;
+  const markdown = analysisFieldsMarkdown({
+    coverage_status: 'covered_with_deductible',
+    requires_human_review: false,
+    total_amount: 14968600,
+    cat_nat: true,
+    damages: [
+      { item: 'Flat roof membrane', cost: 182000 },
+      { item: 'Clean room', cost: 960000 },
+    ],
+    _internal: 'hidden',
+  }, { money: (value) => `CHF ${value}`, yes: 'Yes', no: 'No' });
+
+  assert.equal(markdown, [
+    '- **Coverage status:** Covered with deductible',
+    '- **Requires human review:** No',
+    '- **Total amount:** CHF 14968600',
+    '- **Cat-Nat:** Yes',
+    '',
+    '#### Damages',
+    '- **Flat roof membrane**',
+    '  - **Cost:** CHF 182000',
+    '- **Clean room**',
+    '  - **Cost:** CHF 960000',
+  ].join('\n'));
+  assert.equal(humanizeFieldKey('irsi_convention'), 'IRSI convention');
+
+  const tabs = parseAiSummary('Intro\n\n#### Damages\n- roof\n\n---\n\n#### Fraud indicators\n- none');
+  assert.equal(tabs.overview, 'Intro');
+  assert.equal(tabs.damages, '#### Damages\n- roof');
+  assert.equal(tabs.risk, '#### Fraud indicators\n- none');
+});
+
+test('timeline previews are plain text cut at a word boundary', () => {
+  const { markdownPreview } = analysisMarkdown;
+  assert.equal(markdownPreview('## Summary\n**Storm** damage confirmed by [MeteoSwiss](https://x.ch).'), 'Summary');
+  assert.equal(markdownPreview('- **Storm** damage confirmed by [MeteoSwiss](https://x.ch).'), 'Storm damage confirmed by MeteoSwiss.');
+  const preview = markdownPreview('The hail storm of 28 August damaged the flat roof and the clean room of the workshop', 40);
+  assert.ok(preview.length <= 40, preview);
+  assert.ok(preview.endsWith('…'), preview);
+  assert.ok(!/\s…$/.test(preview), preview);
+  assert.equal(markdownPreview('file_name_v2 stays intact'), 'file_name_v2 stays intact');
+});
+
+test('timeline dates accept ISO and European formats', () => {
+  const { parseTimelineDate, formatTimelineDate } = timelineDates;
+  const iso = parseTimelineDate('2026-08-28T10:05:00Z');
+  for (const text of ['28/08/2026', '28.08.2026', 'le 28-08-2026 vers 10h']) {
+    const date = parseTimelineDate(text);
+    assert.deepEqual([date.getFullYear(), date.getMonth(), date.getDate()], [2026, 7, 28], text);
+  }
+  assert.deepEqual([iso.getFullYear(), iso.getMonth(), iso.getDate()], [2026, 7, 28]);
+  assert.equal(parseTimelineDate('31/13/2026').getFullYear(), 2026);
+  assert.equal(parseTimelineDate('no date'), null);
+  assert.deepEqual(formatTimelineDate(new Date(2026, 7, 28), 'en'), { date: 'Aug 28', year: '2026' });
+  assert.deepEqual(formatTimelineDate(null, 'en'), { date: '—', year: '' });
+});
 
 test('long case titles are shown compact, short ones unchanged', () => {
   const { compactApplicationTitle } = display;

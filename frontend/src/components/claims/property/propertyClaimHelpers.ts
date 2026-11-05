@@ -1,6 +1,7 @@
 // Pure helpers for the property-claims cockpit (moved unchanged from the former overview).
 import { textValue } from '@/lib/applicationDisplay';
 import { formatAmount, type CurrencyCode } from '@/lib/currency';
+import { analysisFieldsMarkdown } from './analysisMarkdown';
 
 // Extract a field value from extracted_fields, searching with multiple key patterns
 export function getFieldValue(extractedFields: Record<string, unknown>, keys: string[], defaultValue: string = ''): string {
@@ -30,49 +31,8 @@ export const DOSSIER_FIELDS = new Set([
   'FormuleDemandee', 'CotisationMensuelle',
 ]);
 
-// Parse the free-form AI summary text into named sections keyed by tab.
-// Sections are detected by lines ending with ":" (e.g. "Décision : approved" or "Dommages :").
-// Each section header is matched against keyword lists to route it to the correct tab.
-export type SyntheseTabKey = 'overview' | 'damages' | 'decision' | 'risk' | 'timeline';
-
-export const TAB_KEYWORDS: Record<SyntheseTabKey, string[]> = {
-  overview: ['vue', 'synthèse', 'synthese', 'résumé', 'resume', 'overview', 'contexte', 'dossier', 'assuré', 'assure', 'sinistre'],
-  damages: ['dommage', 'préjudice', 'prejudice', 'bien', 'mobilier', 'immobilier', 'damage'],
-  decision: ['décision', 'decision', 'couverture', 'recommandation', 'indemnisation', 'franchise', 'garantie', 'coverage', 'verdict'],
-  risk: ['risque', 'risk', 'fraude', 'fraud', 'alerte', 'alert', 'indicateur', 'signal', 'anomalie'],
-  timeline: ['chronologie', 'timeline', 'historique', 'date', 'événement', 'evenement'],
-};
-
-export function parseAiSummary(text: string): Record<SyntheseTabKey, string> {
-  const out: Record<SyntheseTabKey, string[]> = {
-    overview: [], damages: [], decision: [], risk: [], timeline: [],
-  };
-  if (!text) return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.join('\n').trim()])) as Record<SyntheseTabKey, string>;
-
-  // First pass: detect section headers and bucket lines
-  const lines = text.split('\n');
-  let currentTab: SyntheseTabKey = 'overview';
-  for (const line of lines) {
-    const trimmed = line.trim();
-    // Section header detection: short line ending with ":"
-    if (trimmed.length > 0 && trimmed.length < 60 && (trimmed.endsWith(':') || trimmed.endsWith(' :'))) {
-      const header = trimmed.replace(/[:\s]+$/, '').toLowerCase();
-      // Find best matching tab
-      let matched: SyntheseTabKey | null = null;
-      for (const [tab, keywords] of Object.entries(TAB_KEYWORDS) as [SyntheseTabKey, string[]][]) {
-        if (keywords.some(kw => header.includes(kw))) { matched = tab; break; }
-      }
-      if (matched) {
-        currentTab = matched;
-        out[currentTab].push(line); // keep the header itself in the section
-        continue;
-      }
-    }
-    out[currentTab].push(line);
-  }
-
-  return Object.fromEntries(Object.entries(out).map(([k, v]) => [k, v.join('\n').trim()])) as Record<SyntheseTabKey, string>;
-}
+// Parsing of the full AI analysis into topic tabs lives in a pure, tested module.
+export { parseAiSummary, TAB_KEYWORDS, type SyntheseTabKey } from './analysisMarkdown';
 
 // Fields belonging to damage info
 export const DOMMAGES_FIELDS = new Set([
@@ -136,17 +96,15 @@ export function classifyDocument(filename: string, t: TranslateFn): { type: stri
   return { type: t('classifyDoc.attachmentTitle'), summary: t('classifyDoc.attachmentDesc') };
 }
 
-// Format parsed JSON into human-readable labels for AI summary display
+// Format parsed JSON into Markdown for the AI summary display (lines of the Markdown text).
 // NOTE: Do NOT use t() for dynamic field names — next-intl throws MISSING_MESSAGE
 // errors that crash React. Use a static lookup map + auto-formatting fallback instead.
 export function formatParsedFields(
   parsed: Record<string, unknown>,
-  prefix = '',
   t?: TranslateFn,
   locale = 'en',
   currency: CurrencyCode = 'EUR',
 ): string[] {
-  const lines: string[] = [];
   // Comprehensive static label map — covers all known LLM output field names
   const labelMap: Record<string, string> = {
     reference_dossier: 'fileReference', refDossier: 'fileReference',
@@ -170,36 +128,14 @@ export function formatParsedFields(
     montant: 'amount', status: 'status', coverage_status: 'coverageStatus',
     fraud_indicators: 'fraudIndicators', risk_level: 'riskLevel', severity: 'severity',
   };
-  for (const [key, value] of Object.entries(parsed)) {
-    if (key.startsWith('_')) continue;
-    // Use static label map — never call t() with dynamic keys
-    const label = labelMap[key] && t
-      ? t(`parsedFields.${labelMap[key]}`)
-      : key.replace(/_/g, ' ').replace(/\b[a-z]/g, c => c.toUpperCase());
-    if (typeof value === 'string' && value.trim()) {
-      lines.push(`${prefix}${label} : ${value}`);
-    } else if (typeof value === 'number') {
-      const formatted = key.toLowerCase().includes('montant') || key.toLowerCase().includes('franchise') || key.toLowerCase().includes('indemnisation') || key.toLowerCase().includes('total') || key.toLowerCase().includes('plafond')
-        ? formatAmount(value, currency, locale)
-        : String(value);
-      lines.push(`${prefix}${label} : ${formatted}`);
-    } else if (typeof value === 'boolean') {
-      lines.push(`${prefix}${label} : ${value ? t?.('parsedFields.yes') || 'Yes' : t?.('parsedFields.no') || 'No'}`);
-    } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      lines.push(`${prefix}${label} :`);
-      lines.push(...formatParsedFields(value as Record<string, unknown>, prefix + '  ', t, locale, currency));
-    } else if (Array.isArray(value) && value.length > 0) {
-      lines.push(`${prefix}${label} :`);
-      for (const item of value) {
-        if (typeof item === 'object' && item !== null) {
-          lines.push(...formatParsedFields(item as Record<string, unknown>, prefix + '  - ', t, locale, currency));
-        } else {
-          lines.push(`${prefix}  - ${String(item)}`);
-        }
-      }
-    }
-  }
-  return lines;
+  const markdown = analysisFieldsMarkdown(parsed, {
+    // Static label map only: next-intl throws on missing dynamic keys.
+    label: (key) => (labelMap[key] && t ? t(`parsedFields.${labelMap[key]}`) : null),
+    money: (amount) => formatAmount(amount, currency, locale),
+    yes: t?.('parsedFields.yes') || 'Yes',
+    no: t?.('parsedFields.no') || 'No',
+  });
+  return markdown ? markdown.split('\n') : [];
 }
 
 /** Parse an amount such as "6560 EUR", "10 825 €", "CHF 1'697'400.00" or "6,560.00" (NaN if absent). */

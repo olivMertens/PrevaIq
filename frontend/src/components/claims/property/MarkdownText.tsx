@@ -17,10 +17,11 @@ const SYNTHESE_MARKDOWN_COMPONENTS: Components = {
   h4: ({ children }) => <div className="text-slate-700 font-semibold mt-2 mb-1">{children}</div>,
   strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
   em: ({ children }) => <em className="italic text-slate-800">{children}</em>,
-  ul: ({ children }) => <ul className="list-disc list-inside space-y-1 my-1 text-slate-700">{children}</ul>,
-  ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 my-1 text-slate-700">{children}</ol>,
+  ul: ({ children }) => <ul className="list-disc list-outside pl-5 space-y-0.5 my-1 text-slate-700">{children}</ul>,
+  ol: ({ children }) => <ol className="list-decimal list-outside pl-5 space-y-0.5 my-1 text-slate-700">{children}</ol>,
   li: ({ children }) => <li className="text-slate-700">{children}</li>,
   p: ({ children }) => <p className="my-1 text-slate-700 leading-relaxed">{children}</p>,
+  hr: () => <hr className="my-4 border-slate-200" />,
   a: ({ href, children }) => (
     <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline hover:text-indigo-800">
       {children}

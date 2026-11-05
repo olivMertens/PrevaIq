@@ -17,6 +17,7 @@ import {
   getFileTypeInfo,
   parseAmount,
 } from './propertyClaimHelpers';
+import { ANALYSIS_SEPARATOR } from './analysisMarkdown';
 
 /** Everything the property cockpit derives from the application (moved from the former overview). */
 export function usePropertyClaimData(application: ApplicationMetadata | null) {
@@ -236,7 +237,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
             }
             // Fallback: format parsed JSON into readable text
             else {
-              const lines = formatParsedFields(sub.parsed, '', t, locale, currency);
+              const lines = formatParsedFields(sub.parsed, t, locale, currency);
               if (lines.length > 0) {
                 parts.push(lines.join('\n'));
               }
@@ -250,7 +251,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
       const sectionCount = Object.keys(llmOutputs).length;
       parts.push(t('analysisDialog.analysisComplete', { count: sectionCount }));
     }
-    return parts.join('\n\n');
+    return parts.join(ANALYSIS_SEPARATOR);
   }, [currency, llmOutputs, locale, t]);
 
   // Amount comparison: customer claimed vs AI-assessed

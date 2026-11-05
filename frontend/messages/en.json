@@ -1894,7 +1894,28 @@
     "urgencyLevel": "⚠ Urgency level: {level}",
     "priorityFile": "Priority file — expedited processing required",
     "urgencyDetails": "Classified urgency level: {level}",
-    "aiAnalysis": "AI analysis: {section}"
+    "aiAnalysis": "AI analysis: {section}",
+    "sections": {
+      "application_summary": "Application summary",
+      "medical_summary": "Medical summary",
+      "requirements": "Requirements",
+      "clinical_case_notes": "Clinical case notes",
+      "clinical_timeline": "Clinical timeline",
+      "benefits_policy": "Benefits and policy",
+      "claim_line_evaluation": "Claim line review",
+      "tasks_decisions": "Tasks and decisions",
+      "damage_assessment": "Damage assessment",
+      "liability_assessment": "Liability assessment",
+      "fraud_detection": "Fraud detection",
+      "payout_recommendation": "Payout recommendation",
+      "liability_case_notes": "Liability case notes",
+      "incident_timeline": "Incident timeline",
+      "injury_treatment": "Injuries and treatment",
+      "evidence_matrix": "Evidence matrix",
+      "damages_negotiation": "Damages and negotiation",
+      "tasks_next_steps": "Tasks and next steps",
+      "decision": "Decision"
+    }
   },
   "pdfViewer": {
     "zoomIn": "Zoom in",

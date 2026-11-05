@@ -6,6 +6,9 @@ import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { ApplicationMetadata } from '@/lib/types';
 import { brand, isWorkbenchSystem } from '@/lib/brand';
 import { applicationCurrency, formatAmount } from '@/lib/currency';
+import { formatTimelineDate, parseTimelineDate } from '@/lib/timelineDates';
+import { humanizeFieldKey, markdownPreview } from './claims/property/analysisMarkdown';
+import MarkdownText from './claims/property/MarkdownText';
 import ConfidenceIndicator from './ConfidenceIndicator';
 import clsx from 'clsx';
 
@@ -26,41 +29,22 @@ interface TimelineEntry {
   confidence?: number;
 }
 
-function parseDate(text: string): Date | null {
-  // Try to match YYYY-MM-DD format
-  let match = text.match(/(\d{4})-(\d{2})-(\d{2})/);
-  if (match) {
-    return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]));
-  }
-  
-  // Try to match YYYY-MM format
-  match = text.match(/(\d{4})-(\d{2})/);
-  if (match) {
-    return new Date(parseInt(match[1]), parseInt(match[2]) - 1, 1);
-  }
-  
-  // Try to match just YYYY
-  match = text.match(/(\d{4})/);
-  if (match) {
-    return new Date(parseInt(match[1]), 0, 1);
-  }
-  
-  return null;
-}
+const parseDate = parseTimelineDate;
+const formatDateDisplay = formatTimelineDate;
 
-function formatDateDisplay(date: Date | null, locale: string): { date: string; year: string } {
-  if (!date) {
-    return { date: 'N/A', year: '' };
-  }
-  
-  const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(date).replace(/\.$/, '');
-  const day = date.getDate().toString().padStart(2, '0');
-  const year = date.getFullYear().toString();
-  
-  return {
-    date: `${month}-${day}`,
-    year: year,
-  };
+type Translate = (key: string, values?: Record<string, string | number | Date>) => string;
+
+// Analysis sections with a translated name (chronological.sections); others are humanized.
+const TRANSLATED_SECTIONS = new Set([
+  'application_summary', 'medical_summary', 'requirements', 'clinical_case_notes',
+  'clinical_timeline', 'benefits_policy', 'claim_line_evaluation', 'tasks_decisions',
+  'damage_assessment', 'liability_assessment', 'fraud_detection', 'payout_recommendation',
+  'liability_case_notes', 'incident_timeline', 'injury_treatment', 'evidence_matrix',
+  'damages_negotiation', 'tasks_next_steps', 'decision',
+]);
+
+function analysisSectionLabel(section: string, t: Translate): string {
+  return TRANSLATED_SECTIONS.has(section) ? t(`sections.${section}`) : humanizeFieldKey(section);
 }
 
 function getStringValue(field: any): string {
@@ -300,14 +284,15 @@ function buildGenericTimeline(application: ApplicationMetadata, locale: string, 
       if (Array.isArray(events)) {
         events.forEach((evt: any, idx: number) => {
           const date = evt.date || evt.event_date || '';
-          const title = evt.event || evt.description || evt.title || `${section} — ${subsection}`;
+          const title = evt.event || evt.description || evt.title
+            || `${analysisSectionLabel(section, t)} — ${humanizeFieldKey(subsection)}`;
           const details = evt.description || evt.details || evt.rationale || '';
           const parsedDate = parseDate(date);
           const displayDate = formatDateDisplay(parsedDate, locale);
           entries.push({
             date: displayDate.date,
             year: displayDate.year,
-            title: String(title).substring(0, 80),
+            title: markdownPreview(String(title), 80),
             description: String(title),
             color: ['blue', 'green', 'orange', 'purple', 'yellow'][idx % 5] as TimelineEntry['color'],
             details: String(details),
@@ -318,14 +303,14 @@ function buildGenericTimeline(application: ApplicationMetadata, locale: string, 
 
       // Extract summary as a single event if no timeline_events
       if (!Array.isArray(events) && parsed.summary) {
-        const sectionLabel = section.replace(/_/g, ' ');
+        const summary = String(parsed.summary);
         entries.push({
           date: '',
           year: '',
-          title: `${sectionLabel} — ${String(parsed.summary).substring(0, 60)}`,
-          description: String(parsed.summary),
+          title: t('aiAnalysis', { section: analysisSectionLabel(section, t) }),
+          description: markdownPreview(summary, 80),
           color: 'blue',
-          details: String(parsed.summary),
+          details: summary,
           sortDate: 0,
         });
       }
@@ -511,14 +496,14 @@ function buildHabitationTimeline(application: ApplicationMetadata, locale: strin
     for (const [, output] of Object.entries(subsections as Record<string, any>)) {
       const parsed = output?.parsed;
       if (!parsed?.summary) continue;
-      const sectionLabel = section.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      const summary = String(parsed.summary);
       const d = formatDateDisplay(createdDate, locale);
       entries.push({
         date: d.date, year: d.year,
-        title: t('aiAnalysis', { section: sectionLabel }),
-        description: String(parsed.summary).substring(0, 80),
+        title: t('aiAnalysis', { section: analysisSectionLabel(section, t) }),
+        description: markdownPreview(summary, 80),
         color: 'green',
-        details: String(parsed.summary),
+        details: summary,
         sortDate: createdDate.getTime() + 10,
       });
     }
@@ -699,10 +684,10 @@ export default function ChronologicalOverview({ application, fullWidth, persona 
                         )}
                       </button>
 
-                      {/* Expanded content */}
+                      {/* Expanded content (AI text may be Markdown) */}
                       {expandedItems.has(idx) && item.details && (
-                        <div className="mt-2 p-3 bg-slate-50 rounded-lg text-xs text-slate-600">
-                          <p>{item.details}</p>
+                        <div className="mt-2 rounded-lg bg-slate-50 p-3">
+                          <MarkdownText>{item.details}</MarkdownText>
                         </div>
                       )}
                     </div>

@@ -1894,7 +1894,28 @@
     "urgencyLevel": "Niveau d'urgence:{level}",
     "priorityFile": "Dossier prioritaire — traitement accéléré requis",
     "urgencyDetails": "Niveau d'urgence classé:{level}",
-    "aiAnalysis": "Analyse IA : {section}"
+    "aiAnalysis": "Analyse IA : {section}",
+    "sections": {
+      "application_summary": "Synthèse du dossier",
+      "medical_summary": "Synthèse médicale",
+      "requirements": "Pièces requises",
+      "clinical_case_notes": "Notes cliniques",
+      "clinical_timeline": "Chronologie clinique",
+      "benefits_policy": "Garanties et contrat",
+      "claim_line_evaluation": "Revue des lignes de facturation",
+      "tasks_decisions": "Tâches et décisions",
+      "damage_assessment": "Évaluation des dommages",
+      "liability_assessment": "Analyse de responsabilité",
+      "fraud_detection": "Détection de fraude",
+      "payout_recommendation": "Recommandation d'indemnisation",
+      "liability_case_notes": "Notes de responsabilité",
+      "incident_timeline": "Chronologie de l'incident",
+      "injury_treatment": "Blessures et soins",
+      "evidence_matrix": "Matrice des preuves",
+      "damages_negotiation": "Préjudices et négociation",
+      "tasks_next_steps": "Tâches et prochaines étapes",
+      "decision": "Décision"
+    }
   },
   "pdfViewer": {
     "zoomIn": "Zoom avant",

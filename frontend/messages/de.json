@@ -1894,7 +1894,28 @@
     "urgencyLevel": "⚠ Dringlichkeitsstufe:{level}",
     "priorityFile": "Prioritätsdatei — beschleunigte Verarbeitung erforderlich",
     "urgencyDetails": "Klassifizierte Dringlichkeitsstufe:{level}",
-    "aiAnalysis": "KI-Analyse: {section}"
+    "aiAnalysis": "KI-Analyse: {section}",
+    "sections": {
+      "application_summary": "Antragsübersicht",
+      "medical_summary": "Medizinische Zusammenfassung",
+      "requirements": "Erforderliche Unterlagen",
+      "clinical_case_notes": "Klinische Fallnotizen",
+      "clinical_timeline": "Klinischer Verlauf",
+      "benefits_policy": "Leistungen und Vertrag",
+      "claim_line_evaluation": "Prüfung der Rechnungspositionen",
+      "tasks_decisions": "Aufgaben und Entscheidungen",
+      "damage_assessment": "Schadenbewertung",
+      "liability_assessment": "Haftungsprüfung",
+      "fraud_detection": "Betrugserkennung",
+      "payout_recommendation": "Entschädigungsempfehlung",
+      "liability_case_notes": "Haftungsnotizen",
+      "incident_timeline": "Ereignisverlauf",
+      "injury_treatment": "Verletzungen und Behandlung",
+      "evidence_matrix": "Beweismatrix",
+      "damages_negotiation": "Schadenersatz und Verhandlung",
+      "tasks_next_steps": "Aufgaben und nächste Schritte",
+      "decision": "Entscheidung"
+    }
   },
   "pdfViewer": {
     "zoomIn": "Zoom",
