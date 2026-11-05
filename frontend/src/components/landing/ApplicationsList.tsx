@@ -20,6 +20,7 @@ import clsx from 'clsx';
 import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
+import CaseTitle from '../case/CaseTitle';
 
 const PAGE_SIZE = 10;
 
@@ -173,8 +174,8 @@ export default function ApplicationsList({
                         style={{ backgroundColor: `${personaPrimaryColor}10` }}>
                         <FileText className="w-4 h-4" style={{ color: personaPrimaryColor }} />
                       </div>
-                      <div>
-                        <div className="font-medium text-slate-900 transition-colors">{getAppDisplayTitle(app)}</div>
+                      <div className="min-w-0">
+                        <CaseTitle title={getAppDisplayTitle(app)} className="font-medium text-slate-900 transition-colors" />
                         <div className="text-xs text-slate-400 font-mono flex items-center gap-1">
                           <Hash className="w-3 h-3" />{app.id.substring(0, 8)}
                           {getInsuredName(app.key_fields) && (
@@ -228,7 +229,9 @@ export default function ApplicationsList({
                 </div>
                 <StatusBadge status={app.status} processingStatus={app.processing_status} />
               </div>
-              <h3 className="font-semibold text-slate-900 mb-1 line-clamp-1 transition-colors">{getAppDisplayTitle(app)}</h3>
+              <h3 className="w-full mb-1 font-semibold text-slate-900 transition-colors">
+                <CaseTitle title={getAppDisplayTitle(app)} />
+              </h3>
               <div className="text-xs text-slate-400 font-mono flex items-center gap-1 mb-1">
                 <Hash className="w-3 h-3" />{app.id.substring(0, 8)}
                 {app.external_reference && <><span className="mx-1">•</span><span className="truncate">{app.external_reference}</span></>}

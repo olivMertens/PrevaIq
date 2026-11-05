@@ -11,6 +11,7 @@ import {
 import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
+import CaseTitle from '../case/CaseTitle';
 
 interface PriorityQueuesProps {
   readyForReview: ApplicationListItem[];
@@ -66,7 +67,7 @@ export default function PriorityQueues({
                       <FileText className="w-4 h-4" style={{ color: personaPrimaryColor }} />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900 transition-colors">{getAppDisplayTitle(app)}</p>
+                      <CaseTitle title={getAppDisplayTitle(app)} className="font-medium text-slate-900 transition-colors" />
                       <p className="text-xs text-slate-400">
                         {new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'short' }).format(new Date(app.created_at))}
                       </p>
@@ -110,7 +111,7 @@ export default function PriorityQueues({
                       <Loader2 className="w-4 h-4 text-sky-500 animate-spin" />
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-slate-900">{getAppDisplayTitle(app)}</p>
+                      <CaseTitle title={getAppDisplayTitle(app)} className="font-medium text-slate-900" />
                       <p className="text-xs text-slate-400 flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
                         {(() => {

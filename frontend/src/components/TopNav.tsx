@@ -21,6 +21,7 @@ import { useTranslations } from 'next-intl';
 import UserMenu from './UserMenu';
 import BrandMark from './BrandMark';
 import StatusBadge from './landing/StatusBadge';
+import CaseTitle from './case/CaseTitle';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
 import { compactAuthIdentity } from '@/lib/displayText';
 
@@ -116,12 +117,17 @@ export default function TopNav({
             <div className="relative min-w-0">
               <button
                 onClick={() => setAppDropdownOpen(!appDropdownOpen)}
-                title={selectedApplication ? getAppDisplayTitle(selectedApplication) : undefined}
                 className="flex w-full min-w-0 max-w-[11rem] items-center gap-2 px-3 py-2 text-sm bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shadow-sm lg:max-w-[15rem] xl:max-w-[18rem] 2xl:max-w-[26rem]"
               >
-                <span className="truncate text-slate-700">
-                  {selectedApplication ? getAppDisplayTitle(selectedApplication) : t('selectApplication')}
-                </span>
+                {selectedApplication ? (
+                  <CaseTitle
+                    title={getAppDisplayTitle(selectedApplication)}
+                    className="min-w-0 text-slate-700"
+                    subjectClassName="hidden xl:inline"
+                  />
+                ) : (
+                  <span className="truncate text-slate-700">{t('selectApplication')}</span>
+                )}
                 <ChevronDown className={clsx('w-4 h-4 flex-shrink-0 text-slate-400 transition-transform', appDropdownOpen && 'rotate-180')} />
               </button>
 
@@ -143,9 +149,7 @@ export default function TopNav({
                           )}
                           style={selectedAppId === app.id ? { color: brand.primary, backgroundColor: `${brand.primary}10` } : undefined}
                         >
-                          <div className="font-medium truncate">
-                            {getAppDisplayTitle(app)}
-                          </div>
+                          <CaseTitle title={getAppDisplayTitle(app)} className="font-medium" />
                           <div className="text-xs text-slate-500 flex items-center gap-2">
                             {app.external_reference || t('noReference')}
                             <StatusBadge status={app.status} />

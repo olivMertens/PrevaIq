@@ -122,3 +122,65 @@ export function getApplicationDisplayTitle(
   if (app.external_reference) return app.external_reference;
   return app.id.substring(0, 8).toUpperCase();
 }
+
+export interface CompactTitle {
+  /** Insured person or company, shortened. */
+  holder: string;
+  /** First clause of the claim subject, if the title has one. */
+  subject: string | null;
+  /** Holder and subject on one line. */
+  text: string;
+}
+
+// Beyond these lengths a person's given names become initials and parts are clipped.
+const PERSON_NAME_MAX = 20;
+const HOLDER_MAX = 32;
+const SUBJECT_MAX = 28;
+const UPPER = 'A-ZÀ-ÖØ-Þ';
+const LOWER = 'a-zß-öø-ÿ';
+const GIVEN_NAME_RE = new RegExp(`^[${UPPER}][${LOWER}]+(?:-[${UPPER}][${LOWER}]+)*$`);
+const SURNAME_RE = new RegExp(`^[${UPPER}]+(?:[-'’][${UPPER}]+)*$`);
+const COMPANY_FORM_RE = /\s+(?:GmbH|AG|SA|SAS|SASU|SARL|Sàrl|EURL|SNC|SCI|Ltd|LLC|Inc|SE|KG)\.?$/;
+const CLAUSE_BREAK_RE = /\s[-–—]\s|\s?\(|[,;:]\s/;
+
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const space = cut.lastIndexOf(' ');
+  return `${(space >= max / 2 ? cut.slice(0, space) : cut).replace(/[\s,;:/·—–-]+$/, '')}…`;
+}
+
+function isSurname(word: string): boolean {
+  return word.length >= 2 && SURNAME_RE.test(word);
+}
+
+/** "Olivier MERTENS LAFFITE" -> "O. MERTENS LAFFITE"; other shapes are left untouched. */
+function abbreviateGivenNames(name: string): string {
+  const words = name.split(/\s+/);
+  const given = words.map((word) => GIVEN_NAME_RE.test(word));
+  if (!words.some(isSurname) || words.some((word, i) => !given[i] && !isSurname(word))) return name;
+  const first = given.indexOf(true);
+  const last = given.lastIndexOf(true);
+  // One block of given names before or after the surname ("Prénom NOM" or "NOM Prénom").
+  const singleBlock = first >= 0 && given.slice(first, last + 1).every(Boolean);
+  if (!singleBlock || (first !== 0 && last !== words.length - 1)) return name;
+  return words
+    .map((word, i) => (given[i] ? word.split('-').map((part) => `${part[0]}.`).join('-') : word))
+    .join(' ');
+}
+
+function compactHolder(holder: string): string {
+  const base = holder.replace(/\s*\([^)]*\)/g, '').trim() || holder.trim();
+  const isCompany = COMPANY_FORM_RE.test(base);
+  const name = base.replace(COMPANY_FORM_RE, '').trim() || base;
+  return clip(!isCompany && name.length > PERSON_NAME_MAX ? abbreviateGivenNames(name) : name, HOLDER_MAX);
+}
+
+/** Short form of a case title for headers, menus and lists (the full title stays on hover). */
+export function compactApplicationTitle(title: string): CompactTitle {
+  const [head, ...rest] = title.split(' — ');
+  const holder = compactHolder(head);
+  const tail = rest.join(' — ').trim();
+  const subject = tail ? clip(tail.split(CLAUSE_BREAK_RE)[0].trim() || tail, SUBJECT_MAX) : null;
+  return { holder, subject, text: subject ? `${holder} · ${subject}` : holder };
+}

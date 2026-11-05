@@ -21,6 +21,7 @@ import SouscriaContextPanel from '@/components/SouscriaContextPanel';
 import PolicyReportModal from '@/components/PolicyReportModal';
 import ChatDrawer from '@/components/ChatDrawer';
 import PipelineStatusPill from '@/components/case/PipelineStatusPill';
+import CaseTitle from '@/components/case/CaseTitle';
 import BodySystemDeepDiveModal from '@/components/BodySystemDeepDiveModal';
 import LifeHealthClaimsOverview from '@/components/claims/LifeHealthClaimsOverview';
 import PropertyCasualtyClaimsOverview from '@/components/claims/PropertyCasualtyClaimsOverview';
@@ -318,9 +319,16 @@ export default function WorkbenchView({
                 {tw('returnToDashboard')}
             </button>
             <span className="text-slate-300" aria-hidden>/</span>
-            <span className="min-w-0 truncate text-sm font-medium text-slate-700" title={selectedApp ? getApplicationDisplayTitle(selectedApp, locale) : undefined}>
-                {selectedApp ? getApplicationDisplayTitle(selectedApp, locale) : tw('applicationDetails')}
-            </span>
+            {selectedApp ? (
+              <CaseTitle
+                title={getApplicationDisplayTitle(selectedApp, locale)}
+                className="min-w-0 text-sm font-medium text-slate-700"
+              />
+            ) : (
+              <span className="min-w-0 truncate text-sm font-medium text-slate-700">
+                {tw('applicationDetails')}
+              </span>
+            )}
              {loading && <span className="ml-1 text-xs text-slate-400 animate-pulse">{tw('loading')}</span>}
             {selectedApp && (
               <div className="ml-auto flex flex-shrink-0 items-center gap-3 pl-2">

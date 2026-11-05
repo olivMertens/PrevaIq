@@ -27,6 +27,41 @@ const updates = load('caseUpdates.ts');
 const health = load('pipelineHealth.ts');
 const recommendation = load('recommendation.ts');
 const currency = load('currency.ts', libDir);
+const display = load('applicationDisplay.ts', libDir);
+
+test('long case titles are shown compact, short ones unchanged', () => {
+  const { compactApplicationTitle } = display;
+  const compact = (title) => compactApplicationTitle(title).text;
+
+  assert.equal(
+    compact('Olivier MERTENS LAFFITE — Dégâts des eaux - infiltration suite à tempête'),
+    'O. MERTENS LAFFITE · Dégâts des eaux',
+  );
+  assert.equal(
+    compact('MERTENS LAFFITE Olivier — Dégâts des eaux - infiltration suite à tempête'),
+    'MERTENS LAFFITE O. · Dégâts des eaux',
+  );
+  assert.equal(
+    compact('Schoggimanufaktur Eulachblick GmbH — Grêle / tempête (dommage élémentaire)'),
+    'Schoggimanufaktur Eulachblick · Grêle / tempête',
+  );
+  assert.equal(compact('RENARD Christophe (flotte SARL Renard Transport)'), 'RENARD Christophe');
+  assert.equal(
+    compact('Mertens Olivier — Collision / frottement latéral avec bris de glace'),
+    'Mertens Olivier · Collision / frottement…',
+  );
+  assert.equal(compact('Jean-Pierre Marie DUPONT-MOREAU — Vol'), 'J.-P. M. DUPONT-MOREAU · Vol');
+  // Not a "given names + SURNAME" shape: left as written.
+  assert.equal(compact('Boulangerie DUPONT Frères Rive Gauche'), 'Boulangerie DUPONT Frères Rive…');
+  for (const title of ['MARTIN Claire — Dommages structure', 'Priya Patel — Term Life $1M', 'E0FF1B47']) {
+    assert.equal(compact(title), title.replace(' — ', ' · '));
+  }
+  assert.deepEqual(compactApplicationTitle('LECOMTE Sandrine'), {
+    holder: 'LECOMTE Sandrine',
+    subject: null,
+    text: 'LECOMTE Sandrine',
+  });
+});
 
 test('amounts follow the claim currency (CHF in Switzerland) and the UI language', () => {
   const { applicationCurrency, formatAmount } = currency;
