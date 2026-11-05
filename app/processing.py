@@ -1958,6 +1958,12 @@ _SUBSECTION_MAX_TOKENS: Dict[str, int] = {
 }
 
 
+def _sum_usage(first: Dict[str, Any], second: Dict[str, Any]) -> Dict[str, Any]:
+    """Add the top-level token counters of two chat completion usages."""
+    keys = ("prompt_tokens", "completion_tokens", "total_tokens")
+    return {key: int(first.get(key) or 0) + int(second.get(key) or 0) for key in keys}
+
+
 def _run_single_prompt(
     settings: Settings,
     section: str,
@@ -2005,6 +2011,27 @@ def _run_single_prompt(
     )
     result = chat_completion(settings.openai, messages, response_format="json_object", **kwargs)
     raw_content = result["content"]
+    usage = result.get("usage", {})
+    call_usage = usage
+    if not (raw_content or "").strip():
+        # A reasoning model can spend its whole budget on hidden reasoning and answer
+        # nothing (long multilingual cases). Retry once without reasoning so the same
+        # budget goes to the answer; both calls are charged to the stage budget.
+        logger.warning(
+            "Prompt %s.%s returned an empty answer; retrying once with reasoning_effort=none",
+            section,
+            subsection,
+        )
+        result = chat_completion(
+            settings.openai,
+            messages,
+            response_format="json_object",
+            reasoning_effort="none",
+            **kwargs,
+        )
+        raw_content = result["content"]
+        call_usage = result.get("usage", {})
+        usage = _sum_usage(usage, call_usage)
 
     # Strip markdown code fences that LLMs sometimes wrap around JSON.
     # Handle cases where the LLM adds commentary after the closing ```.
@@ -2029,8 +2056,7 @@ def _run_single_prompt(
             parsed = json.loads(stripped)
         except json.JSONDecodeError:
             # Check if this looks like truncated JSON (max_tokens hit)
-            usage = result.get("usage", {})
-            completion_tokens = usage.get("completion_tokens", 0)
+            completion_tokens = call_usage.get("completion_tokens", 0)
             is_likely_truncated = max_tokens and completion_tokens >= max_tokens - 5
             if is_likely_truncated:
                 logger.warning(
@@ -2055,7 +2081,7 @@ def _run_single_prompt(
         "subsection": subsection,
         "raw": raw_content,
         "parsed": parsed,
-        "usage": result.get("usage", {}),
+        "usage": usage,
     }
 
 
