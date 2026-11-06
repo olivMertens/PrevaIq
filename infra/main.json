@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "11497119625268068274"
+      "templateHash": "18195903201201571876"
     }
   },
   "parameters": {
@@ -89,6 +89,48 @@
       "defaultValue": "",
       "metadata": {
         "description": "Fabric Data Agent item ID"
+      }
+    },
+    "auroraEnabled": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable the managed Foundry Aurora 1.5 forecast adapter after tenant deployment and contract validation."
+      }
+    },
+    "auroraFoundryEndpoint": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Tenant-specific managed Foundry Aurora forecast endpoint."
+      }
+    },
+    "auroraDeploymentName": {
+      "type": "string",
+      "defaultValue": "aurora-0.25-v1.5",
+      "metadata": {
+        "description": "Aurora 1.5 model name in Microsoft Foundry."
+      }
+    },
+    "auroraEnsembleDeploymentName": {
+      "type": "string",
+      "defaultValue": "aurora-0.25-v1.5-ensemble",
+      "metadata": {
+        "description": "Aurora 1.5 stochastic ensemble model name in Microsoft Foundry."
+      }
+    },
+    "auroraInitialConditionBlobUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "HTTPS Blob URL of the current validated Aurora NetCDF initial condition."
+      }
+    },
+    "auroraEndpointKeySecretEnabled": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Wire the Key-authenticated Aurora endpoint key from Key Vault secret aurora-endpoint-key. Enable only after storing the secret out of band."
       }
     },
     "pgAdminLogin": {
@@ -186,6 +228,7 @@
       "Environment": "[parameters('environment')]"
     },
     "webIqEnv": "[if(parameters('webIqSecretEnabled'), createArray(createObject('name', 'WEBIQ_API_KEY', 'secretRef', 'webiq-api-key')), createArray())]",
+    "auroraEndpointEnv": "[if(parameters('auroraEndpointKeySecretEnabled'), createArray(createObject('name', 'AURORA_ENDPOINT_TOKEN', 'secretRef', 'aurora-endpoint-key')), createArray())]",
     "privateDnsZoneNames": [
       "privatelink.blob.core.windows.net",
       "privatelink.vaultcore.azure.net",
@@ -1137,7 +1180,7 @@
               "identity": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix')))]"
             }
           ],
-          "secrets": "[concat(createArray(createObject('name', 'api-key', 'value', parameters('apiKey')), createObject('name', 'pg-password', 'value', parameters('pgAdminPassword'))), if(parameters('webIqSecretEnabled'), createArray(createObject('name', 'webiq-api-key', 'keyVaultUrl', format('{0}secrets/webiq-api-key', reference(resourceId('Microsoft.KeyVault/vaults', format('kv-{0}', variables('prefix'))), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))))), createArray()))]"
+          "secrets": "[concat(createArray(createObject('name', 'api-key', 'value', parameters('apiKey')), createObject('name', 'pg-password', 'value', parameters('pgAdminPassword'))), if(parameters('webIqSecretEnabled'), createArray(createObject('name', 'webiq-api-key', 'keyVaultUrl', format('{0}secrets/webiq-api-key', reference(resourceId('Microsoft.KeyVault/vaults', format('kv-{0}', variables('prefix'))), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))))), createArray()), if(parameters('auroraEndpointKeySecretEnabled'), createArray(createObject('name', 'aurora-endpoint-key', 'keyVaultUrl', format('{0}secrets/aurora-endpoint-key', reference(resourceId('Microsoft.KeyVault/vaults', format('kv-{0}', variables('prefix'))), '2023-07-01').vaultUri), 'identity', resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))))), createArray()))]"
         },
         "template": {
           "containers": [
@@ -1148,7 +1191,7 @@
                 "cpu": "[json('0.5')]",
                 "memory": "1Gi"
               },
-              "env": "[concat(createArray(createObject('name', 'API_KEY', 'secretRef', 'api-key'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').clientId), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-large'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_OPENAI_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_OPENAI_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_NANO_DEPLOYMENT_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_NANO_MODEL_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', '2025-04-01-preview'), createObject('name', 'AZURE_OPENAI_REASONING_EFFORT', 'value', 'low'), createObject('name', 'FRAUD_VISION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_VISION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_PROVENANCE_MODE', 'value', 'inform'), createObject('name', 'STORAGE_BACKEND', 'value', 'azure_blob'), createObject('name', 'AZURE_STORAGE_AUTH_MODE', 'value', 'default'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), createObject('name', 'AZURE_STORAGE_CONTAINER_NAME', 'value', variables('dataContainerName')), createObject('name', 'DATABASE_BACKEND', 'value', 'postgresql'), createObject('name', 'POSTGRESQL_HOST', 'value', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', format('pg-{0}', variables('prefix'))), '2024-08-01').fullyQualifiedDomainName), createObject('name', 'POSTGRESQL_PORT', 'value', '5432'), createObject('name', 'POSTGRESQL_DATABASE', 'value', parameters('postgresDatabaseName')), createObject('name', 'POSTGRESQL_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'POSTGRESQL_PASSWORD', 'secretRef', 'pg-password'), createObject('name', 'POSTGRESQL_SSL_MODE', 'value', 'require'), createObject('name', 'RAG_ENABLED', 'value', 'true'), createObject('name', 'EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-small'), createObject('name', 'AGENT_FRAMEWORK_ENABLED', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString), createObject('name', 'OTEL_SERVICE_NAME', 'value', parameters('brandName')), createObject('name', 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', 'value', 'true'), createObject('name', 'FABRIC_DATA_AGENT_ENDPOINT', 'value', parameters('fabricDataAgentEndpoint')), createObject('name', 'FABRIC_WORKSPACE_ID', 'value', parameters('fabricWorkspaceId')), createObject('name', 'FABRIC_DATA_AGENT_ID', 'value', parameters('fabricDataAgentId')), createObject('name', 'AZURE_SEARCH_ENDPOINT', 'value', format('https://{0}.search.windows.net', format('srch-{0}', variables('prefix')))), createObject('name', 'AZURE_SEARCH_INDEX_NAME', 'value', 'corrections'), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', format('{0}/api/projects/{1}', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint, format('ai-{0}-project', parameters('projectName'))))), variables('webIqEnv'), if(parameters('accessEmailEnabled'), createArray(createObject('name', 'ACCESS_EMAIL_ENDPOINT', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.endpoint.value), createObject('name', 'ACCESS_EMAIL_SENDER', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.senderAddress.value), createObject('name', 'ACCESS_REQUEST_EMAIL', 'value', parameters('accessRequestEmail')), createObject('name', 'ACCESS_ADMIN_URL', 'value', parameters('accessAdminUrl'))), createArray()))]"
+              "env": "[concat(createArray(createObject('name', 'API_KEY', 'secretRef', 'api-key'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').clientId), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-large'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_OPENAI_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_OPENAI_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_NANO_DEPLOYMENT_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_NANO_MODEL_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', '2025-04-01-preview'), createObject('name', 'AZURE_OPENAI_REASONING_EFFORT', 'value', 'low'), createObject('name', 'FRAUD_VISION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_VISION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_PROVENANCE_MODE', 'value', 'inform'), createObject('name', 'STORAGE_BACKEND', 'value', 'azure_blob'), createObject('name', 'AZURE_STORAGE_AUTH_MODE', 'value', 'default'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), createObject('name', 'AZURE_STORAGE_CONTAINER_NAME', 'value', variables('dataContainerName')), createObject('name', 'DATABASE_BACKEND', 'value', 'postgresql'), createObject('name', 'POSTGRESQL_HOST', 'value', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', format('pg-{0}', variables('prefix'))), '2024-08-01').fullyQualifiedDomainName), createObject('name', 'POSTGRESQL_PORT', 'value', '5432'), createObject('name', 'POSTGRESQL_DATABASE', 'value', parameters('postgresDatabaseName')), createObject('name', 'POSTGRESQL_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'POSTGRESQL_PASSWORD', 'secretRef', 'pg-password'), createObject('name', 'POSTGRESQL_SSL_MODE', 'value', 'require'), createObject('name', 'RAG_ENABLED', 'value', 'true'), createObject('name', 'EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-small'), createObject('name', 'AGENT_FRAMEWORK_ENABLED', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString), createObject('name', 'OTEL_SERVICE_NAME', 'value', parameters('brandName')), createObject('name', 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', 'value', 'true'), createObject('name', 'FABRIC_DATA_AGENT_ENDPOINT', 'value', parameters('fabricDataAgentEndpoint')), createObject('name', 'FABRIC_WORKSPACE_ID', 'value', parameters('fabricWorkspaceId')), createObject('name', 'FABRIC_DATA_AGENT_ID', 'value', parameters('fabricDataAgentId')), createObject('name', 'AZURE_SEARCH_ENDPOINT', 'value', format('https://{0}.search.windows.net', format('srch-{0}', variables('prefix')))), createObject('name', 'AZURE_SEARCH_INDEX_NAME', 'value', 'corrections'), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', format('{0}/api/projects/{1}', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint, format('ai-{0}-project', parameters('projectName')))), createObject('name', 'AURORA_ENABLED', 'value', string(parameters('auroraEnabled'))), createObject('name', 'AURORA_FOUNDRY_ENDPOINT', 'value', parameters('auroraFoundryEndpoint')), createObject('name', 'AURORA_DEPLOYMENT_NAME', 'value', parameters('auroraDeploymentName')), createObject('name', 'AURORA_ENSEMBLE_DEPLOYMENT_NAME', 'value', parameters('auroraEnsembleDeploymentName')), createObject('name', 'AURORA_INITIAL_CONDITION_BLOB_URL', 'value', parameters('auroraInitialConditionBlobUrl')), createObject('name', 'AURORA_CHANNEL_CONTAINER_URL', 'value', format('{0}{1}/aurora', reference(resourceId('Microsoft.Storage/storageAccounts', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), '2023-05-01').primaryEndpoints.blob, variables('dataContainerName'))), createObject('name', 'AURORA_TOKEN_SCOPE', 'value', 'https://ml.azure.com/.default'), createObject('name', 'AURORA_TIMEOUT_SECONDS', 'value', '900'), createObject('name', 'AURORA_USE_AZURE_AD', 'value', string(not(parameters('auroraEndpointKeySecretEnabled'))))), variables('webIqEnv'), variables('auroraEndpointEnv'), if(parameters('accessEmailEnabled'), createArray(createObject('name', 'ACCESS_EMAIL_ENDPOINT', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.endpoint.value), createObject('name', 'ACCESS_EMAIL_SENDER', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.senderAddress.value), createObject('name', 'ACCESS_REQUEST_EMAIL', 'value', parameters('accessRequestEmail')), createObject('name', 'ACCESS_ADMIN_URL', 'value', parameters('accessAdminUrl'))), createArray()))]"
             }
           ],
           "scale": {

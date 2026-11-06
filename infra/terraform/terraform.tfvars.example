@@ -20,6 +20,13 @@ pg_admin_login      = "prevaiqadmin"
 # Enable after running infra/set-webiq-secret.ps1, so re-applies keep the Key Vault reference.
 # webiq_secret_enabled = true
 
+# Aurora Key-authenticated managed endpoint. Store the key with
+# infra/set-aurora-endpoint-secret.ps1 before enabling the secret reference.
+# aurora_foundry_endpoint            = "https://ol-workspace-aurora-fqedr.swedencentral.inference.ml.azure.com/score"
+# aurora_endpoint_key_secret_enabled = true
+# aurora_initial_condition_blob_url  = "https://<storage>.blob.core.windows.net/<container>/initial.nc"
+# aurora_enabled                     = true
+
 # Data-plane roles (Foundry, Key Vault, Storage) for whoever runs deploy.ps1, set-webiq-secret.ps1 and the
 # maintenance scripts; Owner/Contributor does not include them. Object ID: az ad signed-in-user show --query id -o tsv
 # admin_principal_ids = ["<object-id>"]

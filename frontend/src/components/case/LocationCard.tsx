@@ -23,7 +23,13 @@ const ZOOM: Record<PlaceLevel, number> = { building: 17, street: 16, town: 13 };
 const LINK = 'inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-50';
 
 /** Where the loss happened: a map of the address, and links to Google Maps, Street View and a route. */
-export default function LocationCard({ applicationId }: { applicationId: string }) {
+export default function LocationCard({
+  applicationId,
+  claimDate,
+}: {
+  applicationId: string;
+  claimDate?: string;
+}) {
   const t = useTranslations('caseCockpit.location');
   const [location, setLocation] = useState<ClaimLocation | null>(null);
   const [failed, setFailed] = useState(false);
@@ -159,7 +165,14 @@ export default function LocationCard({ applicationId }: { applicationId: string 
       <CockpitCard title={t('title')} headingId="cockpit-location" aside={basemapSwitch}>
         <div className="px-4 py-3">{body}</div>
       </CockpitCard>
-      {place && <AuroraRiskPanel applicationId={applicationId} latitude={place.lat} longitude={place.lon} />}
+      {place && (
+        <AuroraRiskPanel
+          applicationId={applicationId}
+          latitude={place.lat}
+          longitude={place.lon}
+          claimDate={claimDate}
+        />
+      )}
     </div>
   );
 }

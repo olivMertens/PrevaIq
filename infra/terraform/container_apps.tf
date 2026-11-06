@@ -77,7 +77,7 @@ locals {
     AURORA_CHANNEL_CONTAINER_URL      = "${azurerm_storage_account.this.primary_blob_endpoint}${local.data_container_name}/aurora"
     AURORA_TOKEN_SCOPE                = "https://ml.azure.com/.default"
     AURORA_TIMEOUT_SECONDS            = "900"
-    AURORA_USE_AZURE_AD               = "true"
+    AURORA_USE_AZURE_AD               = tostring(!var.aurora_endpoint_key_secret_enabled)
   }
 
   # Fabric Data Agent IDs (set them after creating the Data Agent in Fabric); omitted while empty.
@@ -95,6 +95,7 @@ locals {
       POSTGRESQL_PASSWORD = "pg-password"
     },
     var.webiq_secret_enabled ? { WEBIQ_API_KEY = "webiq-api-key" } : {},
+    var.aurora_endpoint_key_secret_enabled ? { AURORA_ENDPOINT_TOKEN = "aurora-endpoint-key" } : {},
   )
 }
 
@@ -132,6 +133,16 @@ resource "azurerm_container_app" "api" {
     content {
       name                = "webiq-api-key"
       key_vault_secret_id = "${azurerm_key_vault.this.vault_uri}secrets/webiq-api-key"
+      identity            = azurerm_user_assigned_identity.this.id
+    }
+  }
+
+  dynamic "secret" {
+    for_each = var.aurora_endpoint_key_secret_enabled ? [1] : []
+
+    content {
+      name                = "aurora-endpoint-key"
+      key_vault_secret_id = "${azurerm_key_vault.this.vault_uri}secrets/aurora-endpoint-key"
       identity            = azurerm_user_assigned_identity.this.id
     }
   }

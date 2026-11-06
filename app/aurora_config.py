@@ -21,7 +21,7 @@ from app.brands import current_brand_key
 from app.storage_providers import get_storage_provider
 from app.storage_providers.azure_blob import AzureBlobStorageProvider
 
-_MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+_MODEL_RE = re.compile(r"^(?:[A-Za-z0-9][A-Za-z0-9._-]{0,127}|azureml://[A-Za-z0-9._/-]{1,240})$")
 _lock = threading.Lock()
 
 

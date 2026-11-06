@@ -14,15 +14,18 @@ import {
 } from '@/lib/api';
 import { CockpitCard } from './caseUi';
 import AuroraForecastChart from './AuroraForecastChart';
+import AuroraStormTimeline, { AuroraResolvingState } from './AuroraStormTimeline';
 
 export default function AuroraRiskPanel({
   applicationId,
   latitude,
   longitude,
+  claimDate,
 }: {
   applicationId: string;
   latitude: number;
   longitude: number;
+  claimDate?: string;
 }) {
   const t = useTranslations('caseCockpit.aurora');
   const locale = useLocale();
@@ -109,6 +112,9 @@ export default function AuroraRiskPanel({
             {loading ? t('running') : forecast ? t('refresh') : t('run')}
           </button>
         )}
+        {loading && (
+          <AuroraResolvingState horizonHours={status?.default_horizon_hours ?? 12} />
+        )}
         {error && <p className="text-xs text-amber-800">{error}</p>}
         {forecast && severity && (
           <div className={clsx('rounded-lg border p-3 text-xs', severityClass)}>
@@ -156,6 +162,15 @@ export default function AuroraRiskPanel({
                 })}
               </p>
             )}
+            <div className="mt-3">
+              <AuroraStormTimeline
+                key={forecast.request_id}
+                series={forecast.forecast.series}
+                hazardWindow={forecast.decision_support.hazard_window}
+                claimDate={claimDate}
+                locale={locale}
+              />
+            </div>
             <div className="mt-3">
               <AuroraForecastChart series={forecast.forecast.series} locale={locale} />
             </div>

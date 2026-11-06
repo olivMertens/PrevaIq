@@ -87,20 +87,23 @@ def test_persisted_configuration_takes_precedence(monkeypatch):
     assert settings.channel_sas_url == ""
 
 
-def test_admin_snapshot_exposes_non_secret_readiness():
+def test_admin_snapshot_exposes_non_secret_managed_identity_readiness(monkeypatch):
+    monkeypatch.delenv("AURORA_ENDPOINT_TOKEN", raising=False)
+    monkeypatch.setenv("AURORA_USE_AZURE_AD", "true")
     snapshot = admin_api._snapshot(valid_config())
 
     assert snapshot["source"] == "admin"
     assert snapshot["ready_count"] == snapshot["total_count"] == 5
     assert [item["id"] for item in snapshot["checklist"]] == [
         "enabled",
-        "managed_identity",
+        "endpoint_authentication",
         "endpoint",
         "initial_conditions",
         "blob_channel",
     ]
     assert snapshot["security"] == {
-        "authentication": "managed_identity",
+        "endpoint_authentication": "managed_identity",
+        "storage_authentication": "managed_identity",
         "secrets_persisted": False,
         "sas_persisted": False,
     }
@@ -108,10 +111,44 @@ def test_admin_snapshot_exposes_non_secret_readiness():
     assert "channel_sas_url" not in snapshot["configuration"]
 
 
-def test_readiness_checks_validate_each_live_dependency(monkeypatch):
+def test_admin_snapshot_uses_key_auth_without_exposing_key(monkeypatch):
+    monkeypatch.setenv("AURORA_USE_AZURE_AD", "false")
+    monkeypatch.setenv("AURORA_ENDPOINT_TOKEN", "endpoint-key")
+
+    snapshot = admin_api._snapshot(valid_config())
+
+    assert snapshot["ready_count"] == snapshot["total_count"] == 5
+    assert snapshot["security"] == {
+        "endpoint_authentication": "key_vault_secret",
+        "storage_authentication": "managed_identity",
+        "secrets_persisted": False,
+        "sas_persisted": False,
+    }
+    assert "endpoint-key" not in repr(snapshot)
+
+
+@pytest.mark.parametrize(
+    ("use_azure_ad", "endpoint_token", "expected_detail"),
+    [
+        ("true", "", "managed_identity_token_acquired"),
+        ("false", "endpoint-key", "endpoint_key_loaded"),
+    ],
+)
+def test_readiness_checks_validate_each_live_dependency(
+    monkeypatch,
+    use_azure_ad,
+    endpoint_token,
+    expected_detail,
+):
     config = valid_config()
     observed: list[str] = []
-    monkeypatch.setattr(admin_api, "_endpoint_token", lambda settings: "token")
+    monkeypatch.setenv("AURORA_USE_AZURE_AD", use_azure_ad)
+    monkeypatch.setenv("AURORA_ENDPOINT_TOKEN", endpoint_token)
+    monkeypatch.setattr(
+        admin_api,
+        "_endpoint_token",
+        lambda settings: settings.endpoint_token or "managed-token",
+    )
     monkeypatch.setattr(
         admin_api,
         "_endpoint_probe",
@@ -128,11 +165,14 @@ def test_readiness_checks_validate_each_live_dependency(monkeypatch):
     result = admin_api._run_readiness_checks(config)
 
     assert result["ok"] is True
-    assert observed == ["token"]
+    assert observed == [endpoint_token or "managed-token"]
     assert [item["id"] for item in result["checks"]] == [
         "enabled",
-        "managed_identity",
+        "endpoint_authentication",
         "endpoint",
         "initial_conditions",
         "blob_channel",
     ]
+    assert result["checks"][1]["detail"] == expected_detail
+    if endpoint_token:
+        assert endpoint_token not in repr(result)

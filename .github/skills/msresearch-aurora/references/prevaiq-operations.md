@@ -21,12 +21,17 @@ configuration exists, the adapter reads:
 
 The admin surface must never accept or return tokens, keys, or SAS query strings.
 
+Some Azure ML managed endpoints are provisioned with **Key** authentication rather than
+Microsoft Entra authentication. For those endpoints set `AURORA_USE_AZURE_AD=false` and
+provide `AURORA_ENDPOINT_TOKEN` through a secret reference. The adapter sends the key as
+`Authorization: Bearer <key>`; it is never persisted in the Aurora admin configuration.
+
 ## Endpoint protocol
 
 The model is not a latitude/longitude JSON API. PrevaIQ:
 
 1. downloads and validates the configured initial-condition NetCDF;
-2. obtains a managed-identity token for the ML scope;
+2. obtains a managed-identity token for the ML scope or loads the deployment-injected endpoint key;
 3. creates a short-lived user-delegation SAS for the configured task container;
 4. uploads the input under a unique task prefix;
 5. posts a `task_submission` message to the endpoint;

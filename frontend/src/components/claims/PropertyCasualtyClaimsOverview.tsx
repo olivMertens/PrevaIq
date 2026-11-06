@@ -138,6 +138,7 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
 
   const { recommendation } = cockpit;
   const { ef, steps } = data;
+  const claimDate = getFieldValue(ef, ['DateSinistre', 'ClaimDate', 'DateEvenement']);
   const stepsDone = steps.length > 0 && checked.length >= steps.length;
   const fieldCount = Object.values(ef).filter((entry) => entry?.value != null && entry.value !== '').length;
   const tabs = DEEP_DIVE_TABS.map((id) => ({ id, label: tc(`drawer.tabs.${id}`) }));
@@ -257,7 +258,7 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
               <LatestUpdates updates={cockpit.updates} previousVisit={previousVisit} onOpenTimeline={() => openTab('timeline')} />
             </div>
             <div className="order-5">
-              <LocationCard applicationId={application.id} />
+              <LocationCard applicationId={application.id} claimDate={claimDate} />
             </div>
             <div className="order-6">
               <CaseFacts

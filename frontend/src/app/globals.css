@@ -17,6 +17,16 @@ body {
   );
 }
 
+@keyframes aurora-scan {
+  0% {
+    transform: translateX(0);
+  }
+  50%,
+  100% {
+    transform: translateX(500%);
+  }
+}
+
 /* Custom scrollbar styling */
 ::-webkit-scrollbar {
   width: 8px;

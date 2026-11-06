@@ -57,6 +57,9 @@ param auroraEnsembleDeploymentName string = 'aurora-0.25-v1.5-ensemble'
 @description('HTTPS Blob URL of the current validated Aurora NetCDF initial condition.')
 param auroraInitialConditionBlobUrl string = ''
 
+@description('Wire the Key-authenticated Aurora endpoint key from Key Vault secret aurora-endpoint-key. Enable only after storing the secret out of band.')
+param auroraEndpointKeySecretEnabled bool = false
+
 @description('PostgreSQL administrator login')
 param pgAdminLogin string = 'prevaiqadmin'
 
@@ -229,6 +232,19 @@ var webIqSecrets = webIqSecretEnabled ? [
 ] : []
 var webIqEnv = webIqSecretEnabled ? [
   { name: 'WEBIQ_API_KEY', secretRef: 'webiq-api-key' }
+] : []
+
+// The Aurora endpoint shown in the Foundry deployment uses Key authentication.
+// The key is written out of band and never appears in deployment parameters or admin storage.
+var auroraEndpointSecrets = auroraEndpointKeySecretEnabled ? [
+  {
+    name: 'aurora-endpoint-key'
+    keyVaultUrl: '${keyVault.properties.vaultUri}secrets/aurora-endpoint-key'
+    identity: managedIdentity.id
+  }
+] : []
+var auroraEndpointEnv = auroraEndpointKeySecretEnabled ? [
+  { name: 'AURORA_ENDPOINT_TOKEN', secretRef: 'aurora-endpoint-key' }
 ] : []
 
 // =============================================================================
@@ -891,7 +907,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
       secrets: concat([
         { name: 'api-key', value: apiKey }
         { name: 'pg-password', value: pgAdminPassword }
-      ], webIqSecrets)
+      ], webIqSecrets, auroraEndpointSecrets)
     }
     template: {
       containers: [
@@ -962,8 +978,8 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             { name: 'AURORA_CHANNEL_CONTAINER_URL', value: '${storageAccount.properties.primaryEndpoints.blob}${dataContainerName}/aurora' }
             { name: 'AURORA_TOKEN_SCOPE', value: 'https://ml.azure.com/.default' }
             { name: 'AURORA_TIMEOUT_SECONDS', value: '900' }
-            { name: 'AURORA_USE_AZURE_AD', value: 'true' }
-          ], webIqEnv, accessEmailEnv)
+            { name: 'AURORA_USE_AZURE_AD', value: string(!auroraEndpointKeySecretEnabled) }
+          ], webIqEnv, auroraEndpointEnv, accessEmailEnv)
         }
       ]
       scale: {

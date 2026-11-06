@@ -53,7 +53,8 @@ type AuroraSnapshot = {
     cadence: string;
   };
   security: {
-    authentication: string;
+    endpoint_authentication: 'managed_identity' | 'key_vault_secret';
+    storage_authentication: 'managed_identity';
     secrets_persisted: boolean;
     sas_persisted: boolean;
   };

@@ -106,7 +106,8 @@ AURORA_DEPLOYMENT_NAME=aurora-0.25-v1.5
 AURORA_ENSEMBLE_DEPLOYMENT_NAME=aurora-0.25-v1.5-ensemble
 AURORA_INITIAL_CONDITION_BLOB_URL=https://<account>.blob.core.windows.net/<container>/initial/current.nc
 AURORA_CHANNEL_CONTAINER_URL=https://<account>.blob.core.windows.net/<container>/aurora
-AURORA_USE_AZURE_AD=true
+AURORA_USE_AZURE_AD=false
+# AURORA_ENDPOINT_TOKEN is injected from Key Vault secret aurora-endpoint-key
 ```
 
 The adapter implements the [official Aurora Foundry client
@@ -128,9 +129,11 @@ administrator configuration without exposing credentials.
 
 Tenant administrators can prepare the integration from **Admin > Aurora
 weather**. The tab stores only non-secret Azure resource identifiers, tests
-managed identity and input/channel readiness, and shows the exact evidence
-contract agents receive. Persisted admin configuration overrides the
-environment resource values; tokens, keys, and SAS query strings are rejected.
+the deployment-provided endpoint authentication plus managed-identity
+input/channel access, and shows the exact evidence contract agents receive.
+Persisted admin configuration overrides the environment resource values while
+retaining secret authentication settings; tokens, keys, and SAS query strings
+are rejected.
 
 For the `Aurora-v1p5` custom model asset in Foundry, choose **Use this model >
 Real-time endpoint**. The current adapter targets that inference environment's

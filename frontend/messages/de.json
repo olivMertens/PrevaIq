@@ -271,9 +271,9 @@
       "hours": "{count} Stunden",
       "configuration": {
         "title": "Konfiguration des verwalteten Endpunkts",
-        "lead": "Konfigurieren Sie nur nicht geheime Ressourcenbezeichner. Der Laufzeitzugriff verwendet die verwaltete Identität der Container App.",
+        "lead": "Konfigurieren Sie nur nicht geheime Ressourcenbezeichner. Der Blob-Zugriff nutzt die verwaltete Identität; die Endpunktauthentifizierung wird sicher durch die Bereitstellung bereitgestellt.",
         "enabled": "Aurora aktivieren",
-        "security": "Sicherheit: Token, Kontoschlüssel und SAS-Abfrageparameter werden abgelehnt und niemals gespeichert.",
+        "security": "Sicherheit: Der Endpunktschlüssel stammt aus einem Key-Vault-gestützten Container-App-Geheimnis. Token, Kontoschlüssel und SAS-Abfrageparameter werden hier abgelehnt und niemals gespeichert.",
         "fields": {
           "endpoint": {
             "label": "URL des verwalteten Foundry-Endpunkts",
@@ -311,7 +311,7 @@
         "testFailed": "Live-Test erfordert Aufmerksamkeit",
         "items": {
           "enabled": "Aurora-Funktion aktiviert",
-          "managed_identity": "Verwaltete Identität kann sich authentifizieren",
+          "endpoint_authentication": "Verwaltete Identität oder das Key-Vault-Endpunktgeheimnis kann sich authentifizieren",
           "endpoint": "Verwalteter Endpunkt ist erreichbar",
           "initial_conditions": "Anfangsbedingungen erfüllen den Aurora-Vertrag",
           "blob_channel": "Aufgabenkanal unterstützt delegierten Blob-Zugriff"
@@ -2972,9 +2972,9 @@
             "detail": "① Extraktion → Content Understanding / MarkItDown strukturiert Felder und Anhänge\n② Multimodale Analyse → bewertet die Schadenfotos\n③ LLM-Analyse + RAG → bewertet den Schaden und zitiert die anwendbaren Bedingungen\n\nDie Anzeige „KI-Pipeline“ neben dem Falltitel zeigt, wie der Fall gelesen wurde: grün OK, orange Prüfung nötig, rot Problem. Ein Klick zeigt Engines, Modell und Budget."
           },
           {
-            "title": "4. Betrugs- und Cat-Nat-Analyse",
-            "detail": "Klicken Sie in der Fallbewertung auf die Kachel „Betrugsrisiko“, dann auf „Betrugsanalyse starten“ (oder „Vollständigen Bericht öffnen“). Sie nutzt die dedizierte Microsoft-Web-IQ-MCP-Verbindung:\n• Prüft das Cat-Nat-Dekret für Gemeinde + Datum\n• Gleicht die Schadenmeldung mit öffentlichen Quellen ab\n• Kachel Deckung: „Cat-Nat bestätigt“ oder „nicht bestätigt“\n\n„Zu beachten“ listet danach jedes Signal einmal auf, das kritischste zuerst; „Belege“ öffnet den Nachweis.",
-            "tip": "Die Web-Analyse dauert 30–60 s. Die Quellen sind anklickbar."
+            "title": "4. Wetter-, Betrugs- und Cat-Nat-Analyse",
+            "detail": "Starten Sie Aurora in der Standortkarte, um die zurückgegebenen Wetterpunkte vor, während und nach dem vorhergesagten Sturmfenster abzuspielen. Das gemeldete Schadendatum wird markiert, wenn es im Modellhorizont liegt; andernfalls fordert die Oberfläche historische Belege an.\n\nKlicken Sie danach auf „Betrugsrisiko“ und „Betrugsanalyse starten“. Microsoft Web IQ prüft das Cat-Nat-Dekret und öffentliche Quellen. „Zu beachten“ listet jedes Signal einmal auf, das kritischste zuerst.",
+            "tip": "Aurora-Belege sind prognostisch und beratend; Web-IQ-Quellen bleiben anklickbare historische Belege."
           },
           {
             "title": "5. Fragen Sie IQ (RAG Chat)",
@@ -3540,6 +3540,45 @@
       "maxGust": "Maximale Windböe",
       "precipitation": "Gesamtniederschlag",
       "hazardWindow": "Mögliches Gefahrenfenster: {start} bis {end}.",
+      "resolving": {
+        "title": "Wetterbelege werden aufgelöst",
+        "lead": "Aurora verarbeitet einen begrenzten Horizont von {hours} Stunden. Angezeigt werden nur tatsächlich zurückgegebene Modellpunkte.",
+        "steps": {
+          "location": "Schadenort wird aufgelöst",
+          "conditions": "Anfangsbedingungen werden validiert",
+          "forecast": "Deterministische Prognose wird ausgeführt",
+          "alignment": "Schaden und Gefahrenfenster werden abgeglichen"
+        },
+        "bounded": "Die Anfrage endet beim konfigurierten Zeitlimit; bei einem Fehler werden keine synthetischen Wetterdaten angezeigt."
+      },
+      "timeline": {
+        "title": "Prüfung von Schaden und Sturm",
+        "lead": "Spielen Sie die tatsächlichen stündlichen Belege vor, während und nach dem vorhergesagten Gefahrenfenster ab.",
+        "playing": "Wiedergabe",
+        "replay": "Erneut abspielen",
+        "pointCount": "{count, plural, one {# Modellpunkt} other {# Modellpunkte}}",
+        "phases": {
+          "before": {
+            "title": "Vor dem Sturm",
+            "empty": "Kein früherer Punkt zurückgegeben"
+          },
+          "during": {
+            "title": "Während des Sturms",
+            "empty": "Kein Gefahrenpunkt zurückgegeben"
+          },
+          "after": {
+            "title": "Nachfolgender Horizont",
+            "empty": "Kein späterer Punkt zurückgegeben"
+          }
+        },
+        "claimMarker": "Gemeldetes Schadendatum",
+        "claimAligned": "Das gemeldete Schadendatum {date} liegt innerhalb dieses Modellfensters.",
+        "claimOutside": "Das gemeldete Schadendatum {date} liegt außerhalb dieses Prognosefensters; historische Beobachtungen oder eine Rückschauanalyse sind weiterhin erforderlich.",
+        "gust": "Böe {value, number} m/s",
+        "rain": "Regen {value, number} mm",
+        "temperature": "{value, number} °C",
+        "advisory": "Prognosebeleg, kein beobachtetes Wetterzertifikat. Die Sachbearbeitung muss den Vorfall anhand datierter Unterlagen und freigegebener historischer Quellen prüfen."
+      },
       "recommendedActions": "Empfohlene Fallmaßnahmen",
       "customerCall": "Leitfaden für das Kundengespräch",
       "chart": {

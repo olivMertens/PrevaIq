@@ -255,6 +255,13 @@ if (-not $SkipBackend -and -not $BuildOnly) {
     } else {
         Write-Host "    WEBIQ: not configured (secret webiq-api-key absent) - web intelligence is unavailable" -ForegroundColor Yellow
     }
+    if ($apiSecretNames -contains "aurora-endpoint-key") {
+        $backendModelEnvVarArgs += "AURORA_ENDPOINT_TOKEN=secretref:aurora-endpoint-key"
+        $backendModelEnvVarArgs += "AURORA_USE_AZURE_AD=false"
+        Write-Host "    AURORA: Key authentication enabled (Key Vault reference)" -ForegroundColor Green
+    } else {
+        Write-Host "    AURORA: endpoint key not configured - Key-authenticated inference is unavailable" -ForegroundColor Yellow
+    }
 }
 if ($PreflightOnly) {
     Write-Host "Preflight passed. No images built or Container Apps changed." -ForegroundColor Green

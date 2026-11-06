@@ -271,9 +271,9 @@
       "hours": "{count} hours",
       "configuration": {
         "title": "Managed endpoint configuration",
-        "lead": "Configure non-secret resource identifiers. Runtime access uses the Container App managed identity.",
+        "lead": "Configure non-secret resource identifiers. Blob access uses managed identity; endpoint authentication is supplied securely by the deployment.",
         "enabled": "Enable Aurora",
-        "security": "Security: tokens, account keys and SAS query strings are rejected and never persisted.",
+        "security": "Security: endpoint keys come from a Key Vault-backed Container App secret. Tokens, account keys and SAS query strings are rejected and never persisted here.",
         "fields": {
           "endpoint": {
             "label": "Foundry managed endpoint URL",
@@ -311,7 +311,7 @@
         "testFailed": "Live test requires attention",
         "items": {
           "enabled": "Aurora feature enabled",
-          "managed_identity": "Managed identity can authenticate",
+          "endpoint_authentication": "Managed identity or the Key Vault endpoint secret can authenticate",
           "endpoint": "Managed endpoint is reachable",
           "initial_conditions": "Initial conditions satisfy the Aurora contract",
           "blob_channel": "Task channel supports delegated Blob access"
@@ -2972,9 +2972,9 @@
             "detail": "① Extraction engine → Content Understanding / MarkItDown structures fields and attachments\n② Multimodal analysis → qualifies damage photos\n③ LLM analysis + RAG → evaluates the claim and cites applicable policy terms\n\nThe \"AI pipeline\" pill next to the case title shows how the case was read: green OK, amber review needed, red problem. Click it for engines, model and budget."
           },
           {
-            "title": "4. Anti-Fraud & Cat-Nat Analysis",
-            "detail": "Click the \"Fraud risk\" tile of the verdict bar, then \"Run fraud analysis\" (or \"Open full report\"). It uses the dedicated Microsoft Web IQ MCP connection:\n• Verifies the Cat-Nat decree for municipality + date\n• Cross-references the statement with public sources\n• Cover tile: \"Cat-Nat confirmed\" or \"not confirmed\"\n\n\"Needs your attention\" then lists each signal once, most critical first; \"Evidence\" opens the proof.",
-            "tip": "Web analysis takes 30-60s. Sources are clickable."
+            "title": "4. Weather, Anti-Fraud & Cat-Nat Analysis",
+            "detail": "In the location card, run Aurora to replay returned weather points before, during and after the predicted storm window. The declared claim date is marked when it falls inside the model horizon; otherwise the UI requests historical evidence.\n\nThen click the \"Fraud risk\" tile and \"Run fraud analysis\". Microsoft Web IQ verifies the Cat-Nat decree and public sources. \"Needs your attention\" lists every signal once, most critical first.",
+            "tip": "Aurora evidence is predictive and advisory; Web IQ sources remain clickable historical evidence."
           },
           {
             "title": "5. Ask IQ (RAG Chat)",
@@ -3540,6 +3540,45 @@
       "maxGust": "Maximum wind gust",
       "precipitation": "Total precipitation",
       "hazardWindow": "Potential hazard window: {start} to {end}.",
+      "resolving": {
+        "title": "Resolving the weather evidence",
+        "lead": "Aurora is processing a bounded {hours}-hour horizon. Only returned model points will be displayed.",
+        "steps": {
+          "location": "Resolving the claim location",
+          "conditions": "Validating initial conditions",
+          "forecast": "Running the deterministic forecast",
+          "alignment": "Aligning the claim and hazard window"
+        },
+        "bounded": "The request stops at the configured timeout; no synthetic weather is shown if it fails."
+      },
+      "timeline": {
+        "title": "Claim and storm verification",
+        "lead": "Replay the actual hourly evidence before, during, and after the predicted hazard window.",
+        "playing": "Playing",
+        "replay": "Replay",
+        "pointCount": "{count, plural, one {# model point} other {# model points}}",
+        "phases": {
+          "before": {
+            "title": "Before the storm",
+            "empty": "No earlier point returned"
+          },
+          "during": {
+            "title": "During the storm",
+            "empty": "No hazard point returned"
+          },
+          "after": {
+            "title": "Following horizon",
+            "empty": "No later point returned"
+          }
+        },
+        "claimMarker": "Declared claim date",
+        "claimAligned": "Declared claim date {date} falls inside this model window.",
+        "claimOutside": "Declared claim date {date} is outside this forecast window; historical observation or hindcast evidence is still required.",
+        "gust": "Gust {value, number} m/s",
+        "rain": "Rain {value, number} mm",
+        "temperature": "{value, number} °C",
+        "advisory": "Prediction evidence, not an observed weather certificate. A handler must verify the incident against dated documents and approved historical sources."
+      },
       "recommendedActions": "Recommended case actions",
       "customerCall": "Customer call guidance",
       "chart": {

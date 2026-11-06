@@ -271,9 +271,9 @@
       "hours": "{count} heures",
       "configuration": {
         "title": "Configuration du point de terminaison managé",
-        "lead": "Configurez uniquement les identifiants de ressources non secrets. L'accès utilise l'identité managée de la Container App.",
+        "lead": "Configurez uniquement les identifiants de ressources non secrets. L'accès Blob utilise l'identité managée ; l'authentification du point de terminaison est fournie de façon sécurisée par le déploiement.",
         "enabled": "Activer Aurora",
-        "security": "Sécurité : les jetons, clés de compte et paramètres SAS sont refusés et ne sont jamais enregistrés.",
+        "security": "Sécurité : la clé du point de terminaison provient d'un secret Container App adossé à Key Vault. Les jetons, clés de compte et paramètres SAS sont refusés et ne sont jamais enregistrés ici.",
         "fields": {
           "endpoint": {
             "label": "URL du point de terminaison managé Foundry",
@@ -311,7 +311,7 @@
         "testFailed": "Le test réel nécessite une action",
         "items": {
           "enabled": "Fonctionnalité Aurora activée",
-          "managed_identity": "L'identité managée peut s'authentifier",
+          "endpoint_authentication": "L'identité managée ou le secret Key Vault du point de terminaison peut s'authentifier",
           "endpoint": "Le point de terminaison managé est joignable",
           "initial_conditions": "Les conditions initiales respectent le contrat Aurora",
           "blob_channel": "Le canal de tâches autorise l'accès Blob délégué"
@@ -2972,9 +2972,9 @@
             "detail": "① Extraction → Content Understanding / MarkItDown structure les champs et pièces jointes\n② Analyse multimodale → qualifie les photos de dégâts\n③ Analyse LLM + RAG → évalue le sinistre et cite les conditions applicables\n\nLa pastille « Pipeline IA » à côté du titre du dossier indique comment il a été lu : vert OK, orange revue requise, rouge problème. Cliquez dessus pour voir moteurs, modèle et budget."
           },
           {
-            "title": "4. Analyse Anti-Fraude & Cat-Nat",
-            "detail": "Cliquez sur la tuile « Risque de fraude » du bandeau de verdict, puis « Lancer l'analyse fraude » (ou « Ouvrir le rapport complet »). Elle utilise la connexion MCP dédiée Microsoft Web IQ :\n• Vérifie l'arrêté Cat-Nat pour la commune + la date\n• Croise la déclaration avec les sources publiques\n• Tuile Couverture : « Cat-Nat confirmée » ou « non confirmée »\n\n« Points d'attention » liste ensuite chaque signal une seule fois, le plus critique d'abord ; « Preuves » ouvre le justificatif.",
-            "tip": "L'analyse web prend 30-60s. Les sources sont cliquables."
+            "title": "4. Analyse Météo, Anti-Fraude & Cat-Nat",
+            "detail": "Dans la carte du lieu, lancez Aurora pour rejouer les points météo retournés avant, pendant et après la fenêtre de tempête prévue. La date déclarée du sinistre est marquée lorsqu'elle se situe dans l'horizon du modèle ; sinon l'interface demande des preuves historiques.\n\nCliquez ensuite sur la tuile « Risque de fraude » puis « Lancer l'analyse fraude ». Microsoft Web IQ vérifie l'arrêté Cat-Nat et les sources publiques. « Points d'attention » liste chaque signal une seule fois, le plus critique d'abord.",
+            "tip": "Les preuves Aurora sont prédictives et indicatives ; les sources Web IQ restent des preuves historiques cliquables."
           },
           {
             "title": "5. Ask IQ (Chat RAG)",
@@ -3540,6 +3540,45 @@
       "maxGust": "Rafale maximale",
       "precipitation": "Précipitations totales",
       "hazardWindow": "Fenêtre de danger potentielle : du {start} au {end}.",
+      "resolving": {
+        "title": "Résolution des preuves météo",
+        "lead": "Aurora traite un horizon borné de {hours} heures. Seuls les points réellement retournés seront affichés.",
+        "steps": {
+          "location": "Résolution du lieu du sinistre",
+          "conditions": "Validation des conditions initiales",
+          "forecast": "Exécution de la prévision déterministe",
+          "alignment": "Alignement du sinistre et de la fenêtre de danger"
+        },
+        "bounded": "La requête s'arrête au délai configuré ; aucune météo synthétique n'est affichée en cas d'échec."
+      },
+      "timeline": {
+        "title": "Vérification du sinistre et de la tempête",
+        "lead": "Rejouez les preuves horaires réelles avant, pendant et après la fenêtre de danger prévue.",
+        "playing": "Lecture",
+        "replay": "Rejouer",
+        "pointCount": "{count, plural, one {# point modèle} other {# points modèle}}",
+        "phases": {
+          "before": {
+            "title": "Avant la tempête",
+            "empty": "Aucun point antérieur retourné"
+          },
+          "during": {
+            "title": "Pendant la tempête",
+            "empty": "Aucun point de danger retourné"
+          },
+          "after": {
+            "title": "Horizon suivant",
+            "empty": "Aucun point ultérieur retourné"
+          }
+        },
+        "claimMarker": "Date déclarée du sinistre",
+        "claimAligned": "La date déclarée du sinistre, le {date}, se situe dans cette fenêtre modèle.",
+        "claimOutside": "La date déclarée du sinistre, le {date}, est hors de cette fenêtre de prévision ; des observations historiques ou une réanalyse restent nécessaires.",
+        "gust": "Rafale {value, number} m/s",
+        "rain": "Pluie {value, number} mm",
+        "temperature": "{value, number} °C",
+        "advisory": "Preuve prédictive, et non certificat météo observé. Le gestionnaire doit vérifier l'événement avec les pièces datées et des sources historiques approuvées."
+      },
       "recommendedActions": "Actions recommandées pour le dossier",
       "customerCall": "Conseils pour l'appel client",
       "chart": {

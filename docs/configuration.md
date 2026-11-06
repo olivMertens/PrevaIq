@@ -37,9 +37,9 @@
 | `AURORA_TIMEOUT_SECONDS` | No | `900` | End-to-end deadline for task execution and prediction retrieval. |
 | `AURORA_POLL_INTERVAL_SECONDS` | No | `2` | Delay between bounded task and Blob marker checks. |
 | `AURORA_DEFAULT_HORIZON_HOURS` | No | `12` | Default interactive forecast horizon; must be a multiple of six between 6 and 240 hours. |
-| `AURORA_USE_AZURE_AD` | No | `true` | Use DefaultAzureCredential for the managed Aurora endpoint. |
+| `AURORA_USE_AZURE_AD` | No | `true` | Use DefaultAzureCredential for the managed Aurora endpoint. Set `false` for a Key-authenticated Azure ML endpoint. |
 | `AURORA_TOKEN_SCOPE` | No | `https://ml.azure.com/.default` | Entra token scope for an Azure ML managed online endpoint. Override only if the provisioned endpoint specifies another audience. |
-| `AURORA_ENDPOINT_TOKEN` | Conditional | - | Endpoint bearer token when Entra auth is disabled. Store in Key Vault; never commit it. |
+| `AURORA_ENDPOINT_TOKEN` | Conditional | - | Endpoint key sent as a bearer token when Entra auth is disabled. Store in Key Vault; never commit it. |
 | `AGENTS_OPENAI_API` | No | `responses` | API used by Microsoft Agent Framework agents: `responses` or `chat_completions` for rollback |
 | `EXTRACTION_BUDGET_SECONDS` | No | `900` | Wall-clock budget for extraction; remaining files are skipped and the case is flagged for review. Use `0` for no cap. |
 | `ANALYSIS_BUDGET_SECONDS` | No | `900` | Wall-clock budget for analysis; remaining sections are skipped. Use `0` for no cap. |
@@ -66,10 +66,12 @@ the current brand. In Azure the record is stored in the application Blob contain
 development uses `UW_APP_STORAGE_ROOT`. A persisted admin record takes precedence over the
 `AURORA_*` resource settings above.
 
-Runtime authentication remains managed identity. The admin API rejects account keys, tokens, URL
-query strings, and SAS URLs, and the readiness test generates delegated Blob access only in memory.
-Use the live checklist to verify identity, endpoint reachability, the two-step NetCDF input
-contract, and task-channel access before enabling the case experience.
+Runtime authentication is deployment-owned: managed identity for Blob access and either managed
+identity or the Key Vault-backed `aurora-endpoint-key` secret for the endpoint. The admin API rejects
+account keys, tokens, URL query strings, and SAS URLs, and never returns the runtime endpoint key.
+Use `infra/set-aurora-endpoint-secret.ps1` for a Key-authenticated endpoint. The readiness test
+verifies endpoint authentication, reachability, the two-step NetCDF input contract, and delegated
+Blob-channel access before enabling the case experience.
 | `AZURE_STORAGE_ALLOW_CREATE_CONTAINER` | No | `false` | Auto-create the container at startup; set `true` for development only |
 | `DATABASE_BACKEND` | No | `json` | Database backend: `json` or `postgresql` |
 | `POSTGRESQL_HOST` | Conditional | - | PostgreSQL host when using the PostgreSQL backend |

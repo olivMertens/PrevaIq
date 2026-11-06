@@ -126,6 +126,12 @@ variable "aurora_initial_condition_blob_url" {
   default     = ""
 }
 
+variable "aurora_endpoint_key_secret_enabled" {
+  description = "Wire the Key-authenticated Aurora endpoint key from Key Vault secret aurora-endpoint-key. Enable only after storing the secret out of band."
+  type        = bool
+  default     = false
+}
+
 variable "pg_admin_login" {
   description = "PostgreSQL administrator login."
   type        = string

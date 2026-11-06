@@ -38,6 +38,7 @@ class AuroraConfigBody(BaseModel):
 
 
 def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
+    environment = AuroraSettings.from_environment()
     return AuroraSettings(
         enabled=config.enabled,
         endpoint=config.endpoint,
@@ -45,7 +46,11 @@ def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
         ensemble_model=config.ensemble_model,
         initial_condition_blob_url=config.initial_condition_blob_url,
         channel_container_url=config.channel_container_url,
-        use_azure_ad=True,
+        endpoint_token=environment.endpoint_token,
+        token_scope=environment.token_scope,
+        timeout_seconds=environment.timeout_seconds,
+        poll_interval_seconds=environment.poll_interval_seconds,
+        use_azure_ad=environment.use_azure_ad,
         default_horizon_hours=config.default_horizon_hours,
         configuration_source="admin",
     )
@@ -54,7 +59,10 @@ def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
 def _checklist(settings: AuroraSettings) -> list[dict[str, object]]:
     return [
         {"id": "enabled", "ready": settings.enabled},
-        {"id": "managed_identity", "ready": settings.use_azure_ad},
+        {
+            "id": "endpoint_authentication",
+            "ready": settings.use_azure_ad or bool(settings.endpoint_token),
+        },
         {"id": "endpoint", "ready": bool(settings.endpoint)},
         {"id": "initial_conditions", "ready": bool(settings.initial_condition_blob_url)},
         {
@@ -96,7 +104,10 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
             "cadence": "hourly",
         },
         "security": {
-            "authentication": "managed_identity",
+            "endpoint_authentication": (
+                "managed_identity" if settings.use_azure_ad else "key_vault_secret"
+            ),
+            "storage_authentication": "managed_identity",
             "secrets_persisted": False,
             "sas_persisted": False,
         },
@@ -167,10 +178,12 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         action,
         success_detail: str,
         expected: tuple[type[BaseException], ...],
+        *,
+        use_result_detail: bool = True,
     ):
         try:
             result = action()
-            detail = result if isinstance(result, str) else success_detail
+            detail = result if use_result_detail and isinstance(result, str) else success_detail
             checks.append({"id": check_id, "ok": True, "detail": detail})
             return result
         except expected as error:
@@ -179,10 +192,11 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
             return None
 
     token = record(
-        "managed_identity",
+        "endpoint_authentication",
         lambda: _endpoint_token(settings),
-        "token_acquired",
+        "managed_identity_token_acquired" if settings.use_azure_ad else "endpoint_key_loaded",
         (AuroraConfigurationError, AzureError),
+        use_result_detail=False,
     )
     if isinstance(token, str):
         endpoint_result = record(
@@ -198,7 +212,7 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
                 "detail": endpoint_result[1],
             }
     else:
-        checks.append({"id": "endpoint", "ok": False, "detail": "identity_required"})
+        checks.append({"id": "endpoint", "ok": False, "detail": "authentication_required"})
 
     def validate_initial_conditions() -> str:
         payload = _download_initial_condition(settings)

@@ -130,6 +130,56 @@ def test_entra_token_uses_configured_scope(monkeypatch):
     assert observed == ["https://ml.azure.com/.default"]
 
 
+def test_endpoint_request_sends_bearer_token(monkeypatch):
+    observed: dict[str, object] = {}
+
+    class Response:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"task_id": "task-123"}
+
+    def post(url, *, headers, json, timeout):
+        observed.update(url=url, headers=headers, json=json, timeout=timeout)
+        return Response()
+
+    monkeypatch.setattr(aurora.requests, "post", post)
+
+    result = aurora._foundry_request(
+        AuroraSettings(endpoint="https://aurora.example.inference.ml.azure.com/score"),
+        "endpoint-key",
+        "task_info",
+        {"task_id": "task-123"},
+    )
+
+    assert result == {"task_id": "task-123"}
+    assert observed["headers"] == {
+        "Authorization": "Bearer endpoint-key",
+        "Content-Type": "application/json",
+    }
+
+
+def test_persisted_admin_config_keeps_secret_auth_mode_from_environment(monkeypatch):
+    class Persisted:
+        enabled = True
+        endpoint = "https://aurora.example.inference.ml.azure.com/score"
+        deterministic_model = "aurora-0.25-v1.5"
+        ensemble_model = "aurora-0.25-v1.5-ensemble"
+        initial_condition_blob_url = "https://storage.blob.core.windows.net/input/current.nc"
+        channel_container_url = "https://storage.blob.core.windows.net/channel"
+        default_horizon_hours = 12
+
+    monkeypatch.setenv("AURORA_USE_AZURE_AD", "false")
+    monkeypatch.setenv("AURORA_ENDPOINT_TOKEN", "endpoint-key")
+    monkeypatch.setattr("app.aurora_config.load_config", lambda: Persisted())
+
+    settings = AuroraSettings.from_env()
+
+    assert settings.use_azure_ad is False
+    assert settings.endpoint_token == "endpoint-key"
+
+
 def test_initial_condition_validation_and_location_summary(tmp_path):
     latitude = np.array([47.0, 46.0], dtype=np.float32)
     longitude = np.array([5.0, 6.0], dtype=np.float32)

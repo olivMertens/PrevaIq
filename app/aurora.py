@@ -98,8 +98,8 @@ class AuroraSettings:
     configuration_source: str = "environment"
 
     @classmethod
-    def from_env(cls) -> "AuroraSettings":
-        environment = cls(
+    def from_environment(cls) -> "AuroraSettings":
+        return cls(
             enabled=os.getenv("AURORA_ENABLED", "false").lower() == "true",
             endpoint=os.getenv("AURORA_FOUNDRY_ENDPOINT", "").strip(),
             deterministic_model=os.getenv("AURORA_DEPLOYMENT_NAME", _DETERMINISTIC_MODEL).strip(),
@@ -114,6 +114,10 @@ class AuroraSettings:
             use_azure_ad=os.getenv("AURORA_USE_AZURE_AD", "true").lower() == "true",
             default_horizon_hours=int(os.getenv("AURORA_DEFAULT_HORIZON_HOURS", "12")),
         )
+
+    @classmethod
+    def from_env(cls) -> "AuroraSettings":
+        environment = cls.from_environment()
         from app.aurora_config import load_config
 
         persisted = load_config()
@@ -127,11 +131,11 @@ class AuroraSettings:
             initial_condition_blob_url=persisted.initial_condition_blob_url,
             channel_container_url=persisted.channel_container_url,
             channel_sas_url="",
-            endpoint_token="",
+            endpoint_token=environment.endpoint_token,
             token_scope=environment.token_scope,
             timeout_seconds=environment.timeout_seconds,
             poll_interval_seconds=environment.poll_interval_seconds,
-            use_azure_ad=True,
+            use_azure_ad=environment.use_azure_ad,
             default_horizon_hours=persisted.default_horizon_hours,
             configuration_source="admin",
         )
@@ -275,7 +279,10 @@ def _foundry_request(
     try:
         response = requests.post(
             settings.endpoint,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
             json={"input_data": wrapped},
             timeout=min(settings.timeout_seconds, 60),
         )

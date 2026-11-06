@@ -152,7 +152,7 @@ Before creating billable compute, confirm the portal shows the expected target:
 - tenant and subscription that host PrevaIQ;
 - Foundry project / Azure ML workspace containing `Aurora-v1p5`;
 - endpoint region and GPU family with sufficient quota;
-- Entra authentication for the managed endpoint;
+- the endpoint authentication type shown in the portal;
 - minimum instance count appropriate for the demo budget.
 
 If the model asset is only visible through a shared registry reference, the
@@ -200,6 +200,24 @@ az role assignment create `
   --scope $auroraEndpointResourceId
 ```
 
+The endpoint shown for this demo uses **Key** authentication. Store its primary
+or secondary key without placing it in source, shell history, chat, or the admin
+form:
+
+```powershell
+.\infra\set-aurora-endpoint-secret.ps1 `
+  -SubscriptionId $subscriptionId `
+  -TenantId $tenantId `
+  -ResourceGroup $resourceGroup
+```
+
+The script uses hidden input, writes `aurora-endpoint-key` to the existing
+PrevaIQ Key Vault through ARM, and creates the Container App Key Vault
+reference. Bicep parameter `auroraEndpointKeySecretEnabled` and Terraform
+variable `aurora_endpoint_key_secret_enabled` control whether
+`AURORA_ENDPOINT_TOKEN` is mapped and `AURORA_USE_AZURE_AD` is set to `false`.
+Blob input and task-channel access continue to use managed identity.
+
 Reapply Bicep to enable the adapter. The Container App identity already has
 Storage Blob Data Contributor and generates a short-lived delegated SAS for the
 `prevaiq-data/aurora` exchange folder:
@@ -214,6 +232,7 @@ az deployment group what-if `
   auroraEnabled=true `
   auroraFoundryEndpoint=$auroraEndpoint `
   auroraInitialConditionBlobUrl=$initialConditionUrl `
+  auroraEndpointKeySecretEnabled=true `
   adminPrincipalIds="['$operatorObjectId']"
 
 az deployment group create `
@@ -224,6 +243,7 @@ az deployment group create `
   auroraEnabled=true `
   auroraFoundryEndpoint=$auroraEndpoint `
   auroraInitialConditionBlobUrl=$initialConditionUrl `
+  auroraEndpointKeySecretEnabled=true `
   adminPrincipalIds="['$operatorObjectId']"
 
 # A Bicep reapply owns the complete Container App template, so restore hosted
@@ -244,8 +264,8 @@ Alternatively, deploy the identity and storage permissions with Aurora disabled,
 an administrator account and open **Admin > Aurora weather**. Enter the managed endpoint, model
 identifiers, private initial-condition Blob URL, task-channel container URL, and a 6-12 hour demo
 horizon. Save the configuration, enable Aurora, and run **Test readiness**. The live test verifies
-managed-identity authentication, endpoint reachability, the full NetCDF input contract, and
-delegated Blob-channel access.
+the deployment-provided endpoint authentication, endpoint reachability, the full NetCDF input
+contract, and managed-identity delegated Blob-channel access.
 
 This admin record contains no credentials and takes precedence over the resource settings supplied
 by Bicep or Terraform. Tokens, keys, SAS URLs, and URL query strings are rejected. Keep infrastructure
@@ -283,7 +303,7 @@ deny, price, or pay a claim.
 
 The deployment scripts read environment-specific values from environment variables, with parameters available for overrides.
 
-- `infra/deploy.ps1`, `infra/set-webiq-secret.ps1`, and `infra/set-entra-auth.ps1` read `AZURE_SUBSCRIPTION_ID` and `AZURE_TENANT_ID`. These are optional and default to the current `az account` context.
+- `infra/deploy.ps1`, `infra/set-webiq-secret.ps1`, `infra/set-aurora-endpoint-secret.ps1`, and `infra/set-entra-auth.ps1` read `AZURE_SUBSCRIPTION_ID` and `AZURE_TENANT_ID`. These are optional and default to the current `az account` context.
 - `infra/deploy.ps1` also reads optional `PREVAIQ_KNOWN_API_FQDN` and `PREVAIQ_KNOWN_FE_FQDN` to detect DNS changes after the first deployment.
 - `infra/set-entra-auth.ps1` requires `ENTRA_CLIENT_ID` (or `-CreateRegistration`) and `PREVAIQ_ADMIN_EMAILS`. `PREVAIQ_ACCESS_REQUEST_EMAIL` defaults to the first admin email. `PREVAIQ_ALLOWED_EMAILS` pre-approves API access. `PREVAIQ_ENTRA_SECRET_TFVARS` can point to a gitignored tfvars file containing `entra_client_secret`; otherwise the client secret is prompted with hidden input. With `-CreateRegistration`, a six-month credential is generated and stored in Key Vault without printing it. The script rolls out both images through `deploy.ps1`; it no longer updates app revisions independently.
 
