@@ -3394,6 +3394,24 @@
       "notLinked": "Not linked",
       "link": "Link"
     },
+    "location": {
+      "title": "Loss location",
+      "loading": "Locating the address…",
+      "basemap": "Map background",
+      "satellite": "Satellite",
+      "plan": "Map",
+      "openMap": "Open the location in Google Maps",
+      "insured": "Insured's address: the claim does not state where the loss happened.",
+      "approximateStreet": "Street number not found: the map shows the street, {place}.",
+      "approximateTown": "Street not found: the map shows the town, {place}.",
+      "notFound": "This address was not found on the map.",
+      "unavailable": "The map is unavailable right now. Try again later.",
+      "noAddress": "No address in this case.",
+      "googleMaps": "Google Maps",
+      "streetView": "Street View",
+      "directions": "Directions",
+      "geocoding": "Position from OpenStreetMap (Nominatim)."
+    },
     "drawer": {
       "label": "Case details",
       "close": "Close details",

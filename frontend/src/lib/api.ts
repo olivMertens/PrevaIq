@@ -2077,3 +2077,34 @@ export async function getEmailPreview(applicationId: string, fileName: string): 
     `/api/applications/${encodeURIComponent(applicationId)}/emails/${encodeURIComponent(fileName)}`,
   );
 }
+
+/** What the map position is: the building itself, only its street, or only its town. */
+export type PlaceLevel = 'building' | 'street' | 'town';
+
+export interface ClaimLocation {
+  /** `unavailable`: the geocoder could not be reached, the next visit tries again. */
+  status: 'resolved' | 'not_found' | 'no_address' | 'unavailable';
+  /** Address as extracted from the claim, with its description ("— Salon"). */
+  address: string | null;
+  /** Address without its description, for map links. */
+  search_address: string | null;
+  /** `loss`: where the loss happened; `insured`: the insured's address (no loss location stated). */
+  kind: 'loss' | 'insured' | null;
+  place: {
+    lat: number;
+    lon: number;
+    display_name: string;
+    /** What the map shows, e.g. "8400 Winterthur" or "Rue des Vignobles, Bordeaux". */
+    label: string;
+    level: PlaceLevel;
+    /** The building was found (`level` is `building`). */
+    precise: boolean;
+    country_code: string | null;
+    source: string;
+  } | null;
+}
+
+/** Loss address and its position on a map (geocoded once with OpenStreetMap, kept with the case). */
+export async function getClaimLocation(applicationId: string): Promise<ClaimLocation> {
+  return apiFetch(`/api/applications/${encodeURIComponent(applicationId)}/location`);
+}

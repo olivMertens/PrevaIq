@@ -194,6 +194,7 @@ For Azure Container Apps, read the FQDNs for `ca-frontend-demo` and `ca-api-demo
 | `POST` | `/api/applications/{id}/risk-analysis` | Run policy evaluation |
 | `GET` | `/api/applications/{id}/files/{filename}` | Download a case file (`?preview=thumb\|screen` for compressed images) |
 | `GET` | `/api/applications/{id}/emails/{filename}` | Read an `.eml` file: headers, body, attachments (flagged when the case holds them) |
+| `GET` | `/api/applications/{id}/location` | Loss address and its position on a map (building, street or town level) |
 | `POST` | `/api/applications/{id}/content-translations` | Translate page text and batch summaries into a UI language (up to 8 items per request) |
 | **Customer 360** | | |
 | `GET` | `/api/customers` | List customer profiles |
@@ -230,6 +231,16 @@ that can answer in the current environment.
 
 The open case is kept in the address bar (`/?app=…&persona=…&view=…&page=…`), so a reload
 reopens it: the language switch reloads the page and stays on the same case, tab and page.
+
+The loss location card (property claims) reads the address from the extracted fields
+(`LieuSinistre`, else the insured's address) and geocodes it once per case with
+OpenStreetMap Nominatim: at most one request per second, an identifying User-Agent, and the
+result stored with the case as the hidden file `.location.json`. Only a match in the claim's
+town is kept. Nominatim also finds the street in neighbouring towns of the same
+arrondissement, so the map shows the building, else the street, else the town (structured
+search on town and postcode), and says which. The browser loads OpenStreetMap or Esri World
+Imagery tiles; the links open Google Maps, Street View (building only) and directions. The
+demo addresses are fictitious; a deployment with real customer addresses should use Azure Maps.
 
 ## Development tasks
 

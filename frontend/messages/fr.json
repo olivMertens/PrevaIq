@@ -3394,6 +3394,24 @@
       "notLinked": "Non lié",
       "link": "Lier"
     },
+    "location": {
+      "title": "Lieu du sinistre",
+      "loading": "Localisation de l'adresse…",
+      "basemap": "Fond de carte",
+      "satellite": "Satellite",
+      "plan": "Plan",
+      "openMap": "Ouvrir l'emplacement dans Google Maps",
+      "insured": "Adresse de l'assuré : la déclaration ne précise pas le lieu du sinistre.",
+      "approximateStreet": "Numéro introuvable : la carte montre la rue, {place}.",
+      "approximateTown": "Rue introuvable : la carte montre la commune, {place}.",
+      "notFound": "Cette adresse est introuvable sur la carte.",
+      "unavailable": "La carte est indisponible pour le moment. Réessayez plus tard.",
+      "noAddress": "Aucune adresse dans ce dossier.",
+      "googleMaps": "Google Maps",
+      "streetView": "Street View",
+      "directions": "Itinéraire",
+      "geocoding": "Position issue d'OpenStreetMap (Nominatim)."
+    },
     "drawer": {
       "label": "Détails du dossier",
       "close": "Fermer les détails",

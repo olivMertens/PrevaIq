@@ -1687,6 +1687,22 @@ async def get_application_email(app_id: str, filename: str):
         raise HTTPException(status_code=422, detail="E-mail could not be read") from e
 
 
+@app.get("/api/applications/{app_id}/location")
+async def get_claim_location(app_id: str):
+    """Address of the loss (else of the insured) and its position on a map.
+
+    Geocoded once with OpenStreetMap (Nominatim) and stored with the case; ``status`` tells
+    whether the position is known (``place.precise``: street number found, else the town).
+    """
+    from app.claim_location import claim_location
+
+    settings = load_settings()
+    app_md = await asyncio.to_thread(load_application, settings.app.storage_root, app_id)
+    if not app_md:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return await asyncio.to_thread(claim_location, settings.app.storage_root, app_md)
+
+
 _RESTORE_MAX_BYTES = 50 * 1024 * 1024
 # Leading bytes of the formats demo cases use; other supported types are not sniffed.
 _FILE_SIGNATURES = {

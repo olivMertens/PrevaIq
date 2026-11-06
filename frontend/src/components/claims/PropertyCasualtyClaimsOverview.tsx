@@ -13,6 +13,7 @@ import DecisionDialog, { type DecisionDraft } from '@/components/case/DecisionDi
 import DeepDiveDrawer from '@/components/case/DeepDiveDrawer';
 import EvidenceStrip from '@/components/case/EvidenceStrip';
 import LatestUpdates from '@/components/case/LatestUpdates';
+import LocationCard from '@/components/case/LocationCard';
 import NextSteps from '@/components/case/NextSteps';
 import VerdictBar from '@/components/case/VerdictBar';
 import type { CaseSignal, DeepDiveTab } from '@/components/case/caseSignals';
@@ -256,6 +257,9 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
               <LatestUpdates updates={cockpit.updates} previousVisit={previousVisit} onOpenTimeline={() => openTab('timeline')} />
             </div>
             <div className="order-5">
+              <LocationCard applicationId={application.id} />
+            </div>
+            <div className="order-6">
               <CaseFacts
                 facts={cockpit.facts}
                 fieldCount={fieldCount}

@@ -3394,6 +3394,24 @@
       "notLinked": "Nicht verknüpft",
       "link": "Verknüpfen"
     },
+    "location": {
+      "title": "Schadenort",
+      "loading": "Adresse wird lokalisiert…",
+      "basemap": "Kartenhintergrund",
+      "satellite": "Satellit",
+      "plan": "Karte",
+      "openMap": "Ort in Google Maps öffnen",
+      "insured": "Adresse der versicherten Person: Die Meldung nennt keinen Schadenort.",
+      "approximateStreet": "Hausnummer nicht gefunden: Die Karte zeigt die Straße, {place}.",
+      "approximateTown": "Straße nicht gefunden: Die Karte zeigt den Ort, {place}.",
+      "notFound": "Diese Adresse wurde auf der Karte nicht gefunden.",
+      "unavailable": "Die Karte ist derzeit nicht verfügbar. Bitte später erneut versuchen.",
+      "noAddress": "Keine Adresse in diesem Fall.",
+      "googleMaps": "Google Maps",
+      "streetView": "Street View",
+      "directions": "Route",
+      "geocoding": "Position aus OpenStreetMap (Nominatim)."
+    },
     "drawer": {
       "label": "Falldetails",
       "close": "Details schließen",
