@@ -15,6 +15,9 @@ assets/*
 !assets/logo-prevaiq.png
 !assets/demo-prevaiq/
 !assets/demo-prevaiq/**
+!assets/design-concepts/
+assets/design-concepts/*
+!assets/design-concepts/rheinkaliber/
 !assets/logos/
 !assets/logos/logo-prevaiq.png
 !assets/logos/prevaiq-logo.svg
