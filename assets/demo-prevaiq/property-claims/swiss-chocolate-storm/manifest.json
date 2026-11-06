@@ -3,13 +3,13 @@
   "title": "Hailstorm in Winterthur, 28.08.2026 — Schoggimanufaktur Eulachblick GmbH",
   "persona": "habitation_claims",
   "synthetic": true,
-  "notice": "Business, people, policy, references, amounts, documents and photos are fictitious and created for the PrevaIQ demo. Only the municipality (Winterthur) and the storm date are real. The photos are AI-generated (MAI-Image-2.6).",
+  "notice": "Business, people, policy, references, amounts, documents and photos are fictitious and created for the PrevaIQ demo. Demo map anchor: Steinberggasse 23, 8400 Winterthur. The address is real; the business, premises and loss are fictional. AI images do not depict the actual building or its occupants. Street View shows the real location, not these damage scenes. The photos are AI-generated (MAI-Image-2.6).",
   "generator": "scripts/generate_swiss_storm_claim.py",
   "policy_conditions": "assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf",
   "identity": {
     "company": "Schoggimanufaktur Eulachblick GmbH",
     "uid": "CHE-482.135.757",
-    "address": "Kakaogasse 7, 8400 Winterthur",
+    "address": "Steinberggasse 23, 8400 Winterthur",
     "phone": "+41 52 048 21 37",
     "iban": "CH93 0076 2011 6238 5295 7",
     "policy": "PIQ-CH-KMU-2026-048213",
@@ -18,10 +18,43 @@
   "identity_checks": {
     "company": "Zefix (incl. deleted firms): no result for 'Schoggimanufaktur Eulachblick' or 'Eulachblick'; no exact web match",
     "uid": "eCH-0097 mod-11 check digit of 48213575 would be 10, so no valid UID has this number; Zefix: no result",
-    "street": "geo.admin.ch: no street 'Kakaogasse' anywhere in Switzerland",
+    "street": "Real demo anchor verified in the Swiss official building-address register and Nominatim; no claim about the actual occupants or building",
     "phone": "search.ch: no directory entry for 052 048 21 37",
     "iban": "Example IBAN of the SWIFT IBAN registry for Switzerland",
     "email": "Reserved .example domains (RFC 2606)"
+  },
+  "map_anchor": {
+    "address": "Steinberggasse 23, 8400 Winterthur, Schweiz",
+    "country": "CH",
+    "purpose": "Real geocodable demo anchor only; fictional premises and loss",
+    "official_source": "https://api3.geo.admin.ch/rest/services/ech/MapServer/ch.swisstopo.amtliches-gebaeudeadressverzeichnis/100820484",
+    "official_coordinates": {
+      "lat": 47.49821853637695,
+      "lon": 8.729171752929688
+    },
+    "geocoder": "OpenStreetMap / Nominatim",
+    "verified_result": {
+      "lat": 47.4981698,
+      "lon": 8.7292096,
+      "level": "building"
+    },
+    "street_view": "External real-location view; coverage is provider-dependent, not damage evidence"
+  },
+  "photo_evidence_scope": {
+    "de": [
+      "Die Fotos zeigen nur Ausschnitte des gemeldeten Bestands und Schadens, nicht die vollständigen Mengen oder den Wert. Im Szenario wurde die Markise vor dem Unwetter eingefahren. Windgetriebener Hagel traf die ungeschützte Fassade schräg von oben. Das Verbundsicherheitsglas an Schaufenster und Oblicht ist gerissen, bleibt aber in der Zwischenschicht gebunden: keine ausgestanzten Löcher oder offenen Glasdurchbrüche.",
+      "Der gemeldete Wassereintritt erfolgt an sturmbedingt gelockerten Rahmenanschlüssen, nicht durch geschlossene Glasscheiben. Feuchte Spuren liegen lokal an der Schaufensterecke und unter einem Oblichtrahmen des eingeschossigen rückwärtigen Anbaus; Ursache und Umfang der Undichtigkeiten sind technisch zu prüfen. Am 28.08. um 11:26 ist noch keine äussere Notabdeckung angebracht. Die Temperierschüssel hat ihren normalen geschlossenen Lebensmitteldeckel; Waren, Pralinés und Zutaten stehen in geschlossenen Verpackungen, Vitrinen oder abgedeckten Behältern. Glasrisse allein belegen keine Kontamination aller Waren.",
+      "Die Temperiermaschine ist äusserlich nass; der gemeldete Kurzschluss und der Reparaturumfang aller Anlagen müssen technisch geprüft werden. Der Massstab beim Hagel ist eine illustrative Grössenreferenz, keine kalibrierte Messung.",
+      "Das Kühlraumfoto zeigt einen Teilbestand und die Anzeige 23,8 °C kurz nach Stromrückkehr, nicht den gesamten Temperaturverlauf oder einen mikrobiologischen Verderbnachweis. Die Verpackungen im intakten Kühlraum sind trocken. Den Verlust der Kühlware meldet die Versicherungsnehmerin aufgrund der unterbrochenen Kühlkette; Temperaturprotokolle und lebensmitteltechnische Prüfung bleiben erforderlich.",
+      "Alle Beträge sind vorläufige Forderungen. Inventarlisten, technische Berichte, Temperaturprotokolle, Offerten und Geschäftsunterlagen sind nicht beigefügt."
+    ],
+    "en": [
+      "The photos show selected stock and damage, not the full inventory or its value. In the scenario the awning was retracted before the storm. Wind-driven hail struck the exposed facade obliquely from above. The laminated glazing in the shop window and rooflight is cracked but retained on its interlayer: no punched-out holes or open glass breaches.",
+      "Reported water ingress is through storm-loosened frame joints, not solid glazing. Wet tracks are local to the shop-window corner and one rooflight-frame joint in the single-storey rear annex; the cause and extent of leaks require technical assessment. No external emergency cover is present at 11:26. The tempering bowl has its normal closed food-protection lid; stock, pralines and ingredients are in closed packaging, showcases or covered containers. Cracked glass alone does not establish contamination of all stock.",
+      "One tempering machine is externally wet; the reported short circuit and repair scope of all equipment require technical assessment. The hail ruler is an illustrative size reference, not a calibrated measurement.",
+      "The cold-room photo shows selected stock and a 23.8 °C readout shortly after power restoration, not the temperature history or microbiological proof of spoilage. Cartons in the intact cold room are dry. The insured reports refrigerated-stock loss because of the interrupted cold chain; temperature records and food-safety assessment remain necessary.",
+      "All amounts are provisional demands. Inventory lists, technical reports, temperature records, quotes and business records are not attached."
+    ]
   },
   "timeline": [
     {
@@ -30,7 +63,7 @@
     },
     {
       "when": "28.08.2026 09:50-10:20",
-      "event": "Hailstorm (hail up to about 5 cm, gusts); water ingress, short circuit, main fuse tripped"
+      "event": "Hailstorm (reported hail up to about 5 cm, gusts); retracted awning, retained cracked safety glazing, reported frame-joint leaks and short circuit; main fuse tripped"
     },
     {
       "when": "28.08.2026 10:41-11:26",
@@ -73,34 +106,34 @@
   },
   "attention_points": [
     "Building items (CHF 184,000) are insured by the cantonal building insurer GVZ in Zurich and were also reported there: risk of double compensation; tenant improvements are not part of the policy (AVB B1.3, A6).",
-    "Refrigerated goods (CHF 96,400) were lost through the power cut; the Kühlgut extension is not in the policy, even when an insured event caused the outage (AVB B4.1).",
+    "Refrigerated goods (CHF 96,400) are reported lost through the power cut; the Kühlgut extension is not in the policy, even when an insured event caused the outage (AVB B4.1).",
     "One photo predates the storm (26.08.2026, 18:34): legitimate stock evidence that must be checked, not damage evidence (AVB A4.3)."
   ],
   "documents": [
     {
       "file": "schadenmeldung-geschaeftsversicherung.pdf",
       "kind": "claim form (German)",
-      "sha256": "40cb0ee500122adfb26a62eaecb996d889091cfd20db71fca8a61d19b697171a"
+      "sha256": "5b74b59e303077083f5aee0556297ace5c2aa76b682469cd8b489e7ecd4b6068"
     },
     {
       "file": "email-01-schadenmeldung-de.eml",
       "kind": "first notice e-mail (German)",
-      "sha256": "c24387b70759c1c5bf11af935c1292224a245e8c0eb54d8656b8c40198eae0b4"
+      "sha256": "988f827b6df20208c0a2492b0b4a875fed4d925473e839e102ec85c02450ba22"
     },
     {
       "file": "email-01-schadenmeldung-de.pdf",
       "kind": "print of the first notice e-mail",
-      "sha256": "0689f83d261d944384f24ad6f386f66bddc369beeb9e3e3e690a5db327e0a272"
+      "sha256": "f9994d5b64d1b245c66c13b46de57305c59457032747c510f4c30d46870f8863"
     },
     {
       "file": "email-02-loss-estimate-en.eml",
       "kind": "consolidated estimate e-mail (English)",
-      "sha256": "b518054a0d2708b31b4ebf6f71f1ba1af822b51a2db90591bbe94dac0e51c01f"
+      "sha256": "21ee9dc4752012c6fe100d63bb2842d9f2a434473123eeb10cd42b89a403cff1"
     },
     {
       "file": "email-02-loss-estimate-en.pdf",
       "kind": "print of the consolidated estimate e-mail",
-      "sha256": "2b3e3c7581d565a43ee2cd6db9473595c25e6b0df01cc87a20b9221046413ec3"
+      "sha256": "ef73bf14c6008b4abdb9cf0097d2f567bdda39741680bc6f85d344c938cfe6ab"
     }
   ],
   "photos": [
@@ -108,78 +141,87 @@
       "file": "IMG_20260826_183447.jpg",
       "kind": "photo",
       "scenario_time": "26.08.2026 18:34",
-      "caption_de": "Schaufenster am Mittwochabend (Bestand)",
+      "caption_de": "Schaufenster am Mittwochabend (sichtbarer Bestandsausschnitt, vor dem Unwetter)",
       "model": "MAI-Image-2.6",
       "model_version": "2026-07-31",
-      "prompt": "Exterior of a small traditional artisan chocolate shop in the old town of Winterthur, Switzerland, on a late-summer evening around 6:30 pm. Ground floor of a historic three-storey building with a light ochre plastered facade, one large shop window full of neatly arranged pralines, truffles, chocolate bars and autumn gift boxes, a dark green fabric awning, a small hanging wooden sign reading 'Eulachblick' in simple gold letters, a wooden entrance door with a glass panel. Cobblestone pedestrian lane, warm golden light, two potted plants. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "prompt": "26 August, 18:34. Eye-level view of an invented artisan chocolate shop in the level old-town setting of Winterthur. Ochre plaster frontage below two upper floors, dark-brown wooden shop window on the LEFT, 1.80 m wide and 2.10 m high, sill 0.65 m above paving. Entrance door on the RIGHT, 0.95 m wide and 2.20 m high. Dark-green retractable fabric awning extended above both, visible articulated support arms bolted to masonry. Plain fixed sign Eulachblick above the awning cassette, no other writing. Two heavy 0.45 m planters on either side. The shop window is laminated safety glazing. Through intact glazing, a low display ledge holds CLOSED 0.20 m gift boxes, not exposed food. Pralines are in a separate CLOSED glass service showcase deeper inside the shop. A wood sales counter is perpendicular to the right return wall behind the window. Narrow level paved pedestrian street, opposite plastered urban buildings; no mountains, steep slope or invented landmark. Dry, ice-free paving, NO hail, snow, falling precipitation or damage: this is TWO DAYS BEFORE the storm. Warm interior lighting is ON before the storm. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "system_instructions": "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, not disaster spectacle. The real map address is an anchor only: invent the premises, do not reproduce an actual occupant or identify a real damaged building. Gravity, structural support, contact shadows, object scale and water paths must be coherent. Show localized damage with a physically explicit cause, not an indoor hurricane. Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. Laminated safety glazing retains cracked fragments on its interlayer: no punched-out round holes, missing central chunks, projectile craters or suspended loose shards. In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, with less beneath shelter and variable accumulation at drains and edges, never a decorative pile only below a broken window. Food in a working chocolate business is in closed showcases, packaging, lidded food containers or normal fitted machine covers; never stage open food under a roof leak. Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation never emerges from a window or glazed rooflight. Readable physical text must be German, except the fictional proper name Eulachblick and metric numerals/units. No invented English labels, gibberish, watermarks or overlays. BEFORE-STORM EXTERIOR. Establish repeatable door/window/awning geometry. This is a stock sample, not the full reported inventory. All glazing and supports intact. ABSOLUTELY NO HAIL OR ICE: the storm has not happened. Dry weather and paving.",
       "edited_from": null,
-      "refinement_prompts": [],
-      "sha256": "a86470a7adcaac2469173951e91467cb822b7650f0fddcd6b59f4756d4d3fcc5"
+      "refinement_prompts": [
+        "Preserve the complete shop photo, geometry, products, planters and evening lighting. Remove ALL writing from the glazing, entrance door, small facade plaque and boxes, leaving those surfaces blank and natural. The ONLY readable text is the Eulachblick name on the fixed sign above the awning cassette. Keep every gift box closed and the interior food showcase fully glazed. Do not invent text or alter the architecture. This photo is TWO DAYS BEFORE the storm: remove ALL hail, ice, snow and falling precipitation from the ENTIRE image, leaving ordinary dry stone paving and intact glass. Do not apply post-storm hail instructions here. Place a few closed chocolate gift boxes on the dry low window ledge, while actual pralines remain behind the inner showcase glass."
+      ],
+      "sha256": "a57a3ea10ba3b26139e97e9c29b6a4301663993d53443759336042811a609ba2"
     },
     {
       "file": "IMG_20260828_104112.jpg",
       "kind": "photo",
       "scenario_time": "28.08.2026 10:41",
-      "caption_de": "Fassade nach dem Hagelzug",
+      "caption_de": "Fassade: eingefahrene Markise, gerissenes Verbundsicherheitsglas ohne Durchbruch",
       "model": "MAI-Image-2.6",
       "model_version": "2026-07-31",
-      "prompt": "The same chocolate shop and building as in the reference photo, now photographed on a grey morning twenty minutes after a violent hailstorm: the large shop window is shattered with a big hole and spider-web cracks, glass shards on the window display and the pavement, the green awning is torn and hangs down, hundreds of white hailstones up to 5 cm lie on the wet cobblestones together with torn leaves, the facade is wet. Keep the same building, facade colour, awning colour, door and hanging sign. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "prompt": "Edit the reference to 28 August, 10:41, overcast AFTER the storm. Preserve exact camera position, urban surroundings, door/window dimensions, wooden frames, sign and heavy planters. Interior electric lighting entirely OFF after main fuse trip. The awning was FULLY RETRACTED before the storm: folded support arms tucked against the wall, fabric rolled inside its cassette, only a short damaged valance visible. No projecting canopy shelters the large pane. Obliquely descending wind-driven hail has cracked the LEFT laminated shop pane at several separate impact sites, mainly its exposed lower-left and mid-left areas: asymmetric short radial cracks branching into longer irregular connecting fractures. Some small whitish impact bruises, but the interlayer holds ALL glass in the frame and the entire pane remains a continuous barrier. NO HOLE, no missing glass, no black void, no circular crater, no loose floor shards. Closed gift boxes and a second closed glass food showcase remain protected behind it. Melting hail of varied 0.5-2 cm sizes is scattered across the ENTIRE visible exposed pavement from foreground to distant street, both left and right of the shop and beneath both planters' surroundings. Modest irregular clusters at paving joints/drainage, a few larger stones, not one pile at the window. Ground remains mostly visible, no uniform snow blanket. Door glass, upper windows, masonry and heavy planters intact. Few wet leaves. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "system_instructions": "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, not disaster spectacle. The real map address is an anchor only: invent the premises, do not reproduce an actual occupant or identify a real damaged building. Gravity, structural support, contact shadows, object scale and water paths must be coherent. Show localized damage with a physically explicit cause, not an indoor hurricane. Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. Laminated safety glazing retains cracked fragments on its interlayer: no punched-out round holes, missing central chunks, projectile craters or suspended loose shards. In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, with less beneath shelter and variable accumulation at drains and edges, never a decorative pile only below a broken window. Food in a working chocolate business is in closed showcases, packaging, lidded food containers or normal fitted machine covers; never stage open food under a roof leak. Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation never emerges from a window or glazed rooflight. Readable physical text must be German, except the fictional proper name Eulachblick and metric numerals/units. No invented English labels, gibberish, watermarks or overlays. AFTER-STORM EXTERIOR. Change damage, weather and lights only; preserve the before-photo architecture. Retract the awning BEFORE hail damage. Retained laminated safety glass, NO opening through the pane. Ground-wide hail distribution.",
       "edited_from": "IMG_20260826_183447.jpg",
-      "refinement_prompts": [],
-      "sha256": "89ecf52be10a8bdb733ad07db21d76cfde41b342ad768a2e33b18d14c31f6b3b"
+      "refinement_prompts": [
+        "Preserve the shop, retracted awning, retained laminated glazing and distributed hail. The fractured pane remains present everywhere: if any gap or black hole appeared, restore glass and show fine branching cracks at that location. Do not draw a circular impact ring. Hail remains scattered across all exposed foreground and street areas, not just beneath the window. Remove all writing except Eulachblick on the fixed sign. All food stays enclosed. ALL interior light sources must be OFF, including pendant bulbs and ceiling spots; no artificial pools of warm light. Natural overcast daylight can reflect on wood and glazing. Turn OFF the food-showcase LED strips and all back-counter strip lighting too. The unpowered interior is noticeably DIMMER than the outdoor facade; shelves and gold-coloured trim are not luminous. Do not remove the cracks or extend the awning."
+      ],
+      "sha256": "8a73590ff787a76c38868837819cfbfef0d3d4eff3bd3c853b9f402e7a5026f0"
     },
     {
       "file": "IMG_20260828_104355.jpg",
       "kind": "photo",
       "scenario_time": "28.08.2026 10:43",
-      "caption_de": "Hagelkörner neben Meterstab (bis ca. 5 cm)",
+      "caption_de": "Hagelkörner mit Massstab; gemeldete Grösse bis ca. 5 cm, keine kalibrierte Messung",
       "model": "MAI-Image-2.6",
       "model_version": "2026-07-31",
-      "prompt": "Close-up from above of large hailstones, the biggest about 5 cm in diameter, lying on wet grey cobblestones next to a yellow wooden folding ruler with centimetre markings for scale, smaller hailstones melting, a few glass shards nearby, overcast daylight. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "prompt": "28 August 10:43, near-vertical close-up of wet grey small stone paving, stones approximately 10 by 10 cm with narrow mortar joints. One irregular melting hailstone about 4.5-5 cm across, several smaller 1-2 cm hailstones. A straight 15 cm metric steel ruler lies FLAT beside it, in the SAME plane, horizontal across the lower frame. One scale only, equal centimetre intervals numbered in increasing order 0 through 15, millimetre ticks, no inch scale, no folding hinges. Largest ice piece beside the ruler spans about five centimetre intervals, not five millimetres. Thin meltwater film, soft overcast light, no people or hands, no labels. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "system_instructions": "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, not disaster spectacle. The real map address is an anchor only: invent the premises, do not reproduce an actual occupant or identify a real damaged building. Gravity, structural support, contact shadows, object scale and water paths must be coherent. Show localized damage with a physically explicit cause, not an indoor hurricane. Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. Laminated safety glazing retains cracked fragments on its interlayer: no punched-out round holes, missing central chunks, projectile craters or suspended loose shards. In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, with less beneath shelter and variable accumulation at drains and edges, never a decorative pile only below a broken window. Food in a working chocolate business is in closed showcases, packaging, lidded food containers or normal fitted machine covers; never stage open food under a roof leak. Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation never emerges from a window or glazed rooflight. Readable physical text must be German, except the fictional proper name Eulachblick and metric numerals/units. No invented English labels, gibberish, watermarks or overlays. HAIL SCALE CLOSE-UP. The ice and straight ruler share one plane with no perspective size trick. Ice is irregular, translucent, melting, not oversized snowballs.",
       "edited_from": null,
-      "refinement_prompts": [
-        "Edit this photo: keep the wet cobblestones, the hailstones, the glass shards and the camera angle. Replace the folding ruler with a clean yellow wooden folding ruler whose centimetre graduations are numbered 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 in increasing order along one edge only, with no other numbers. Make the largest hailstone about 5 cm across measured against that ruler, and keep the other hailstones between 2 and 4 cm.",
-        "Edit this photo: on the folding ruler keep the numbers 1 to 10 along the left edge and remove every number from the right edge, leaving only plain tick marks there. Keep everything else unchanged."
-      ],
-      "sha256": "23e6706498d0b387415a8297a0e27ea2f3df0985b076e6b3181d949d6d16ec56"
+      "refinement_prompts": [],
+      "sha256": "09db2c6cc55b3b3521af268002277ab2a594ba55b3ae1d99640c9b0e05b91b4f"
     },
     {
       "file": "IMG_20260828_105207.jpg",
       "kind": "photo",
       "scenario_time": "28.08.2026 10:52",
-      "caption_de": "Verkaufsraum mit Glasscherben und Wasser",
+      "caption_de": "Verkaufsraum: Glasrisse bleiben gebunden; lokale Nässe am unteren Rahmen",
       "model": "MAI-Image-2.6",
       "model_version": "2026-07-31",
-      "prompt": "Interior of a small traditional Swiss chocolate shop right after a hailstorm: the shop window is broken, glass shards cover the wooden sales counter and a glass display case of pralines and truffles wet with rain water, puddles on the tiled floor, a fallen shelf of chocolate gift boxes with soaked packaging, grey daylight through the broken window, warm wooden fittings with dark green accents, lights off. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
-      "edited_from": null,
+      "prompt": "Use the same reference shop but photograph the window from INSIDE at close range, looking slightly down from 1.5 m eye height. Tight composition includes ONLY the dark-brown window frame, continuous cracked laminated pane, low display plinth and adjacent tiled floor. No door, ceiling or lamps in frame. The pane is 1.80 by 2.10 m; its lower ledge is 0.65 m high and 0.40 m deep. From INSIDE the impact area reverses to the LOWER RIGHT and mid-right. Fine asymmetric radial cracks merge with irregular longer fractures, fragments still bonded to the interlayer. Entire glazing remains present, no hole or missing chunk, no loose shards inside. Outside view is seen THROUGH intact cracked glass, with faint reflections and rain droplets; scattered hail continues across exposed paving outside. A localized rainwater track starts at the storm-loosened lower frame/weather seal, runs down the plinth corner and forms a SMALL shallow patch below. No water crossing solid glass, no central-room flood. NO gift boxes, cartons, chocolates or food in this tight frame: the protected stock and service showcase are elsewhere, OUT OF VIEW. The interior stone ledge is completely empty. Through the pane show only outdoor stone paving, curb and scattered hail, never a shelf or food outside. natural grey daylight only, no artificial lighting or readable text. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "system_instructions": "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, not disaster spectacle. The real map address is an anchor only: invent the premises, do not reproduce an actual occupant or identify a real damaged building. Gravity, structural support, contact shadows, object scale and water paths must be coherent. Show localized damage with a physically explicit cause, not an indoor hurricane. Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. Laminated safety glazing retains cracked fragments on its interlayer: no punched-out round holes, missing central chunks, projectile craters or suspended loose shards. In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, with less beneath shelter and variable accumulation at drains and edges, never a decorative pile only below a broken window. Food in a working chocolate business is in closed showcases, packaging, lidded food containers or normal fitted machine covers; never stage open food under a roof leak. Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation never emerges from a window or glazed rooflight. Readable physical text must be German, except the fictional proper name Eulachblick and metric numerals/units. No invented English labels, gibberish, watermarks or overlays. SHOP INTERIOR AT 10:52. Maintain front/rear and left/right geometry when reversing the camera. Cracked laminated glass stays retained. Limited frame-seal leakage, not rain through a hole. Food enclosed. Power is OFF.",
+      "edited_from": "IMG_20260828_104112.jpg",
       "refinement_prompts": [
-        "Edit this photo: keep the shop interior, the broken window, the glass shards, the wet floor, the fallen gift boxes and the praline display unchanged. Make the window frame dark brown wood. Through the broken window show only a narrow wet cobblestone old-town lane with historic three-storey houses in ochre and white plaster on the opposite side under a grey overcast sky; remove the mountains, the flag, the traffic signs and the wide road."
+        "Keep the tight interior framing. The ENTIRE laminated pane stays physically present; retain realistic branching cracks but fill any accidentally missing glass with transparent cracked glazing. No circular crater or loose shards on ledge/floor. Keep only a localized wet track from the lower frame corner to the floor, not rain through the solid pane. REMOVE BOTH gift boxes completely; do NOT move or replace them. Remove ALL cartons, ribbons, food, trays and display items from the entire image. Leave the stone window ledge completely EMPTY. Protected stock is elsewhere outside this tight camera frame. Through the glass show only outdoor paving and hail, never an outdoor shelf or food. Outside hail is scattered across the exposed street, not concentrated at this window. Remove invented writing."
       ],
-      "sha256": "2d12c81f2c86a6ce50f27124ce8a0a735be4a9739256856961de4ae93337afae"
+      "sha256": "1e3ede7b80dbf327589bcb258a4144ed51119adf1082588d6c813fdbe1f095ce"
     },
     {
       "file": "IMG_20260828_112604.jpg",
       "kind": "photo",
       "scenario_time": "28.08.2026 11:26",
-      "caption_de": "Atelier: zerbrochenes Oblicht, Wasser auf der Temperiermaschine",
+      "caption_de": "Atelier: undichter Oblichtrahmen, nasses Maschinengehäuse; Schokolade unter Deckeln",
       "model": "MAI-Image-2.6",
       "model_version": "2026-07-31",
-      "prompt": "Small artisan chocolate workshop behind a shop: a broken glass skylight in the ceiling with jagged glass, partly covered by a blue tarpaulin, rain water dripping onto a stainless-steel chocolate tempering machine filled with chocolate, water pooling on the stainless worktable and the floor, an enrobing machine and a small cooling tunnel in the background, lights off, only grey daylight from the skylight. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "prompt": "28 August 11:26. Ground-floor workshop in a SINGLE-STOREY REAR ANNEX behind the multi-storey street shop, not a skylight through occupied upper floors. Room 6 by 8 m, ceiling 3.1 m; intact white opaque roof soffit surrounds a raised glazed rooflight 1.2 by 2.4 m, divided by supported aluminium mullions into four panes. One laminated safety-glass pane has branching impact fractures, all fragments retained, NO OPEN HOLE or hanging shards. A storm-loosened weather seal at one rooflight FRAME corner leaks residual water; droplets descend from that frame joint, not through solid glass, onto the OUTER SIDE casing of ONE floor-standing stainless chocolate tempering machine, 0.65 m wide, 0.85 m deep, 1.15 m high. Its small 25-litre round bowl has its NORMAL CLOSED fitted stainless food-protection lid, already in place during the interruption, not an improvised storm tarp. No uncovered chocolate underneath the leak. Water traces down the external casing to a shallow transparent local puddle on 0.20 m floor tiles. Clear water only: the indoor floor has NO ice, hail, glass, white fragments, plaster debris or foam. Nothing has fallen through the retained rooflight. This is a working hygienic professional chocolate kitchen: stainless workbench 0.90 m high, GN food containers with FULLY CLOSED FLAT STAINLESS LIDS covering their entire openings, covered chocolate storage tubs, stacked clean polycarbonate praline moulds, bowl scrapers, an unplugged digital scale, a stainless wash sink with ordinary mixer tap. The lower bench shelf holds ONLY closed white food-storage tubs, no open pans, no brown exposed ingredients. All small utensils on dry bench AWAY from the dripping corner, not scattered on the floor. A CLOSED glass-lidded tray of small chocolate pralines on that dry bench shows what is made here, not a row of exposed food. Enrober 1.0 m wide and cooling tunnel in background, stable and correctly supported, 0.9 m access aisle. All screens, lamps, belts and indicators OFF after fuse trip; no exposed live wiring. No tarp yet: emergency covering occurs only at 14:00. No people under broken glass, no hazardous staging. Daylight through rooflight. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "system_instructions": "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, not disaster spectacle. The real map address is an anchor only: invent the premises, do not reproduce an actual occupant or identify a real damaged building. Gravity, structural support, contact shadows, object scale and water paths must be coherent. Show localized damage with a physically explicit cause, not an indoor hurricane. Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. Laminated safety glazing retains cracked fragments on its interlayer: no punched-out round holes, missing central chunks, projectile craters or suspended loose shards. In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, with less beneath shelter and variable accumulation at drains and edges, never a decorative pile only below a broken window. Food in a working chocolate business is in closed showcases, packaging, lidded food containers or normal fitted machine covers; never stage open food under a roof leak. Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation never emerges from a window or glazed rooflight. Readable physical text must be German, except the fictional proper name Eulachblick and metric numerals/units. No invented English labels, gibberish, watermarks or overlays. REAR-ANNEX WORKSHOP AT 11:26. Opaque roof construction and glazed rooflight are separate; drainage follows gravity. Equipment is not powered. Photo supports external wetting of one machine, not a diagnosis of every machine.",
       "edited_from": null,
-      "refinement_prompts": [],
-      "sha256": "1e742b0a5aa4f55fab544863500788e305cc6639774b7929b367460455cdc453"
+      "refinement_prompts": [
+        "Keep this professional chocolate kitchen geometry, retained cracked safety rooflight glazing, intact white opaque soffit, supported machines, real kitchen utensils and covered food. Water drips from ONE FRAME JOINT onto external casing only, never through unbroken glass or into open chocolate. Keep the normal stainless bowl lid CLOSED, all GN containers lidded, any visible pralines under a closed transparent food cover. Correct the power-isolated state: every machine screen is opaque matte BLACK; every tiny blue, green, red or amber status LED is DARK and unlit, including the front tempering machine and right-side enrober. Keep physical buttons and housings, but no coloured glow. Remove the wall clock, the left framed slogans, the right handwritten slogan and all other writing except the German door label LAGER. Leave clean plain walls. The floor has ONLY a shallow CLEAR WATER puddle: remove every white fragment, glass shard, ice pellet, foam patch and plaster crumb beneath the machine. The retained pane sheds no glass into the kitchen. On the bench and lower shelf, fit flat stainless lids to EVERY GN pan; do not leave open chocolate or ingredients in the storage pans. Transparent food covers stay shut. No new damage, no tarp, no insulation in glazing."
+      ],
+      "sha256": "f5207daa055e2df75741bd7f3b7636d25ab77936926f1157bea4f5eca15773a3"
     },
     {
       "file": "IMG_20260829_150418.jpg",
       "kind": "photo",
       "scenario_time": "29.08.2026 15:04",
-      "caption_de": "Kühlraum nach dem Stromunterbruch (23,8 °C)",
+      "caption_de": "Kühlraum nach Stromrückkehr: Anzeige 23,8 °C; Teilbestand, kein Verderbnachweis",
       "model": "MAI-Image-2.6",
       "model_version": "2026-07-31",
-      "prompt": "Inside the small walk-in cold room of a chocolate workshop the day after a long power cut: the cooling unit is off, a wall-mounted digital thermometer clearly shows 23.8 °C, stacked cardboard boxes of seasonal chocolate products are soaked and sagging, condensation on the metal shelves, open trays of softened truffles, dim light from the open door. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "prompt": "29 August 15:04, four minutes AFTER power restoration. A dry intact walk-in cold room at the rear of the workshop, 2.4 by 3.0 m, ceiling 2.3 m. View from open 0.85 m door, light from doorway. Insulated metal wall panels, intact ceiling, dry non-slip floor, correctly mounted evaporator, refrigeration only just restarting. Wall thermometer at eye level displays exactly '23,8 °C', one decimal comma, no duplicate readouts or other writing. Metal shelves 0.45 m deep on left and right, four shelves each, stable plain dry cardboard cartons 0.30 by 0.20 by 0.15 m, bottom shelf 0.15 m clear of floor, 1.0 m clear central aisle. One 0.40 by 0.30 m tray fully supported on shelf holds small 2.5 cm truffles, mostly retaining shape with slight softened glossy edges only. No puddles, dripping chocolate, soaking or sagging cartons, frost or dramatic condensation. Warmed food may be unsafe without spectacular visible melting. Realistic smartphone photo, natural light, slightly imperfect framing. No people, no brand logos, no watermark, no text overlay.",
+      "system_instructions": "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, not disaster spectacle. The real map address is an anchor only: invent the premises, do not reproduce an actual occupant or identify a real damaged building. Gravity, structural support, contact shadows, object scale and water paths must be coherent. Show localized damage with a physically explicit cause, not an indoor hurricane. Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. Laminated safety glazing retains cracked fragments on its interlayer: no punched-out round holes, missing central chunks, projectile craters or suspended loose shards. In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, with less beneath shelter and variable accumulation at drains and edges, never a decorative pile only below a broken window. Food in a working chocolate business is in closed showcases, packaging, lidded food containers or normal fitted machine covers; never stage open food under a roof leak. Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation never emerges from a window or glazed rooflight. Readable physical text must be German, except the fictional proper name Eulachblick and metric numerals/units. No invented English labels, gibberish, watermarks or overlays. COLD ROOM AT 15:04 NEXT DAY. Warming during an outage does not cause rain damage in this intact room. This is a temperature/stock sample, not visual proof of microbiological spoilage or total inventory loss. Correct human-scale storage.",
       "edited_from": null,
       "refinement_prompts": [],
-      "sha256": "52a81841b582ca0b0c605381d7cdafe5040ee0087ab132871721c10d1b8a69ac"
+      "sha256": "f73bafd879a7f5f3d6bfc430d38938a089cc25e90f5625abf17309188b0aa5bf"
     }
   ]
 }

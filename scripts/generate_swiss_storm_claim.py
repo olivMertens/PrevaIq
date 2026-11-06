@@ -1,8 +1,8 @@
 """Generate the Swiss hailstorm demo claim: Winterthur chocolate maker, Friday 28.08.2026.
 
-The business, people, policy, references and amounts are fictitious; only the municipality
-(Winterthur) and the storm date are real. Identity checks (see ``IDENTITY_CHECKS``) make sure
-no real company, street, UID or phone number is used. Writes:
+The business, people, policy, references and amounts are fictitious. A verified real address
+is used only as a map anchor: neither the occupants nor the actual building are depicted or
+reported as damaged. Identity checks are recorded in ``IDENTITY_CHECKS``. Writes:
 
 * ``assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf`` — fictitious Swiss
   policy conditions (German), indexed by the RAG as ``property_casualty_ch``;
@@ -42,6 +42,7 @@ from generate_policy_pdfs import CSS, draw_logo, section, table  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 SCENARIO_DIR = ROOT / "assets" / "demo-prevaiq" / "property-claims" / "swiss-chocolate-storm"
+CREATOR = "scripts/generate_swiss_storm_claim.py"
 AVB_PATH = (
     ROOT / "assets" / "pdf" / "prevaiq" / "prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf"
 )
@@ -49,8 +50,29 @@ AVB_PATH = (
 # ── Fictitious identity (checked 05.11.2026, see IDENTITY_CHECKS) ────────────────
 FIRM = "Schoggimanufaktur Eulachblick GmbH"
 UID = "CHE-482.135.757"
-STREET = "Kakaogasse 7"
+STREET = "Steinberggasse 23"
 TOWN = "8400 Winterthur"
+LOCATION_DE = (
+    "Demo-Kartenanker: Steinberggasse 23, 8400 Winterthur. Die Adresse ist real; Firma, "
+    "Betriebsräume und Schaden sind erfunden. Die KI-Bilder zeigen nicht das reale Gebäude "
+    "oder dessen Nutzer. Street View zeigt den realen Ort, nicht diese Schadensszenen."
+)
+LOCATION_EN = (
+    "Demo map anchor: Steinberggasse 23, 8400 Winterthur. The address is real; the business, "
+    "premises and loss are fictional. AI images do not depict the actual building or its "
+    "occupants. Street View shows the real location, not these damage scenes."
+)
+MAP_ANCHOR = {
+    "address": f"{STREET}, {TOWN}, Schweiz",
+    "country": "CH",
+    "purpose": "Real geocodable demo anchor only; fictional premises and loss",
+    "official_source": "https://api3.geo.admin.ch/rest/services/ech/MapServer/"
+    "ch.swisstopo.amtliches-gebaeudeadressverzeichnis/100820484",
+    "official_coordinates": {"lat": 47.49821853637695, "lon": 8.729171752929688},
+    "geocoder": "OpenStreetMap / Nominatim",
+    "verified_result": {"lat": 47.4981698, "lon": 8.7292096, "level": "building"},
+    "street_view": "External real-location view; coverage is provider-dependent, not damage evidence",
+}
 PHONE = "+41 52 048 21 37"
 IBAN = "CH93 0076 2011 6238 5295 7"
 DOMAIN = "eulachblick-schoggi.example"
@@ -70,7 +92,8 @@ IDENTITY_CHECKS = {
     "'Eulachblick'; no exact web match",
     "uid": "eCH-0097 mod-11 check digit of 48213575 would be 10, so no valid UID has this "
     "number; Zefix: no result",
-    "street": "geo.admin.ch: no street 'Kakaogasse' anywhere in Switzerland",
+    "street": "Real demo anchor verified in the Swiss official building-address register and "
+    "Nominatim; no claim about the actual occupants or building",
     "phone": "search.ch: no directory entry for 052 048 21 37",
     "iban": "Example IBAN of the SWIFT IBAN registry for Switzerland",
     "email": "Reserved .example domains (RFC 2606)",
@@ -95,7 +118,7 @@ DAMAGES = [
         "Kühlgut im Kühlraum (Frischrahm-Truffes, Ganache, Halbfabrikate)",
         "Refrigerated goods in the cold room",
         96_400,
-        "Verdorben nach Stromunterbruch 28.08., 11:30 bis 29.08., 15:00",
+        "Als Verlust nach Kühlkettenunterbruch gemeldet; Temperatur- und Lebensmittelprüfung ausstehend",
     ),
     (
         "Produktionsanlagen (2 Temperiermaschinen, Überziehmaschine, Kühltunnel, Giessanlage)",
@@ -133,7 +156,8 @@ TIMELINE = [
     ),
     (
         "28.08.2026 09:50-10:20",
-        "Hailstorm (hail up to about 5 cm, gusts); water ingress, short circuit, main fuse tripped",
+        "Hailstorm (reported hail up to about 5 cm, gusts); retracted awning, retained cracked "
+        "safety glazing, reported frame-joint leaks and short circuit; main fuse tripped",
     ),
     ("28.08.2026 10:41-11:26", "Four damage photos"),
     ("28.08.2026 11:30", "Emergency electrician cuts the power for safety"),
@@ -147,7 +171,7 @@ ATTENTION_POINTS = [
     "Building items (CHF 184,000) are insured by the cantonal building insurer GVZ in Zurich "
     "and were also reported there: risk of double compensation; tenant improvements are not "
     "part of the policy (AVB B1.3, A6).",
-    "Refrigerated goods (CHF 96,400) were lost through the power cut; the Kühlgut extension "
+    "Refrigerated goods (CHF 96,400) are reported lost through the power cut; the Kühlgut extension "
     "is not in the policy, even when an insured event caused the outage (AVB B4.1).",
     "One photo predates the storm (26.08.2026, 18:34): legitimate stock evidence that must be "
     "checked, not damage evidence (AVB A4.3).",
@@ -162,6 +186,25 @@ STYLE = (
     " Realistic smartphone photo, natural light, slightly imperfect framing. No people, no "
     "brand logos, no watermark, no text overlay."
 )
+IMAGE_SYSTEM_INSTRUCTIONS = (
+    "MANDATORY IMAGE INSTRUCTIONS. Create synthetic insurance-documentation photography, "
+    "not disaster spectacle. The real map address is an anchor only: invent the premises, "
+    "do not reproduce an actual occupant or identify a real damaged building. Gravity, "
+    "structural support, contact shadows, object scale and water paths must be coherent. "
+    "Show localized damage with a physically explicit cause, not an indoor hurricane. "
+    "Wind-driven hail descends obliquely; an extended awning shelters glazing beneath it. "
+    "Laminated safety glazing retains cracked fragments on its interlayer: no punched-out "
+    "round holes, missing central chunks, projectile craters or suspended loose shards. "
+    "In POST-STORM EXTERIOR scenes ONLY, hail is distributed over ALL exposed ground, "
+    "with less beneath shelter and variable "
+    "accumulation at drains and edges, never a decorative pile only below a broken window. "
+    "Food in a working chocolate business is in closed showcases, packaging, lidded food "
+    "containers or normal fitted machine covers; never stage open food under a roof leak. "
+    "Intact glazing, frames, masonry and opaque roof layers remain distinct. Insulation "
+    "never emerges from a window or glazed rooflight. Readable physical text must be "
+    "German, except the fictional proper name Eulachblick and metric numerals/units. "
+    "No invented English labels, gibberish, watermarks or overlays. "
+)
 
 
 @dataclass(frozen=True)
@@ -172,91 +215,219 @@ class Photo:
     prompt: str
     reference: str | None = None  # earlier photo edited to keep the same shop
     refinements: tuple[str, ...] = ()  # edits applied after generation to remove AI artefacts
+    system_prompt: str = ""
 
 
 PHOTOS = [
     Photo(
         "IMG_20260826_183447.jpg",
         "26.08.2026 18:34",
-        "Schaufenster am Mittwochabend (Bestand)",
-        "Exterior of a small traditional artisan chocolate shop in the old town of Winterthur, "
-        "Switzerland, on a late-summer evening around 6:30 pm. Ground floor of a historic "
-        "three-storey building with a light ochre plastered facade, one large shop window full "
-        "of neatly arranged pralines, truffles, chocolate bars and autumn gift boxes, a dark "
-        "green fabric awning, a small hanging wooden sign reading 'Eulachblick' in simple gold "
-        "letters, a wooden entrance door with a glass panel. Cobblestone pedestrian lane, warm "
-        "golden light, two potted plants." + STYLE,
+        "Schaufenster am Mittwochabend (sichtbarer Bestandsausschnitt, vor dem Unwetter)",
+        "26 August, 18:34. Eye-level view of an invented artisan chocolate shop in the level "
+        "old-town setting of Winterthur. Ochre plaster frontage below two upper floors, "
+        "dark-brown wooden shop window on the LEFT, 1.80 m wide and 2.10 m high, sill "
+        "0.65 m above paving. Entrance door on the RIGHT, 0.95 m wide and 2.20 m high. "
+        "Dark-green retractable fabric awning extended above both, visible articulated "
+        "support arms bolted to masonry. Plain fixed sign Eulachblick above the awning "
+        "cassette, no other writing. Two heavy 0.45 m planters on either side. "
+        "The shop window is laminated safety glazing. Through intact glazing, a low "
+        "display ledge holds CLOSED 0.20 m gift boxes, not exposed food. Pralines are "
+        "in a separate CLOSED glass service showcase deeper inside the shop. "
+        "A wood sales counter is perpendicular "
+        "to the right return wall behind the window. Narrow level paved pedestrian street, "
+        "opposite plastered urban buildings; no mountains, steep slope or invented landmark. "
+        "Dry, ice-free paving, NO hail, snow, falling precipitation or damage: this is "
+        "TWO DAYS BEFORE the storm. Warm interior lighting is ON before the storm." + STYLE,
+        refinements=(
+            "Preserve the complete shop photo, geometry, products, planters and evening "
+            "lighting. Remove ALL writing from the glazing, entrance door, small facade "
+            "plaque and boxes, leaving those surfaces blank and natural. The ONLY readable "
+            "text is the Eulachblick name on the fixed sign above the awning cassette. "
+            "Keep every gift box closed and the interior food showcase fully glazed. Do not invent text "
+            "or alter the architecture. This photo is TWO DAYS BEFORE the storm: remove "
+            "ALL hail, ice, snow and falling precipitation from the ENTIRE image, leaving "
+            "ordinary dry stone paving and intact glass. Do not apply post-storm hail "
+            "instructions here. Place a few closed chocolate gift boxes on the dry "
+            "low window ledge, while actual pralines remain behind the inner showcase glass.",
+        ),
+        system_prompt="BEFORE-STORM EXTERIOR. Establish repeatable door/window/awning geometry. "
+        "This is a stock sample, not the full reported inventory. All glazing and supports intact. "
+        "ABSOLUTELY NO HAIL OR ICE: the storm has not happened. Dry weather and paving.",
     ),
     Photo(
         "IMG_20260828_104112.jpg",
         "28.08.2026 10:41",
-        "Fassade nach dem Hagelzug",
-        "The same chocolate shop and building as in the reference photo, now photographed on a "
-        "grey morning twenty minutes after a violent hailstorm: the large shop window is "
-        "shattered with a big hole and spider-web cracks, glass shards on the window display "
-        "and the pavement, the green awning is torn and hangs down, hundreds of white "
-        "hailstones up to 5 cm lie on the wet cobblestones together with torn leaves, the "
-        "facade is wet. Keep the same building, facade colour, awning colour, door and hanging "
-        "sign." + STYLE,
+        "Fassade: eingefahrene Markise, gerissenes Verbundsicherheitsglas ohne Durchbruch",
+        "Edit the reference to 28 August, 10:41, overcast AFTER the storm. Preserve exact "
+        "camera position, urban surroundings, door/window dimensions, wooden frames, sign "
+        "and heavy planters. Interior electric lighting entirely OFF after main fuse trip. "
+        "The awning was FULLY RETRACTED before the storm: folded support arms tucked "
+        "against the wall, fabric rolled inside its cassette, only a short damaged "
+        "valance visible. No projecting canopy shelters the large pane. Obliquely "
+        "descending wind-driven hail has cracked the LEFT laminated shop pane at several "
+        "separate impact sites, mainly its exposed lower-left and mid-left areas: "
+        "asymmetric short radial cracks branching into longer irregular connecting "
+        "fractures. Some small whitish impact bruises, but the interlayer holds ALL "
+        "glass in the frame and the entire pane remains a continuous barrier. NO HOLE, "
+        "no missing glass, no black void, no circular crater, no loose floor shards. "
+        "Closed gift boxes and a second closed glass food showcase remain protected "
+        "behind it. Melting hail of varied 0.5-2 cm sizes is scattered across the ENTIRE "
+        "visible exposed pavement from foreground to distant street, both left and "
+        "right of the shop and beneath both planters' surroundings. Modest irregular "
+        "clusters at paving joints/drainage, a few larger stones, not one pile at the "
+        "window. Ground remains mostly visible, no uniform snow blanket. Door glass, "
+        "upper windows, masonry and heavy planters intact. Few wet leaves." + STYLE,
         reference="IMG_20260826_183447.jpg",
+        refinements=(
+            "Preserve the shop, retracted awning, retained laminated glazing and distributed "
+            "hail. The fractured pane remains present everywhere: if any gap or black "
+            "hole appeared, restore glass and show fine branching cracks at that location. "
+            "Do not draw a circular impact ring. Hail remains scattered across all "
+            "exposed foreground and street areas, not just beneath the window. Remove "
+            "all writing except Eulachblick on the fixed sign. All food stays enclosed. "
+            "ALL interior light sources must be OFF, including pendant bulbs and "
+            "ceiling spots; no artificial pools of warm light. Natural overcast daylight "
+            "can reflect on wood and glazing. Turn OFF the food-showcase LED strips "
+            "and all back-counter strip lighting too. The unpowered interior is "
+            "noticeably DIMMER than the outdoor facade; shelves and gold-coloured "
+            "trim are not luminous. Do not remove the cracks or extend the awning.",
+        ),
+        system_prompt="AFTER-STORM EXTERIOR. Change damage, weather and lights only; preserve "
+        "the before-photo architecture. Retract the awning BEFORE hail damage. "
+        "Retained laminated safety glass, NO opening through the pane. Ground-wide hail distribution.",
     ),
     Photo(
         "IMG_20260828_104355.jpg",
         "28.08.2026 10:43",
-        "Hagelkörner neben Meterstab (bis ca. 5 cm)",
-        "Close-up from above of large hailstones, the biggest about 5 cm in diameter, lying on "
-        "wet grey cobblestones next to a yellow wooden folding ruler with centimetre markings "
-        "for scale, smaller hailstones melting, a few glass shards nearby, overcast daylight."
-        + STYLE,
-        refinements=(
-            "Edit this photo: keep the wet cobblestones, the hailstones, the glass shards and "
-            "the camera angle. Replace the folding ruler with a clean yellow wooden folding "
-            "ruler whose centimetre graduations are numbered 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 in "
-            "increasing order along one edge only, with no other numbers. Make the largest "
-            "hailstone about 5 cm across measured against that ruler, and keep the other "
-            "hailstones between 2 and 4 cm.",
-            "Edit this photo: on the folding ruler keep the numbers 1 to 10 along the left "
-            "edge and remove every number from the right edge, leaving only plain tick marks "
-            "there. Keep everything else unchanged.",
-        ),
+        "Hagelkörner mit Massstab; gemeldete Grösse bis ca. 5 cm, keine kalibrierte Messung",
+        "28 August 10:43, near-vertical close-up of wet grey small stone paving, stones "
+        "approximately 10 by 10 cm with narrow mortar joints. One irregular melting hailstone "
+        "about 4.5-5 cm across, several smaller 1-2 cm hailstones. A straight 15 cm metric "
+        "steel ruler lies FLAT beside it, in the SAME plane, horizontal across the lower "
+        "frame. One scale only, equal centimetre intervals numbered in increasing order "
+        "0 through 15, millimetre ticks, no inch scale, no folding hinges. Largest ice piece "
+        "beside the ruler spans about five centimetre intervals, not five millimetres. "
+        "Thin meltwater film, soft overcast light, no people or hands, no labels." + STYLE,
+        system_prompt="HAIL SCALE CLOSE-UP. The ice and straight ruler share one plane with "
+        "no perspective size trick. Ice is irregular, translucent, melting, not oversized snowballs.",
     ),
     Photo(
         "IMG_20260828_105207.jpg",
         "28.08.2026 10:52",
-        "Verkaufsraum mit Glasscherben und Wasser",
-        "Interior of a small traditional Swiss chocolate shop right after a hailstorm: the shop "
-        "window is broken, glass shards cover the wooden sales counter and a glass display case "
-        "of pralines and truffles wet with rain water, puddles on the tiled floor, a fallen "
-        "shelf of chocolate gift boxes with soaked packaging, grey daylight through the broken "
-        "window, warm wooden fittings with dark green accents, lights off." + STYLE,
+        "Verkaufsraum: Glasrisse bleiben gebunden; lokale Nässe am unteren Rahmen",
+        "Use the same reference shop but photograph the window from INSIDE at close "
+        "range, looking slightly down from 1.5 m eye height. Tight composition includes "
+        "ONLY the dark-brown window frame, continuous cracked laminated pane, low "
+        "display plinth and adjacent tiled floor. No door, ceiling or lamps in frame. "
+        "The pane is 1.80 by 2.10 m; its lower ledge is 0.65 m high and 0.40 m deep. "
+        "From INSIDE the impact area reverses to the LOWER RIGHT and mid-right. Fine "
+        "asymmetric radial cracks merge with irregular longer fractures, fragments "
+        "still bonded to the interlayer. Entire glazing remains present, no hole or "
+        "missing chunk, no loose shards inside. Outside view is seen THROUGH intact "
+        "cracked glass, with faint reflections and rain droplets; scattered hail "
+        "continues across exposed paving outside. A localized rainwater track starts "
+        "at the storm-loosened lower frame/weather seal, runs down the plinth corner "
+        "and forms a SMALL shallow patch below. No water crossing solid glass, no "
+        "central-room flood. NO gift boxes, cartons, chocolates or food in this tight "
+        "frame: the protected stock and service showcase are elsewhere, OUT OF VIEW. "
+        "The interior stone ledge is completely empty. Through the pane show only "
+        "outdoor stone paving, curb and scattered hail, never a shelf or food outside. "
+        "natural grey daylight only, no artificial lighting or readable text." + STYLE,
+        reference="IMG_20260828_104112.jpg",
         refinements=(
-            "Edit this photo: keep the shop interior, the broken window, the glass shards, the "
-            "wet floor, the fallen gift boxes and the praline display unchanged. Make the "
-            "window frame dark brown wood. Through the broken window show only a narrow wet "
-            "cobblestone old-town lane with historic three-storey houses in ochre and white "
-            "plaster on the opposite side under a grey overcast sky; remove the mountains, "
-            "the flag, the traffic signs and the wide road.",
+            "Keep the tight interior framing. The ENTIRE laminated pane stays physically "
+            "present; retain realistic branching cracks but fill any accidentally "
+            "missing glass with transparent cracked glazing. No circular crater or "
+            "loose shards on ledge/floor. Keep only a localized wet track from the "
+            "lower frame corner to the floor, not rain through the solid pane. REMOVE "
+            "BOTH gift boxes completely; do NOT move or replace them. Remove ALL "
+            "cartons, ribbons, food, trays and display items from the entire image. "
+            "Leave the stone window ledge completely EMPTY. Protected stock is "
+            "elsewhere outside this tight camera frame. Through the glass show "
+            "only outdoor paving and hail, never an outdoor shelf or food. "
+            "Outside hail is scattered across the "
+            "exposed street, not concentrated at this window. Remove invented writing.",
         ),
+        system_prompt="SHOP INTERIOR AT 10:52. Maintain front/rear and left/right geometry "
+        "when reversing the camera. Cracked laminated glass stays retained. Limited "
+        "frame-seal leakage, not rain through a hole. Food enclosed. Power is OFF.",
     ),
     Photo(
         "IMG_20260828_112604.jpg",
         "28.08.2026 11:26",
-        "Atelier: zerbrochenes Oblicht, Wasser auf der Temperiermaschine",
-        "Small artisan chocolate workshop behind a shop: a broken glass skylight in the ceiling "
-        "with jagged glass, partly covered by a blue tarpaulin, rain water dripping onto a "
-        "stainless-steel chocolate tempering machine filled with chocolate, water pooling on "
-        "the stainless worktable and the floor, an enrobing machine and a small cooling tunnel "
-        "in the background, lights off, only grey daylight from the skylight." + STYLE,
+        "Atelier: undichter Oblichtrahmen, nasses Maschinengehäuse; Schokolade unter Deckeln",
+        "28 August 11:26. Ground-floor workshop in a SINGLE-STOREY REAR ANNEX behind the "
+        "multi-storey street shop, not a skylight through occupied upper floors. Room "
+        "6 by 8 m, ceiling 3.1 m; intact white opaque roof soffit surrounds a raised glazed "
+        "rooflight 1.2 by 2.4 m, divided by supported aluminium mullions into four panes. "
+        "One laminated safety-glass pane has branching impact fractures, all fragments "
+        "retained, NO OPEN HOLE or hanging shards. A storm-loosened weather seal at "
+        "one rooflight FRAME corner leaks residual water; droplets descend from that "
+        "frame joint, not through solid glass, onto the OUTER SIDE casing of ONE "
+        "floor-standing stainless chocolate tempering machine, 0.65 m wide, 0.85 m "
+        "deep, 1.15 m high. Its small 25-litre round bowl has its NORMAL CLOSED fitted "
+        "stainless food-protection lid, already in place during the interruption, "
+        "not an improvised storm tarp. No uncovered chocolate underneath the leak. "
+        "Water traces down the external casing to a shallow transparent local puddle "
+        "on 0.20 m floor tiles. Clear water only: the indoor floor has NO ice, hail, "
+        "glass, white fragments, plaster debris or foam. Nothing has fallen through "
+        "the retained rooflight. This is a working hygienic professional chocolate kitchen: "
+        "stainless workbench 0.90 m high, GN food containers with FULLY CLOSED FLAT "
+        "STAINLESS LIDS covering their entire openings, covered chocolate "
+        "storage tubs, stacked clean polycarbonate praline moulds, bowl scrapers, "
+        "an unplugged digital scale, a stainless wash sink with ordinary mixer tap. "
+        "The lower bench shelf holds ONLY closed white food-storage tubs, no open "
+        "pans, no brown exposed ingredients. All small utensils on dry bench AWAY "
+        "from the dripping corner, not scattered "
+        "on the floor. A CLOSED glass-lidded tray of small chocolate pralines on that "
+        "dry bench shows what is made here, not a row of exposed food. Enrober 1.0 m wide and "
+        "cooling tunnel in background, stable and correctly supported, 0.9 m access aisle. "
+        "All screens, lamps, belts and indicators OFF after fuse trip; no exposed live "
+        "wiring. No tarp yet: emergency covering occurs only at 14:00. No people under "
+        "broken glass, no hazardous staging. Daylight through rooflight." + STYLE,
+        refinements=(
+            "Keep this professional chocolate kitchen geometry, retained cracked safety "
+            "rooflight glazing, intact white opaque soffit, supported machines, real "
+            "kitchen utensils and covered food. Water drips from ONE FRAME JOINT onto "
+            "external casing only, never through unbroken glass or into open chocolate. "
+            "Keep the normal stainless bowl lid CLOSED, all GN containers lidded, any "
+            "visible pralines under a closed transparent food cover. Correct the "
+            "power-isolated state: every machine screen is "
+            "opaque matte BLACK; every tiny blue, green, red or amber status LED is DARK "
+            "and unlit, including the front tempering machine and right-side enrober. "
+            "Keep physical buttons and housings, but no coloured glow. Remove the wall "
+            "clock, the left framed slogans, the right handwritten slogan and all other "
+            "writing except the German door label LAGER. Leave clean plain walls. "
+            "The floor has ONLY a shallow CLEAR WATER puddle: remove every white "
+            "fragment, glass shard, ice pellet, foam patch and plaster crumb beneath "
+            "the machine. The retained pane sheds no glass into the kitchen. On the "
+            "bench and lower shelf, fit flat stainless lids to EVERY GN pan; do not "
+            "leave open chocolate or ingredients in the storage pans. Transparent "
+            "food covers stay shut. No new damage, no tarp, no insulation in glazing.",
+        ),
+        system_prompt="REAR-ANNEX WORKSHOP AT 11:26. Opaque roof construction and glazed "
+        "rooflight are separate; drainage follows gravity. Equipment is not powered. "
+        "Photo supports external wetting of one machine, not a diagnosis of every machine.",
     ),
     Photo(
         "IMG_20260829_150418.jpg",
         "29.08.2026 15:04",
-        "Kühlraum nach dem Stromunterbruch (23,8 °C)",
-        "Inside the small walk-in cold room of a chocolate workshop the day after a long power "
-        "cut: the cooling unit is off, a wall-mounted digital thermometer clearly shows "
-        "23.8 °C, stacked cardboard boxes of seasonal chocolate products are soaked and "
-        "sagging, condensation on the metal shelves, open trays of softened truffles, dim "
-        "light from the open door." + STYLE,
+        "Kühlraum nach Stromrückkehr: Anzeige 23,8 °C; Teilbestand, kein Verderbnachweis",
+        "29 August 15:04, four minutes AFTER power restoration. A dry intact walk-in cold "
+        "room at the rear of the workshop, 2.4 by 3.0 m, ceiling 2.3 m. View from open "
+        "0.85 m door, light from doorway. Insulated metal wall panels, intact ceiling, "
+        "dry non-slip floor, correctly mounted evaporator, refrigeration only just "
+        "restarting. Wall thermometer at eye level displays exactly '23,8 °C', one "
+        "decimal comma, no duplicate readouts or other writing. Metal shelves 0.45 m "
+        "deep on left and right, four shelves each, stable plain dry cardboard cartons "
+        "0.30 by 0.20 by 0.15 m, bottom shelf 0.15 m clear of floor, 1.0 m clear central "
+        "aisle. One 0.40 by 0.30 m tray fully supported on shelf holds small 2.5 cm "
+        "truffles, mostly retaining shape with slight softened glossy edges only. "
+        "No puddles, dripping chocolate, soaking or sagging cartons, frost or dramatic "
+        "condensation. Warmed food may be unsafe without spectacular visible melting." + STYLE,
+        system_prompt="COLD ROOM AT 15:04 NEXT DAY. Warming during an outage does not cause "
+        "rain damage in this intact room. This is a temperature/stock sample, not visual "
+        "proof of microbiological spoilage or total inventory loss. Correct human-scale storage.",
     ),
 ]
 EMAIL_1_PHOTOS = [photo.name for photo in PHOTOS if photo.taken.startswith("28.08.2026")]
@@ -264,6 +435,55 @@ FOOTER_DE = (
     "Fiktives Dokument — Demonstration PrevaIQ. Firma, Personen, Police und Beträge sind erfunden."
 )
 FOOTER_EN = "Fictitious document — PrevaIQ demonstration. Business, people, policy and amounts are invented."
+PHOTO_EVIDENCE_DE = (
+    "Die Fotos zeigen nur Ausschnitte des gemeldeten Bestands und Schadens, nicht die "
+    "vollständigen Mengen oder den Wert. Im Szenario wurde die Markise vor dem Unwetter "
+    "eingefahren. Windgetriebener Hagel traf die ungeschützte Fassade schräg von oben. "
+    "Das Verbundsicherheitsglas an Schaufenster und Oblicht ist gerissen, bleibt aber "
+    "in der Zwischenschicht gebunden: keine ausgestanzten Löcher oder offenen Glasdurchbrüche.",
+    "Der gemeldete Wassereintritt erfolgt an sturmbedingt gelockerten Rahmenanschlüssen, "
+    "nicht durch geschlossene Glasscheiben. Feuchte Spuren liegen lokal an der "
+    "Schaufensterecke und unter einem Oblichtrahmen des eingeschossigen rückwärtigen "
+    "Anbaus; Ursache und Umfang der Undichtigkeiten sind technisch zu prüfen. Am 28.08. "
+    "um 11:26 ist noch keine äussere Notabdeckung angebracht. Die Temperierschüssel "
+    "hat ihren normalen geschlossenen Lebensmitteldeckel; Waren, Pralinés und Zutaten "
+    "stehen in geschlossenen Verpackungen, Vitrinen oder abgedeckten Behältern. "
+    "Glasrisse allein belegen keine Kontamination aller Waren.",
+    "Die Temperiermaschine ist äusserlich nass; der gemeldete Kurzschluss und der "
+    "Reparaturumfang aller Anlagen müssen technisch geprüft werden. Der Massstab beim "
+    "Hagel ist eine illustrative Grössenreferenz, keine kalibrierte Messung.",
+    "Das Kühlraumfoto zeigt einen Teilbestand und die Anzeige 23,8 °C kurz nach "
+    "Stromrückkehr, nicht den gesamten Temperaturverlauf oder einen mikrobiologischen "
+    "Verderbnachweis. Die Verpackungen im intakten Kühlraum sind trocken. Den Verlust "
+    "der Kühlware meldet die Versicherungsnehmerin aufgrund der unterbrochenen Kühlkette; "
+    "Temperaturprotokolle und lebensmitteltechnische Prüfung bleiben erforderlich.",
+    "Alle Beträge sind vorläufige Forderungen. Inventarlisten, technische Berichte, "
+    "Temperaturprotokolle, Offerten und Geschäftsunterlagen sind nicht beigefügt.",
+)
+PHOTO_EVIDENCE_EN = (
+    "The photos show selected stock and damage, not the full inventory or its value. "
+    "In the scenario the awning was retracted before the storm. Wind-driven hail struck "
+    "the exposed facade obliquely from above. The laminated glazing in the shop window "
+    "and rooflight is cracked but retained on its interlayer: no punched-out holes "
+    "or open glass breaches.",
+    "Reported water ingress is through storm-loosened frame joints, not solid glazing. "
+    "Wet tracks are local to the shop-window corner and one rooflight-frame joint in the "
+    "single-storey rear annex; the cause and extent of leaks require technical assessment. "
+    "No external emergency cover is present at 11:26. The tempering bowl has its normal "
+    "closed food-protection lid; stock, pralines and ingredients are in closed packaging, "
+    "showcases or covered containers. Cracked glass alone does not establish contamination "
+    "of all stock.",
+    "One tempering machine is externally wet; the reported short circuit and repair scope "
+    "of all equipment require technical assessment. The hail ruler is an illustrative "
+    "size reference, not a calibrated measurement.",
+    "The cold-room photo shows selected stock and a 23.8 °C readout shortly after power "
+    "restoration, not the temperature history or microbiological proof of spoilage. "
+    "Cartons in the intact cold room are dry. The insured reports refrigerated-stock loss "
+    "because of the interrupted cold chain; temperature records and food-safety assessment "
+    "remain necessary.",
+    "All amounts are provisional demands. Inventory lists, technical reports, temperature "
+    "records, quotes and business records are not attached.",
+)
 
 
 def chf(amount: float) -> str:
@@ -494,6 +714,7 @@ def claim_form_html() -> str:
     return (
         f"<h1>Schadenmeldung — KMU-Geschäftsversicherung</h1>"
         f"<p>{INSURER} · Schadenservice · {INSURER_EMAIL} · Schaden-Nr. {CLAIM_NO}</p>"
+        + paragraphs(LOCATION_DE)
         + section(
             "1. Versicherungsnehmer",
             table(
@@ -546,15 +767,24 @@ def claim_form_html() -> str:
             + paragraphs(
                 "Am Freitag, 28. August 2026, zog zwischen ca. 09:50 und 10:20 Uhr ein heftiges "
                 "Hagelgewitter mit starken Sturmböen über Winterthur. Hagelkörner von bis zu "
-                "ca. 5 cm Durchmesser zerschlugen das Schaufenster unseres Ladens und das Oblicht "
-                "über dem Atelier; die Markise wurde zerrissen. Durch die Öffnungen drang "
-                "Regenwasser in den Verkaufsraum und ins Atelier ein.",
-                "An der Temperiermaschine entstand ein Kurzschluss, die Hauptsicherung löste aus. "
+                "ca. 5 cm Durchmesser wurden gemeldet. Das Schaufenster unseres Ladens und "
+                "ein Teil des Oblichts über dem Atelier im eingeschossigen rückwärtigen "
+                "Anbau wurden beschädigt. Die Markise war vor dem Unwetter eingefahren; "
+                "ihr kurzer Volant wurde lokal zerrissen. Windgetriebener Hagel traf die "
+                "Fassade schräg von oben. Die gerissenen Verbundsicherheitsscheiben bleiben "
+                "gebunden, ohne offene Durchbrüche. Regenwasser trat nach unserer Beobachtung "
+                "an gelockerten Rahmenanschlüssen in den Verkaufsraum und ins Atelier ein; "
+                "der genaue Eintrittsweg muss technisch geprüft werden. Die Schokolade "
+                "war durch geschlossene Vitrinen, Verpackungen und normale Behälter- "
+                "beziehungsweise Maschinendeckel geschützt.",
+                "Nach Angaben der Betreiberin entstand an der Temperiermaschine ein Kurzschluss, "
+                "die Hauptsicherung löste aus; ein technischer Bericht steht noch aus. "
                 "Der Elektro-Notdienst hat die Stromversorgung um 11:30 Uhr aus "
                 "Sicherheitsgründen abgestellt; sie wurde erst am Samstag, 29. August 2026, um "
                 "15:00 Uhr wieder eingeschaltet. In dieser Zeit stieg die Temperatur im Kühlraum "
                 "auf 23,8 °C; die dort gelagerten Pralinés, Truffes und Ganache-Halbfabrikate "
-                "sind verdorben.",
+                "werden wegen der unterbrochenen Kühlkette als Verlust gemeldet. "
+                "Der einzelne Temperaturwert belegt nicht allein Verderb und Gesamtverlust.",
                 "Ein grosser Teil des Warenvorrats für die Herbst- und Weihnachtssaison, die "
                 "Ladeneinrichtung und mehrere Produktionsmaschinen sind beschädigt. Der Betrieb "
                 "ist bis auf Weiteres geschlossen.",
@@ -564,7 +794,8 @@ def claim_form_html() -> str:
             "4. Massnahmen zur Schadenminderung",
             paragraphs(
                 "28.08.2026, 14:00 Uhr: Notverglasung durch einen Glaser-Notdienst, Abdeckung des "
-                "Oblichts mit einer Plane, Abdeckung der Maschinen.",
+                "Oblichts mit einer äusseren Plane, zusätzliche äussere Abdeckung der Maschinen. "
+                "Normale Lebensmitteldeckel waren bereits zuvor geschlossen.",
                 "Ab 29.08.2026: Bautrockner im Verkaufsraum und im Atelier. Unbeschädigte Ware wurde "
                 "ausgelagert und gekühlt gelagert.",
             ),
@@ -588,6 +819,10 @@ def claim_form_html() -> str:
                 "Folgen bis 11.09.2026: Inventarlisten per 31.07.2026, Umsatzzahlen September bis "
                 "Dezember 2024 und 2025, Offerten der Unternehmer."
             ),
+        )
+        + section(
+            "7a. Aussagegrenzen der fotografischen Belege",
+            paragraphs(*PHOTO_EVIDENCE_DE),
         )
         + section(
             "8. Erklärung",
@@ -617,9 +852,11 @@ EMAIL_1 = {
     "footer": FOOTER_DE,
     "body": f"""Sehr geehrte Damen und Herren
 
-Heute Morgen, zwischen ca. 09:50 und 10:20 Uhr, hat ein heftiges Hagelgewitter unser Geschäft an der {STREET} in Winterthur schwer beschädigt. Das Schaufenster und das Oblicht über dem Atelier sind zerschlagen, Regenwasser ist in den Laden und ins Atelier eingedrungen. An der Temperiermaschine gab es einen Kurzschluss; der Elektro-Notdienst hat den Strom um 11:30 Uhr aus Sicherheitsgründen abgestellt. Wann er wieder eingeschaltet werden kann, ist noch offen – im Kühlraum lagern Pralinés und Truffes für den Herbstverkauf.
+{LOCATION_DE}
 
-Wir haben für heute 14:00 Uhr eine Notverglasung organisiert und die Maschinen abgedeckt. Die Liegenschaftsverwaltung meldet den Gebäudeschaden der GVZ.
+Heute Morgen, zwischen ca. 09:50 und 10:20 Uhr, hat ein heftiges Hagelgewitter unser Geschäft an der {STREET} in Winterthur schwer beschädigt. Die Markise war zuvor eingefahren; der kurze Volant wurde beschädigt. Windgetriebener Hagel traf die Fassade schräg von oben. Das Verbundsicherheitsglas am Schaufenster und an einem Teil des Oblichts über dem Atelier im eingeschossigen rückwärtigen Anbau ist gerissen, bleibt aber gebunden, ohne offene Glasdurchbrüche. An gelockerten Rahmenanschlüssen beobachten wir Regenwassereintritt; der genaue Eintrittsweg ist noch zu prüfen. Waren und Lebensmittel waren in geschlossenen Vitrinen, Verpackungen oder unter normalen Deckeln geschützt. Das Maschinengehäuse ist dennoch äusserlich nass. An der Temperiermaschine vermuten wir einen Kurzschluss; die Hauptsicherung löste aus. Der Elektro-Notdienst hat den Strom um 11:30 Uhr zusätzlich aus Sicherheitsgründen abgestellt. Ein technischer Bericht steht aus. Wann der Strom wieder eingeschaltet werden kann, ist noch offen – im Kühlraum lagern Pralinés und Truffes für den Herbstverkauf.
+
+Um 14:00 Uhr wurden die Notverglasung, die äussere Notabdeckung des Oblichts und zusätzliche äussere Maschinenabdeckungen durchgeführt. Die normalen Lebensmitteldeckel waren bereits zuvor geschlossen. Die vier Vormittagsfotos zeigen den Zustand vor diesen äusseren Notmassnahmen. Sie belegen weder Kontamination aller Waren noch den gesamten Reparaturumfang. Die Liegenschaftsverwaltung meldet den Gebäudeschaden der GVZ.
 
 Im Anhang finden Sie vier Fotos von heute Vormittag. Die vollständige Schadenmeldung mit der Schadenaufstellung reichen wir nach. Bitte teilen Sie uns die Schadennummer mit und ob eine Besichtigung vorgesehen ist.
 
@@ -651,16 +888,21 @@ EMAIL_2 = {
 
 Further to Andrea Keller's first notice of Friday 28 August (your claim no. {CLAIM_NO}, policy {POLICY}), please find attached our signed claim form (Schadenmeldung) and six photos.
 
-Our consolidated loss estimate amounts to {chf_en(TOTAL)}:
+{LOCATION_EN}
+
+Our provisional consolidated loss estimate amounts to {chf_en(TOTAL)}:
 {_estimate_lines}
 
 A few points for your assessment:
 
-1. The emergency electrician cut the power on 28 August at 11:30; it was restored on 29 August at 15:00. By then the cold room had reached 23.8 °C (photo of 29 August) and its contents were lost. We understand that our policy may not include the refrigerated goods extension; as the power cut was a direct consequence of the hailstorm, we ask you to consider this loss as part of the storm damage.
+1. The main fuse tripped during the storm; the emergency electrician additionally isolated the supply on 28 August at 11:30. Power was restored on 29 August at 15:00. The photo at 15:04 shows a 23.8 °C readout shortly after restoration. We report the refrigerated contents as lost because of the interrupted cold chain, subject to temperature-record and food-safety review. We understand that our policy may not include the refrigerated goods extension; as the power cut was a direct consequence of the hailstorm, we ask you to consider this loss as part of the storm damage.
 
 2. The property management has also reported the building damage to the GVZ (GVZ claim no. {GVZ_REF}). We renewed the shop window and the skylight ourselves in 2019 as tenant improvements, which is why we include them here.
 
-3. The photo dated Wednesday 26 August (18:34) shows the fully stocked shop window two days before the storm. We provide it as evidence of our stock levels.
+3. The photo dated Wednesday 26 August (18:34) shows selected shop-window stock two days before the storm. It is not damage evidence or proof of the complete inventory.
+
+Photographic evidence and limits:
+{chr(10).join(PHOTO_EVIDENCE_EN)}
 
 Inventory lists as at 31 July 2026, our September to December sales figures for 2024 and 2025 and the contractors' quotes will follow by 11 September.
 
@@ -677,9 +919,9 @@ Co-owner, Finance
 }
 
 
-def _mail_attachment(name: str) -> tuple[bytes, str, str] | None:
+def _mail_attachment(name: str, scenario_dir: Path = SCENARIO_DIR) -> tuple[bytes, str, str] | None:
     """Attachment as sent by a phone mail client: photos downscaled to 1024 px."""
-    path = SCENARIO_DIR / name
+    path = scenario_dir / name
     if not path.exists():
         return None
     if path.suffix == ".pdf":
@@ -691,7 +933,7 @@ def _mail_attachment(name: str) -> tuple[bytes, str, str] | None:
     return pixmap.tobytes("jpg", jpg_quality=78), "image", "jpeg"
 
 
-def write_email(mail: dict) -> list[str]:
+def write_email(mail: dict, scenario_dir: Path = SCENARIO_DIR, creator: str = CREATOR) -> list[str]:
     message = EmailMessage()
     message["From"] = f"{mail['from'][0]} <{mail['from'][1]}>"
     message["To"] = f"{mail['to'][0]} <{mail['to'][1]}>"
@@ -703,14 +945,14 @@ def write_email(mail: dict) -> list[str]:
     message.set_content(mail["body"])
     attached, missing = [], []
     for name in mail["attachments"]:
-        attachment = _mail_attachment(name)
+        attachment = _mail_attachment(name, scenario_dir)
         if attachment is None:
             missing.append(name)
             continue
         content, maintype, subtype = attachment
         message.add_attachment(content, maintype=maintype, subtype=subtype, filename=name)
         attached.append((name, len(content)))
-    (SCENARIO_DIR / f"{mail['file']}.eml").write_bytes(message.as_bytes(policy=policy.SMTP))
+    (scenario_dir / f"{mail['file']}.eml").write_bytes(message.as_bytes(policy=policy.SMTP))
 
     sender, sent, to, cc, subject, files = mail["labels"]
     header_rows = [
@@ -734,12 +976,13 @@ def write_email(mail: dict) -> list[str]:
         + body
     )
     render_pdf(
-        SCENARIO_DIR / f"{mail['file']}.pdf",
+        scenario_dir / f"{mail['file']}.pdf",
         html,
         mail["footer"],
         logo=False,
         title=mail["subject"],
         author=mail["from"][0],
+        creator=creator,
     )
     return missing
 
@@ -747,7 +990,16 @@ def write_email(mail: dict) -> list[str]:
 # ── Rendering ────────────────────────────────────────────────────────────────
 
 
-def render_pdf(path: Path, html: str, footer: str, *, logo: bool, title: str, author: str) -> None:
+def render_pdf(
+    path: Path,
+    html: str,
+    footer: str,
+    *,
+    logo: bool,
+    title: str,
+    author: str,
+    creator: str = CREATOR,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     mediabox = fitz.paper_rect("a4")
     where = mediabox + (50, 80 if logo else 50, -50, -56)
@@ -774,7 +1026,7 @@ def render_pdf(path: Path, html: str, footer: str, *, logo: bool, title: str, au
             "title": title,
             "author": author,
             "subject": footer,
-            "creator": "scripts/generate_swiss_storm_claim.py",
+            "creator": creator,
         }
     )
     doc.saveIncr()
@@ -844,37 +1096,65 @@ class MaiImages:
         )
 
 
-def _save_jpeg(png: bytes, name: str) -> None:
+def _save_jpeg(png: bytes, name: str, scenario_dir: Path = SCENARIO_DIR) -> None:
     pixmap = fitz.Pixmap(png)
     if pixmap.alpha:
         pixmap = fitz.Pixmap(pixmap, 0)
-    (SCENARIO_DIR / name).write_bytes(pixmap.tobytes("jpg", jpg_quality=86))
+    (scenario_dir / name).write_bytes(pixmap.tobytes("jpg", jpg_quality=86))
     print(f"  {pixmap.width}x{pixmap.height}", flush=True)
 
 
-def generate_photos() -> None:
+def image_request_prompt(photo: Photo, instruction: str) -> str:
+    return f"{IMAGE_SYSTEM_INSTRUCTIONS}\n{photo.system_prompt}\n\nSCENE REQUEST:\n{instruction}"
+
+
+def generate_photos(names: list[str] | None = None) -> None:
+    selected = set(names) if names else {photo.name for photo in PHOTOS}
+    unknown = selected - {photo.name for photo in PHOTOS}
+    if unknown:
+        raise ValueError(f"Unknown photos: {', '.join(sorted(unknown))}")
+    for photo in PHOTOS:
+        if photo.name in selected and photo.reference and photo.reference not in selected:
+            path = SCENARIO_DIR / photo.reference
+            if not path.is_file():
+                raise FileNotFoundError(f"Reference photo does not exist: {path}")
     mai = MaiImages()
     originals: dict[str, bytes] = {}
     for photo in PHOTOS:
+        if photo.name not in selected:
+            continue
         print(f"Generating {photo.name} ({photo.caption})", flush=True)
         if photo.reference:
-            png = mai.edit(photo.prompt, originals[photo.reference])
+            reference = originals.get(photo.reference)
+            if reference is None:
+                reference = (SCENARIO_DIR / photo.reference).read_bytes()
+            png = mai.edit(image_request_prompt(photo, photo.prompt), reference)
         else:
-            png = mai.generate(photo.prompt)
+            png = mai.generate(image_request_prompt(photo, photo.prompt))
         for refinement in photo.refinements:
-            png = mai.edit(refinement, png)
+            png = mai.edit(image_request_prompt(photo, refinement), png)
         originals[photo.name] = png
         _save_jpeg(png, photo.name)
 
 
 def refine_photos(names: list[str]) -> None:
     """Apply the last refinement edit of each named photo to its existing file."""
+    photos = {photo.name: photo for photo in PHOTOS}
+    invalid = [name for name in names if name not in photos or not photos[name].refinements]
+    if invalid:
+        raise ValueError(f"No refinement defined for: {', '.join(invalid)}")
+    for name in names:
+        if not (SCENARIO_DIR / name).is_file():
+            raise FileNotFoundError(f"Photo to refine does not exist: {SCENARIO_DIR / name}")
     mai = MaiImages()
     for photo in PHOTOS:
         if photo.name in names and photo.refinements:
             print(f"Refining {photo.name}", flush=True)
             _save_jpeg(
-                mai.edit(photo.refinements[-1], (SCENARIO_DIR / photo.name).read_bytes()),
+                mai.edit(
+                    image_request_prompt(photo, photo.refinements[-1]),
+                    (SCENARIO_DIR / photo.name).read_bytes(),
+                ),
                 photo.name,
             )
 
@@ -891,6 +1171,7 @@ def write_manifest() -> None:
             "model": MAI_MODEL,
             "model_version": MAI_VERSION,
             "prompt": photo.prompt,
+            "system_instructions": IMAGE_SYSTEM_INSTRUCTIONS + photo.system_prompt,
             "edited_from": photo.reference,
             "refinement_prompts": list(photo.refinements),
         }
@@ -915,8 +1196,9 @@ def write_manifest() -> None:
         "persona": "habitation_claims",
         "synthetic": True,
         "notice": "Business, people, policy, references, amounts, documents and photos are "
-        "fictitious and created for the PrevaIQ demo. Only the municipality (Winterthur) and "
-        "the storm date are real. The photos are AI-generated (MAI-Image-2.6).",
+        "fictitious and created for the PrevaIQ demo. "
+        + LOCATION_EN
+        + " The photos are AI-generated (MAI-Image-2.6).",
         "generator": "scripts/generate_swiss_storm_claim.py",
         "policy_conditions": str(AVB_PATH.relative_to(ROOT)).replace("\\", "/"),
         "identity": {
@@ -929,6 +1211,8 @@ def write_manifest() -> None:
             "claim": CLAIM_NO,
         },
         "identity_checks": IDENTITY_CHECKS,
+        "map_anchor": MAP_ANCHOR,
+        "photo_evidence_scope": {"de": list(PHOTO_EVIDENCE_DE), "en": list(PHOTO_EVIDENCE_EN)},
         "timeline": [{"when": when, "event": event} for when, event in TIMELINE],
         "amounts_chf": {english: amount for _, english, amount, _ in DAMAGES} | {"total": TOTAL},
         "attention_points": ATTENTION_POINTS,
@@ -942,7 +1226,12 @@ def write_manifest() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--photos", action="store_true", help="(re)generate the MAI photos")
+    parser.add_argument(
+        "--photos",
+        nargs="*",
+        metavar="PHOTO",
+        help="(re)generate all MAI photos, or only the named photos",
+    )
     parser.add_argument(
         "--refine",
         nargs="+",
@@ -952,8 +1241,8 @@ def main() -> None:
     args = parser.parse_args()
     SCENARIO_DIR.mkdir(parents=True, exist_ok=True)
 
-    if args.photos:
-        generate_photos()
+    if args.photos is not None:
+        generate_photos(args.photos)
     if args.refine:
         refine_photos(args.refine)
     render_pdf(

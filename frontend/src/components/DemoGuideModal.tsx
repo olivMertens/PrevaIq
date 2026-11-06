@@ -4,7 +4,7 @@ import BrandMark from './BrandMark';
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { HelpCircle, X, ChevronDown, ChevronRight, Upload, MessageSquare, CheckCircle, Search, CloudRain, CloudHail, FileText, ClipboardList, Car, Home, Shield, Users, Stethoscope } from 'lucide-react';
+import { HelpCircle, X, ChevronDown, ChevronRight, Upload, MessageSquare, CheckCircle, Search, CloudRain, CloudHail, Watch, FileText, ClipboardList, Car, Home, Shield, Users, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
 import { brand } from '@/lib/brand';
 
@@ -51,6 +51,20 @@ const SCENARIOS: Scenario[] = [
     demoPdf: `${DEMO_DIR}/property-claims/swiss-chocolate-storm/schadenmeldung-geschaeftsversicherung.pdf`,
     steps: [
       { icon: CloudHail },
+      { icon: Upload },
+      { icon: FileText },
+      { icon: Shield },
+      { icon: MessageSquare },
+      { icon: CheckCircle },
+    ],
+  },
+  {
+    id: "habitation-ch-watch",
+    icon: Watch,
+    color: "#17395c",
+    demoPdf: `${DEMO_DIR}/property-claims/swiss-watch-storm/schadenmeldung-geschaeftsversicherung.pdf`,
+    steps: [
+      { icon: Watch },
       { icon: Upload },
       { icon: FileText },
       { icon: Shield },
