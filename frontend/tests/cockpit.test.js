@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { createTranslator } = require('use-intl/core');
 const { load: loadTs, srcDir } = require('./loadTs');
 
 const caseDir = path.join(srcDir, 'components', 'case');
@@ -489,7 +490,7 @@ test('AI pipeline stays quiet when fine and flags review or real problems', () =
 
 test('recommendations map to real decisions and never invent a confidence score', () => {
   const t = (key, values) => (values ? `${key}:${JSON.stringify(values)}` : key);
-  const base = { analysisComplete: true, fraudRisk: 0.1, siuRecommended: false, inconsistentStatement: false, amount: 1200, amountLabel: '1,200' };
+  const base = { analysisComplete: true, fraudRisk: 0.1, siuRecommended: false, inconsistentStatement: false, amount: 1200, amountLabel: '1,200', thresholdLabel: '5,000' };
 
   assert.equal(recommendation.buildRecommendation({ ...base, analysisComplete: false }, t), null);
   const siu = recommendation.buildRecommendation({ ...base, siuRecommended: true, fraudRisk: 0.79 }, t);
@@ -505,6 +506,46 @@ test('recommendations map to real decisions and never invent a confidence score'
     ['stp_approve', 'approve'],
   );
   assert.equal(recommendation.buildRecommendation({ ...base, fraudRisk: 0.4 }, t).id, 'approve_standard');
+});
+
+test('recommendation reasons keep CHF and EUR consistent with the amount and expertise threshold', () => {
+  for (const locale of ['en', 'fr', 'de']) {
+    const messages = JSON.parse(fs.readFileSync(
+      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
+    ));
+    const t = createTranslator({ locale, messages, namespace: 'nextAction' });
+    for (const code of ['CHF', 'EUR']) {
+      const money = value => currency.formatAmount(value, code, locale, { maximumFractionDigits: 0 });
+      for (const amount of [1200, 1697400]) {
+        const result = recommendation.buildRecommendation({
+          analysisComplete: true, fraudRisk: 0.1, siuRecommended: false,
+          inconsistentStatement: false, amount, amountLabel: money(amount),
+          thresholdLabel: money(5000),
+        }, t);
+        assert.ok(result.reason.includes(money(amount)), `${locale}/${code}: amount`);
+        if (amount > 5000) {
+          assert.ok(result.reason.includes(money(5000)), `${locale}/${code}: threshold`);
+        }
+        assert.doesNotMatch(result.reason, code === 'CHF' ? /€|EUR/ : /CHF/);
+        assert.doesNotMatch(result.reason, /\{(?:amount|threshold)\}/);
+      }
+    }
+  }
+});
+
+test('Aurora wording supports historical inputs rather than promising current weather', () => {
+  for (const locale of ['en', 'fr', 'de']) {
+    const messages = JSON.parse(fs.readFileSync(
+      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
+    ));
+    const t = createTranslator({ locale, messages, namespace: 'caseCockpit.aurora' });
+    const result = t('result', { model: 'aurora-0.25-v1.5', hours: 6 });
+    assert.ok(result.includes('aurora-0.25-v1.5'));
+    assert.ok(result.includes('6'));
+    assert.doesNotMatch(result, /next|prochaines|nächsten/);
+    assert.match(t('description'), /histor/i);
+    assert.equal(typeof t('evidence.initialConditions'), 'string');
+  }
 });
 
 test('every dynamic cockpit key exists in English, French and German', () => {
@@ -538,7 +579,7 @@ test('every dynamic cockpit key exists in English, French and German', () => {
 
   // Every recommendation (and alternative) the rules can produce, as translation keys.
   const t = (key) => `nextAction.${key}`;
-  const base = { analysisComplete: true, fraudRisk: 0.1, siuRecommended: false, inconsistentStatement: false, amount: 1200, amountLabel: '1,200' };
+  const base = { analysisComplete: true, fraudRisk: 0.1, siuRecommended: false, inconsistentStatement: false, amount: 1200, amountLabel: '1,200', thresholdLabel: '5,000' };
   const inputs = [
     { siuRecommended: true },
     { fraudRisk: 0.65 },

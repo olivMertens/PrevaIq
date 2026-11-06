@@ -16,6 +16,8 @@ import {
   getFieldValue,
   getFileTypeInfo,
   parseAmount,
+  propertyPolicyReferences,
+  type PropertyPolicyId,
 } from './propertyClaimHelpers';
 import { ANALYSIS_SEPARATOR } from './analysisMarkdown';
 
@@ -24,6 +26,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
   const t = useTranslations('claims');
   const locale = useLocale();
   const currency = applicationCurrency(application);
+  const country = application?.jurisdiction?.country;
   // Stable references: the Client 360 lookup effect and every derived memo depend on them.
   const ef = useMemo(() => application?.extracted_fields || {}, [application?.extracted_fields]);
   const llmOutputs = useMemo(
@@ -296,32 +299,23 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
         challenges: false,
         fileType,
         isPolicyRef: false,
-        policyId: undefined as 'habitation' | 'sante' | undefined,
+        policyId: undefined as PropertyPolicyId | undefined,
       };
     });
-    // Add policy PDFs as reference docs
-    items.push({
-      source: t('evidence.cgHabitation'),
-      type: 'Police',
-      summary: t('evidence.cgHabitationDesc'),
-      supports: true,
-      challenges: false,
-      fileType: { label: 'PDF', icon: 'pdf' as const },
-      isPolicyRef: true,
-      policyId: 'habitation',
-    });
-    items.push({
-      source: t('evidence.cgSante'),
-      type: 'Police',
-      summary: t('evidence.cgSanteDesc'),
-      supports: true,
-      challenges: false,
-      fileType: { label: 'PDF', icon: 'pdf' as const },
-      isPolicyRef: true,
-      policyId: 'sante',
-    });
+    for (const policy of propertyPolicyReferences(country)) {
+      items.push({
+        source: t(`evidence.${policy.labelKey}`),
+        type: t('evidence.policy'),
+        summary: t(`evidence.${policy.descriptionKey}`),
+        supports: true,
+        challenges: false,
+        fileType: { label: 'PDF', icon: 'pdf' as const },
+        isPolicyRef: true,
+        policyId: policy.id,
+      });
+    }
     return items;
-  }, [files, t]);
+  }, [files, country, t]);
 
   // Build coherent narrative timeline from extracted fields (correlates with ChronologicalOverview)
   const liabilityEvents = useMemo(() => {

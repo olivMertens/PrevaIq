@@ -3,6 +3,22 @@ import { textValue } from '@/lib/applicationDisplay';
 import { formatAmount, type CurrencyCode } from '@/lib/currency';
 import { analysisFieldsMarkdown } from './analysisMarkdown';
 
+export type PropertyPolicyId = 'habitation' | 'sante' | 'kmu_ch';
+
+export function propertyPolicyReferences(country?: 'FR' | 'CH'): {
+  id: PropertyPolicyId;
+  labelKey: string;
+  descriptionKey: string;
+}[] {
+  if (country === 'CH') {
+    return [{ id: 'kmu_ch', labelKey: 'cgSwissBusiness', descriptionKey: 'cgSwissBusinessDesc' }];
+  }
+  return [
+    { id: 'habitation', labelKey: 'cgHabitation', descriptionKey: 'cgHabitationDesc' },
+    { id: 'sante', labelKey: 'cgSante', descriptionKey: 'cgSanteDesc' },
+  ];
+}
+
 // Extract a field value from extracted_fields, searching with multiple key patterns
 export function getFieldValue(extractedFields: Record<string, unknown>, keys: string[], defaultValue: string = ''): string {
   for (const key of keys) {

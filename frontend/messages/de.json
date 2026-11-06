@@ -1066,6 +1066,9 @@
       "viewSource": "{source} anzeigen"
     },
     "evidence": {
+      "policy": "Police",
+      "cgSwissBusiness": "AVB KMU-Geschäftsversicherung",
+      "cgSwissBusinessDesc": "Schweizer Geschäftsbedingungen — Fahrhabe, Betriebsunterbruch, Ausschlüsse und Selbstbehalte",
       "cgHabitation": "Home Versicherung GC",
       "cgHabitationDesc": "Allgemeine Bedingungen — Deckung, Ausschlüsse, Selbstbehalte",
       "cgSante": "Krankenversicherung GC",
@@ -2950,9 +2953,9 @@
       "request_expertise": "Betrugsrisiko {percent} % — Gutachten vor der Entscheidung erforderlich",
       "approve_partial": "Vorschuss auf die unbestrittenen Schäden zahlen",
       "escalate_manager": "Komplexer Fall, der eine Freigabe durch Vorgesetzte erfordert",
-      "approve_with_expertise": "Betrag {amount} € > 5.000 € — Gutachten verpflichtend",
+      "approve_with_expertise": "Betrag {amount} > {threshold} — Gutachten verpflichtend",
       "approve_direct": "Zulässig, wenn das Gutachten bereits erstellt und geprüft wurde",
-      "stp_approve": "Konformer Fall — Betrag {amount} € innerhalb der Schwellenwerte, keine Betrugsindikatoren",
+      "stp_approve": "Konformer Fall — Betrag {amount} innerhalb der Schwellenwerte, keine Betrugsindikatoren",
       "manual_review": "Zusätzliche Prüfung vor der Freigabe",
       "approve_standard": "Fall entspricht den Allgemeinen Bedingungen — Regulierung empfohlen",
       "request_info": "Zusätzliche Informationen würden eine sicherere Entscheidung ermöglichen"
@@ -3066,7 +3069,7 @@
           },
           {
             "title": "3. KI-Verarbeitung verfolgen (2–3 Min.)",
-            "detail": "Deutsche und englische Dokumente werden unverändert gelesen; die Analyse erscheint in der Sprache der Oberfläche und wendet die Schweizer Bedingungen an (AVB KMU-Geschäftsversicherung 2026)."
+            "detail": "Deutsche und englische Dokumente werden unverändert gelesen; die Analyse erscheint in der Sprache der Oberfläche und wendet die Schweizer Bedingungen an (AVB KMU-Geschäftsversicherung 2026). Unter Alle Belege die AVB KMU-Geschäftsversicherung als PDF öffnen; französische Hausrat- und Krankenbedingungen werden nicht angeboten. Beträge und Gutachtenschwelle bleiben in CHF."
           },
           {
             "title": "4. Betrugsanalyse, Web IQ und Herkunft",
@@ -3101,7 +3104,7 @@
           },
           {
             "title": "3. Extraktion und Deckungsanalyse verfolgen",
-            "detail": "Die deutschen und englischen Dokumente anhand der Schweizer AVB KMU-Geschäftsversicherung 2026 prüfen. Uhrwerke und fertige Uhren werden zu Herstellungs-, nicht zu Verkaufskosten geltend gemacht. Die Versicherungssumme übersteigt den angegebenen Versicherungswert.",
+            "detail": "Die deutschen und englischen Dokumente anhand der Schweizer AVB KMU-Geschäftsversicherung 2026 prüfen. Uhrwerke und fertige Uhren werden zu Herstellungs-, nicht zu Verkaufskosten geltend gemacht. Die Versicherungssumme übersteigt den angegebenen Versicherungswert. Unter Alle Belege die AVB KMU-Geschäftsversicherung statt französischer Bedingungen öffnen; Empfehlungsbeträge und Gutachtenschwelle verwenden CHF.",
             "tip": "Die passende Police ist assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf; vor dem Testen belegter Deckungsantworten indexieren."
           },
           {
@@ -3626,12 +3629,12 @@
     },
     "aurora": {
       "title": "Wetterrisiko-Ausblick",
-      "description": "Aurora 1.5 liefert eine unverbindliche Vorhersage für diesen Ort. Die Ergebnisse erfordern eine fachliche Prüfung und entscheiden nicht über Deckung oder Zahlung.",
+      "description": "Aurora 1.5 liefert unverbindliche Modelldaten für die angezeigten Zeitpunkte. Vergangene Anfangsbedingungen ergeben eine historische Simulation, kein Live-Wetter und keinen beobachteten Nachweis. Fachliche Prüfung bleibt erforderlich; die Ergebnisse entscheiden nicht über Deckung oder Zahlung.",
       "run": "Aurora-Prognose starten",
       "running": "Prognose läuft…",
       "refresh": "Aktualisieren",
       "reviewRequired": "Prognose empfangen · menschliche Prüfung erforderlich",
-      "result": "{model}-Prognose für die nächsten {hours} Stunden.",
+      "result": "{model}-Simulation über einen Modellhorizont von {hours} Stunden.",
       "notConfigured": "Aurora ist aktiviert, aber Endpunkt, Anfangsbedingungen oder Blob-Kanal müssen noch durch einen Administrator konfiguriert werden.",
       "statusError": "Die Verfügbarkeit von Aurora konnte nicht geprüft werden.",
       "loadError": "Die gespeicherte Aurora-Prognose konnte nicht geladen werden.",
@@ -3695,6 +3698,7 @@
         "title": "Evidenznachweis",
         "location": "Prognosepunkt",
         "generated": "Angefordert",
+        "initialConditions": "Anfangsbedingungen",
         "source": "Eingabequelle"
       },
       "severity": {

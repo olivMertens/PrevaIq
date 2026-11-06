@@ -26,6 +26,8 @@ test('Swiss guides disclose real map anchors and use existing, non-duplicated up
       assert.ok(scenario.steps[1].detail.includes(String(count)));
       assert.match(scenario.steps[1].detail, /\.eml/);
       assert.match(scenario.steps[1].tip, new RegExp(folder));
+      assert.ok(scenario.steps[2].detail.includes(messages.claims.evidence.cgSwissBusiness));
+      assert.match(scenario.steps[2].detail, /CHF/);
     }
   }
 });
@@ -44,5 +46,26 @@ test('both verified Swiss demo anchors enable precise map, Street View and direc
     for (const basemap of ['plan', 'satellite']) {
       assert.ok(claimMap.tilesAround(place.lat, place.lon, 17, basemap).length > 0);
     }
+  }
+});
+
+test('Swiss property evidence references only Swiss AVB, without French or health policies', () => {
+  const { propertyPolicyReferences } = load(
+    'propertyClaimHelpers.ts',
+    path.join(srcDir, 'components', 'claims', 'property'),
+  );
+  const refs = propertyPolicyReferences('CH');
+  assert.deepEqual(refs.map(ref => ref.id), ['kmu_ch']);
+  assert.deepEqual(propertyPolicyReferences('FR').map(ref => ref.id), ['habitation', 'sante']);
+  assert.deepEqual(propertyPolicyReferences().map(ref => ref.id), ['habitation', 'sante']);
+  for (const locale of ['en', 'fr', 'de']) {
+    const messages = JSON.parse(fs.readFileSync(
+      path.join(root, 'frontend', 'messages', `${locale}.json`), 'utf8',
+    ));
+    for (const ref of refs) {
+      assert.equal(typeof messages.claims.evidence[ref.labelKey], 'string');
+      assert.equal(typeof messages.claims.evidence[ref.descriptionKey], 'string');
+    }
+    assert.equal(typeof messages.claims.evidence.policy, 'string');
   }
 });

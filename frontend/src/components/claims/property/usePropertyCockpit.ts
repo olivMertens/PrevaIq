@@ -94,7 +94,8 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
         siuRecommended: !!assessment?.siu_referral_recommended,
         inconsistentStatement: fraud?.declaration_verification?.overall_consistent === false,
         amount: hasAmount ? amount : 0,
-        amountLabel: hasAmount ? amount.toLocaleString(locale) : '0',
+        amountLabel: money(hasAmount ? amount : 0),
+        thresholdLabel: money(EXPERT_THRESHOLD),
       },
       tNext,
     );

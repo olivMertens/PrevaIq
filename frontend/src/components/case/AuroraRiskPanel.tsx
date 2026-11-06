@@ -183,8 +183,16 @@ export default function AuroraRiskPanel({
                 <dd className="text-right font-medium">{forecast.latitude.toFixed(3)}, {forecast.longitude.toFixed(3)}</dd>
                 <dt className="opacity-70">{t('evidence.generated')}</dt>
                 <dd className="text-right font-medium">{formatDateTime(forecast.requested_at)}</dd>
+                {forecast.initial_condition_at && (
+                  <>
+                    <dt className="opacity-70">{t('evidence.initialConditions')}</dt>
+                    <dd className="text-right font-medium">{formatDateTime(forecast.initial_condition_at)}</dd>
+                  </>
+                )}
                 <dt className="opacity-70">{t('evidence.source')}</dt>
-                <dd className="text-right font-medium">{forecast.provenance.source}</dd>
+                <dd className="break-all text-right font-medium">
+                  {forecast.provenance.initial_condition_blob ?? forecast.provenance.source}
+                </dd>
               </dl>
             </div>
             <div className="mt-3 rounded-md bg-white/70 p-2">

@@ -1066,6 +1066,9 @@
       "viewSource": "View {source}"
     },
     "evidence": {
+      "policy": "Policy",
+      "cgSwissBusiness": "Swiss SME business AVB",
+      "cgSwissBusinessDesc": "Swiss business insurance conditions — contents, business interruption, exclusions and deductibles",
       "cgHabitation": "Home Insurance GC",
       "cgHabitationDesc": "General Conditions — coverage, exclusions, deductibles",
       "cgSante": "Health Insurance GC",
@@ -2950,9 +2953,9 @@
       "request_expertise": "Fraud risk {percent}% — expert assessment required before decision",
       "approve_partial": "Pay an advance on the uncontested damages",
       "escalate_manager": "Complex case requiring hierarchical validation",
-      "approve_with_expertise": "Amount {amount} € > 5,000 € — expert assessment mandatory",
+      "approve_with_expertise": "Amount {amount} > {threshold} — expert assessment mandatory",
       "approve_direct": "Allowed if expert assessment has already been completed and validated",
-      "stp_approve": "Compliant case — amount {amount} € within thresholds, no fraud indicators",
+      "stp_approve": "Compliant case — amount {amount} within thresholds, no fraud indicators",
       "manual_review": "Additional review before validation",
       "approve_standard": "Case complies with general conditions — settlement recommended",
       "request_info": "Additional information would support a more confident decision"
@@ -3066,7 +3069,7 @@
           },
           {
             "title": "3. Watch AI processing (2-3 min)",
-            "detail": "German and English documents are read as they are; the analysis is shown in your UI language and applies the Swiss policy conditions (AVB KMU-Geschäftsversicherung 2026)."
+            "detail": "German and English documents are read as they are; the analysis is shown in your UI language and applies the Swiss policy conditions (AVB KMU-Geschäftsversicherung 2026). In All evidence, open Swiss SME business AVB to preview the matching PDF; French home and health conditions are not offered. Amounts and the expertise threshold remain in CHF."
           },
           {
             "title": "4. Fraud analysis, Web IQ and provenance",
@@ -3101,7 +3104,7 @@
           },
           {
             "title": "3. Follow extraction and coverage analysis",
-            "detail": "Check the German and English documents against the Swiss AVB KMU-Geschäftsversicherung 2026. Movements and finished watches are claimed at manufacturing cost, not retail value. The sum insured exceeds the declared insurable value.",
+            "detail": "Check the German and English documents against the Swiss AVB KMU-Geschäftsversicherung 2026. Movements and finished watches are claimed at manufacturing cost, not retail value. The sum insured exceeds the declared insurable value. In All evidence, preview Swiss SME business AVB, not French conditions; recommendation amounts and the expertise threshold use CHF.",
             "tip": "The matching policy is assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf; index it before testing policy-grounded answers."
           },
           {
@@ -3626,12 +3629,12 @@
     },
     "aurora": {
       "title": "Weather risk outlook",
-      "description": "Aurora 1.5 provides an advisory forecast for this location. Results require expert review and do not decide coverage or payment.",
+      "description": "Aurora 1.5 provides advisory model evidence for the dates shown. Past initial conditions produce a historical simulation, not live weather or observed proof. Expert review is required; results do not decide coverage or payment.",
       "run": "Run Aurora forecast",
       "running": "Running forecast…",
       "refresh": "Refresh",
       "reviewRequired": "Forecast received · human review required",
-      "result": "{model} forecast for the next {hours} hours.",
+      "result": "{model} simulation over a {hours}-hour model horizon.",
       "notConfigured": "Aurora is enabled but its endpoint, initial conditions, or Blob channel still needs administrator configuration.",
       "statusError": "Aurora availability could not be checked.",
       "loadError": "The saved Aurora forecast could not be loaded.",
@@ -3695,6 +3698,7 @@
         "title": "Evidence trace",
         "location": "Forecast point",
         "generated": "Requested",
+        "initialConditions": "Initial conditions",
         "source": "Input source"
       },
       "severity": {

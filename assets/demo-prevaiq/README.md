@@ -113,6 +113,11 @@ predate that e-mail; the consolidated estimate includes all ten photos.
 The calculated net estimate is **CHF 14,918,600**, after the capped CHF 50,000 deductible,
 subject to coverage, damage-scope and valuation review.
 Index the Swiss AVB before testing policy-grounded answers.
+For Swiss dossiers, the evidence gallery and PDF viewer reference only these Swiss
+business AVB (`/api/policy-pdfs/kmu_ch`), not the French home or health conditions.
+The existing French references remain unchanged for French dossiers.
+Recommendation reasons, including the expertise threshold, use the dossier currency:
+CHF for these Swiss scenarios, EUR for French dossiers, in all three UI languages.
 
 The PDFs and emails distinguish visible sample damage from the full reported inventory:
 three movements, four finished watches, one inspected machining centre and six bagged sample

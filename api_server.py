@@ -3385,6 +3385,10 @@ def _get_policy_pdfs(brand: str = DEFAULT_BRAND.brand_name) -> dict:
             "filename": f"{prefix}/{prefix}-conditions-generales-habitation.pdf",
             "title": f"CG Habitation {profile.brand_name}",
         },
+        "kmu_ch": {
+            "filename": f"{prefix}/{prefix}-ch-avb-kmu-geschaeftsversicherung-2026.pdf",
+            "title": f"AVB KMU {profile.brand_name} (CH)",
+        },
         "sante": {
             "filename": f"{prefix}/{prefix}-complementaire-sante.pdf",
             "title": f"CG Complémentaire Santé {profile.brand_name}",

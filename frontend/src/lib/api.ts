@@ -2119,6 +2119,7 @@ export interface AuroraForecast {
   request_id: string;
   model: string;
   requested_at: string;
+  initial_condition_at?: string;
   latitude: number;
   longitude: number;
   horizon_hours: number;
@@ -2165,6 +2166,7 @@ export interface AuroraForecast {
     provider: string;
     model: string;
     source: string;
+    initial_condition_blob?: string;
   };
 }
 

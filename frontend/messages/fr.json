@@ -1066,6 +1066,9 @@
       "viewSource": "Voir {source}"
     },
     "evidence": {
+      "policy": "Police",
+      "cgSwissBusiness": "AVB PME suisses",
+      "cgSwissBusinessDesc": "Conditions suisses entreprises — biens mobiliers, perte d'exploitation, exclusions et franchises",
       "cgHabitation": "CG Habitation",
       "cgHabitationDesc": "Conditions Générales Multirisque Habitation — garanties, exclusions, franchises",
       "cgSante": "CG Complémentaire Santé",
@@ -2950,9 +2953,9 @@
       "request_expertise": "Risque fraude {percent}% — expertise nécessaire avant décision",
       "approve_partial": "Verser un acompte sur les dommages non contestés",
       "escalate_manager": "Dossier complexe nécessitant une validation hiérarchique",
-      "approve_with_expertise": "Montant {amount} € > 5 000 € — expertise obligatoire",
+      "approve_with_expertise": "Montant {amount} > {threshold} — expertise obligatoire",
       "approve_direct": "Possible si expertise déjà réalisée et validée",
-      "stp_approve": "Dossier conforme — montant {amount} € dans les seuils, aucun indicateur de fraude",
+      "stp_approve": "Dossier conforme — montant {amount} dans les seuils, aucun indicateur de fraude",
       "manual_review": "Revue supplémentaire avant validation",
       "approve_standard": "Dossier conforme aux conditions générales — règlement recommandé",
       "request_info": "Des informations supplémentaires permettraient une décision plus sûre"
@@ -3066,7 +3069,7 @@
           },
           {
             "title": "3. Suivre le traitement IA (2-3 min)",
-            "detail": "Les documents allemands et anglais sont lus tels quels ; l'analyse s'affiche dans la langue de l'interface et applique les conditions suisses (AVB KMU-Geschäftsversicherung 2026)."
+            "detail": "Les documents allemands et anglais sont lus tels quels ; l'analyse s'affiche dans la langue de l'interface et applique les conditions suisses (AVB KMU-Geschäftsversicherung 2026). Dans Toutes les pièces, ouvrir AVB PME suisses pour prévisualiser le PDF correspondant ; les CG françaises habitation et santé ne sont pas proposées. Les montants et le seuil d'expertise restent en CHF."
           },
           {
             "title": "4. Fraude, Web IQ et provenance",
@@ -3101,7 +3104,7 @@
           },
           {
             "title": "3. Suivre l'extraction et l'analyse de couverture",
-            "detail": "Vérifier les documents allemands et anglais selon les AVB suisses KMU-Geschäftsversicherung 2026. Mouvements et montres finies sont déclarés au coût de fabrication, pas au prix de vente. La somme assurée dépasse la valeur assurable déclarée.",
+            "detail": "Vérifier les documents allemands et anglais selon les AVB suisses KMU-Geschäftsversicherung 2026. Mouvements et montres finies sont déclarés au coût de fabrication, pas au prix de vente. La somme assurée dépasse la valeur assurable déclarée. Dans Toutes les pièces, prévisualiser AVB PME suisses, pas les CG françaises ; les montants de recommandation et le seuil d'expertise sont en CHF.",
             "tip": "La police correspondante est assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf ; l'indexer avant de tester les réponses fondées sur les garanties."
           },
           {
@@ -3626,12 +3629,12 @@
     },
     "aurora": {
       "title": "Perspectives de risque météo",
-      "description": "Aurora 1.5 fournit une prévision indicative pour ce lieu. Les résultats nécessitent une revue experte et ne décident ni de la couverture ni du paiement.",
+      "description": "Aurora 1.5 fournit une indication modèle pour les dates affichées. Des conditions initiales passées donnent une simulation historique, pas la météo en direct ni une preuve observée. La revue experte reste obligatoire ; les résultats ne décident ni de la couverture ni du paiement.",
       "run": "Lancer la prévision Aurora",
       "running": "Prévision en cours…",
       "refresh": "Actualiser",
       "reviewRequired": "Prévision reçue · revue humaine requise",
-      "result": "Prévision {model} pour les {hours} prochaines heures.",
+      "result": "Simulation {model} sur un horizon modèle de {hours} heures.",
       "notConfigured": "Aurora est activé, mais son point de terminaison, ses conditions initiales ou son canal Blob doivent encore être configurés par un administrateur.",
       "statusError": "La disponibilité d'Aurora n'a pas pu être vérifiée.",
       "loadError": "La prévision Aurora enregistrée n'a pas pu être chargée.",
@@ -3695,6 +3698,7 @@
         "title": "Traçabilité des preuves",
         "location": "Point de prévision",
         "generated": "Demandée le",
+        "initialConditions": "Conditions initiales",
         "source": "Source d'entrée"
       },
       "severity": {

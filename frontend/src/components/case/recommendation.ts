@@ -33,8 +33,9 @@ export interface RecommendationInput {
   siuRecommended: boolean;
   inconsistentStatement: boolean;
   amount: number;
-  /** Amount already formatted for the UI locale, used in the reasons. */
+  /** Amount and threshold already formatted with the claim currency and UI locale. */
   amountLabel: string;
+  thresholdLabel: string;
 }
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
@@ -74,7 +75,10 @@ export function buildRecommendation(input: RecommendationInput, t: Translate): R
   }
   if (input.amount > 5000 && input.fraudRisk < 0.3) {
     return {
-      ...option('approve_with_expertise', 'approve_with_conditions', { amount: input.amountLabel }),
+      ...option('approve_with_expertise', 'approve_with_conditions', {
+        amount: input.amountLabel,
+        threshold: input.thresholdLabel,
+      }),
       id: 'approve_with_expertise',
       tone: 'warning',
       taskKey: 'mandate_expert',
