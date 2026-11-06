@@ -237,6 +237,7 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         lambda: _channel_sas_url(settings),
         "delegated_sas_created",
         (AuroraConfigurationError, AuroraServiceError, AzureError),
+        use_result_detail=False,
     )
     return {
         "ok": all(bool(item["ok"]) for item in checks),

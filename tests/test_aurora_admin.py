@@ -184,7 +184,8 @@ def test_readiness_checks_validate_each_live_dependency(
         "_validate_initial_condition",
         lambda payload: datetime(2026, 1, 1, tzinfo=UTC),
     )
-    monkeypatch.setattr(admin_api, "_channel_sas_url", lambda settings: "https://delegated")
+    channel_sas = "https://weather.blob.core.windows.net/aurora-tasks?sig=private-test-signature"
+    monkeypatch.setattr(admin_api, "_channel_sas_url", lambda settings: channel_sas)
 
     result = admin_api._run_readiness_checks(config)
 
@@ -198,5 +199,8 @@ def test_readiness_checks_validate_each_live_dependency(
         "blob_channel",
     ]
     assert result["checks"][1]["detail"] == expected_detail
+    assert result["checks"][-1]["detail"] == "delegated_sas_created"
+    assert channel_sas not in repr(result)
+    assert "private-test-signature" not in repr(result)
     if endpoint_token:
         assert endpoint_token not in repr(result)
