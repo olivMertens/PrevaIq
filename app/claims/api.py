@@ -739,7 +739,7 @@ class LiabilityAssessmentResponse(BaseModel):
     fault_determination: str
     fault_percentage: int
     contributing_factors: List[str]
-    liability_notes: str
+    liability_notes: Optional[str] = None
 
 
 class FraudIndicatorItem(BaseModel):
@@ -753,8 +753,8 @@ class FraudIndicatorItem(BaseModel):
 class PayoutRecommendationResponse(BaseModel):
     """Response for payout recommendation."""
     recommended_amount: float
-    min_amount: float = 0.0
-    max_amount: float = 0.0
+    min_amount: Optional[float] = None
+    max_amount: Optional[float] = None
     breakdown: dict = {}
     adjustments: List[dict] = []
 
@@ -763,7 +763,7 @@ class PolicyCitationItem(BaseModel):
     """Response for policy citation."""
     policy_id: str
     policy_name: str = ""
-    section: str = ""
+    section: Optional[str] = None
     citation_text: str = ""
     relevance_score: float = 0.9
     supports_coverage: bool = True
@@ -782,7 +782,7 @@ class ClaimAssessmentResponse(BaseModel):
     payout_recommendation: PayoutRecommendationResponse
     adjuster_decision: Optional[dict] = None
     created_at: str = ""
-    updated_at: str = ""
+    updated_at: Optional[str] = None
 
 
 class AdjusterDecisionRequest(BaseModel):

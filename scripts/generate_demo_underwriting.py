@@ -12,6 +12,8 @@ Usage:
     python scripts/generate_demo_underwriting.py --brand prevaiq
 """
 
+from __future__ import annotations
+
 import argparse
 import sys
 from pathlib import Path
@@ -29,7 +31,7 @@ from _brand_config import get_brand, add_brand_arg, BrandProfile
 
 
 def generate_underwriting_pdf(brand: BrandProfile):
-    output_dir = Path(brand.demo_output_dir) / "sante"
+    output_dir = Path(brand.demo_output_dir) / "health-underwriting"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "souscription-sante-lefevre.pdf"
 

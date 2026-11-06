@@ -85,14 +85,15 @@ def _write(c: canvas.Canvas, y: float, lines: list[str], font: str = "Helvetica"
     return y
 
 
-def _brand_banner(c: canvas.Canvas, y: float) -> float:
+def _brand_banner(c: canvas.Canvas, y: float, *, label: str | None = None,
+                  email: str | None = None) -> float:
     c.setFillColor(BRAND_COLOR)
     c.rect(15 * mm, y - 8 * mm, 170 * mm, 10 * mm, fill=True)
     c.setFillColor(white)
     c.setFont("Helvetica-Bold", 9)
-    c.drawString(20 * mm, y - 5.5 * mm, BRAND.banner_label)
+    c.drawString(20 * mm, y - 5.5 * mm, label or BRAND.banner_label)
     c.setFont("Helvetica", 8)
-    c.drawString(120 * mm, y - 5.5 * mm, BRAND.email_sinistres_hab)
+    c.drawString(120 * mm, y - 5.5 * mm, email or BRAND.email_sinistres_hab)
     return y - 14 * mm
 
 
@@ -283,7 +284,7 @@ def thread2_email1(out: Path):
     y = _write(c, y, [
         "Slt,", "",
         "Ta vu la photo là ?? C'est la cata totale... regarde :",
-        "[Photo : crash-voiture.jpg — portière enfoncée, pare-choc arraché]",
+        "[Photo fournie separement : crash_portière_enfoncée.png — portière enfoncée]",
         "",
         "J'ai glissé, ça a tapé direct, la portière elle s'ouvre même plus pfff.",
         "Bref je suis en galère avec la dépanneuse là.",
@@ -302,7 +303,7 @@ def thread2_email1(out: Path):
         "06.45.26.24.42",
         "olivier.mertens-laffite@example.com",
         "",
-        "PJ : crash-1308575_1280.jpg (428 Ko)",
+        "Photo du dossier : crash_portière_enfoncée.png (fichier separe)",
     ])
     c.save()
     print(f"  ✓ {fp.name}")
@@ -316,7 +317,10 @@ def thread2_email2(out: Path):
                        "29 janvier 2026 à 14:05",
                        "PAPIER URGENT et la voiture !!!",
                        reply=True)
-    y = _brand_banner(c, y)
+    y = _brand_banner(
+        c, y, label=f"{BRAND.name.upper()} — Service Sinistres Auto",
+        email=BRAND.email_sinistres_auto,
+    )
     y = _write(c, y, [
         "Monsieur MERTENS,", "",
         "Nous avons bien reçu votre message. Voici la prise en charge de vos deux demandes :",
@@ -350,7 +354,8 @@ def thread2_email2(out: Path):
         "Cordialement,",
         f"Service Sinistres Auto — {BRAND.name}",
         "",
-        "PJ : attestation-scolaire-2026.pdf, constat-amiable-vierge.pdf",
+        "Pieces citees, non incluses dans cette demo :",
+        "attestation-scolaire-2026.pdf, constat-amiable-vierge.pdf",
     ])
     c.save()
     print(f"  ✓ {fp.name}")
@@ -542,8 +547,13 @@ def main():
     thread1_email4(out)
 
     print("\n─── Thread 2 : Sinistre Auto + Attestation scolaire ───")
-    thread2_email1(out)
-    thread2_email2(out)
+    auto_out = (
+        Path(args.output_dir) if args.output_dir
+        else Path(BRAND.demo_output_dir) / "automotive-claims" / "parking-impact"
+    )
+    auto_out.mkdir(parents=True, exist_ok=True)
+    thread2_email1(auto_out)
+    thread2_email2(auto_out)
 
     print("\n─── Thread 3 : Sinistre Grêle Véranda ───")
     thread3_email1(out)
@@ -553,7 +563,7 @@ def main():
     thread4_email1(out)
     thread4_email2(out)
 
-    print(f"\n✅ {10} emails generated in {out}/")
+    print(f"\n✅ 8 emails generated in {out}/; 2 auto emails in {auto_out}/")
     print("\n📋 Threads de démo :")
     print("  Thread 1 (Habitation DDE) : 4 emails — déclaration → accusé → relance → prise en charge")
     print("  Thread 2 (Auto + scolaire) : 2 emails — accident + attestation → double réponse")

@@ -28,7 +28,7 @@ from app.claims.policies import ClaimsPolicyLoader
 @pytest.fixture
 def sample_policies_path():
     """Path to test claims policies."""
-    return Path(__file__).parent.parent / "data" / "automotive-claims-policies.json"
+    return Path(__file__).parent.parent / "prompts" / "automotive-claims-policies.json"
 
 
 @pytest.fixture
