@@ -11,6 +11,18 @@ const scenarios = [
   ['habitation-ch-watch', 'swiss-watch-storm', 'Mühlentalstrasse 185', '8200 Schaffhausen', 14],
 ];
 
+test('document preview and download actions have localized accessible labels', () => {
+  for (const locale of ['en', 'fr', 'de']) {
+    const messages = JSON.parse(fs.readFileSync(
+      path.join(root, 'frontend', 'messages', `${locale}.json`), 'utf8',
+    ));
+    for (const key of ['view', 'download', 'openNewTab']) {
+      assert.equal(typeof messages.documents[key], 'string', `${locale}: documents.${key}`);
+      assert.ok(messages.documents[key].trim().length > 0);
+    }
+  }
+});
+
 test('Swiss guides disclose real map anchors and use existing, non-duplicated upload sets', () => {
   for (const [id, folder, street, town, count] of scenarios) {
     const directory = path.join(root, 'assets', 'demo-prevaiq', 'property-claims', folder);
