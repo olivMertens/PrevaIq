@@ -87,8 +87,8 @@ PrevaIQ (technical name *WorkbenchIQ*) is a brand-agnostic, AI-powered insurance
 - Logo: exact FDR PNGs `frontend/public/prevaiq-logo.png` / `prevaiq-logo-dark.png`, rendered through `BrandMark` (choose the variant for the actual surface; never invert/recolor it). Canonical files: `assets/logos/prevaiq_*.png`.
 - Favicon: exact FDR `frontend/public/favicon.svg`; PNG touch icon: `prevaiq-icon.png`. Approved byte hashes and integration checks: `npm run test:branding` in `frontend/`. See `frontend/README.md` for compatibility aliases.
 - Primary color: `#17395C`, Secondary: `#2EC4B6`, Accent: `#0F2E4D`
-- Default language: English (`<html lang="en">`), French available via the FR/EN switcher
-- All persona names in French (Souscription, Sinistres Auto, etc.)
+- Default language: English (`<html lang="en">`); French and German available from the language menu
+- Persona names and descriptions follow the UI language (`persona.labels` / `persona.descriptions` in `frontend/messages`): the French names (Souscription, Sinistres Auto, etc.) appear only in French. Never hard-code a persona name in a component.
 
 ## Docker & Deployment
 
@@ -269,7 +269,9 @@ Claims are jurisdiction-aware (`app/jurisdiction.py`): a Swiss claim (4-digit po
 
 ### Mandatory Demo UI and Content Consistency Check
 - **Before completing any change to UI components, dialogs, tags, elements, names, labels, translations, assets, demo content, or demo folders, check whether the demo dialog and its referenced content are affected.** Do not assume a UI-only change has no demo impact.
-- Update affected demo dialog titles, descriptions, tags, displayed names, previews, and file selections to match the modified UI and demo content. Keep French and English translations synchronized.
+- Update affected demo dialog titles, descriptions, tags, displayed names, previews, and file selections to match the modified UI and demo content. Keep translations synchronized across all supported UI languages, including English, French, and German.
+- **Whenever a demo scenario, workflow, capability, or UI changes, update the demo features shown in the login page tabs in the same change.** Keep tab labels, feature descriptions, scenario steps, expected results, screenshots/previews, and linked demo content accurate to the current implementation; never advertise obsolete or unimplemented behavior.
+- Verify the login demo tabs in every supported UI language: switch languages, open each affected tab and linked demo guide/dialog, and check that content is translated, current, and consistent with the scenario and UI. Remove stale wording and translation keys that are no longer referenced.
 - When an asset or demo file/folder is added, renamed, moved, or removed, update all affected dialog references, manifests, loaders, seed/generation scripts, and copy/download/upload paths. Verify that each referenced file exists in the intended folder and that obsolete names or paths are no longer offered.
 - Verify the affected demo dialog in the running UI: open it, check the displayed content and assets, and exercise the relevant selection, preview, download, or upload action. Run focused checks for changed references and report any UI verification that could not be performed.
 - In the completion summary, explicitly state whether demo dialog/content/folder updates were required, what was synchronized, and what was verified. If no update was needed, state why.
