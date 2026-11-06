@@ -1,7 +1,8 @@
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
+import { swissGermanMessages } from './locales';
 
-const SUPPORTED_LOCALES = ['en', 'fr', 'de'] as const;
+const SUPPORTED_LOCALES = ['en', 'fr', 'de', 'de-CH'] as const;
 type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 function mergeMessages(
@@ -35,7 +36,8 @@ export default getRequestConfig(async () => {
       ? (cookieLocale as Locale)
       : 'en';
 
-  const localeMessages = (await import(`../../messages/${locale}.json`)).default;
+  const messageLocale = locale === 'de-CH' ? 'de' : locale;
+  const localeMessages = (await import(`../../messages/${messageLocale}.json`)).default;
   const messages =
     locale === 'en'
       ? localeMessages
@@ -46,7 +48,7 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
-    messages,
+    messages: locale === 'de-CH' ? swissGermanMessages(messages) : messages,
     // Gracefully handle missing translation keys instead of crashing React.
     // Dynamic field names from LLM outputs (e.g. formatLabels.contrat,
     // formatLabels.plafond biens mobiliers) generate unpredictable keys.

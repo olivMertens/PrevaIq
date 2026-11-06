@@ -8,7 +8,7 @@ import type { ApplicationMetadata } from '@/lib/types';
 type Update = ((app: ApplicationMetadata) => void) | undefined;
 
 /** AI analysis lifecycle (launch, poll until done, resume after reload) and sentiment auto-run. */
-export function useAnalysisRun(application: ApplicationMetadata | null, onApplicationUpdate: Update) {
+export function useAnalysisRun(application: ApplicationMetadata | null, onApplicationUpdate: Update, autoSentiment = true) {
   const t = useTranslations('claims');
   const locale = useLocale();
   const [loading, setLoading] = useState(false);
@@ -48,13 +48,13 @@ export function useAnalysisRun(application: ApplicationMetadata | null, onApplic
   const hasAnalysis = !!application?.llm_outputs && Object.keys(application.llm_outputs).length > 0;
   const hasSentiment = !!application?.sentiment_analysis;
   useEffect(() => {
-    if (!application?.id || analyzing || !hasAnalysis || hasSentiment) return;
+    if (!autoSentiment || !application?.id || analyzing || !hasAnalysis || hasSentiment) return;
     runSentimentAnalysis(application.id)
       .then((result) => {
         if (result && onApplicationUpdate) getApplication(application.id).then(onApplicationUpdate).catch(() => {});
       })
       .catch(() => {});
-  }, [application?.id, analyzing, hasAnalysis, hasSentiment, onApplicationUpdate]);
+  }, [application?.id, analyzing, hasAnalysis, hasSentiment, onApplicationUpdate, autoSentiment]);
 
   const launch = useCallback(async (): Promise<boolean> => {
     if (!application) return false;

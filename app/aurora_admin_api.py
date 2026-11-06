@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import re
+from datetime import UTC, datetime
+from typing import Literal
 
 import requests
-from azure.core.exceptions import AzureError
+from azure.core.exceptions import AzureError, HttpResponseError
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -28,6 +31,7 @@ router = APIRouter(prefix="/api/internal/aurora", tags=["aurora-admin"])
 
 class AuroraConfigBody(BaseModel):
     enabled: bool = False
+    disabled_reason: Literal["blob_access_denied"] | None = None
     endpoint: str = Field(default="", max_length=2048)
     deterministic_model: str = Field(default="aurora-0.25-v1.5", max_length=128)
     ensemble_model: str = Field(default="aurora-0.25-v1.5-ensemble", max_length=128)
@@ -42,6 +46,7 @@ def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
     environment = AuroraSettings.from_environment()
     return AuroraSettings(
         enabled=config.enabled,
+        disabled_reason=config.disabled_reason,
         endpoint=config.endpoint,
         deterministic_model=config.deterministic_model,
         ensemble_model=config.ensemble_model,
@@ -85,6 +90,7 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
     if config is None:
         configuration = {
             "enabled": settings.enabled,
+            "disabled_reason": settings.disabled_reason,
             "endpoint": settings.endpoint,
             "deterministic_model": settings.deterministic_model,
             "ensemble_model": settings.ensemble_model,
@@ -137,6 +143,7 @@ def update_aurora_admin_config(body: AuroraConfigBody) -> dict:
         saved = save_config(
             AuroraAdminConfig(
                 enabled=body.enabled,
+                disabled_reason=body.disabled_reason,
                 endpoint=body.endpoint,
                 deterministic_model=body.deterministic_model,
                 ensemble_model=body.ensemble_model,
@@ -174,9 +181,26 @@ def _endpoint_probe(settings: AuroraSettings, token: str) -> tuple[bool, str]:
     return True, "reachable"
 
 
+def _failure_diagnostics(error: BaseException) -> dict[str, str | int]:
+    cause = error.__cause__ if isinstance(error.__cause__, AzureError) else error
+    if not isinstance(cause, HttpResponseError):
+        return {}
+    diagnostics: dict[str, str | int] = {}
+    if isinstance(cause.status_code, int):
+        diagnostics["http_status"] = cause.status_code
+    headers = cause.response.headers if cause.response is not None else {}
+    for field, value in (
+        ("error_code", getattr(cause, "error_code", None) or headers.get("x-ms-error-code")),
+        ("request_id", headers.get("x-ms-request-id")),
+    ):
+        if isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9._:-]{1,128}", value):
+            diagnostics[field] = value
+    return diagnostics
+
+
 def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
     settings = _settings_from_config(config)
-    checks: list[dict[str, str | bool]] = [
+    checks: list[dict[str, str | int | bool]] = [
         {"id": "enabled", "ok": settings.enabled, "detail": "enabled"},
     ]
 
@@ -186,16 +210,30 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         success_detail: str,
         expected: tuple[type[BaseException], ...],
         *,
+        operation: str,
         use_result_detail: bool = True,
     ):
+        context = {
+            "origin": "prevaiq_backend",
+            "operation": operation,
+            "checked_at": datetime.now(UTC).isoformat(),
+        }
         try:
             result = action()
             detail = result if use_result_detail and isinstance(result, str) else success_detail
-            checks.append({"id": check_id, "ok": True, "detail": detail})
+            checks.append({"id": check_id, "ok": True, "detail": detail, **context})
             return result
         except expected as error:
-            logger.warning("Aurora readiness check %s failed: %s", check_id, type(error).__name__)
-            checks.append({"id": check_id, "ok": False, "detail": type(error).__name__})
+            diagnostics = {**context, **_failure_diagnostics(error)}
+            logger.warning(
+                "Aurora readiness check %s failed: %s %s",
+                check_id,
+                type(error).__name__,
+                diagnostics,
+            )
+            checks.append(
+                {"id": check_id, "ok": False, "detail": type(error).__name__, **diagnostics}
+            )
             return None
 
     token = record(
@@ -203,6 +241,7 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         lambda: _endpoint_token(settings),
         "managed_identity_token_acquired" if settings.use_azure_ad else "endpoint_key_loaded",
         (AuroraConfigurationError, AzureError),
+        operation="acquire_endpoint_credential",
         use_result_detail=False,
     )
     if isinstance(token, str):
@@ -211,10 +250,11 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
             lambda: _endpoint_probe(settings, token),
             "reachable",
             (requests.RequestException, AuroraConfigurationError),
+            operation="endpoint_task_info",
         )
         if isinstance(endpoint_result, tuple):
             checks[-1] = {
-                "id": "endpoint",
+                **checks[-1],
                 "ok": endpoint_result[0],
                 "detail": endpoint_result[1],
             }
@@ -230,6 +270,7 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         validate_initial_conditions,
         "valid",
         (AuroraConfigurationError, AuroraServiceError, AzureError),
+        operation="download_initial_condition",
     )
 
     record(
@@ -237,6 +278,7 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         lambda: _channel_sas_url(settings),
         "delegated_sas_created",
         (AuroraConfigurationError, AuroraServiceError, AzureError),
+        operation="get_user_delegation_key",
         use_result_detail=False,
     )
     return {
@@ -250,8 +292,6 @@ async def test_aurora_admin_config() -> dict:
     config = load_config()
     if config is None:
         raise HTTPException(status_code=409, detail="Save Aurora configuration before testing")
-    if not config.enabled:
-        raise HTTPException(status_code=409, detail="Enable Aurora before testing")
     try:
         result = await asyncio.to_thread(_run_readiness_checks, config)
         return {**result, "configuration": public_dict(config)}

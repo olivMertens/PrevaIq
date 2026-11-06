@@ -21,7 +21,7 @@ from typing import Any, Final, Optional
 from app.config import Settings
 from app.content_translation import detect_language
 from app.glossary import get_glossary_for_persona
-from app.languages import SUPPORTED_LANGUAGES, language_name, require_language
+from app.languages import SUPPORTED_LANGUAGES, language_instruction, language_name, require_language
 from app.openai_client import chat_completion
 from app.utils import setup_logging
 
@@ -44,8 +44,8 @@ _guard = threading.Lock()
 def glossary_language(glossary: dict[str, Any]) -> Optional[str]:
     """Declared language of a glossary, else the one its terms are written in."""
     declared = str(glossary.get("language") or "").lower()
-    if declared in SUPPORTED_LANGUAGES:
-        return declared
+    if declared in {language.lower() for language in SUPPORTED_LANGUAGES}:
+        return require_language(declared)
     sample = " ".join(
         f"{term.get('meaning', '')} {term.get('context', '')}"
         for category in glossary.get("categories", [])
@@ -74,7 +74,7 @@ def translate_entries(
         f'{{"translations": [...]}} holding exactly {len(texts)} strings, in the same order. '
         "Keep unchanged abbreviations and acronyms (DDE, IRSI, LTV, BP...), references to laws, "
         "articles and decrees, names of organisations and products, amounts, percentages and "
-        "codes. Translate a short label as a short label."
+        "codes. Translate a short label as a short label. " + language_instruction(target)
     )
     result = chat_completion(
         settings.openai,

@@ -63,6 +63,45 @@ def test_text_in_the_target_language_is_not_sent_to_the_model(
     assert storage == {}
 
 
+def test_swiss_ui_does_not_retranslate_or_rewrite_german_source_documents(
+    monkeypatch: pytest.MonkeyPatch, storage: dict[str, bytes]
+) -> None:
+    def fail(*args, **kwargs):
+        raise AssertionError("German source evidence must not be sent for regional translation")
+
+    monkeypatch.setattr(content_translation, "chat_completion", fail)
+    metadata = ApplicationMetadata(
+        id="APP-CH",
+        created_at="2026-01-01T00:00:00Z",
+        external_reference=None,
+        status="completed",
+        files=[],
+        markdown_pages=[{"page_number": 12, "file": "quelle.pdf", "markdown": GERMAN}],
+        batch_summaries=[{"batch_num": 2, "page_start": 12, "page_end": 12, "summary": GERMAN}],
+    )
+    result = translate_case_content(_settings(), metadata, "de-CH", [12], [2])
+    assert result["language"] == "de-CH"
+    assert result["pages"][0]["text"] == GERMAN
+    assert result["pages"][0]["translated"] is False
+    assert result["batches"][0]["text"] == GERMAN
+    assert result["batches"][0]["translated"] is False
+    assert storage == {}
+
+
+def test_french_document_translation_uses_the_swiss_output_instruction(monkeypatch) -> None:
+    captured = []
+    translated = "Der Versicherte meldet einen Wasserschaden im Keller und die Wände sind nass."
+
+    def fake_completion(_settings, messages, **_kwargs):
+        captured.extend(messages)
+        return {"content": translated}
+
+    monkeypatch.setattr(content_translation, "chat_completion", fake_completion)
+    assert content_translation.translate_markdown(_settings(), FRENCH, "fr", "de-CH") == translated
+    assert "Schweizer Hochdeutsch" in captured[0]["content"]
+    assert captured[1]["content"] == FRENCH
+
+
 def test_translations_are_cached_by_content(
     monkeypatch: pytest.MonkeyPatch, storage: dict[str, bytes]
 ) -> None:

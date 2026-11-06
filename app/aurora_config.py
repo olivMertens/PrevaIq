@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from azure.core.exceptions import HttpResponseError, ResourceExistsError, ResourceNotFoundError
@@ -28,6 +28,7 @@ _lock = threading.Lock()
 @dataclass(frozen=True)
 class AuroraAdminConfig:
     enabled: bool = False
+    disabled_reason: Literal["blob_access_denied"] | None = None
     endpoint: str = ""
     deterministic_model: str = "aurora-0.25-v1.5"
     ensemble_model: str = "aurora-0.25-v1.5-ensemble"
@@ -104,6 +105,8 @@ def _validate_url(value: str, field: str, allowed_suffixes: tuple[str, ...]) -> 
 
 
 def validate_config(config: AuroraAdminConfig) -> AuroraAdminConfig:
+    if config.disabled_reason not in (None, "blob_access_denied"):
+        raise ValueError("disabled_reason must be blob_access_denied or null")
     endpoint = _validate_url(
         config.endpoint,
         "endpoint",
@@ -140,6 +143,7 @@ def validate_config(config: AuroraAdminConfig) -> AuroraAdminConfig:
         raise ValueError("endpoint, initial condition, and Blob channel are required when enabled")
     return AuroraAdminConfig(
         enabled=config.enabled,
+        disabled_reason=None if config.enabled else config.disabled_reason,
         endpoint=endpoint,
         deterministic_model=config.deterministic_model.strip(),
         ensemble_model=config.ensemble_model.strip(),

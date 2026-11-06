@@ -13,7 +13,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, Dict, List
 
 from ..config import Settings
-from ..languages import language_instruction, require_language
+from ..languages import base_language, language_instruction, require_language
 from ..telemetry import record_span_error, start_span
 from ..utils import setup_logging
 from .errors import agent_response_text, agent_tools_called, translate_agent_error
@@ -52,7 +52,7 @@ FRAMEWORK_LABEL = _framework_label()
 
 def _format_fraud_response(raw_output: str, language: str) -> str:
     """Format fraud tool output into a readable localized chat response."""
-    locale = require_language(language)
+    locale = base_language(language)
     labels = {
         "en": {
             "title": "Fraud photo analysis",
@@ -189,7 +189,7 @@ def _format_fraud_response(raw_output: str, language: str) -> str:
 
 
 def _timeout_response(kind: str, language: str) -> str:
-    locale = require_language(language)
+    locale = base_language(language)
     messages = {
         "fraud": {
             "en": "## Fraud analysis timeout\nThe photo analysis is taking longer than expected. Please try again or launch a full AI analysis.",

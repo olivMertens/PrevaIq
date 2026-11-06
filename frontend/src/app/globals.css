@@ -6,15 +6,62 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 248, 250, 252;
   --background-end-rgb: 255, 255, 255;
+  --app-canvas: #f8fafc;
+  --app-text: #172b42;
+  --app-brand-ink: #17395c;
+  --app-focus: #0f766e;
+  --app-scroll-track: #f1f5f9;
+  --app-scroll-thumb: #64748b;
+  --app-chart-teal: #0f766e;
+  --app-chart-blue: #2563eb;
+  --app-chart-orange: #c2410c;
+  --app-chart-label: #475569;
+}
+
+@media screen {
+  :root[data-app-theme="dark"] {
+    --foreground-rgb: 237, 243, 251;
+    --background-start-rgb: 12, 22, 37;
+    --background-end-rgb: 12, 22, 37;
+    --app-canvas: #0c1625;
+    --app-text: #edf3fb;
+    --app-brand-ink: #b7d9f7;
+    --app-focus: #74dad0;
+    --app-scroll-track: #14243a;
+    --app-scroll-thumb: #8299b2;
+    --app-chart-teal: #74dad0;
+    --app-chart-blue: #93c5fd;
+    --app-chart-orange: #fdba74;
+    --app-chart-label: #b8c7d9;
+  }
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: var(--app-text);
   background: linear-gradient(
     to bottom,
     rgb(var(--background-start-rgb)),
     rgb(var(--background-end-rgb))
   );
+}
+
+:root :where(button, a, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--app-focus);
+  outline-offset: 3px;
+}
+
+input, textarea, select {
+  accent-color: var(--app-focus);
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+    --app-text: #172b42;
+    --app-brand-ink: #17395c;
+    --background-start-rgb: 255, 255, 255;
+    --background-end-rgb: 255, 255, 255;
+  }
 }
 
 @keyframes aurora-scan {
@@ -34,12 +81,12 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--app-scroll-track);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--app-scroll-thumb);
   border-radius: 4px;
 }
 

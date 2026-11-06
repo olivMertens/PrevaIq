@@ -1,12 +1,12 @@
 # WorkbenchIQ Next.js frontend
 
-This brand-agnostic Next.js 14 UI uses PrevaIQ as the default brand for the insurance agentic workbench. It covers five personas: Life & health underwriting, Home claims, Auto claims, Health claims, Mortgage underwriting, and Customer 360. French and English UI resources are available.
+This brand-agnostic Next.js 14 UI uses PrevaIQ as the default brand for the insurance agentic workbench. It covers five personas: Life & health underwriting, Home claims, Auto claims, Health claims, Mortgage underwriting, and Customer 360. English, French, German and Swiss German UI locales are available.
 
 ## Stack
 
 - **Next.js 14** with App Router, `'use client'`, React 18, and TypeScript.
 - **Tailwind CSS** with `primary-*` / `brand-*` palettes mapped to PrevaIQ colors `#17395C`, `#2EC4B6`, and `#0F2E4D`.
-- **next-intl** for French and English translations and locale-aware print reports.
+- **next-intl** for English, French, German and Swiss German translations and locale-aware print reports.
 - **lucide-react** for icons and **clsx** for conditional classes.
 - Server-side API proxy that injects `x-api-key`; the key is never exposed to the browser.
 
@@ -51,6 +51,29 @@ frontend/
 
 ## Case label localization
 
+The login language switcher and account menu offer EN, FR, DE and **DE-CH**
+(`de-CH`, Deutsch (Schweiz)). The locale cookie, HTML language and `next-intl`
+provider retain the regional locale for Swiss number and date formatting.
+DE-CH inherits the current German catalog, replacing `ß` / `ẞ` with `ss` / `SS`
+in message values, including nested demo steps; DE remains unchanged. This avoids
+duplicating a catalog that would drift as the German UI evolves.
+Original documents, case data and policy references are never rewritten.
+German source documents are not treated as foreign solely because the UI uses
+DE-CH. Generated-content requests retain `de-CH` through the backend: Ask IQ,
+workflows, analyses, communications and translated projections ask for Swiss
+Standard German (Schweizer Hochdeutsch), not dialect, with `ss` instead of `ß`.
+DE and DE-CH use separate generated-content caches. Glossary translations also
+retain the variant; a failed translation is explicitly shown in its original language.
+Quoted source evidence, names, references, currencies and the case jurisdiction
+remain unchanged. Web IQ still searches in the language and country of the sources,
+independently of the requested answer variant.
+The Swiss chocolate demo guide explicitly points to the DE-CH option; demo assets,
+file selections and upload folders are unchanged.
+Fallback case titles also resolve DE-CH to German, while stored titles, names and
+document filenames remain verbatim. Locale regression tests exercise the complete
+Swiss message catalog, ICU arguments, cockpit labels, amounts and expertise
+thresholds, API language forwarding and the unchanged decision payloads.
+
 Dashboard queues, list/grid descriptions and case navigation translate known claim
 categories using `claimSubjects` in the English, French and German message catalogs.
 Compound categories (for example hail / storm) are translated before title shortening,
@@ -65,6 +88,45 @@ glossary name (for example, **Property Claims Glossary** in English).
 Demo-guide scenario tabs and instructions use the same localized persona wording.
 File selections and demo folders are not affected by these display-only translations.
 
+## Application appearance
+
+The account submenu offers **Appearance -> Light template / Dark template**.
+Administration and Client 360 also expose an Appearance control in their headers.
+The `app-theme` cookie persists the selection for one year across all routes and
+language switches. The server renders the saved theme before first paint; switching
+appearance updates it in place without reloading or changing the open case/page.
+The login screen retains its independent `login-theme` setting.
+
+The shared Tailwind theme adapts cards, reading text, buttons, selected/hover/focus
+states, status colors, forms, tables, gradients and overlays across personas.
+Inline brand labels use a separate reading-ink token rather than changing action
+fills. Dark reading/status palette pairs meet WCAG AA text contrast (4.5:1);
+keyboard focus has an explicit visible outline in both themes.
+Official logos use their light/dark surface variants, never CSS filters.
+Demo partner-logo islands and original PDF/photo content retain their actual
+colors; only the surrounding viewer UI changes. Print output remains light.
+The demo guide uses the selected theme without changing file selections or folders.
+
+## Claims workspace
+
+Auto and property claims share six primary views, in order: Overview, Evidence,
+Analysis & facts, Customer, Weather & map, and Timeline. Technical source pages,
+extracted data and the AI pipeline are available under More. View URLs survive
+reloads and language switches. Analysis sections use in-page anchors, not a second
+tabbed drawer; the claim chronology has one main view.
+
+Overview shortcuts start a new fraud analysis directly or open an existing report.
+Web IQ sources are separately visible, but execution remains explicitly coupled
+to fraud analysis. Switching views does not unmount the analysis runner.
+Decision choices use persistent green/amber/grey/red styling and require human
+confirmation. Customer drafts are editable, never automatically sent, and a
+standard-template fallback is explicitly labeled if AI generation fails.
+
+Weather & map always exposes Aurora availability, including a disabled state;
+charts require actual saved forecast data. The UI never fabricates weather or
+enables the service by navigating to the view. EN/FR/DE/DE-CH demo-guide navigation is
+synchronized; demo assets and upload sets are unchanged.
+
 ## Shared brand assets
 
 PrevaIQ uses the **exact official FDR files**, not a redrawn SVG or a CSS-recolored logo.
@@ -73,7 +135,8 @@ The canonical PNGs are `../assets/logos/prevaiq_icon.png`, `prevaiq_icon_dark.pn
 `BrandMark` renders the PNG wordmark with intrinsic dimensions and preserved aspect ratio,
 without image conversion. Use `surface="dark"` on dark surfaces (the sidebar); white
 cards, including the login splash card and guided-demo footer, use the light variant.
-This does not introduce an application-wide theme switch or change the app palette.
+Application appearance selects the matching official logo for themed surfaces;
+explicit light/dark surfaces such as login panels and demo partner cards stay scoped.
 
 Root metadata uses `/favicon.svg` for browser/shortcut icons and `/prevaiq-icon.png`
 for the PNG Apple touch icon. `/favicon-prevaiq.svg` remains a byte-identical favicon

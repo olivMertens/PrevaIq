@@ -20,6 +20,7 @@ import clsx from 'clsx';
 import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
+import { readableAccent } from '@/lib/brand';
 import CaseTitle from '../case/CaseTitle';
 import { localizeApplicationTitle, localizeClaimSubject } from '@/lib/applicationDisplay';
 
@@ -176,7 +177,7 @@ export default function ApplicationsList({
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                         style={{ backgroundColor: `${personaPrimaryColor}10` }}>
-                        <FileText className="w-4 h-4" style={{ color: personaPrimaryColor }} />
+                        <FileText className="w-4 h-4" style={{ color: readableAccent(personaPrimaryColor) }} />
                       </div>
                       <div className="min-w-0">
                         <CaseTitle title={getAppDisplayTitle(app)} className="font-medium text-slate-900 transition-colors" />
@@ -213,7 +214,7 @@ export default function ApplicationsList({
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="inline-flex items-center gap-1 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{ color: personaPrimaryColor }}>
+                      style={{ color: readableAccent(personaPrimaryColor) }}>
                       {t('open')}<ChevronRight className="w-4 h-4" />
                     </span>
                   </td>
@@ -229,7 +230,7 @@ export default function ApplicationsList({
               className="bg-white rounded-xl border border-slate-200 p-5 text-left hover:border-slate-300 hover:shadow-md transition-all group flex flex-col">
               <div className="flex justify-between items-start mb-3 w-full">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${personaPrimaryColor}10` }}>
-                  <FileText className="w-5 h-5" style={{ color: personaPrimaryColor }} />
+                  <FileText className="w-5 h-5" style={{ color: readableAccent(personaPrimaryColor) }} />
                 </div>
                 <StatusBadge status={app.status} processingStatus={app.processing_status} />
               </div>

@@ -57,6 +57,12 @@ param auroraEnsembleDeploymentName string = 'aurora-0.25-v1.5-ensemble'
 @description('HTTPS Blob URL of the current validated Aurora NetCDF initial condition.')
 param auroraInitialConditionBlobUrl string = ''
 
+@description('Optional existing Aurora channel storage account in this resource group. Empty keeps the application storage channel.')
+param auroraChannelStorageAccountName string = ''
+
+@description('Private task container on the optional existing Aurora channel storage account.')
+param auroraChannelContainerName string = 'aurora-tasks'
+
 @description('Wire the Key-authenticated Aurora endpoint key from Key Vault secret aurora-endpoint-key. Enable only after storing the secret out of band.')
 param auroraEndpointKeySecretEnabled bool = false
 
@@ -291,6 +297,41 @@ resource correctionsContainer 'Microsoft.Storage/storageAccounts/blobServices/co
   parent: blobService
   name: 'corrections'
 }
+
+resource auroraChannelStorage 'Microsoft.Storage/storageAccounts@2023-05-01' existing = if (!empty(auroraChannelStorageAccountName)) {
+  name: auroraChannelStorageAccountName
+}
+
+resource auroraChannelContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = if (!empty(auroraChannelStorageAccountName)) {
+  name: '${auroraChannelStorageAccountName}/default/${auroraChannelContainerName}'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource auroraChannelDataRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(auroraChannelStorageAccountName)) {
+  name: guid(auroraChannelContainer.id, managedIdentity.id, 'aurora-task-contributor')
+  scope: auroraChannelContainer
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource auroraChannelDelegatorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(auroraChannelStorageAccountName)) {
+  name: guid(auroraChannelStorage.id, managedIdentity.id, 'aurora-blob-delegator')
+  scope: auroraChannelStorage
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db58b8e5-c6ad-4a2a-8342-4190687cbf4a')
+    principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+var auroraTaskChannelUrl = !empty(auroraChannelStorageAccountName)
+  ? '${auroraChannelStorage!.properties.primaryEndpoints.blob}${auroraChannelContainerName}'
+  : '${storageAccount.properties.primaryEndpoints.blob}${dataContainerName}/aurora'
 
 // =============================================================================
 // Microsoft Foundry (AIServices) account + project — hosts the OpenAI model
@@ -978,7 +1019,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             { name: 'AURORA_DEPLOYMENT_NAME', value: auroraDeploymentName }
             { name: 'AURORA_ENSEMBLE_DEPLOYMENT_NAME', value: auroraEnsembleDeploymentName }
             { name: 'AURORA_INITIAL_CONDITION_BLOB_URL', value: auroraInitialConditionBlobUrl }
-            { name: 'AURORA_CHANNEL_CONTAINER_URL', value: '${storageAccount.properties.primaryEndpoints.blob}${dataContainerName}/aurora' }
+            { name: 'AURORA_CHANNEL_CONTAINER_URL', value: auroraTaskChannelUrl }
             { name: 'AURORA_TOKEN_SCOPE', value: 'https://ml.azure.com/.default' }
             { name: 'AURORA_TIMEOUT_SECONDS', value: '900' }
             { name: 'AURORA_USE_AZURE_AD', value: string(!auroraEndpointKeySecretEnabled) }

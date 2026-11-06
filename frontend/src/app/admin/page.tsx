@@ -8,7 +8,7 @@ import GlossaryManager from '@/components/GlossaryManager';
 import { useToast } from '@/lib/ToastProvider';
 import { usePersona } from '@/lib/PersonaContext';
 import { useTranslations } from 'next-intl';
-import { brand } from '@/lib/brand';
+import { brand, readableAccent } from '@/lib/brand';
 import { useDocumentProcessing } from '@/components/admin/useDocumentProcessing';
 import { usePromptsManager } from '@/components/admin/usePromptsManager';
 import { useAnalyzerManager } from '@/components/admin/useAnalyzerManager';
@@ -22,6 +22,7 @@ import AccessRequestsTab from '@/components/admin/AccessRequestsTab';
 import AuroraAdminTab from '@/components/admin/AuroraAdminTab';
 import BrandMark from '@/components/BrandMark';
 import { useSessionRole } from '@/lib/useSessionRole';
+import AppearanceSwitcher from '@/components/AppearanceSwitcher';
 
 type AdminTab = 'documents' | 'prompts' | 'policies' | 'analyzer' | 'glossary' | 'corrections' | 'access' | 'aurora';
 
@@ -67,6 +68,7 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
+            <AppearanceSwitcher />
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: brand.dotColor }}></div>
               <span className="text-sm text-slate-600">{t('apiOnline')}</span>
@@ -81,7 +83,7 @@ export default function AdminPage() {
         style={{ backgroundColor: `${personaConfig.color}08`, borderColor: `${personaConfig.color}20` }}
       >
         <div className="max-w-7xl 2xl:max-w-[96rem] mx-auto px-4 py-3 flex items-center gap-3">
-          <personaConfig.icon className="w-6 h-6" style={{ color: personaConfig.color }} />
+          <personaConfig.icon className="w-6 h-6" style={{ color: readableAccent(personaConfig.color) }} />
           <div>
             <h2 className="font-medium text-slate-900">{personaConfig.name} — {t('workbench')}</h2>
             <p className="text-sm text-slate-600">{personaConfig.description}</p>
@@ -102,7 +104,7 @@ export default function AdminPage() {
                     ? ''
                     : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
                 }`}
-                style={activeTab === tab.id ? { color: brand.primary, borderColor: brand.primary } : undefined}
+                style={activeTab === tab.id ? { color: brand.ink, borderColor: brand.primary } : undefined}
               >
                 {tab.label}
               </button>

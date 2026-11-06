@@ -90,7 +90,7 @@ The pipeline is extraction -> targeted bounded re-extraction -> validation -> an
 | Microsoft Agent Framework agents for chat and workflows | Responses through `OpenAIChatClient`, with rollback `AGENTS_OPENAI_API=chat_completions` | `AZURE_OPENAI_ENDPOINT` |
 | Foundry agents for Web Intelligence and Fabric Data Agent | Responses `agent_reference` through `AIProjectClient` | `FOUNDRY_PROJECT_ENDPOINT` (`settings.foundry`) |
 | Document extraction | Content Understanding GA `2025-11-01` | `AZURE_CONTENT_UNDERSTANDING_ENDPOINT` |
-| Aurora weather forecasting for property-claim decision support | Custom task messages plus NetCDF files over Blob Storage; deterministic by default | `AURORA_FOUNDRY_ENDPOINT` and the `prevaiq-data/aurora` Blob channel |
+| Aurora weather forecasting for property-claim decision support | Custom task messages plus NetCDF files over Blob Storage; deterministic by default | `AURORA_FOUNDRY_ENDPOINT` and the configured private task container; application I/O uses managed identity and Aurora receives a short-lived delegated SAS |
 
 The API/UI contract stays stable during migration: `application_to_dict` keys are pinned by `tests/test_orchestration.py::test_application_contract_keys_are_stable`. Additions are allowed; removals are not.
 

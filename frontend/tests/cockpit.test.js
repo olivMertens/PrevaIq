@@ -9,6 +9,14 @@ const caseDir = path.join(srcDir, 'components', 'case');
 const libDir = path.join(srcDir, 'lib');
 const propertyDir = path.join(srcDir, 'components', 'claims', 'property');
 const load = (name, dir = caseDir) => loadTs(name, dir);
+const { swissGermanMessages } = loadTs('locales.ts', path.join(srcDir, 'i18n'));
+const locales = ['en', 'fr', 'de', 'de-CH'];
+const messagesFor = (locale) => {
+  const messages = JSON.parse(fs.readFileSync(
+    path.join(srcDir, '..', 'messages', `${locale === 'de-CH' ? 'de' : locale}.json`), 'utf8'
+  ));
+  return locale === 'de-CH' ? swissGermanMessages(messages) : messages;
+};
 
 const signals = load('caseSignals.ts');
 const updates = load('caseUpdates.ts');
@@ -33,15 +41,15 @@ test('case categories follow the UI locale before compacting, without changing h
     ['LECOMTE Sandrine — Inondation',
       { en: 'Flooding', fr: 'Inondation', de: 'Überschwemmung' }],
   ];
-  for (const locale of ['en', 'fr', 'de']) {
-    const subjects = JSON.parse(fs.readFileSync(path.join(srcDir, '..', 'messages', `${locale}.json`), 'utf8')).claimSubjects;
+  for (const locale of locales) {
+    const subjects = messagesFor(locale).claimSubjects;
     const translate = (key) => {
       assert.equal(typeof subjects[key], 'string', `missing ${locale}.${key}`);
       return subjects[key];
     };
     for (const [source, expected] of cases) {
       const localized = localizeApplicationTitle(source, translate);
-      assert.equal(localized, `${source.split(' — ')[0]} — ${expected[locale]}`);
+      assert.equal(localized, `${source.split(' — ')[0]} — ${expected[locale] || expected.de}`);
       assert.equal(
         compactApplicationTitle(localized).holder,
         compactApplicationTitle(source).holder
@@ -372,7 +380,7 @@ test('amounts follow the claim currency (CHF in Switzerland) and the UI language
   assert.equal(applicationCurrency({}), 'EUR');
   assert.equal(applicationCurrency(null), 'EUR');
 
-  for (const locale of ['en', 'fr', 'de']) {
+  for (const locale of locales) {
     const chf = formatAmount(1697400, 'CHF', locale, { maximumFractionDigits: 0 });
     assert.match(chf, /CHF/);
     assert.match(chf, /1.697.400/);
@@ -510,10 +518,8 @@ test('recommendations map to real decisions and never invent a confidence score'
 });
 
 test('recommendation reasons keep CHF and EUR consistent with the amount and expertise threshold', () => {
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(
-      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
-    ));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     const t = createTranslator({ locale, messages, namespace: 'nextAction' });
     for (const code of ['CHF', 'EUR']) {
       const money = value => currency.formatAmount(value, code, locale, { maximumFractionDigits: 0 });
@@ -535,10 +541,8 @@ test('recommendation reasons keep CHF and EUR consistent with the amount and exp
 });
 
 test('property amount signals render the claim currency on both sides of the expertise threshold', () => {
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(
-      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
-    ));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     const t = createTranslator({ locale, messages, namespace: 'claims' });
     const tc = createTranslator({ locale, messages, namespace: 'caseCockpit' });
     for (const code of ['CHF', 'EUR']) {
@@ -562,10 +566,8 @@ test('property amount signals render the claim currency on both sides of the exp
 });
 
 test('Swiss weather signals refer to AVB rather than the French Cat-Nat order independently of currency', () => {
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(
-      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
-    ));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     const t = createTranslator({ locale, messages, namespace: 'claims' });
     const tc = createTranslator({ locale, messages, namespace: 'caseCockpit' });
     for (const country of ['CH', 'ch', 'FR', undefined]) {
@@ -585,10 +587,8 @@ test('Swiss weather signals refer to AVB rather than the French Cat-Nat order in
 });
 
 test('Aurora wording supports historical inputs rather than promising current weather', () => {
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(
-      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
-    ));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     const t = createTranslator({ locale, messages, namespace: 'caseCockpit.aurora' });
     const result = t('result', { model: 'aurora-0.25-v1.5', hours: 6 });
     assert.ok(result.includes('aurora-0.25-v1.5'));
@@ -599,8 +599,28 @@ test('Aurora wording supports historical inputs rather than promising current we
   }
 });
 
+test('Aurora availability and backend-only diagnostics are localized without inventing a Blob cause', () => {
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
+    const t = createTranslator({ locale, messages, namespace: 'caseCockpit.aurora' });
+    for (const key of ['unavailable', 'disabled', 'blobAccessDenied', 'loadingStatus', 'locationRequired']) {
+      assert.equal(typeof messages.caseCockpit.aurora[key], 'string', `${locale}.${key}`);
+      assert.notEqual(t(key), `caseCockpit.aurora.${key}`);
+    }
+    assert.doesNotMatch(t('disabled'), /403|Blob/);
+    assert.match(t('blobAccessDenied'), /403/);
+    const admin = messages.adminPanel.aurora;
+    assert.match(admin.testScope, /PrevaIQ/);
+    for (const operation of [
+      'acquire_endpoint_credential', 'endpoint_task_info',
+      'download_initial_condition', 'get_user_delegation_key',
+    ]) {
+      assert.equal(typeof admin.diagnostics.operations[operation], 'string');
+    }
+  }
+});
+
 test('every dynamic cockpit key exists in English, French and German', () => {
-  const messagesDir = path.resolve(__dirname, '..', 'messages');
   const lookup = (messages, key) =>
     key.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : undefined), messages);
 
@@ -644,8 +664,8 @@ test('every dynamic cockpit key exists in English, French and German', () => {
     for (const option of [result, ...result.alternatives]) keys.push(option.title, option.reason);
   }
 
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(path.join(messagesDir, `${locale}.json`), 'utf8'));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     const missing = keys.filter((key) => typeof lookup(messages, key) !== 'string');
     assert.deepEqual(missing, [], `${locale} is missing cockpit keys`);
   }

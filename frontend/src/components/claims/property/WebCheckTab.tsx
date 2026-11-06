@@ -7,6 +7,8 @@ import type { WebIntelligenceResult } from '@/lib/api';
 
 interface WebCheckTabProps {
   web: (WebIntelligenceResult & { skipped?: string }) | null | undefined;
+  running?: boolean;
+  onRun?: () => void;
 }
 
 function hostname(url: string): string {
@@ -29,9 +31,17 @@ function normalizeFinding(finding: unknown) {
 }
 
 /** What Microsoft Web IQ checked: verdict, findings with sources, and the exact searches. */
-export default function WebCheckTab({ web }: WebCheckTabProps) {
+export default function WebCheckTab({ web, running, onRun }: WebCheckTabProps) {
   const t = useTranslations('caseCockpit.webTab');
-  if (!web || web.error) return <p className="text-sm text-slate-600">{t('none')}</p>;
+  const action = onRun && (
+    <div className="space-y-2">
+      <p className="text-xs text-slate-500">{t('integratedCheck')}</p>
+      <button type="button" disabled={running} onClick={onRun} className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-800 disabled:opacity-50">
+        <Search className="h-4 w-4" aria-hidden />{running ? t('running') : t('runWithFraud')}
+      </button>
+    </div>
+  );
+  if (!web || web.error) return <div className="space-y-3"><p role={web?.error ? 'alert' : undefined} className="text-sm text-slate-600">{web?.error ? t('error') : t('none')}</p>{action}</div>;
 
   const verdict = web.skipped ? 'skipped' : web.event_verified === true ? 'confirmed' : web.event_verified === false ? 'notConfirmed' : 'unclear';
   const style = {
@@ -46,6 +56,7 @@ export default function WebCheckTab({ web }: WebCheckTabProps) {
 
   return (
     <div className="space-y-5 text-sm">
+      {action}
       <div className={clsx('flex gap-3 rounded-lg border p-3', style.box)}>
         <style.Icon className="mt-0.5 h-5 w-5 flex-shrink-0" aria-hidden />
         <div>

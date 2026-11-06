@@ -227,7 +227,7 @@ export default function LandingPage({
                   className={clsx("flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border",
                     largeDocumentMode ? "" : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
                   )}
-                  style={largeDocumentMode ? { color: brand.primary, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` } : undefined}
+                  style={largeDocumentMode ? { color: brand.ink, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` } : undefined}
                   title={t('condenseHelp')}>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
@@ -288,8 +288,8 @@ export default function LandingPage({
           onDragEnter={handleDrag} onDragLeave={handleDrag} onDragOver={handleDrag} onDrop={handleDrop}>
           {dragActive ? (
             <div className="py-8">
-              <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: brand.primary }} />
-              <p className="text-lg font-medium" style={{ color: brand.primary }}>{t('dropFilesActive')}</p>
+              <Upload className="w-10 h-10 mx-auto mb-3" style={{ color: brand.ink }} />
+              <p className="text-lg font-medium" style={{ color: brand.ink }}>{t('dropFilesActive')}</p>
             </div>
           ) : (
             <div className="flex items-center justify-between py-2">
@@ -312,7 +312,7 @@ export default function LandingPage({
                   className={clsx("flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border",
                     largeDocumentMode ? "" : "bg-white border-slate-200 text-slate-400 hover:border-slate-300"
                   )}
-                  style={largeDocumentMode ? { color: brand.primary, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` } : undefined}
+                  style={largeDocumentMode ? { color: brand.ink, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` } : undefined}
                   title={t('condenseHelp')}>
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />

@@ -6,6 +6,9 @@ import { ToastProvider } from '@/lib/ToastProvider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getLocale } from 'next-intl/server';
 import { brand } from '@/lib/brand';
+import { cookies } from 'next/headers';
+import { ThemeProvider } from '@/lib/ThemeProvider';
+import { resolveAppTheme, APP_THEME_COOKIE } from '@/lib/theme';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,16 +29,19 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const theme = resolveAppTheme((await cookies()).get(APP_THEME_COOKIE)?.value);
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-app-theme={theme} style={{ colorScheme: theme }}>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages} locale={locale}>
-          <PersonaProvider>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </PersonaProvider>
+          <ThemeProvider initialTheme={theme}>
+            <PersonaProvider>
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </PersonaProvider>
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

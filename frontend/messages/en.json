@@ -52,6 +52,18 @@
     "severe": "Severe"
   },
   "nav": {
+    "claims": {
+      "navigation": "Claim workspace",
+      "overview": "Overview",
+      "documents": "Evidence",
+      "analysis": "Analysis & facts",
+      "customer": "Customer",
+      "weather": "Weather & map",
+      "timeline": "Timeline",
+      "more": "More",
+      "data": "Extracted data",
+      "pipeline": "AI pipeline"
+    },
     "overview": "Overview",
     "timeline": "Timeline",
     "documents": "Documents",
@@ -69,12 +81,18 @@
     "userMenu": "Account and settings",
     "signedInAs": "Signed in as {user}"
   },
+  "appearance": {
+    "title": "Appearance",
+    "light": "Light template",
+    "dark": "Dark template"
+  },
   "auth": {
     "splashEyebrow": "Insurance AI workbench",
     "languageLabel": "Language",
     "languageEnglish": "English",
     "languageFrench": "French",
     "languageGerman": "German",
+    "languageGermanSwiss": "German (Switzerland)",
     "useLightTheme": "Switch to light theme",
     "useDarkTheme": "Switch to dark theme",
     "signIn": "Sign in to continue",
@@ -318,6 +336,22 @@
       "loadError": "Aurora configuration could not be loaded.",
       "saveError": "Aurora configuration could not be saved.",
       "testError": "The Aurora readiness test could not be completed.",
+      "testScope": "Diagnostics run from the PrevaIQ backend, even while Aurora is disabled. This test submits no forecast and does not verify the Aurora worker's Blob access. A reachable API or a generated SAS does not prove end-to-end inference.",
+      "diagnostics": {
+        "origin": "Request origin",
+        "backend": "PrevaIQ backend",
+        "operation": "Operation",
+        "checkedAt": "Checked at (UTC)",
+        "httpStatus": "HTTP status",
+        "errorCode": "Error code",
+        "requestId": "Request ID",
+        "operations": {
+          "acquire_endpoint_credential": "Aurora API authentication",
+          "endpoint_task_info": "Aurora API probe without inference",
+          "download_initial_condition": "Read initial NetCDF",
+          "get_user_delegation_key": "Create Blob channel SAS"
+        }
+      },
       "saved": "Aurora configuration saved.",
       "testPassed": "All Aurora readiness checks passed.",
       "testFailed": "One or more Aurora readiness checks require attention.",
@@ -331,6 +365,12 @@
         "title": "Managed endpoint configuration",
         "lead": "Configure non-secret resource identifiers. Blob access uses managed identity; endpoint authentication is supplied securely by the deployment.",
         "enabled": "Enable Aurora",
+        "disabledReason": {
+          "label": "Suspension reason shown in cases",
+          "unspecified": "Suspended without a specified reason",
+          "blobAccessDenied": "Blob channel access refused (403)",
+          "help": "Select Blob refusal only when it has been observed. It does not identify a particular network rule or responsible component. Enabling Aurora clears this reason."
+        },
         "security": "Security: endpoint keys come from a Key Vault-backed Container App secret. Tokens, account keys and SAS query strings are rejected and never persisted here.",
         "fields": {
           "endpoint": {
@@ -3010,6 +3050,7 @@
     }
   },
   "demoGuide": {
+    "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.",
     "openTitle": "Demo guide",
     "openBadge": "Demo",
     "title": "Demo Guide",
@@ -3040,7 +3081,7 @@
           },
           {
             "title": "4. Weather, Anti-Fraud & Cat-Nat Analysis",
-            "detail": "In the location card, run Aurora to replay returned weather points before, during and after the predicted storm window. The declared claim date is marked when it falls inside the model horizon; otherwise the UI requests historical evidence.\n\nThen click the \"Fraud risk\" tile and \"Run fraud analysis\". Microsoft Web IQ verifies the Cat-Nat decree and public sources. \"Needs your attention\" lists every signal once, most critical first.",
+            "detail": "Open Weather & map for location and Aurora availability. Only run Aurora when available; without a completed forecast, no weather chart is shown. Historical initial conditions are not live observations.\n\nFrom Overview, Run fraud analysis starts the check directly. If a result exists, open the report in Analysis & facts; rerunning is a separate action. Web IQ runs with fraud analysis and checks French Cat-Nat and public sources where relevant. Needs your attention lists each signal once.",
             "tip": "Aurora evidence is predictive and advisory; Web IQ sources remain clickable historical evidence."
           },
           {
@@ -3050,7 +3091,7 @@
           },
           {
             "title": "6. Adjuster decision",
-            "detail": "The verdict bar shows the AI recommendation and why. \"Validate\" opens the decision pre-filled from it; \"Other decision\" offers Approve / Approve with conditions / Defer / Decline, with notes.\nEx: \"Covered per Art. 3.2, €250 deductible applied.\""
+            "detail": "The verdict bar shows the AI recommendation and why. Record a decision opens a pre-filled draft; Other decision offers Approve (green), Approve with conditions (amber), Defer (grey) or Decline (red). Review evidence, conditions and notes before confirming. The decision remains human."
           }
         ]
       },
@@ -3071,7 +3112,7 @@
           },
           {
             "title": "3. Watch AI processing (2-3 min)",
-            "detail": "German and English documents are read as they are; the analysis is shown in your UI language and applies the Swiss policy conditions (AVB KMU-Geschäftsversicherung 2026). In All evidence, open Swiss SME business AVB to preview the matching PDF; French home and health conditions are not offered. Amounts and the expertise threshold remain in CHF."
+            "detail": "German and English documents are read as they are; the analysis is shown in your UI language and applies the Swiss policy conditions (AVB KMU-Geschäftsversicherung 2026). In Evidence, open Swiss SME business AVB to preview the matching PDF; French home and health conditions are not offered. Amounts and the expertise threshold remain in CHF."
           },
           {
             "title": "4. Fraud analysis, Web IQ and provenance",
@@ -3079,8 +3120,8 @@
             "tip": "Synthetic images; JPEG copies have no C2PA data. Awning retracted before the storm; oblique wind-driven hail, retained cracks in safety glazing, no punched-out holes. Hail covers exposed street areas, not just one spot. Local water tracks come from frame joints, not solid glass. Chocolate stays in closed showcases, packaging and lidded kitchen equipment. The dry cold room shows 23.8 °C after power restoration, not proof of spoilage or full stock loss. Amounts are provisional; technical reports, inventory and temperature records are not attached."
           },
           {
-            "title": "5. Ask IQ in German",
-            "detail": "Switch to DE and ask:\n→ \"Ist das Kühlgut versichert?\"\n→ \"Welcher Selbstbehalt gilt für Elementarschäden?\"\n→ \"Wer deckt den Gebäudeschaden im Kanton Zürich?\"",
+            "title": "5. Select DE-CH and ask IQ",
+            "detail": "Switch the interface to DE-CH (German, Switzerland). Ask IQ answers in Swiss Standard German, not dialect; source quotations remain unchanged. Ask:\n→ \"Ist das Kühlgut versichert?\"\n→ \"Welcher Selbstbehalt gilt für Elementarschäden?\"\n→ \"Wer deckt den Gebäudeschaden im Kanton Zürich?\"",
             "tip": "Answers cite the Swiss AVB articles (CH-AVB-…)."
           },
           {
@@ -3106,7 +3147,7 @@
           },
           {
             "title": "3. Follow extraction and coverage analysis",
-            "detail": "Check the German and English documents against the Swiss AVB KMU-Geschäftsversicherung 2026. Movements and finished watches are claimed at manufacturing cost, not retail value. The sum insured exceeds the declared insurable value. In All evidence, preview Swiss SME business AVB, not French conditions; recommendation amounts and the expertise threshold use CHF.",
+            "detail": "Check the German and English documents against the Swiss AVB KMU-Geschäftsversicherung 2026. Movements and finished watches are claimed at manufacturing cost, not retail value. The sum insured exceeds the declared insurable value. In Evidence, preview Swiss SME business AVB, not French conditions; recommendation amounts and the expertise threshold use CHF.",
             "tip": "The matching policy is assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf; index it before testing policy-grounded answers."
           },
           {
@@ -3326,6 +3367,9 @@
     "genericError": "Error"
   },
   "communicationGenerator": {
+    "draftBody": "Editable message draft",
+    "templateFallback": "AI generation failed. A standard template is provided instead; review and adapt it before use.",
+    "copyError": "The draft could not be copied. Select and copy the text manually.",
     "defaultClient": "Customer",
     "types": {
       "email": "Email",
@@ -3456,6 +3500,13 @@
     "reviewServiceWithStatus": "Review: {service} ({status})"
   },
   "caseCockpit": {
+    "workspace": {
+      "analysisSections": "Go to an analysis section",
+      "refreshError": "The updated case could not be loaded. Refresh before making a decision.",
+      "viewSources": "View sources",
+      "aiEstimate": "AI estimate — confirm with the customer",
+      "prepareReply": "Prepare a response"
+    },
     "dismiss": "Dismiss",
     "severity": {
       "critical": "Critical",
@@ -3513,7 +3564,7 @@
       "label": "Case verdict",
       "recommendation": "AI recommendation",
       "why": "Why?",
-      "validate": "Validate",
+      "validate": "Record a decision",
       "otherDecision": "Other decision",
       "pending": "No recommendation yet: run the AI analysis first.",
       "analysisRunning": "AI analysis in progress…",
@@ -3540,10 +3591,10 @@
       "customer": "Customer",
       "customerUnknown": "Not assessed yet",
       "customerLevels": {
-        "calm": "Calm",
-        "moderate": "Moderate",
-        "stressed": "Stressed",
-        "critical": "Critical"
+        "calm": "Standard support",
+        "moderate": "Attentive support",
+        "stressed": "Enhanced support",
+        "critical": "Priority support"
       },
       "score": "score {score}"
     },
@@ -3631,6 +3682,11 @@
     },
     "aurora": {
       "title": "Weather risk outlook",
+      "unavailable": "Forecast unavailable",
+      "blobAccessDenied": "An access attempt to the Blob channel was refused (403). Diagnostics are ongoing: the responsible component and rule have not yet been established. Calculation remains disabled.",
+      "loadingStatus": "Checking Aurora availability…",
+      "disabled": "Aurora is unavailable. No new forecast can be calculated. Existing results, if any, remain historical evidence.",
+      "locationRequired": "A verified loss location is required to calculate a forecast.",
       "description": "Aurora 1.5 provides advisory model evidence for the dates shown. Past initial conditions produce a historical simulation, not live weather or observed proof. Expert review is required; results do not decide coverage or payment.",
       "run": "Run Aurora forecast",
       "running": "Running forecast…",
@@ -3749,11 +3805,13 @@
     "decision": {
       "title": "Record a decision",
       "prefilled": "Pre-filled from the AI recommendation. Review it before you confirm.",
+      "confirm": "Confirm: {decision}",
       "conditions": "Conditions",
       "cancel": "Cancel",
       "saving": "Saving…"
     },
     "fraudTab": {
+      "rerun": "Run again",
       "none": "No fraud analysis yet.",
       "run": "Run fraud analysis",
       "openReport": "Open full report",
@@ -3764,6 +3822,10 @@
       "mismatch": "Does not match"
     },
     "webTab": {
+      "integratedCheck": "Web IQ currently runs as part of the fraud analysis. This action runs both checks.",
+      "runWithFraud": "Check with fraud analysis",
+      "running": "Checking…",
+      "error": "The Web IQ check failed. No event verification can be concluded.",
       "none": "No Web IQ check yet. It runs with the fraud analysis.",
       "verdict": {
         "confirmed": "Event confirmed by public sources",
@@ -3850,7 +3912,16 @@
       }
     },
     "customerTab": {
-      "sentiment": "Customer sentiment",
+      "sentiment": "Customer support",
+      "estimateNotice": "AI or contextual estimate, not a confirmed statement of the customer's feelings. Confirm their needs directly; the claim amount alone does not establish distress.",
+      "reviewDraft": "Prepare and edit a draft. Nothing is sent automatically; check facts and the recorded decision before use.",
+      "callGuide": "Open the call guide",
+      "linkProfile": "Link a customer profile",
+      "call": {
+        "acknowledge": "Ask how the customer is affected and acknowledge their expressed concerns without assuming how they feel.",
+        "confirm": "Confirm the known facts, urgent needs and missing evidence. Distinguish confirmed cover from points still under review.",
+        "nextStep": "Explain the next action and agree on a follow-up. Do not promise payment or a deadline that has not been validated."
+      },
       "client360": "Client 360",
       "openProfile": "Open the Client 360 profile",
       "message": "Message to the customer"

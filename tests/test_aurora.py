@@ -18,6 +18,7 @@ def test_aurora_status_is_safe_when_disabled():
 
     assert result == {
         "enabled": False,
+        "disabled_reason": None,
         "configured": False,
         "model": "aurora-0.25-v1.5",
         "ensemble_model": "aurora-0.25-v1.5-ensemble",
@@ -175,6 +176,49 @@ def test_channel_sas_requires_official_read_write_create_permissions():
         )
 
 
+@pytest.mark.parametrize("managed_identity", [False, True])
+def test_channel_data_operations_keep_identity_separate_from_model_sas(
+    monkeypatch, managed_identity
+):
+    identity = object() if managed_identity else None
+    observed = []
+    uploads = []
+
+    class Download:
+        def readall(self):
+            return b"prediction"
+
+    class Client:
+        def upload_blob(self, payload, **kwargs):
+            uploads.append(payload)
+
+        def exists(self):
+            return True
+
+        def download_blob(self):
+            return Download()
+
+    def from_blob_url(url, *, credential):
+        observed.append((url, credential))
+        return Client()
+
+    monkeypatch.setattr(aurora.BlobClient, "from_blob_url", from_blob_url)
+    channel = "https://weather.blob.core.windows.net/tasks/prefix?sp=rwcl&sig=private"
+    aurora._upload_channel_file(channel, "task/input.nc", b"input", credential=identity)
+    result = aurora._download_prediction(
+        channel, "task", "prediction-000.nc", 0, 0, credential=identity
+    )
+
+    assert result == b"prediction"
+    assert uploads == [b"input", b"File is available"]
+    assert len(observed) == 4
+    for url, credential in observed:
+        assert credential is identity
+        assert ("?" not in url) is managed_identity
+        assert "/tasks/prefix/task/" in url
+    assert channel.endswith("sig=private")
+
+
 def test_entra_token_uses_configured_scope(monkeypatch):
     observed: list[str] = []
 
@@ -224,6 +268,7 @@ def test_endpoint_request_sends_bearer_token(monkeypatch):
 def test_persisted_admin_config_keeps_secret_auth_mode_from_environment(monkeypatch):
     class Persisted:
         enabled = True
+        disabled_reason = None
         endpoint = "https://aurora.example.inference.ml.azure.com/score"
         deterministic_model = "aurora-0.25-v1.5"
         ensemble_model = "aurora-0.25-v1.5-ensemble"
@@ -350,7 +395,8 @@ def test_initial_condition_validation_and_location_summary(tmp_path):
     assert summary["series"][0]["cloud_cover_percent"] == 75.0
 
 
-def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
+@pytest.mark.parametrize("legacy_sas", [False, True])
+def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch, legacy_sas):
     channel_url = (
         "https://storage.blob.core.windows.net/weather/aurora?sv=2025-01-05&sp=rwc&sig=test"
     )
@@ -360,7 +406,8 @@ def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
         initial_condition_blob_url=(
             "https://storage.blob.core.windows.net/weather/initial/current.nc?sig=input"
         ),
-        channel_sas_url=channel_url,
+        channel_sas_url=channel_url if legacy_sas else "",
+        channel_container_url="" if legacy_sas else channel_url.split("?")[0],
         endpoint_token="endpoint-token",
         use_azure_ad=False,
         timeout_seconds=60,
@@ -369,6 +416,10 @@ def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
     requests: list[tuple[str, dict]] = []
     uploads: list[tuple[str, str, bytes]] = []
     downloads: list[str] = []
+    identity = object()
+    expected_credential = None if legacy_sas else identity
+    monkeypatch.setattr(aurora, "_credential", lambda: identity)
+    monkeypatch.setattr(aurora, "_channel_sas_url", lambda _: channel_url)
 
     monkeypatch.setattr(
         aurora, "_download_initial_condition", lambda _: nullcontext(io.BytesIO(b"netcdf"))
@@ -392,13 +443,15 @@ def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
         }
 
     monkeypatch.setattr(aurora, "_foundry_request", foundry_request)
-    monkeypatch.setattr(
-        aurora,
-        "_upload_channel_file",
-        lambda folder, name, payload: uploads.append((folder, name, payload.read())),
-    )
 
-    def download_prediction(_folder, _task_id, name, _deadline, _poll_interval):
+    def upload_channel_file(folder, name, payload, *, credential):
+        assert credential is expected_credential
+        uploads.append((folder, name, payload.read()))
+
+    monkeypatch.setattr(aurora, "_upload_channel_file", upload_channel_file)
+
+    def download_prediction(_folder, _task_id, name, _deadline, _poll_interval, *, credential):
+        assert credential is expected_credential
         downloads.append(name)
         return b"prediction"
 

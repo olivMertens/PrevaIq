@@ -23,7 +23,7 @@ export default function LoginShell({ initialTheme, children }: { initialTheme: L
 
   return (
     <LoginThemeContext.Provider value={theme}>
-      <main className={styles.login} data-theme={theme}>
+      <main className={styles.login} data-theme={theme} data-theme-static>
         <div className={styles.top}>
           <LanguageSwitcher variant="login" />
           <button type="button" className={styles.themeButton} onClick={toggleTheme} aria-label={toggleLabel} title={toggleLabel}>

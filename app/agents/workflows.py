@@ -22,7 +22,7 @@ import time
 from typing import Any
 
 from ..config import Settings
-from ..languages import language_instruction, require_language
+from ..languages import base_language, language_instruction, require_language
 from ..telemetry import add_span_event, record_span_error, start_span
 from ..utils import setup_logging
 from .agents import _agent_options, _create_agent, _get_chat_client
@@ -105,7 +105,7 @@ def _sanitize_refusal(
         agent_name,
         len(text) - len(head),
     )
-    locale = require_language(language)
+    locale = base_language(language)
     note = {
         "en": (
             "\n\n> ⚠️ _Part of the response was not generated because an automatic refusal "
@@ -194,7 +194,7 @@ async def _run_step(
                 "en": "timed out",
                 "fr": "délai dépassé",
                 "de": "Zeitüberschreitung",
-            }[require_language(language)]
+            }[base_language(language)]
             return f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`."
         except Exception as exc:
             logger.exception("Workflow step %s failed", agent_name)
@@ -204,7 +204,7 @@ async def _run_step(
                 "en": "step unavailable",
                 "fr": "étape indisponible",
                 "de": "Schritt nicht verfügbar",
-            }[require_language(language)]
+            }[base_language(language)]
             return f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`."
         span.set_attribute("workbenchiq.response_chars", len(text))
         span.set_attribute(

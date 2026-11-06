@@ -8,6 +8,9 @@ import {
   FileStack,
   ChevronDown,
   Users,
+  CloudSun,
+  ListChecks,
+  Activity,
 } from 'lucide-react';
 import type { ApplicationListItem, ApplicationMetadata } from '@/lib/types';
 import clsx from 'clsx';
@@ -24,14 +27,16 @@ import StatusBadge from './landing/StatusBadge';
 import CaseTitle from './case/CaseTitle';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
 import { compactAuthIdentity } from '@/lib/displayText';
+import type { CaseView } from '@/lib/caseUrl';
+import { CLAIM_VIEWS, isClaimsWorkspace } from '@/lib/claimsWorkspace';
 
 interface TopNavProps {
   applications: ApplicationListItem[];
   selectedAppId?: string;
   selectedApp?: ApplicationMetadata;
-  activeView: 'overview' | 'timeline' | 'documents' | 'source';
+  activeView: CaseView;
   onSelectApp: (appId: string) => void;
-  onChangeView: (view: 'overview' | 'timeline' | 'documents' | 'source') => void;
+  onChangeView: (view: CaseView) => void;
   showWorkbenchControls?: boolean; // Show application selector and glossary (only in workbench view)
 }
 
@@ -85,17 +90,20 @@ export default function TopNav({
   const hasDocuments = selectedApp?.files && selectedApp.files.length > 0;
   const hasSourcePages = selectedApp?.markdown_pages && selectedApp.markdown_pages.length > 0;
   
-  // Automotive claims has its own overview with inline documents/timeline - hide these tabs
-  const isAutomotiveClaims = personaConfig.id === 'automotive_claims';
+  const claimsWorkspace = isClaimsWorkspace(personaConfig.id);
 
   const getAppDisplayTitle = (app: ApplicationListItem) => getApplicationDisplayTitle(app, locale);
 
-  const navItems = [
+  const claimsIcons = { overview: LayoutDashboard, documents: FileText, analysis: ListChecks, customer: Users, weather: CloudSun, timeline: Clock };
+  const navItems = claimsWorkspace ? CLAIM_VIEWS.map((id) => ({
+    id, label: t(`claims.${id}`), icon: claimsIcons[id], enabled: true,
+    count: id === 'documents' ? selectedApp?.files?.length : undefined,
+  })) : [
     { id: 'overview' as const, label: t('overview'), icon: LayoutDashboard, enabled: true },
-    { id: 'timeline' as const, label: t('timeline'), icon: Clock, enabled: true, hidden: isAutomotiveClaims },
-    { id: 'documents' as const, label: t('documents'), icon: FileText, enabled: hasDocuments, count: selectedApp?.files?.length, hidden: isAutomotiveClaims },
+    { id: 'timeline' as const, label: t('timeline'), icon: Clock, enabled: true },
+    { id: 'documents' as const, label: t('documents'), icon: FileText, enabled: hasDocuments, count: selectedApp?.files?.length },
     { id: 'source' as const, label: t('sourcePages'), icon: FileStack, enabled: hasSourcePages, count: selectedApp?.markdown_pages?.length },
-  ].filter(item => !item.hidden);
+  ];
 
   const selectedApplication = applications.find(a => a.id === selectedAppId);
   const authUserLabel = compactAuthIdentity(authUser);
@@ -149,7 +157,7 @@ export default function TopNav({
                             'w-full text-left px-4 py-2 text-sm hover:bg-slate-50 transition-colors',
                             selectedAppId === app.id && 'font-medium'
                           )}
-                          style={selectedAppId === app.id ? { color: brand.primary, backgroundColor: `${brand.primary}10` } : undefined}
+                          style={selectedAppId === app.id ? { color: brand.ink, backgroundColor: `${brand.primary}10` } : undefined}
                         >
                           <CaseTitle title={getAppDisplayTitle(app)} className="font-medium" />
                           <div className="text-xs text-slate-500 flex items-center gap-2">
@@ -164,7 +172,7 @@ export default function TopNav({
                       <Link
                         href="/admin"
                         className="block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-slate-50"
-                        style={{ color: brand.primary }}
+                        style={{ color: brand.ink }}
                         onClick={() => setAppDropdownOpen(false)}
                       >
                         {t('newApplication')}
@@ -204,23 +212,24 @@ export default function TopNav({
 
       {/* Navigation Tabs */}
       {selectedApp && (
-        <nav className="flex items-center gap-1 overflow-x-auto border-t border-slate-100 bg-slate-50/50 px-6">
+        <nav aria-label={t('claims.navigation')} className="flex flex-wrap items-center gap-1 border-t border-slate-100 bg-slate-50/50 px-4">
           {navItems.map((item) => (
             <button
               key={item.id}
               onClick={() => item.enabled && onChangeView(item.id)}
               disabled={!item.enabled}
+              aria-current={activeView === item.id ? 'page' : undefined}
               className={clsx(
-                'flex shrink-0 items-center gap-2 border-b-2 -mb-px px-5 py-4 text-sm font-semibold transition-colors',
+                'flex shrink-0 items-center gap-2 border-b-2 -mb-px px-3 py-3 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600',
                 activeView === item.id
                 ? 'bg-white'
                   : item.enabled
                   ? 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
                   : 'border-transparent text-slate-400 cursor-not-allowed'
               )}
-              style={activeView === item.id ? { color: brand.primary, borderColor: brand.primary } : undefined}
+              style={activeView === item.id ? { color: brand.ink, borderColor: brand.primary } : undefined}
             >
-              <item.icon className="w-4 h-4" />
+              <item.icon className="w-4 h-4" aria-hidden />
               <span>{item.label}</span>
               {item.count !== undefined && item.count > 0 && (
                 <span className="ml-1 px-1.5 py-0.5 bg-slate-200 text-slate-600 text-xs rounded">
@@ -229,6 +238,26 @@ export default function TopNav({
               )}
             </button>
           ))}
+          {claimsWorkspace && (
+            <details className="relative ml-auto">
+              <summary className={clsx('cursor-pointer rounded-lg px-3 py-2 text-sm font-medium', ['source', 'data', 'pipeline'].includes(activeView) ? 'bg-indigo-50 text-indigo-800' : 'text-slate-600')}>
+                {t('claims.more')}
+              </summary>
+              <div className="absolute right-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                {([
+                  { id: 'source', label: t('sourcePages'), Icon: FileStack, enabled: hasSourcePages },
+                  { id: 'data', label: t('claims.data'), Icon: ListChecks, enabled: true },
+                  { id: 'pipeline', label: t('claims.pipeline'), Icon: Activity, enabled: true },
+                ] as const).map(({ id, label, Icon, enabled }) => (
+                  <button key={id} type="button" disabled={!enabled} aria-current={activeView === id ? 'page' : undefined}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                    onClick={(event) => { onChangeView(id); event.currentTarget.closest('details')?.removeAttribute('open'); }}>
+                    <Icon className="h-4 w-4" aria-hidden />{label}
+                  </button>
+                ))}
+              </div>
+            </details>
+          )}
         </nav>
       )}
     </header>

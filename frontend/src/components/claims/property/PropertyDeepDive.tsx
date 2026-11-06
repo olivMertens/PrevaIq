@@ -11,14 +11,9 @@ import DataTab from './DataTab';
 import EvidenceTab from './EvidenceTab';
 import FraudTab from './FraudTab';
 import SummaryTab from './SummaryTab';
-import TimelineTab from './TimelineTab';
 import WebCheckTab from './WebCheckTab';
 import { getFieldValue, parseAiSummary } from './propertyClaimHelpers';
 import type { usePropertyClaimData } from './usePropertyClaimData';
-
-export const DEEP_DIVE_TABS: DeepDiveTab[] = [
-  'summary', 'fraud', 'web', 'cover', 'evidence', 'customer', 'timeline', 'data', 'pipeline',
-];
 
 interface PropertyDeepDiveProps {
   tab: DeepDiveTab;
@@ -28,10 +23,11 @@ interface PropertyDeepDiveProps {
   fraudStatus: { isLoading: boolean; progress: number };
   analyzing: boolean;
   estimatedAmount: number;
-  decisionStatus: 'approved' | 'pending';
+  decisionStatus: 'approved' | 'pending' | 'denied';
   upload: { uploading: boolean; progressMessage: string | null; addFiles: (files: FileList | null) => void };
   onRelaunch: () => void;
   onOpenFraudReport: () => void;
+  onRunFraud: () => void;
   onOpenFile: (index: number) => void;
   onRefresh: () => void;
 }
@@ -49,6 +45,7 @@ export default function PropertyDeepDive({
   upload,
   onRelaunch,
   onOpenFraudReport,
+  onRunFraud,
   onOpenFile,
   onRefresh,
 }: PropertyDeepDiveProps) {
@@ -59,7 +56,6 @@ export default function PropertyDeepDive({
     case 'summary':
       return (
         <SummaryTab
-          application={application}
           aiSummary={aiSummary}
           damages={[
             ...data.injuries.map((item) => ({ label: item.diagnosis, related: item.related })),
@@ -70,9 +66,9 @@ export default function PropertyDeepDive({
         />
       );
     case 'fraud':
-      return <FraudTab result={fraud} running={fraudStatus.isLoading} progress={fraudStatus.progress} onOpenReport={onOpenFraudReport} />;
+      return <FraudTab result={fraud} running={fraudStatus.isLoading} progress={fraudStatus.progress} onOpenReport={onOpenFraudReport} onRun={onRunFraud} />;
     case 'web':
-      return <WebCheckTab web={fraud?.web_intelligence} />;
+      return <WebCheckTab web={fraud?.web_intelligence} running={fraudStatus.isLoading} onRun={onRunFraud} />;
     case 'cover':
       return (
         <CoverTab
@@ -113,8 +109,6 @@ export default function PropertyDeepDive({
           onAffiliated={onRefresh}
         />
       );
-    case 'timeline':
-      return <TimelineTab events={data.liabilityEvents} />;
     case 'data':
       return (
         <DataTab

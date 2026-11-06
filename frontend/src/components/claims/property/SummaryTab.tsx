@@ -1,15 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import { Loader2, RefreshCw } from 'lucide-react';
-import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
-import type { ApplicationMetadata } from '@/lib/types';
-import ChronologicalOverview from '../../ChronologicalOverview';
 import MarkdownText from './MarkdownText';
 import { parseAiSummary } from './propertyClaimHelpers';
 
-type SummaryTabKey = 'overview' | 'damages' | 'decision' | 'risk' | 'timeline' | 'raw';
+type SummaryTabKey = 'overview' | 'damages' | 'decision' | 'risk' | 'raw';
 
 interface DamageRow {
   label: string;
@@ -17,7 +13,6 @@ interface DamageRow {
 }
 
 interface SummaryTabProps {
-  application: ApplicationMetadata;
   aiSummary: string;
   damages: DamageRow[];
   analyzing: boolean;
@@ -25,23 +20,20 @@ interface SummaryTabProps {
 }
 
 /** Full AI synthesis, split by topic (moved from the former "AI summary" dialog). */
-export default function SummaryTab({ application, aiSummary, damages, analyzing, onRelaunch }: SummaryTabProps) {
+export default function SummaryTab({ aiSummary, damages, analyzing, onRelaunch }: SummaryTabProps) {
   const t = useTranslations('claims');
-  const [tab, setTab] = useState<SummaryTabKey>('overview');
   const parsed = parseAiSummary(aiSummary || '');
   const tabs: Array<{ key: SummaryTabKey; label: string }> = [
     { key: 'overview', label: t('analysis.tabOverview') },
     { key: 'damages', label: t('analysis.tabDamages') },
     { key: 'decision', label: t('analysis.tabDecision') },
     { key: 'risk', label: t('analysis.tabRisk') },
-    { key: 'timeline', label: t('analysis.tabTimeline') },
     { key: 'raw', label: t('analysis.tabRaw') },
   ];
   const empty = <p className="text-sm italic text-slate-500">{t('analysis.noContent')}</p>;
 
-  const content = () => {
+  const content = (tab: SummaryTabKey) => {
     if (tab === 'raw') return aiSummary ? <MarkdownText>{aiSummary}</MarkdownText> : empty;
-    if (tab === 'timeline') return <ChronologicalOverview application={application} fullWidth />;
     if (tab === 'damages') {
       if (damages.length > 0) {
         return (
@@ -71,22 +63,7 @@ export default function SummaryTab({ application, aiSummary, damages, analyzing,
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <div role="group" aria-label={t('panels.aiSummary')} className="flex flex-wrap gap-1">
-          {tabs.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              aria-pressed={tab === item.key}
-              onClick={() => setTab(item.key)}
-              className={clsx(
-                'rounded-lg px-3 py-1.5 text-sm',
-                tab === item.key ? 'bg-indigo-50 font-medium text-indigo-700' : 'text-slate-600 hover:bg-slate-100',
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        <p className="text-sm text-slate-600">{t('panels.aiSummary')}</p>
         <button
           type="button"
           onClick={onRelaunch}
@@ -97,7 +74,12 @@ export default function SummaryTab({ application, aiSummary, damages, analyzing,
           {analyzing ? t('analysis.inProgress') : t('analysis.relaunch')}
         </button>
       </div>
-      <div className="min-h-[200px] rounded-lg bg-slate-50 p-4">{aiSummary || tab === 'timeline' ? content() : empty}</div>
+      {tabs.map(({ key, label }) => (
+        <details key={key} open={key === 'overview'} className="rounded-lg border border-slate-200 bg-slate-50">
+          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-800">{label}</summary>
+          <div className="px-4 pb-4">{content(key)}</div>
+        </details>
+      ))}
     </div>
   );
 }

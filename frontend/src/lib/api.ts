@@ -36,7 +36,7 @@ import { textValue } from './applicationDisplay';
 
 // Backend API base URL - uses relative paths to go through Next.js proxy rewrites
 const API_BASE_URL = '';
-const SUPPORTED_LOCALES = new Set(['en', 'fr', 'de']);
+const SUPPORTED_LOCALES = new Set(['en', 'fr', 'de', 'de-CH']);
 
 function resolveLocale(locale?: string): string {
   const browserLocale = typeof document !== 'undefined'
@@ -44,7 +44,8 @@ function resolveLocale(locale?: string): string {
     : typeof navigator !== 'undefined'
       ? navigator.language
       : 'en';
-  const normalized = (locale || browserLocale || 'en').trim().toLowerCase().split('-')[0];
+  const requested = (locale || browserLocale || 'en').trim().toLowerCase();
+  const normalized = requested === 'de-ch' ? 'de-CH' : requested.split('-')[0];
   return SUPPORTED_LOCALES.has(normalized) ? normalized : 'en';
 }
 
@@ -351,7 +352,7 @@ export async function runContentUnderstanding(
 /**
  * Run underwriting prompts analysis on an application
  * @param background If true, starts in background and returns immediately
- * @param locale Optional UI locale (en/fr/de) — controls LLM response language
+ * @param locale Optional UI locale (en/fr/de/de-CH) — controls LLM response language
  */
 export async function runUnderwritingAnalysis(
   appId: string,
@@ -2172,6 +2173,7 @@ export interface AuroraForecast {
 
 export interface AuroraStatus {
   enabled: boolean;
+  disabled_reason?: 'blob_access_denied' | null;
   configured: boolean;
   model: string;
   ensemble_model: string;

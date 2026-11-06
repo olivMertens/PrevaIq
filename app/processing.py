@@ -187,7 +187,7 @@ def _translate_json_chunk(
         "names; keep acronyms such as DDE, IRSI, Cat-Nat, AVB or SIU unchanged inside the "
         "translated text. Leave unchanged only verbatim quotations, legal article references, "
         "personal and company names, identifiers, codes, dates, numbers, amounts, URLs and "
-        "enum tokens. Do not add commentary."
+        "enum tokens. Do not add commentary. " + language_instruction(target)
     )
     result = chat_completion(
         settings.openai,

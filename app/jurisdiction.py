@@ -164,6 +164,8 @@ def format_amount(value: Optional[float], currency: str, language: str = "fr") -
     """Display an amount the local way: "1 697 400 CHF" (fr), "CHF 1'697'400" (de), "€6,560" (en)."""
     if value is None:
         return ""
+    swiss_german = language.lower() == "de-ch"
+    language = language.lower().split("-", 1)[0]
     rounded = round(value)
     if currency == "CHF":
         if language == "de":
@@ -174,5 +176,5 @@ def format_amount(value: Optional[float], currency: str, language: str = "fr") -
     if language == "en":
         return f"€{rounded:,}"
     if language == "de":
-        return f"{rounded:,}".replace(",", ".") + " €"
+        return f"{rounded:,}".replace(",", "'" if swiss_german else ".") + " €"
     return f"{rounded:,}".replace(",", "\u202f") + " €"

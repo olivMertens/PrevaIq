@@ -92,7 +92,7 @@ export default function PersonaSelector() {
         aria-label={currentUILabel}
         title={currentUILabel}
       >
-        <IconComponent className="w-4 h-4 shrink-0" style={{ color: brand.primary }} />
+        <IconComponent className="w-4 h-4 shrink-0" style={{ color: brand.ink }} />
         <span className="hidden truncate text-slate-700 lg:block">{currentUILabel}</span>
         <ChevronDown 
           className={clsx(
@@ -132,7 +132,7 @@ export default function PersonaSelector() {
                           'hover:bg-slate-50 cursor-pointer',
                           currentPersona === persona.id && 'font-medium'
                         )}
-                        style={currentPersona === persona.id ? { color: brand.primary, backgroundColor: `${brand.primary}0D` } : undefined}
+                        style={currentPersona === persona.id ? { color: brand.ink, backgroundColor: `${brand.primary}0D` } : undefined}
                       >
                         <PersonaIcon className="w-4 h-4 flex-shrink-0" />
                         <div className="flex-1 min-w-0">

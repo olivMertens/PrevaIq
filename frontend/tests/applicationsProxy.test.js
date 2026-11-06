@@ -73,3 +73,19 @@ test('case detail reports an unavailable backend as 502, not a missing case', as
   );
   assert.equal(response.status, 502);
 });
+
+for (const language of ['de', 'de-CH']) {
+  test(`case detail forwards ${language} without dropping locale or source-page query options`, async () => {
+    const query = `language=${language}&page=12`;
+    const route = loadRoute(path.join('[id]', 'route.ts'), async (url) => {
+      assert.equal(url, `http://backend.test/api/applications/demo?${query}`);
+      return Response.json({ id: 'demo', analysis_language: 'de' });
+    });
+    const response = await route.GET(
+      new NextRequest(`http://localhost:3102/api/applications/demo?${query}`),
+      { params: Promise.resolve({ id: 'demo' }) }
+    );
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).analysis_language, 'de');
+  });
+}

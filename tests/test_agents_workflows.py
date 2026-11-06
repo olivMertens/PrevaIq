@@ -96,6 +96,7 @@ def test_sanitize_refusal_passthrough_when_clean():
         ("en", "manual review"),
         ("fr", "revue manuelle"),
         ("de", "manuelle Prüfung"),
+        ("de-CH", "manuelle Prüfung"),
     ],
 )
 def test_sanitize_refusal_localizes_review_marker(language, expected):
@@ -318,7 +319,8 @@ class _FakeWebIqTool:
         return False
 
 
-def test_webiq_search_localizes_request_and_preserves_source(monkeypatch):
+@pytest.mark.parametrize("language", ["de-DE", "de-CH"])
+def test_webiq_search_localizes_request_and_preserves_source(monkeypatch, language):
     from app.agents.tools import webiq_search
 
     function = _FakeWebIqFunction(
@@ -342,7 +344,7 @@ def test_webiq_search_localizes_request_and_preserves_source(monkeypatch):
         "app.agents.tools.create_webiq_tool", lambda settings: _FakeWebIqTool(function)
     )
 
-    result = asyncio.run(webiq_search("Hochwasser Nîmes", language="de-DE"))
+    result = asyncio.run(webiq_search("Hochwasser Nîmes", language=language))
 
     assert function.arguments["language"] == "de"
     assert function.arguments["region"] == "FR"
@@ -570,8 +572,9 @@ _SWISS_FRENCH = Jurisdiction(country="CH", language="fr", currency="CHF", postal
         ),
     ],
 )
+@pytest.mark.parametrize("output_language", ["en", "de-CH"])
 def test_claim_web_intelligence_searches_swiss_sources_without_catnat(
-    monkeypatch, jurisdiction, place, date, nature, expected
+    monkeypatch, jurisdiction, place, date, nature, expected, output_language
 ):
     searches, prompts = [], []
 
@@ -593,7 +596,7 @@ def test_claim_web_intelligence_searches_swiss_sources_without_catnat(
         claim_nature=nature,
         claim_type="habitation_claims",
         declared_amount="CHF 1'697'400.00",
-        language="en",
+        language=output_language,
         jurisdiction=jurisdiction,
     )
 
@@ -602,6 +605,7 @@ def test_claim_web_intelligence_searches_swiss_sources_without_catnat(
     assert result["search_region"] == "CH"
     assert result["source_urls"] == [f"https://example.test/{i}" for i in (1, 2, 3)]
     assert "Suisse" in prompts[0][1]["content"]
+    assert language_instruction(output_language) in prompts[0][0]["content"]
 
 
 def test_webiq_search_region_is_sent_and_part_of_the_cache_key(monkeypatch):
@@ -730,6 +734,7 @@ def test_human_review_flag_is_detected_in_json_and_text(text, expected):
         ("en", "timed out"),
         ("fr", "délai dépassé"),
         ("de", "Zeitüberschreitung"),
+        ("de-CH", "Zeitüberschreitung"),
     ],
 )
 def test_workflow_step_timeout_is_localized(monkeypatch, language, expected):

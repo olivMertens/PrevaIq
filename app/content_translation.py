@@ -12,7 +12,13 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Final, Optional
 
 from app.config import Settings
-from app.languages import SUPPORTED_LANGUAGES, language_name, require_language
+from app.languages import (
+    SUPPORTED_LANGUAGES,
+    base_language,
+    language_instruction,
+    language_name,
+    require_language,
+)
 from app.openai_client import chat_completion
 from app.storage import ApplicationMetadata, load_file, save_application_file
 from app.utils import setup_logging
@@ -136,7 +142,7 @@ def translate_markdown(settings: Settings, text: str, source: str, target: str) 
         "Markdown and HTML structure exactly: headings, lists, tables, line breaks, HTML "
         "tags and attributes. Keep unchanged only personal and company names, addresses, "
         "e-mail addresses, URLs, file names, identifiers (contract, policy, claim or SIRET "
-        "numbers), amounts, dates and codes."
+        "numbers), amounts, dates and codes. " + language_instruction(target)
     )
     result = chat_completion(
         settings.openai,
@@ -163,7 +169,7 @@ def translate_text_cached(
 ) -> dict[str, Any]:
     """Translate one text into the target language, reusing the persisted cache."""
     source = detect_language(text)
-    if source is None or source == target:
+    if source is None or base_language(source) == base_language(target):
         return {"text": text, "source_language": source, "translated": False}
     if len(text) > MAX_TRANSLATABLE_CHARS:
         return {"text": text, "source_language": source, "translated": False, "error": "too_long"}

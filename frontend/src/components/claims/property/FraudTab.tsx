@@ -1,6 +1,6 @@
 'use client';
 
-import { CircleCheck, CircleX, Eye, Loader2 } from 'lucide-react';
+import { CircleCheck, CircleX, Eye, Loader2, Play, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import { useLocale, useTranslations } from 'next-intl';
 import type { FraudAnalysisResponse } from '@/lib/api';
@@ -12,6 +12,7 @@ interface FraudTabProps {
   running: boolean;
   progress: number;
   onOpenReport: () => void;
+  onRun: () => void;
 }
 
 const PRIORITY_SEVERITY: Record<string, SignalSeverity> = { high: 'critical', medium: 'warning', low: 'info' };
@@ -22,7 +23,7 @@ const BAND_STYLE: Record<string, string> = {
 };
 
 /** Fraud verdict, reasons and concordance; the full report (and re-run) stays one click away. */
-export default function FraudTab({ result, running, progress, onOpenReport }: FraudTabProps) {
+export default function FraudTab({ result, running, progress, onOpenReport, onRun }: FraudTabProps) {
   const t = useTranslations('caseCockpit.fraudTab');
   const tFraud = useTranslations('fraudAnalysis');
   const locale = useLocale();
@@ -33,11 +34,11 @@ export default function FraudTab({ result, running, progress, onOpenReport }: Fr
   const action = (
     <button
       type="button"
-      onClick={onOpenReport}
+      onClick={result ? onOpenReport : onRun}
       disabled={running}
       className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-3 py-2 text-sm font-medium text-white hover:bg-purple-700 disabled:opacity-60"
     >
-      {running ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+      {running ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : result ? <Eye className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
       {running ? t('running', { progress }) : result ? t('openReport') : t('run')}
     </button>
   );
@@ -111,7 +112,12 @@ export default function FraudTab({ result, running, progress, onOpenReport }: Fr
         </section>
       )}
 
-      <div>{action}</div>
+      <div className="flex flex-wrap items-center gap-3">
+        {action}
+        <button type="button" disabled={running} onClick={onRun} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+          <RefreshCw className="h-4 w-4" aria-hidden />{t('rerun')}
+        </button>
+      </div>
     </div>
   );
 }

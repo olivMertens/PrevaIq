@@ -40,7 +40,7 @@ export default function Sidebar({
   const hasSourcePages = selectedApp?.markdown_pages && selectedApp.markdown_pages.length > 0;
 
   return (
-    <aside className="w-56 bg-sidebar text-white flex flex-col">
+    <aside data-theme-static className="w-56 bg-sidebar text-white flex flex-col">
       {/* Logo */}
       <div className="p-4 border-b border-slate-700">
         <Link href="/" className="flex items-center gap-2">

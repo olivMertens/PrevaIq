@@ -366,7 +366,12 @@ Retourne UNIQUEMENT du JSON valide, sans markdown ni explication."""
     try:
         from app.agents.tools import webiq_search
         from app.config import load_settings
-        from app.languages import language_instruction, localized_message, require_language
+        from app.languages import (
+            SUPPORTED_LANGUAGES,
+            language_instruction,
+            localized_message,
+            require_language,
+        )
         from app.openai_client import chat_completion
 
         language = require_language(language)
@@ -379,11 +384,10 @@ Retourne UNIQUEMENT du JSON valide, sans markdown ni explication."""
             )
         )
         unavailable_responses = {
-            localized_message("webiq_not_configured", locale)
-            for locale in ("en", "fr", "de")
+            localized_message("webiq_not_configured", locale) for locale in SUPPORTED_LANGUAGES
         } | {
             localized_message("webiq_temporarily_unavailable", locale)
-            for locale in ("en", "fr", "de")
+            for locale in SUPPORTED_LANGUAGES
         }
         if corpus in unavailable_responses:
             logger.warning("Web IQ property search unavailable for %s", address)
@@ -408,9 +412,9 @@ Retourne UNIQUEMENT du JSON valide, sans markdown ni explication."""
             timeout=60,
             response_format="json_object",
         )
-        raw = result.get("choices", [{}])[0].get("message", {}).get(
+        raw = result.get("choices", [{}])[0].get("message", {}).get("content", "") or result.get(
             "content", ""
-        ) or result.get("content", "")
+        )
         if raw:
             cleaned = re.sub(r"^```(?:json)?\s*", "", raw.strip())
             cleaned = re.sub(r"\s*```$", "", cleaned.strip())

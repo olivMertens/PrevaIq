@@ -219,7 +219,7 @@ export default function BodyDiagram({ bodySystems, onRegionClick, selectedSystem
                 >
                   {data.diagnosisCount}
                 </text>
-                <text x={82} y={58} textAnchor="middle" fill="#64748b" fontSize="3.5">{t('systemic')}</text>
+                <text x={82} y={58} textAnchor="middle" fill="var(--app-chart-label, #475569)" fontSize="3.5">{t('systemic')}</text>
               </g>
             );
           })()}
@@ -257,7 +257,7 @@ export default function BodyDiagram({ bodySystems, onRegionClick, selectedSystem
                 >
                   {data.diagnosisCount}
                 </text>
-                <text x={18} y={58} textAnchor="middle" fill="#64748b" fontSize="3.5">{t('skin')}</text>
+                <text x={18} y={58} textAnchor="middle" fill="var(--app-chart-label, #475569)" fontSize="3.5">{t('skin')}</text>
               </g>
             );
           })()}

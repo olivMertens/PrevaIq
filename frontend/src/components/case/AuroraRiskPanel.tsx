@@ -24,8 +24,8 @@ export default function AuroraRiskPanel({
   claimDate,
 }: {
   applicationId: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   claimDate?: string;
 }) {
   const t = useTranslations('caseCockpit.aurora');
@@ -35,6 +35,10 @@ export default function AuroraRiskPanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const hasLocation = typeof latitude === 'number' && Number.isFinite(latitude) &&
+    typeof longitude === 'number' && Number.isFinite(longitude);
+  const canRunForecast = !initializing && status?.enabled === true &&
+    status.configured && hasLocation && !loading;
 
   useEffect(() => {
     let active = true;
@@ -60,6 +64,14 @@ export default function AuroraRiskPanel({
   }, [applicationId, t]);
 
   async function runForecast() {
+    if (!canRunForecast) {
+      setError(t('unavailable'));
+      return;
+    }
+    if (!hasLocation) {
+      setError(t('locationRequired'));
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -71,13 +83,12 @@ export default function AuroraRiskPanel({
       });
       setForecast(response.result);
     } catch (cause) {
-      setError(cause instanceof APIError ? cause.message : t('error'));
+      setError(cause instanceof APIError && cause.code === 'aurora_not_configured'
+        ? t('notConfigured') : t('error'));
     } finally {
       setLoading(false);
     }
   }
-
-  if (initializing || status?.enabled === false) return null;
 
   const severity = forecast?.decision_support?.severity;
   const severityClass = severity
@@ -97,8 +108,20 @@ export default function AuroraRiskPanel({
     <CockpitCard title={t('title')} headingId="cockpit-aurora">
       <div className="space-y-3 px-4 py-3">
         <p className="text-xs text-slate-500">{t('description')}</p>
+        {initializing && <p role="status" className="text-sm text-slate-600">{t('loadingStatus')}</p>}
+        {(status?.enabled === false || (!initializing && !status)) && (
+          <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+            <p className="font-semibold">{t('unavailable')}</p>
+            {status?.enabled === false && (
+              <p className="mt-1">
+                {t(status.disabled_reason === 'blob_access_denied' ? 'blobAccessDenied' : 'disabled')}
+              </p>
+            )}
+          </div>
+        )}
+        {!hasLocation && <p className="text-xs text-slate-600">{t('locationRequired')}</p>}
         <AuroraExpiryCountdown expiresAt={status?.endpoint_expires_at} compact />
-        {status && !status.configured && (
+        {status?.enabled && !status.configured && (
           <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
             {t('notConfigured')}
           </p>
@@ -107,7 +130,7 @@ export default function AuroraRiskPanel({
           <button
             type="button"
             onClick={runForecast}
-            disabled={loading || !status?.configured}
+            disabled={!canRunForecast}
             className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white hover:bg-slate-700 disabled:opacity-60"
           >
             {loading ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <CloudSun className="h-3.5 w-3.5" aria-hidden />}
@@ -133,7 +156,7 @@ export default function AuroraRiskPanel({
               <button
                 type="button"
                 onClick={runForecast}
-                disabled={loading}
+                disabled={!canRunForecast}
                 className="inline-flex items-center gap-1 rounded-md border border-current/20 px-2 py-1 font-medium disabled:opacity-60"
               >
                 <RefreshCw className={clsx('h-3 w-3', loading && 'animate-spin')} aria-hidden />

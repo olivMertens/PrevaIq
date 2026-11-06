@@ -12,6 +12,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
 import CaseTitle from '../case/CaseTitle';
+import { readableAccent } from '@/lib/brand';
 
 interface PriorityQueuesProps {
   readyForReview: ApplicationListItem[];
@@ -64,7 +65,7 @@ export default function PriorityQueues({
                   className="w-full px-5 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors text-left group">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${personaPrimaryColor}10` }}>
-                      <FileText className="w-4 h-4" style={{ color: personaPrimaryColor }} />
+                      <FileText className="w-4 h-4" style={{ color: readableAccent(personaPrimaryColor) }} />
                     </div>
                     <div className="min-w-0">
                       <CaseTitle title={getAppDisplayTitle(app)} className="font-medium text-slate-900 transition-colors" />

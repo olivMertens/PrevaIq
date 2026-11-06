@@ -7,9 +7,10 @@ import { brand } from '@/lib/brand';
 import loginStyles from './auth/login.module.css';
 
 export const LOCALES = [
-  { code: 'en', label: 'EN', flag: '🇬🇧' },
-  { code: 'fr', label: 'FR', flag: '🇫🇷' },
-  { code: 'de', label: 'DE', flag: '🇩🇪' },
+  { code: 'en', label: 'EN', flag: '🇬🇧', translationKey: 'languageEnglish' },
+  { code: 'fr', label: 'FR', flag: '🇫🇷', translationKey: 'languageFrench' },
+  { code: 'de', label: 'DE', flag: '🇩🇪', translationKey: 'languageGerman' },
+  { code: 'de-CH', label: 'DE-CH', flag: '🇨🇭', translationKey: 'languageGermanSwiss' },
 ] as const;
 
 /** Current locale and a switch that stores the cookie and reloads to apply it everywhere. */
@@ -29,7 +30,7 @@ export function useLocaleSwitch() {
 }
 
 /**
- * Language switcher toggle button (EN / FR / DE).
+ * Language switcher toggle button (EN / FR / DE / DE-CH).
  * Sets a cookie and reloads to apply the new locale across the app.
  */
 export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'default' | 'login' }) {
@@ -58,19 +59,7 @@ export default function LanguageSwitcher({ variant = 'default' }: { variant?: 'd
               : 'text-slate-500 hover:bg-slate-100'
           )}
           style={!isLogin && locale === loc.code ? { backgroundColor: brand.primary } : undefined}
-          title={isLogin
-            ? t(
-                loc.code === 'fr'
-                  ? 'languageFrench'
-                  : loc.code === 'de'
-                    ? 'languageGerman'
-                    : 'languageEnglish'
-              )
-            : loc.code === 'fr'
-              ? 'Français'
-              : loc.code === 'de'
-                ? 'Deutsch'
-                : 'English'}
+          title={t(loc.translationKey)}
         >
           {!isLogin && <span className="hidden 2xl:inline" aria-hidden>{loc.flag} </span>}{loc.label}
         </button>

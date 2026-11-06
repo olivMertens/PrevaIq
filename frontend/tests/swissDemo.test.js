@@ -5,17 +5,23 @@ const test = require('node:test');
 const { load, srcDir } = require('./loadTs');
 
 const claimMap = load('claimMap.ts', path.join(srcDir, 'lib'));
+const { swissGermanMessages } = load('locales.ts', path.join(srcDir, 'i18n'));
 const root = path.resolve(__dirname, '..', '..');
+const locales = ['en', 'fr', 'de', 'de-CH'];
+const messagesFor = (locale) => {
+  const messages = JSON.parse(fs.readFileSync(
+    path.join(root, 'frontend', 'messages', `${locale === 'de-CH' ? 'de' : locale}.json`), 'utf8'
+  ));
+  return locale === 'de-CH' ? swissGermanMessages(messages) : messages;
+};
 const scenarios = [
   ['habitation-ch', 'swiss-chocolate-storm', 'Steinberggasse 23', '8400 Winterthur', 9],
   ['habitation-ch-watch', 'swiss-watch-storm', 'Mühlentalstrasse 185', '8200 Schaffhausen', 14],
 ];
 
 test('document preview and download actions have localized accessible labels', () => {
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(
-      path.join(root, 'frontend', 'messages', `${locale}.json`), 'utf8',
-    ));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     for (const key of ['view', 'download', 'openNewTab']) {
       assert.equal(typeof messages.documents[key], 'string', `${locale}: documents.${key}`);
       assert.ok(messages.documents[key].trim().length > 0);
@@ -29,8 +35,8 @@ test('Swiss guides disclose real map anchors and use existing, non-duplicated up
     const files = fs.readdirSync(directory).filter(name => /\.(pdf|jpg)$/.test(name));
     assert.equal(files.length, count);
     assert.ok(files.includes('schadenmeldung-geschaeftsversicherung.pdf'));
-    for (const locale of ['en', 'fr', 'de']) {
-      const messages = JSON.parse(fs.readFileSync(path.join(root, 'frontend', 'messages', `${locale}.json`), 'utf8'));
+    for (const locale of locales) {
+      const messages = messagesFor(locale);
       const scenario = messages.demoGuide.scenarios[id];
       assert.ok(scenario.steps[0].tip.includes(street));
       assert.ok(scenario.steps[0].tip.includes(town));
@@ -70,10 +76,8 @@ test('Swiss property evidence references only Swiss AVB, without French or healt
   assert.deepEqual(refs.map(ref => ref.id), ['kmu_ch']);
   assert.deepEqual(propertyPolicyReferences('FR').map(ref => ref.id), ['habitation', 'sante']);
   assert.deepEqual(propertyPolicyReferences().map(ref => ref.id), ['habitation', 'sante']);
-  for (const locale of ['en', 'fr', 'de']) {
-    const messages = JSON.parse(fs.readFileSync(
-      path.join(root, 'frontend', 'messages', `${locale}.json`), 'utf8',
-    ));
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
     for (const ref of refs) {
       assert.equal(typeof messages.claims.evidence[ref.labelKey], 'string');
       assert.equal(typeof messages.claims.evidence[ref.descriptionKey], 'string');

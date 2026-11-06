@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from typing import Final
 
-SUPPORTED_LANGUAGES: Final = ("en", "fr", "de")
+SUPPORTED_LANGUAGES: Final = ("en", "fr", "de", "de-CH")
 DEFAULT_LANGUAGE: Final = "en"
 
 _LANGUAGE_NAMES: Final = {
     "en": "English",
     "fr": "French",
     "de": "German",
+    "de-CH": "Swiss Standard German (Schweizer Hochdeutsch)",
 }
 
 _LANGUAGE_INSTRUCTIONS: Final = {
@@ -26,6 +27,19 @@ _LANGUAGE_INSTRUCTIONS: Final = {
         "Belege, Identifikatoren, Codes, URLs, Datumsangaben, Zahlen, Enum-Werte und "
         "französische Rechtsbegriffe unverändert auf."
     ),
+    "de-CH": (
+        "Schreibe alle menschenlesbaren generierten Werte auf Schweizer Hochdeutsch "
+        "(Schweizer Standarddeutsch, de-CH), nicht im Dialekt. Verwende Schweizer "
+        "Rechtschreibung: ss statt ß und SS statt ẞ, etwa «Grüsse», «Schliessen» und "
+        "«Massnahmen». Verwende passende Schweizer Versicherungsbegriffe, etwa "
+        "«Selbstbehalt» und «Schadenfall». Formuliere sachlich und professionell. "
+        "Die Ausgabesprache ändert weder die Rechtsordnung noch die Währung des Dossiers: "
+        "wende nur die tatsächlich belegten Gesetze und Versicherungsbedingungen an; "
+        "erfinde keine Schweizer Deckung und rechne keine Beträge um. Bewahre "
+        "Quellenzitate, Belege, Personen- und Firmennamen, Adressen, Identifikatoren, "
+        "Codes, URLs, Datumsangaben, Zahlen, Beträge, Währungen, JSON-Schlüssel, "
+        "Enum-Werte und juristische Quellenverweise unverändert auf, auch wenn sie ß enthalten."
+    ),
 }
 
 
@@ -39,9 +53,10 @@ def normalize_language(
     default: str = DEFAULT_LANGUAGE,
     strict: bool = False,
 ) -> str:
-    normalized = (language or "").strip().lower().split("-", 1)[0]
+    normalized = (language or "").strip().lower()
     if not normalized:
         return default
+    normalized = "de-CH" if normalized == "de-ch" else normalized.split("-", 1)[0]
     if normalized in SUPPORTED_LANGUAGES:
         return normalized
     if strict:
@@ -55,6 +70,11 @@ def normalize_language(
 def require_language(language: str | None, *, default: str = DEFAULT_LANGUAGE) -> str:
     """Normalize an externally supplied locale and reject unsupported values."""
     return normalize_language(language, default=default, strict=True)
+
+
+def base_language(language: str | None) -> str:
+    """Language family for source matching, external search and static message catalogs."""
+    return require_language(language).split("-", 1)[0]
 
 
 def language_name(language: str | None) -> str:
@@ -220,4 +240,5 @@ def localized_message(key: str, language: str | None) -> str:
     messages = _MESSAGES.get(key)
     if messages is None:
         raise KeyError(key)
-    return messages[locale]
+    message = messages[locale.split("-", 1)[0]]
+    return message.replace("ß", "ss").replace("ẞ", "SS") if locale == "de-CH" else message

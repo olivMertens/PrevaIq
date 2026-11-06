@@ -53,8 +53,10 @@ def test_external_language_validation_is_explicit() -> None:
         require_language("es")
 
 
+@pytest.mark.parametrize("language", ["de-DE", "de-CH"])
 def test_process_endpoint_propagates_normalized_language(
     monkeypatch: pytest.MonkeyPatch,
+    language: str,
 ) -> None:
     metadata = _metadata()
     metadata.processing_status = None
@@ -73,13 +75,13 @@ def test_process_endpoint_propagates_normalized_language(
     monkeypatch.setattr(api_server, "run_extract_and_analyze_background", fake_background)
 
     async def exercise() -> dict:
-        response = await api_server.process_application(metadata.id, "standard", "de-DE")
+        response = await api_server.process_application(metadata.id, "standard", language)
         await asyncio.sleep(0)
         return response
 
     response = asyncio.run(exercise())
 
-    assert captured == [(metadata.id, "standard", "de")]
+    assert captured == [(metadata.id, "standard", require_language(language))]
     assert response["message"].startswith("Die Verarbeitung")
 
 
@@ -114,7 +116,10 @@ def test_extraction_handoff_preserves_language(monkeypatch: pytest.MonkeyPatch) 
     assert captured == ["de"]
 
 
-def test_risk_background_uses_requested_language(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("language", ["de-DE", "de-CH"])
+def test_risk_background_uses_requested_language(
+    monkeypatch: pytest.MonkeyPatch, language: str
+) -> None:
     metadata = _metadata()
     captured: list[str] = []
 
@@ -129,9 +134,9 @@ def test_risk_background_uses_requested_language(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(api_server, "load_application", lambda *args: metadata)
     monkeypatch.setattr("app.processing.run_risk_analysis", fake_risk_analysis)
 
-    asyncio.run(api_server._risk_analysis_background(metadata.id, "de-DE"))
+    asyncio.run(api_server._risk_analysis_background(metadata.id, language))
 
-    assert captured == ["de"]
+    assert captured == [require_language(language)]
 
 
 def test_translation_preserves_shape_and_source_values(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -154,6 +159,37 @@ def test_translation_preserves_shape_and_source_values(monkeypatch: pytest.Monke
     assert parsed["citations"] == [{"article": "Article L113-2", "quote": "Texte source"}]
     assert translated["llm_outputs"]["summary"]["raw"] == original["summary"]["raw"]
     assert original["summary"]["parsed"]["summary"].startswith("Le dossier")
+
+
+def test_swiss_projection_adapts_generated_prose_but_keeps_source_quotes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        captured.extend(messages)
+        return {"content": '{"0":"Bitte schliessen Sie den Schadenfall erst nach der Prüfung."}'}
+
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+    original = _metadata().llm_outputs
+    original["summary"]["parsed"]["summary"] = (
+        "Bitte schließen Sie den Schadenfall erst nach der Prüfung."
+    )
+    original["summary"]["parsed"]["citations"][0]["quote"] = "Die Straße bleibt unverändert."
+    translated = translate_analysis_payload(
+        SimpleNamespace(openai=object()),
+        {"llm_outputs": original},
+        source_language="de",
+        target_language="de-CH",
+    )
+    parsed = translated["llm_outputs"]["summary"]["parsed"]
+    assert "schliessen" in parsed["summary"]
+    assert "schließen" in original["summary"]["parsed"]["summary"]
+    assert parsed["citations"] == original["summary"]["parsed"]["citations"]
+    assert parsed["policy_id"] == "CG-AUTO-42"
+    assert parsed["status"] == "review_needed"
+    assert "Schweizer Hochdeutsch" in captured[0]["content"]
+    assert "Die Straße" not in captured[1]["content"]
 
 
 def test_translation_keeps_web_iq_queries_verbatim(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -316,10 +352,12 @@ def test_localized_cache_uses_distinct_revision_locale_objects(
 
     localized_analysis_payload(settings, metadata, "en")
     localized_analysis_payload(settings, metadata, "de")
+    localized_analysis_payload(settings, metadata, "de-CH")
 
-    assert len(saved) == 2
+    assert len(saved) == 3
     assert saved[0][:2] == saved[1][:2]
-    assert {saved[0][2], saved[1][2]} == {"en", "de"}
+    assert saved[1][:2] == saved[2][:2]
+    assert {item[2] for item in saved} == {"en", "de", "de-CH"}
 
 
 def test_localized_cache_is_persisted_separately_from_metadata(tmp_path) -> None:

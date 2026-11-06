@@ -19,6 +19,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import BrandMark from '@/components/BrandMark';
+import AppearanceSwitcher from '@/components/AppearanceSwitcher';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
@@ -95,8 +96,8 @@ export default function CustomersPage() {
               className="flex items-center gap-1 px-3 py-1.5 border rounded-lg"
               style={{ backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` }}
             >
-              <Users className="w-4 h-4" style={{ color: brand.primary }} />
-              <span className="text-sm font-medium" style={{ color: brand.primary }}>{t('title')}</span>
+              <Users className="w-4 h-4" style={{ color: brand.ink }} />
+              <span className="text-sm font-medium" style={{ color: brand.ink }}>{t('title')}</span>
             </div>
           </div>
 
@@ -110,6 +111,7 @@ export default function CustomersPage() {
             </Link>
 
             <LanguageSwitcher />
+            <AppearanceSwitcher />
 
             {authEnabled && (
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-200">
@@ -122,7 +124,7 @@ export default function CustomersPage() {
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-slate-500 rounded-lg transition-colors"
-                  style={{ color: brand.primary, backgroundColor: `${brand.primary}0D` }}
+                  style={{ color: brand.ink, backgroundColor: `${brand.primary}0D` }}
                   title={t('signOut')}
                 >
                   <LogOut className="w-4 h-4" />

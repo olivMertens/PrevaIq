@@ -86,6 +86,38 @@ def test_a_glossary_already_in_the_reader_language_is_not_translated(settings):
     assert _terms(glossary)["DDE"][1] == "Dégâts des eaux"
 
 
+def test_swiss_glossary_uses_a_distinct_locale_cache_without_changing_abbreviations(settings):
+    model = FakeModel()
+    swiss = translation.localized_glossary(settings, "habitation_claims", "de-CH", model)
+    german = translation.localized_glossary(settings, "habitation_claims", "de", model)
+
+    assert swiss != german
+    assert swiss["language"] == "de-CH"
+    assert german["language"] == "de"
+    assert set(_terms(swiss)) == {"DDE", "BG", "FRC"}
+    assert [(source, target) for _, source, target in model.calls] == [
+        ("fr", "de-CH"),
+        ("fr", "de"),
+    ]
+    assert translation.localized_glossary(settings, "habitation_claims", "de-CH", model) == swiss
+    assert len(model.calls) == 2
+
+
+def test_swiss_glossary_prompt_adapts_generated_values_without_touching_acronyms(
+    settings, monkeypatch
+):
+    captured = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        captured.extend(messages)
+        return {"content": '{"translations": ["Schliessen"]}'}
+
+    monkeypatch.setattr(translation, "chat_completion", fake_completion)
+    assert translation.translate_entries(settings, ["Schließen"], "de", "de-CH") == ["Schliessen"]
+    assert "Schweizer Hochdeutsch" in captured[0]["content"]
+    assert "abbreviations and acronyms" in captured[0]["content"]
+
+
 def test_categories_meanings_and_contexts_are_translated_but_not_abbreviations(settings):
     model = FakeModel()
 

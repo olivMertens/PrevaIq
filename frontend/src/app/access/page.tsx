@@ -33,7 +33,7 @@ export default function AccessPage() {
         <div className="flex items-start gap-3">
           <span
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl"
-            style={{ backgroundColor: `${brand.secondary}1F`, color: brand.primary }}
+            style={{ backgroundColor: `${brand.secondary}1F`, color: brand.ink }}
           >
             <Icon className="h-5 w-5" />
           </span>
@@ -47,7 +47,7 @@ export default function AccessPage() {
           <a
             href={mailtoHref(requestEmail, tAuth('requestMailSubject'), tAuth('requestMailBody'))}
             className="flex w-full justify-center rounded-lg border px-4 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50"
-            style={{ color: brand.primary, borderColor: `${brand.primary}40` }}
+            style={{ color: brand.ink, borderColor: `${brand.primary}40` }}
           >
             {t('mail')}
           </a>
@@ -55,13 +55,13 @@ export default function AccessPage() {
         {requestEmail && (
           <p className="text-center text-sm text-slate-600">
             {t('contactUs')}:{' '}
-            <a href={`mailto:${requestEmail}`} className="font-medium underline" style={{ color: brand.primary }}>
+            <a href={`mailto:${requestEmail}`} className="font-medium underline" style={{ color: brand.ink }}>
               {requestEmail}
             </a>
           </p>
         )}
         <p className="text-xs text-slate-500">{t('userOnly')}</p>
-        <Link href="/login" className="block text-center text-sm" style={{ color: brand.primary }}>
+        <Link href="/login" className="block text-center text-sm" style={{ color: brand.ink }}>
           {t('back')}
         </Link>
       </section>

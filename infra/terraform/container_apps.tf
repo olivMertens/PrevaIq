@@ -74,7 +74,7 @@ locals {
     AURORA_DEPLOYMENT_NAME            = var.aurora_deployment_name
     AURORA_ENSEMBLE_DEPLOYMENT_NAME   = var.aurora_ensemble_deployment_name
     AURORA_INITIAL_CONDITION_BLOB_URL = var.aurora_initial_condition_blob_url
-    AURORA_CHANNEL_CONTAINER_URL      = "${azurerm_storage_account.this.primary_blob_endpoint}${local.data_container_name}/aurora"
+    AURORA_CHANNEL_CONTAINER_URL      = var.aurora_channel_storage_account_name == "" ? "${azurerm_storage_account.this.primary_blob_endpoint}${local.data_container_name}/aurora" : "${data.azurerm_storage_account.aurora_channel[0].primary_blob_endpoint}${var.aurora_channel_container_name}"
     AURORA_TOKEN_SCOPE                = "https://ml.azure.com/.default"
     AURORA_TIMEOUT_SECONDS            = "900"
     AURORA_USE_AZURE_AD               = tostring(!var.aurora_endpoint_key_secret_enabled)

@@ -7,8 +7,8 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import DemoGuideModal from './DemoGuideModal';
 import { LOCALES, useLocaleSwitch } from './LanguageSwitcher';
+import { AppearanceOptions } from './AppearanceSwitcher';
 
-const LANGUAGE_KEYS = { en: 'languageEnglish', fr: 'languageFrench', de: 'languageGerman' } as const;
 const ITEM_CLASS =
   'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-100 focus:outline-none disabled:opacity-50';
 
@@ -27,6 +27,7 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
   const t = useTranslations('nav');
   const tAuth = useTranslations('auth');
   const tDemo = useTranslations('demoGuide');
+  const tAppearance = useTranslations('appearance');
   const { locale, isPending, switchLocale } = useLocaleSwitch();
   const [open, setOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
@@ -100,7 +101,7 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
           role="menu"
           aria-label={t('userMenu')}
           onKeyDown={onMenuKeyDown}
-          className="absolute right-0 top-full z-[60] mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl"
+          className="absolute right-0 top-full z-[60] mt-2 max-h-[calc(100dvh-5rem)] w-72 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl"
         >
           {user && (
             <p className="truncate border-b border-slate-100 px-3 py-2 text-xs text-slate-500" title={user}>
@@ -121,12 +122,17 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
                 onClick={() => (option.code === locale ? close() : switchLocale(option.code))}
                 className={ITEM_CLASS}
               >
-                <span className="w-6 text-xs font-semibold text-slate-500">{option.label}</span>
-                <span className="flex-1">{tAuth(LANGUAGE_KEYS[option.code])}</span>
+                <span className="w-12 flex-shrink-0 text-xs font-semibold text-slate-500">{option.label}</span>
+                <span className="flex-1">{tAuth(option.translationKey)}</span>
                 {locale === option.code && <Check className="h-4 w-4 text-indigo-600" aria-hidden />}
               </button>
             ))}
           </div>
+          <div role="separator" className="my-1 border-t border-slate-100" />
+          <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {tAppearance('title')}
+          </p>
+          <AppearanceOptions menu />
           <div role="separator" className="my-1 border-t border-slate-100" />
           <button
             type="button"

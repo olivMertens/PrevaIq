@@ -4,8 +4,8 @@
     Container App secret reference expected by the PrevaIQ deployment.
 
 .DESCRIPTION
-    The key is entered as a SecureString and never appears in shell history or
-    command-line arguments. It is written through Azure Resource Manager using
+    The key is entered or supplied in memory as a SecureString and never appears
+    as plain text in shell history or command-line arguments. It is written through Azure Resource Manager using
     a unique file under the gitignored .tmp directory, then the temporary file
     is removed. Run infra/deploy.ps1 afterwards so the next API revision maps
     AURORA_ENDPOINT_TOKEN to this secret and selects Key authentication.
@@ -18,7 +18,8 @@ param(
     [string]$ApiAppName = "ca-api-demo",
     [string]$KeyVaultName = "",
     [string]$IdentityName = "",
-    [string]$SecretName = "aurora-endpoint-key"
+    [string]$SecretName = "aurora-endpoint-key",
+    [Security.SecureString]$EndpointKey
 )
 $ErrorActionPreference = "Stop"
 
@@ -54,7 +55,9 @@ if ($assignment.Count -eq 0) {
         --scope $vault.id -o none
 }
 
-$secure = Read-Host "Aurora endpoint key (input hidden)" -AsSecureString
+$secure = if ($EndpointKey) { $EndpointKey } else {
+    Read-Host "Aurora endpoint key (input hidden)" -AsSecureString
+}
 $plain = [System.Net.NetworkCredential]::new("", $secure).Password.Trim()
 if ([string]::IsNullOrWhiteSpace($plain)) { throw "Empty Aurora endpoint key." }
 
@@ -69,9 +72,11 @@ try {
         --uri "https://management.azure.com$($vault.id)/secrets/$($SecretName)?api-version=2023-07-01" `
         --body "@$tempFile" -o none
 } finally {
-    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
     $plain = $null
     $body = $null
+    if (Test-Path -LiteralPath $tempFile) {
+        Remove-Item -LiteralPath $tempFile -Force -ErrorAction Stop
+    }
 }
 
 Invoke-Az containerapp secret set -n $ApiAppName -g $ResourceGroup `

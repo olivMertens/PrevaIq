@@ -24,6 +24,7 @@ import AuroraExpiryCountdown from '@/components/aurora/AuroraExpiryCountdown';
 
 type AuroraConfig = {
   enabled: boolean;
+  disabled_reason?: 'blob_access_denied' | null;
   endpoint: string;
   deterministic_model: string;
   ensemble_model: string;
@@ -64,11 +65,22 @@ type AuroraSnapshot = {
 
 type TestResult = {
   ok: boolean;
-  checks: Array<{ id: string; ok: boolean; detail: string }>;
+  checks: Array<{
+    id: string;
+    ok: boolean;
+    detail: string;
+    origin?: string;
+    operation?: string;
+    checked_at?: string;
+    http_status?: number;
+    error_code?: string;
+    request_id?: string;
+  }>;
 };
 
 const EMPTY_CONFIG: AuroraConfig = {
   enabled: false,
+  disabled_reason: null,
   endpoint: '',
   deterministic_model: 'aurora-0.25-v1.5',
   ensemble_model: 'aurora-0.25-v1.5-ensemble',
@@ -276,7 +288,13 @@ export default function AuroraAdminTab() {
               <input
                 type="checkbox"
                 checked={form.enabled}
-                onChange={(event) => setForm({ ...form, enabled: event.target.checked })}
+                onChange={(event) => setForm({
+                  ...form,
+                  enabled: event.target.checked,
+                  ...('disabled_reason' in form
+                    ? { disabled_reason: event.target.checked ? null : form.disabled_reason }
+                    : {}),
+                })}
                 className="h-4 w-4 rounded border-slate-300"
               />
               {t('configuration.enabled')}
@@ -284,6 +302,28 @@ export default function AuroraAdminTab() {
           </div>
 
           <div className="mt-6 grid gap-4">
+            {!form.enabled && 'disabled_reason' in form && (
+              <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+                {t('configuration.disabledReason.label')}
+                <select
+                  aria-label={t('configuration.disabledReason.label')}
+                  aria-describedby="aurora-disabled-reason-help"
+                  value={form.disabled_reason ?? ''}
+                  onChange={(event) => setForm({
+                    ...form,
+                    disabled_reason: event.target.value === 'blob_access_denied'
+                      ? 'blob_access_denied' : null,
+                  })}
+                  className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal text-slate-900"
+                >
+                  <option value="">{t('configuration.disabledReason.unspecified')}</option>
+                  <option value="blob_access_denied">{t('configuration.disabledReason.blobAccessDenied')}</option>
+                </select>
+                <span id="aurora-disabled-reason-help" className="text-xs font-normal text-slate-500">
+                  {t('configuration.disabledReason.help')}
+                </span>
+              </label>
+            )}
             {([
               ['endpoint', 'url'],
               ['initial_condition_blob_url', 'url'],
@@ -349,7 +389,7 @@ export default function AuroraAdminTab() {
             <button
               type="button"
               onClick={() => void testConnection()}
-              disabled={testing || !snapshot?.runtime.enabled}
+              disabled={testing || !snapshot}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               {testing ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <TestTube2 className="h-4 w-4" aria-hidden />}
@@ -365,6 +405,7 @@ export default function AuroraAdminTab() {
             </button>
           </div>
           <p className="mt-3 text-xs text-slate-500">{t('configuration.security')}</p>
+          <p className="mt-2 text-xs text-slate-500">{t('testScope')}</p>
         </div>
 
         <div className="space-y-6">
@@ -385,6 +426,16 @@ export default function AuroraAdminTab() {
                     <div>
                       <p className="text-sm font-medium text-slate-800">{t(`checklist.items.${item.id}`)}</p>
                       {tested && <p className="text-xs text-slate-500">{t(tested.ok ? 'checklist.testPassed' : 'checklist.testFailed')}</p>}
+                      {tested?.operation && (
+                        <div className="mt-1 space-y-0.5 break-all text-xs text-slate-600">
+                          <p>{t('diagnostics.origin')}: {t('diagnostics.backend')}</p>
+                          <p>{t('diagnostics.operation')}: {t(`diagnostics.operations.${tested.operation}`)}</p>
+                          {tested.checked_at && <p>{t('diagnostics.checkedAt')}: {tested.checked_at}</p>}
+                          {tested.http_status != null && <p>{t('diagnostics.httpStatus')}: {tested.http_status}</p>}
+                          {tested.error_code && <p>{t('diagnostics.errorCode')}: {tested.error_code}</p>}
+                          {tested.request_id && <p>{t('diagnostics.requestId')}: {tested.request_id}</p>}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );

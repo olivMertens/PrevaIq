@@ -12,6 +12,7 @@ import { groupDocuments, translationOrder } from '@/lib/documentFiles';
 import { useContentTranslation, type TranslatableItem } from '@/lib/useContentTranslation';
 import { FileStack } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { sameLanguage } from '@/i18n/locales';
 
 const CONTENT_VIEWS: readonly ContentView[] = ['translated', 'original'];
 // Pages of the open document translated at once (around the page being read in longer ones).
@@ -19,7 +20,7 @@ const DOCUMENT_TRANSLATION_LIMIT = 24;
 
 /** Content written in another language than the UI (unclear languages are left as they are). */
 function isForeign(language: string | null | undefined, locale: string): language is string {
-  return !!language && language !== locale;
+  return !!language && !sameLanguage(language, locale);
 }
 
 function pageItem(page: MarkdownPage): TranslatableItem {

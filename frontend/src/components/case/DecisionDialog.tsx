@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { submitApplicationDecision, type ApplicationDecision } from '@/lib/api';
 import { useToast } from '@/lib/ToastProvider';
+import { DECISION_STYLES } from './decisionStyles';
 
 export interface DecisionDraft {
   decision: ApplicationDecision;
@@ -23,11 +24,11 @@ interface DecisionDialogProps {
   onSubmitted: (decision: ApplicationDecision) => void;
 }
 
-const OPTIONS: Array<{ id: ApplicationDecision; Icon: typeof CheckCircle; active: string }> = [
-  { id: 'approve', Icon: CheckCircle, active: 'border-emerald-500 bg-emerald-50 text-emerald-800' },
-  { id: 'approve_with_conditions', Icon: TriangleAlert, active: 'border-amber-500 bg-amber-50 text-amber-900' },
-  { id: 'defer', Icon: Clock, active: 'border-slate-500 bg-slate-100 text-slate-800' },
-  { id: 'decline', Icon: XCircle, active: 'border-rose-500 bg-rose-50 text-rose-800' },
+const OPTIONS: Array<{ id: ApplicationDecision; Icon: typeof CheckCircle }> = [
+  { id: 'approve', Icon: CheckCircle },
+  { id: 'approve_with_conditions', Icon: TriangleAlert },
+  { id: 'defer', Icon: Clock },
+  { id: 'decline', Icon: XCircle },
 ];
 
 export default function DecisionDialog(props: DecisionDialogProps) {
@@ -94,7 +95,7 @@ function DecisionForm({ applicationId, draft, riskLevel, onClose, onSubmitted }:
         <div className="space-y-4 px-5 py-4">
           {draft && <p className="rounded-lg bg-indigo-50 px-3 py-2 text-sm text-indigo-900">{t('prefilled')}</p>}
           <div role="radiogroup" aria-label={t('title')} className="grid grid-cols-2 gap-2">
-            {OPTIONS.map(({ id, Icon, active }, index) => (
+            {OPTIONS.map(({ id, Icon }, index) => (
               <button
                 key={id}
                 ref={(decision ? id === decision : index === 0) ? firstFieldRef : undefined}
@@ -104,7 +105,8 @@ function DecisionForm({ applicationId, draft, riskLevel, onClose, onSubmitted }:
                 onClick={() => setDecision(id)}
                 className={clsx(
                   'flex items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm font-medium',
-                  decision === id ? active : 'border-slate-200 text-slate-700 hover:bg-slate-50',
+                  DECISION_STYLES[id].surface,
+                  decision === id ? 'ring-2 ring-current ring-offset-1' : 'hover:brightness-95',
                 )}
               >
                 <Icon className="h-4 w-4 flex-shrink-0" aria-hidden />
@@ -141,10 +143,10 @@ function DecisionForm({ applicationId, draft, riskLevel, onClose, onSubmitted }:
             type="button"
             onClick={submit}
             disabled={!decision || saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className={clsx('inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50', decision ? DECISION_STYLES[decision].button : 'bg-slate-600')}
           >
             <Send className="h-4 w-4" aria-hidden />
-            {saving ? t('saving') : tDecisions('submitDecision')}
+            {saving ? t('saving') : decision ? t('confirm', { decision: tDecisions(decision) }) : tDecisions('submitDecision')}
           </button>
         </div>
       </div>

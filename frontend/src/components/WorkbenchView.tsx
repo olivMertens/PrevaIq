@@ -25,7 +25,8 @@ import CaseTitle from '@/components/case/CaseTitle';
 import BodySystemDeepDiveModal from '@/components/BodySystemDeepDiveModal';
 import LifeHealthClaimsOverview from '@/components/claims/LifeHealthClaimsOverview';
 import PropertyCasualtyClaimsOverview from '@/components/claims/PropertyCasualtyClaimsOverview';
-import AutomotiveClaimsOverview from '@/components/claims/AutomotiveClaimsOverview';
+import AutomotiveClaimsWorkspace from '@/components/claims/AutomotiveClaimsWorkspace';
+import { isClaimsWorkspace } from '@/lib/claimsWorkspace';
 import UnderwritingDecisionFooter from '@/components/UnderwritingDecisionFooter';
 import { MortgageWorkbench } from '@/components/mortgage';
 import { usePersona } from '@/lib/PersonaContext';
@@ -177,6 +178,23 @@ export default function WorkbenchView({
   const renderContent = () => {
     if (!selectedApp) return null;
 
+    if (isClaimsWorkspace(currentPersona)) {
+      return (
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className={activeView === 'source' ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
+            {currentPersona === 'automotive_claims' ? (
+              <AutomotiveClaimsWorkspace key={selectedApp.id} application={selectedApp} view={activeView}
+                onChangeView={setActiveView} onApplicationUpdate={setSelectedApp} />
+            ) : (
+              <PropertyCasualtyClaimsOverview application={selectedApp} onApplicationUpdate={setSelectedApp}
+                view={activeView} onChangeView={setActiveView} />
+            )}
+          </div>
+          {activeView === 'source' && <SourceReviewView application={selectedApp} initialPage={sourcePageNumber} onPageChange={setReadingPage} />}
+        </div>
+      );
+    }
+
     switch (activeView) {
       case 'timeline':
         return (
@@ -194,24 +212,8 @@ export default function WorkbenchView({
         return <SourceReviewView application={selectedApp} initialPage={sourcePageNumber} onPageChange={setReadingPage} />;
       case 'overview':
       default:
-        if (currentPersona === 'automotive_claims') {
-          return (
-            <AutomotiveClaimsOverview 
-                // Reloads its own data once the analysis has been translated.
-                key={`${selectedApp.id}-${selectedApp.analysis_language ?? ''}`}
-                applicationId={selectedApp.id}
-                displayTitle={getApplicationDisplayTitle(selectedApp, locale)}
-            />
-          );
-        }
         if (currentPersona === 'life_health_claims') {
           return <LifeHealthClaimsOverview application={selectedApp} />;
-        }
-        if (currentPersona === 'property_casualty_claims') {
-          return <PropertyCasualtyClaimsOverview application={selectedApp} onApplicationUpdate={setSelectedApp} />;
-        }
-        if (currentPersona === 'habitation_claims') {
-          return <PropertyCasualtyClaimsOverview application={selectedApp} onApplicationUpdate={setSelectedApp} />;
         }
         if (currentPersona === 'mortgage') {
           return <MortgageWorkbench applicationId={selectedApp.id} />;

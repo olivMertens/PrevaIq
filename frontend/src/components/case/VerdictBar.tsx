@@ -1,9 +1,10 @@
 'use client';
 
-import { Banknote, CircleCheck, CircleHelp, CircleX, Clock, Gauge, HeartPulse, ShieldAlert, Sparkles, TriangleAlert, Umbrella, XCircle } from 'lucide-react';
+import { Banknote, CircleCheck, CircleHelp, CircleX, Clock, Gauge, Globe, HeartPulse, ShieldAlert, Sparkles, TriangleAlert, Umbrella, XCircle } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
-import type { ApplicationDecision } from '@/lib/api';
+import type { ApplicationDecision, WebIntelligenceResult } from '@/lib/api';
+import { DECISION_STYLES } from './decisionStyles';
 import type { DeepDiveTab } from './caseSignals';
 import type { Recommendation } from './recommendation';
 
@@ -48,6 +49,8 @@ interface VerdictBarProps {
   onWhy: () => void;
   onRunAnalysis: () => void;
   onOpenTab: (tab: DeepDiveTab) => void;
+  onRunFraud: () => void;
+  web?: WebIntelligenceResult | null;
 }
 
 const TONE = {
@@ -106,15 +109,17 @@ export default function VerdictBar({
   onWhy,
   onRunAnalysis,
   onOpenTab,
+  onRunFraud,
+  web,
 }: VerdictBarProps) {
   const t = useTranslations('caseCockpit');
   const tDecisions = useTranslations('decisions');
   const tone = recommendation ? TONE[recommendation.tone] : null;
 
   const recommendationBlock = recordedDecision ? (
-    <div className="flex h-full flex-col justify-between rounded-lg border-l-4 border-indigo-600 bg-indigo-50/60 p-3">
+    <div className={clsx('flex h-full flex-col justify-between rounded-lg border-l-4 p-3', DECISION_STYLES[recordedDecision].surface)}>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">{t('verdict.decisionLabel')}</p>
+        <p className="text-xs font-semibold uppercase tracking-wide">{t('verdict.decisionLabel')}</p>
         <p className="mt-1 inline-flex items-center gap-2 text-lg font-semibold text-slate-900">
           {(() => { const Icon = DECISION_ICON[recordedDecision]; return <Icon className="h-5 w-5" aria-hidden />; })()}
           {tDecisions(recordedDecision)}
@@ -125,8 +130,8 @@ export default function VerdictBar({
       </button>
     </div>
   ) : recommendation && tone ? (
-    <div className={clsx('flex h-full flex-col justify-between rounded-lg border-l-4 p-3', tone.frame)}>
-      <div>
+    <div className={clsx('flex h-full flex-col justify-between gap-3 rounded-lg border-l-4 p-3 lg:flex-row lg:items-center', tone.frame)}>
+      <div className="min-w-0 flex-1">
         <p className={clsx('inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide', tone.label)}>
           <Sparkles className="h-3.5 w-3.5" aria-hidden />
           {t('verdict.recommendation')}
@@ -137,7 +142,7 @@ export default function VerdictBar({
           <button type="button" onClick={onWhy} className="font-medium text-indigo-700 underline">{t('verdict.why')}</button>
         </p>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 lg:shrink-0">
         <button type="button" onClick={onValidate} className={clsx('inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 font-medium text-white', tone.button)}>
           <tone.Icon className="h-4 w-4" aria-hidden />
           {t('verdict.validate')}
@@ -167,8 +172,8 @@ export default function VerdictBar({
     <section aria-label={t('verdict.label')} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       {identity.length > 0 && <p className="mb-3 truncate text-sm text-slate-600" title={identity.join(' · ')}>{identity.join(' · ')}</p>}
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-12 xl:col-span-4">{recommendationBlock}</div>
-        <div className="col-span-12 grid grid-cols-2 gap-3 lg:grid-cols-4 xl:col-span-8">
+        <div className="col-span-12">{recommendationBlock}</div>
+        <div className="col-span-12 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <Tile label={t('kpi.claimed')} Icon={Banknote} onClick={() => onOpenTab('cover')}>
             <span className="mt-1 text-2xl font-semibold text-slate-900">{amount.label ?? '—'}</span>
             {amount.expertRequired && (
@@ -181,7 +186,7 @@ export default function VerdictBar({
               <span className="mt-0.5 text-sm text-rose-700">{t('kpi.overclaim', { percent: amount.overclaimPercent })}</span>
             )}
           </Tile>
-          <Tile label={t('kpi.fraudRisk')} Icon={Gauge} onClick={() => onOpenTab('fraud')}>
+          <Tile label={t('kpi.fraudRisk')} Icon={Gauge} onClick={() => fraud.state === 'none' ? onRunFraud() : onOpenTab('fraud')}>
             {fraud.state === 'done' && fraud.band ? (
               <>
                 <span className={clsx('mt-1 text-2xl font-semibold', FRAUD_COLOR[fraud.band] ?? 'text-slate-900')}>
@@ -202,8 +207,9 @@ export default function VerdictBar({
             ) : (
               <span className="mt-1 text-sm text-slate-600">{t('kpi.fraudNotRun')}</span>
             )}
+            <span className="mt-2 text-xs font-semibold text-indigo-800">{fraud.state === 'none' ? t('fraudTab.run') : t('fraudTab.openReport')}</span>
           </Tile>
-          <Tile label={t('kpi.cover')} Icon={Umbrella} onClick={() => onOpenTab('web')}>
+          <Tile label={t('kpi.cover')} Icon={Umbrella} onClick={() => onOpenTab('cover')}>
             {cover.length === 0 ? (
               <span className="mt-1 text-sm text-slate-600">{t('kpi.coverUnknown')}</span>
             ) : (
@@ -220,6 +226,10 @@ export default function VerdictBar({
               </ul>
             )}
           </Tile>
+          <Tile label={t('drawer.tabs.web')} Icon={Globe} onClick={() => onOpenTab('web')}>
+            <span className="mt-1 text-sm text-slate-700">{web?.error ? t('webTab.error') : web ? t('webTab.sources', { count: new Set(web.source_urls || []).size }) : t('webTab.none')}</span>
+            <span className="mt-2 text-xs font-semibold text-indigo-800">{t('workspace.viewSources')}</span>
+          </Tile>
           <Tile label={t('kpi.customer')} Icon={HeartPulse} onClick={() => onOpenTab('customer')}>
             {customer.level ? (
               <>
@@ -228,10 +238,12 @@ export default function VerdictBar({
                   {customer.score !== undefined && <span className="ml-1 text-sm font-normal text-slate-500">{t('kpi.score', { score: customer.score })}</span>}
                 </span>
                 {customer.summary && <span className="mt-1 line-clamp-2 text-sm text-slate-600">{customer.summary}</span>}
+                <span className="mt-1 text-xs text-slate-500">{t('workspace.aiEstimate')}</span>
               </>
             ) : (
               <span className="mt-1 text-sm text-slate-600">{t('kpi.customerUnknown')}</span>
             )}
+            <span className="mt-2 text-xs font-semibold text-indigo-800">{t('workspace.prepareReply')}</span>
           </Tile>
         </div>
       </div>

@@ -2,16 +2,21 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const { load, srcDir } = require('./loadTs');
+const localeHelpers = load('locales.ts', path.join(srcDir, 'i18n'));
 
 const root = path.resolve(__dirname, '..');
-const messages = (locale) => JSON.parse(fs.readFileSync(path.join(root, 'messages', `${locale}.json`), 'utf8'));
+const messages = (locale) => {
+  const catalog = JSON.parse(fs.readFileSync(path.join(root, 'messages', `${locale === 'de-CH' ? 'de' : locale}.json`), 'utf8'));
+  return locale === 'de-CH' ? localeHelpers.swissGermanMessages(catalog) : catalog;
+};
 const source = (...parts) => fs.readFileSync(path.join(root, 'src', ...parts), 'utf8');
 const PERSONA_IDS = ['underwriting', 'life_health_claims', 'automotive_claims', 'property_casualty_claims', 'habitation_claims', 'mortgage'];
 
 test('persona descriptions follow the UI language', () => {
   const english = messages('en').persona.descriptions;
   const french = messages('fr').persona.descriptions;
-  for (const locale of ['en', 'fr', 'de']) {
+  for (const locale of ['en', 'fr', 'de', 'de-CH']) {
     const descriptions = messages(locale).persona.descriptions;
     assert.deepEqual(PERSONA_IDS.filter((id) => typeof descriptions?.[id] !== 'string'), [], `${locale} persona.descriptions`);
   }
@@ -35,7 +40,7 @@ test('the glossary menu is requested in the UI language and titled with the tran
   assert.match(dropdown, /getGlossary\(currentPersona, locale\)/);
   assert.match(dropdown, /t\('glossaryFor', \{ name: personaConfig\.name \}\)/);
   assert.doesNotMatch(dropdown, /searchGlossary/);
-  for (const locale of ['en', 'fr', 'de']) {
+  for (const locale of ['en', 'fr', 'de', 'de-CH']) {
     assert.equal(typeof messages(locale).glossaryDropdown.originalLanguage, 'string', locale);
   }
 });
@@ -57,8 +62,9 @@ test('rendered glossary headings ignore a French API name in English and German'
     en: 'Property Claims Glossary',
     fr: 'Glossaire Sinistres Habitation',
     de: 'Sachschäden Glossar',
+    'de-CH': 'Sachschäden Glossar',
   };
-  for (const locale of ['en', 'fr', 'de']) {
+  for (const locale of ['en', 'fr', 'de', 'de-CH']) {
     const catalog = messages(locale);
     let stateIndex = 0;
     const sourceModule = { exports: {} };
@@ -68,7 +74,7 @@ test('rendered glossary headings ignore a French API name in English and German'
         useState: (initial) => {
           const index = stateIndex++;
           const value = index === 0 ? true : index === 4
-            ? { count: 0, language: locale, name: 'Sinistres Habitation' }
+            ? { count: 0, language: locale === 'de-CH' ? 'de' : locale, name: 'Sinistres Habitation' }
             : initial;
           return [value, () => {}];
         },
@@ -81,6 +87,7 @@ test('rendered glossary headings ignore a French API name in English and German'
         useLocale: () => locale,
         useTranslations: (namespace) => createTranslator({ locale, messages: catalog, namespace }),
       };
+      if (specifier === '@/i18n/locales') return localeHelpers;
       if (specifier === '@/lib/PersonaContext') return {
         usePersona: () => ({
           currentPersona: 'habitation_claims',
@@ -99,6 +106,7 @@ test('rendered glossary headings ignore a French API name in English and German'
     const html = renderToStaticMarkup(React.createElement(sourceModule.exports.default));
     assert.ok(html.includes(expected[locale]), `${locale}: expected ${expected[locale]}`);
     if (locale !== 'fr') assert.ok(!html.includes('Sinistres Habitation'));
+    if (locale === 'de-CH') assert.ok(html.includes(catalog.glossaryDropdown.originalLanguage));
   }
 });
 

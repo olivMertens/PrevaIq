@@ -26,6 +26,7 @@ from urllib.parse import parse_qs, urlparse, urlunparse
 import numpy as np
 import requests
 import xarray as xr
+from azure.core.credentials import TokenCredential
 from azure.core.exceptions import AzureError
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import (
@@ -126,6 +127,7 @@ _RAIN_CRITICAL_MM = 50.0
 @dataclass(frozen=True)
 class AuroraSettings:
     enabled: bool = False
+    disabled_reason: str | None = None
     endpoint: str = ""
     deterministic_model: str = _DETERMINISTIC_MODEL
     ensemble_model: str = _ENSEMBLE_MODEL
@@ -170,6 +172,7 @@ class AuroraSettings:
             return environment
         return cls(
             enabled=persisted.enabled,
+            disabled_reason=persisted.disabled_reason,
             endpoint=persisted.endpoint,
             deterministic_model=persisted.deterministic_model,
             ensemble_model=persisted.ensemble_model,
@@ -388,12 +391,27 @@ def _foundry_request(
     return data
 
 
-def _upload_channel_file(folder_sas_url: str, name: str, payload: bytes | BinaryIO) -> None:
+def _channel_blob_client(
+    folder_sas_url: str, name: str, *, credential: TokenCredential | None = None
+) -> BlobClient:
+    url = _blob_url(folder_sas_url, name)
+    if credential is not None:
+        url = urlunparse(urlparse(url)._replace(query=""))
+    return BlobClient.from_blob_url(url, credential=credential)
+
+
+def _upload_channel_file(
+    folder_sas_url: str,
+    name: str,
+    payload: bytes | BinaryIO,
+    *,
+    credential: TokenCredential | None = None,
+) -> None:
     try:
-        BlobClient.from_blob_url(_blob_url(folder_sas_url, name)).upload_blob(
+        _channel_blob_client(folder_sas_url, name, credential=credential).upload_blob(
             payload, overwrite=True, max_concurrency=1
         )
-        BlobClient.from_blob_url(_blob_url(folder_sas_url, f"{name}.finished")).upload_blob(
+        _channel_blob_client(folder_sas_url, f"{name}.finished", credential=credential).upload_blob(
             b"File is available", overwrite=True
         )
     except Exception as exc:
@@ -406,13 +424,17 @@ def _download_prediction(
     name: str,
     deadline: float,
     poll_interval: float,
+    *,
+    credential: TokenCredential | None = None,
 ) -> bytes:
-    marker = BlobClient.from_blob_url(_blob_url(folder_sas_url, f"{task_id}/{name}.finished"))
+    marker = _channel_blob_client(
+        folder_sas_url, f"{task_id}/{name}.finished", credential=credential
+    )
     while True:
         try:
             if marker.exists():
                 return (
-                    BlobClient.from_blob_url(_blob_url(folder_sas_url, f"{task_id}/{name}"))
+                    _channel_blob_client(folder_sas_url, f"{task_id}/{name}", credential=credential)
                     .download_blob()
                     .readall()
                 )
@@ -618,6 +640,7 @@ def _submit_forecast(
 
     token = _endpoint_token(settings)
     channel_sas_url = _channel_sas_url(settings)
+    channel_credential = None if settings.channel_sas_url else _credential()
     model = settings.ensemble_model if ensemble else settings.deterministic_model
     num_steps = math.ceil(horizon_hours / 6)
     fine_lead_times = [1, 2, 3, 4, 5, 6]
@@ -639,7 +662,12 @@ def _submit_forecast(
         if not isinstance(task_id, str) or not task_id:
             raise AuroraServiceError(f"Aurora did not return a task_id: {creation}")
         initial_condition.seek(0)
-        _upload_channel_file(channel_sas_url, f"{task_id}/input.nc", initial_condition)
+        _upload_channel_file(
+            channel_sas_url,
+            f"{task_id}/input.nc",
+            initial_condition,
+            credential=channel_credential,
+        )
     deadline = time.monotonic() + settings.timeout_seconds
     while True:
         progress = _foundry_request(settings, token, "task_info", {"task_id": task_id})
@@ -661,6 +689,7 @@ def _submit_forecast(
             f"prediction-{index:03d}.nc",
             deadline,
             settings.poll_interval_seconds,
+            credential=channel_credential,
         )
         for index in range(prediction_count)
     )
@@ -739,6 +768,9 @@ def status(settings: AuroraSettings | None = None) -> dict[str, Any]:
     )
     return {
         "enabled": active_settings.enabled,
+        "disabled_reason": (
+            active_settings.disabled_reason if not active_settings.enabled else None
+        ),
         "configured": active_settings.configured,
         "model": active_settings.deterministic_model,
         "ensemble_model": active_settings.ensemble_model,

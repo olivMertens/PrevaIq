@@ -132,6 +132,18 @@ variable "aurora_endpoint_key_secret_enabled" {
   default     = false
 }
 
+variable "aurora_channel_storage_account_name" {
+  description = "Optional existing Aurora channel storage account in this resource group. Empty keeps the application storage channel."
+  type        = string
+  default     = ""
+}
+
+variable "aurora_channel_container_name" {
+  description = "Private task container on the optional existing Aurora channel storage account."
+  type        = string
+  default     = "aurora-tasks"
+}
+
 variable "aurora_endpoint_expires_at" {
   description = "ISO 8601 expiration timestamp for the temporary Aurora endpoint allocation."
   type        = string

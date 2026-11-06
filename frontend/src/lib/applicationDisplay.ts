@@ -138,8 +138,9 @@ export function getApplicationDisplayTitle(
   app: DisplayApplication,
   requestedLocale: string = 'en'
 ): string {
+  const language = requestedLocale.toLowerCase().split('-')[0];
   const locale: DisplayLocale =
-    requestedLocale === 'fr' || requestedLocale === 'de' ? requestedLocale : 'en';
+    language === 'fr' || language === 'de' ? language : 'en';
   if ('summary_title' in app && app.summary_title) return app.summary_title;
 
   const fields: FieldMap = {

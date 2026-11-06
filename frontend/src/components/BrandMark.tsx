@@ -1,5 +1,9 @@
+'use client';
+
 import Image from 'next/image';
+import { useContext } from 'react';
 import { brand } from '@/lib/brand';
+import { ThemeContext } from '@/lib/ThemeProvider';
 
 interface BrandMarkProps {
   compact?: boolean;
@@ -7,10 +11,12 @@ interface BrandMarkProps {
 }
 
 /** Official FDR wordmark, chosen for the actual surface rather than recolored with CSS. */
-export default function BrandMark({ compact = false, surface = 'light' }: BrandMarkProps) {
+export default function BrandMark({ compact = false, surface }: BrandMarkProps) {
+  const theme = useContext(ThemeContext)?.theme ?? 'light';
+  const actualSurface = surface ?? theme;
   return (
     <Image
-      src={surface === 'dark' ? brand.logoDark : brand.logo}
+      src={actualSurface === 'dark' ? brand.logoDark : brand.logo}
       alt={brand.logoAlt}
       width={859}
       height={254}

@@ -7,9 +7,12 @@ const vm = require('node:vm');
 const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const ts = require('typescript');
+const { load, srcDir } = require('./loadTs');
 
 const frontend = path.resolve(__dirname, '..');
 const messages = Object.fromEntries(['en', 'fr', 'de'].map(locale => [locale, require(`../messages/${locale}.json`).auth]));
+const { swissGermanMessages } = load('locales.ts', path.join(srcDir, 'i18n'));
+messages['de-CH'] = swissGermanMessages(messages.de);
 const css = new Proxy({}, { get: (_, name) => name });
 
 // Same TS/VM strategy as the existing branding/auth suites; no added dependency.
@@ -75,7 +78,7 @@ function hooks(initial = []) {
   };
 }
 
-for (const locale of ['en', 'fr', 'de']) {
+for (const locale of ['en', 'fr', 'de', 'de-CH']) {
   for (const theme of ['light', 'dark']) {
     for (const [entraEnabled, localAuthEnabled] of [[true, false], [true, true], [false, true], [false, false]]) {
       test(`login ${locale}/${theme}, Entra=${entraEnabled}, local=${localAuthEnabled}: composition, branding, links and provider gates`, () => {
@@ -83,7 +86,7 @@ for (const locale of ['en', 'fr', 'de']) {
         const Shell = load('components/auth/LoginShell.tsx').default;
         const Page = load('app/login/page.tsx').default;
         const markup = renderToStaticMarkup(React.createElement(Shell, { initialTheme: theme }, React.createElement(Page)));
-        assert.match(markup, new RegExp(`<main class="login" data-theme="${theme}">`));
+        assert.match(markup, new RegExp(`<main class="login" data-theme="${theme}" data-theme-static="true">`));
         assert.equal((markup.match(/<main /g) || []).length, 1);
         assert.ok(markup.indexOf('class="top"') < markup.indexOf('class="layout"'));
         assert.ok(markup.indexOf('class="hero"') < markup.indexOf('class="card"'));
@@ -139,7 +142,7 @@ for (const theme of ['light', 'dark']) {
   });
 }
 
-for (const locale of ['en', 'fr']) {
+for (const locale of ['en', 'fr', 'de', 'de-CH']) {
   test(`language segments ${locale} preserve the locale cookie and reload behavior`, () => {
     const h = hooks(); const document = {}; let reloads = 0;
     const load = loadUI({ locale, react: h.react, globals: { document, window: { location: { reload: () => reloads++ } } } });
@@ -151,6 +154,20 @@ for (const locale of ['en', 'fr']) {
     assert.equal(document.cookie, `locale=${locale === 'en' ? 'fr' : 'en'};path=/;max-age=31536000;samesite=lax`);
   });
 }
+
+test('selecting DE-CH persists the complete regional locale and reloads only when it changes', () => {
+  for (const locale of ['en', 'fr', 'de', 'de-CH']) {
+    const h = hooks(); const document = {}; let reloads = 0;
+    const load = loadUI({ locale, react: h.react, globals: { document, window: { location: { reload: () => reloads++ } } } });
+    const tree = load('components/LanguageSwitcher.tsx').default({ variant: 'login' });
+    const swiss = find(tree, node => node.type === 'button' && node.props.title === messages[locale].languageGermanSwiss);
+    assert.ok(swiss);
+    assert.equal(swiss.props['aria-pressed'], locale === 'de-CH');
+    swiss.props.onClick();
+    assert.equal(reloads, locale === 'de-CH' ? 0 : 1);
+    assert.equal(document.cookie, locale === 'de-CH' ? undefined : 'locale=de-CH;path=/;max-age=31536000;samesite=lax');
+  }
+});
 
 for (const [status, flag] of [[200, 'success'], [409, 'alreadyConnected'], [429, 'capacityFull'], [401, 'error'], [500, 'fallback'], ['network', 'fallback']]) {
   test(`local login status ${status} preserves request payload, feedback and redirect`, async () => {
@@ -182,12 +199,12 @@ test('callback errors retain localized state/Entra/capacity feedback', () => {
   }
 });
 
-test('EN/FR/DE locales are exposed and all new auth strings exist in each', () => {
-  for (const key of ['splashEyebrow', 'languageLabel', 'languageEnglish', 'languageFrench', 'useLightTheme', 'useDarkTheme']) {
-    for (const locale of ['en', 'fr', 'de']) assert.equal(typeof messages[locale][key], 'string');
+test('EN/FR/DE/DE-CH locales are exposed and all new auth strings exist in each', () => {
+  for (const key of ['splashEyebrow', 'languageLabel', 'languageEnglish', 'languageFrench', 'languageGerman', 'languageGermanSwiss', 'useLightTheme', 'useDarkTheme']) {
+    for (const locale of ['en', 'fr', 'de', 'de-CH']) assert.equal(typeof messages[locale][key], 'string');
   }
   const switcher = readFileSync(path.join(frontend, 'src/components/LanguageSwitcher.tsx'), 'utf8');
-  assert.deepEqual([...switcher.matchAll(/code: '([^']+)'/g)].map(match => match[1]), ['en', 'fr', 'de']);
+  assert.deepEqual([...switcher.matchAll(/code: '([^']+)'/g)].map(match => match[1]), ['en', 'fr', 'de', 'de-CH']);
 });
 
 test('Nemo dimensions, control grouping, mobile breakpoints, theme and focus are scoped to login', () => {

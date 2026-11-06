@@ -10,6 +10,7 @@ const LANGUAGE_KEYS: Record<string, string> = {
   en: 'languageEnglish',
   fr: 'languageFrench',
   de: 'languageGerman',
+  'de-CH': 'languageGermanSwiss',
 };
 
 interface ContentLanguageBarProps {

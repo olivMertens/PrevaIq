@@ -418,6 +418,7 @@ if (-not $SkipFrontend) {
     Copy-Item "$FrontendDir\next.config.js"      $StageDir
     Copy-Item "$FrontendDir\postcss.config.js"   $StageDir
     Copy-Item "$FrontendDir\tailwind.config.js"  $StageDir
+    Copy-Item "$FrontendDir\theme.cjs"            $StageDir
     Copy-Item "$FrontendDir\tsconfig.json"       $StageDir
     Copy-Item "$FrontendDir\next-env.d.ts"       $StageDir -ErrorAction SilentlyContinue
     Copy-DirectoryToStage "$FrontendDir\src" "$StageDir\src"

@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from contextlib import nullcontext
 from datetime import UTC, datetime
+from unittest.mock import Mock
 
 import pytest
+from azure.core.exceptions import HttpResponseError
 
 import app.aurora_admin_api as admin_api
 import app.aurora_config as aurora_config
-from app.aurora import AuroraSettings
+from app.aurora import AuroraServiceError, AuroraSettings, status
 from app.aurora_config import AuroraAdminConfig
 
 
@@ -73,6 +75,41 @@ def test_local_configuration_round_trip_is_audited(local_config_store):
             local_config_store / "brands" / "prevaiq" / "configuration" / "aurora.json"
         ).read_text()
     )
+
+
+def test_suspension_reason_is_persisted_and_exposed_without_changing_endpoint(
+    local_config_store, monkeypatch
+):
+    config = valid_config(enabled=False, disabled_reason="blob_access_denied")
+    saved = aurora_config.save_config(config, "admin@example.com")
+    assert aurora_config.load_config() == saved
+    monkeypatch.setattr(aurora_config, "load_config", lambda: saved)
+
+    snapshot = admin_api._snapshot(saved)
+    runtime = status(AuroraSettings.from_env())
+
+    assert snapshot["configuration"]["disabled_reason"] == "blob_access_denied"
+    assert runtime["disabled_reason"] == "blob_access_denied"
+    assert runtime["enabled"] is False
+    assert runtime["configured"] is False
+    assert runtime["missing"] == []
+    assert saved.endpoint == config.endpoint
+
+
+def test_unspecified_suspension_does_not_claim_a_blob_failure():
+    assert status(AuroraSettings())["disabled_reason"] is None
+
+
+def test_reenabling_clears_the_suspension_reason():
+    config = aurora_config.validate_config(valid_config(disabled_reason="blob_access_denied"))
+
+    assert config.disabled_reason is None
+    assert admin_api._snapshot(config)["runtime"]["disabled_reason"] is None
+
+
+def test_config_rejects_unrecognized_suspension_reasons():
+    with pytest.raises(ValueError, match="disabled_reason"):
+        aurora_config.validate_config(valid_config(enabled=False, disabled_reason="unknown"))
 
 
 @pytest.mark.parametrize(
@@ -156,13 +193,15 @@ def test_admin_snapshot_uses_key_auth_without_exposing_key(monkeypatch):
         ("false", "endpoint-key", "endpoint_key_loaded"),
     ],
 )
+@pytest.mark.parametrize("enabled", [True, False])
 def test_readiness_checks_validate_each_live_dependency(
     monkeypatch,
     use_azure_ad,
     endpoint_token,
     expected_detail,
+    enabled,
 ):
-    config = valid_config()
+    config = valid_config(enabled=enabled)
     observed: list[str] = []
     monkeypatch.setenv("AURORA_USE_AZURE_AD", use_azure_ad)
     monkeypatch.setenv("AURORA_ENDPOINT_TOKEN", endpoint_token)
@@ -189,7 +228,7 @@ def test_readiness_checks_validate_each_live_dependency(
 
     result = admin_api._run_readiness_checks(config)
 
-    assert result["ok"] is True
+    assert result["ok"] is enabled
     assert observed == [endpoint_token or "managed-token"]
     assert [item["id"] for item in result["checks"]] == [
         "enabled",
@@ -200,7 +239,61 @@ def test_readiness_checks_validate_each_live_dependency(
     ]
     assert result["checks"][1]["detail"] == expected_detail
     assert result["checks"][-1]["detail"] == "delegated_sas_created"
+    assert result["checks"][-1]["origin"] == "prevaiq_backend"
+    assert result["checks"][-1]["operation"] == "get_user_delegation_key"
+    assert datetime.fromisoformat(result["checks"][-1]["checked_at"]).tzinfo is not None
     assert channel_sas not in repr(result)
     assert "private-test-signature" not in repr(result)
     if endpoint_token:
         assert endpoint_token not in repr(result)
+
+
+@pytest.mark.parametrize("wrapped", [False, True])
+def test_storage_diagnostics_expose_safe_correlation_fields_only(wrapped):
+    error = HttpResponseError(
+        message="private failure https://weather.blob.core.windows.net/?sig=secret"
+    )
+    error.status_code = 403
+    error.response = Mock(
+        headers={
+            "x-ms-error-code": "AuthorizationFailure",
+            "x-ms-request-id": "d5dfd98a-801e-0000-0000-000000000000",
+            "Authorization": "Bearer private-token",
+        }
+    )
+    if wrapped:
+        outer = AuroraServiceError("Unable to download initial conditions")
+        outer.__cause__ = error
+    else:
+        outer = error
+
+    assert admin_api._failure_diagnostics(outer) == {
+        "http_status": 403,
+        "error_code": "AuthorizationFailure",
+        "request_id": "d5dfd98a-801e-0000-0000-000000000000",
+    }
+
+
+def test_storage_diagnostics_reject_unexpected_header_contents():
+    error = HttpResponseError(message="private")
+    error.response = Mock(
+        headers={"x-ms-error-code": "https://example.com/?sig=secret", "x-ms-request-id": "a\nb"}
+    )
+
+    assert admin_api._failure_diagnostics(error) == {}
+
+
+@pytest.mark.asyncio
+async def test_admin_can_diagnose_without_reenabling_or_submitting_forecast(monkeypatch):
+    config = valid_config(enabled=False, disabled_reason="blob_access_denied")
+    monkeypatch.setattr(admin_api, "load_config", lambda: config)
+    observed = []
+    monkeypatch.setattr(
+        admin_api, "_run_readiness_checks", lambda value: observed.append(value) or {"ok": False}
+    )
+
+    response = await admin_api.test_aurora_admin_config()
+
+    assert observed == [config]
+    assert response["configuration"]["enabled"] is False
+    assert response["configuration"]["disabled_reason"] == "blob_access_denied"

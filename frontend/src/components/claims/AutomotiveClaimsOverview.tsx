@@ -18,11 +18,10 @@ import PDFViewer from './PDFViewer';
 import DamageViewer from './DamageViewer';
 import FraudAnalysisPanel from './FraudAnalysisPanel';
 import CommunicationClientPanel from './CommunicationClientPanel';
-import { severityFromSentiment } from './sentimentTone';
 import CustomerAffiliationBanner from './CustomerAffiliationBanner';
+import { severityFromSentiment } from './sentimentTone';
 import UnderwritingDecisionFooter from '@/components/UnderwritingDecisionFooter';
 import { MediaItem, getMediaUrl, runUnderwritingAnalysis, getApplication } from '@/lib/api';
-import type { FraudAnalysisResponse } from '@/lib/api';
 import { previewUrl } from '@/lib/media';
 import { getApplicationDisplayTitle, textValue } from '@/lib/applicationDisplay';
 import useAutomotiveClaimData from './useAutomotiveClaimData';
@@ -36,6 +35,7 @@ interface AutomotiveClaimsOverviewProps {
   onAdjust?: () => void;
   onDeny?: () => void;
   onInvestigate?: () => void;
+  analysisControls?: React.ReactNode;
 }
 
 const LOCATION_KEYS: Record<string, string> = {
@@ -95,6 +95,7 @@ export function AutomotiveClaimsOverview({
   applicationId,
   displayTitle,
   isLoading = false,
+  analysisControls,
 }: AutomotiveClaimsOverviewProps) {
   const d = useAutomotiveClaimData(applicationId);
   const t = useTranslations('claimsModals');
@@ -110,16 +111,11 @@ export function AutomotiveClaimsOverview({
   const [selectedPDF, setSelectedPDF] = useState<MediaItem | null>(null);
   const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
-  const [fraudResult, setFraudResult] = useState<FraudAnalysisResponse | null>(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const resolvedDisplayTitle = d.application
     ? getApplicationDisplayTitle(d.application, locale)
     : displayTitle;
-
-  const handleFraudComplete = useCallback((result: FraudAnalysisResponse) => {
-    setFraudResult(result);
-  }, []);
 
   const handleRelaunchAI = useCallback(async () => {
     if (aiAnalyzing) return;
@@ -205,30 +201,28 @@ export function AutomotiveClaimsOverview({
 
       {/* ── Fraud analysis — surfaced right below the decision banner (like Habitation) ── */}
       <div className="mx-4 mt-2">
-        <FraudAnalysisPanel applicationId={applicationId} onFraudComplete={handleFraudComplete} />
+        {analysisControls ?? <FraudAnalysisPanel applicationId={applicationId} />}
       </div>
-
-      {/* ── Communication Client — same banner placement as Fraud Analysis ── */}
-      <div className="mx-4 mt-1">
-        <CommunicationClientPanel
-          applicationId={applicationId}
-          insuredName={getExtractedText(d.application?.extracted_fields || {}, ['NomAssure', 'assure', 'Conducteur'])}
-          claimReference={d.application?.external_reference || applicationId.slice(0, 8)}
-          decisionStatus="pending"
-          boardLabel={tPersona('automotive_claims')}
-          severity={severityFromSentiment((d.application as any)?.sentiment_analysis)}
-        />
-      </div>
-
-      {/* ── Customer 360 affiliation banner ── */}
-      {d.application && !d.application.external_reference && (
-        <CustomerAffiliationBanner
-          applicationId={applicationId}
-          suggestedName={getExtractedText(d.application?.extracted_fields || {}, ['NomAssure', 'assure', 'Conducteur'])}
-          suggestedPhone={getExtractedText(d.application?.extracted_fields || {}, ['TelephoneAssure'])}
-          suggestedEmail={getExtractedText(d.application?.extracted_fields || {}, ['EmailAssure'])}
-          onAffiliated={() => d.fetchClaimData()}
-        />
+      {!analysisControls && (
+        <>
+          <CommunicationClientPanel
+            applicationId={applicationId}
+            insuredName={getExtractedText(d.application?.extracted_fields || {}, ['NomAssure', 'assure', 'Conducteur'])}
+            claimReference={d.application?.external_reference || applicationId.slice(0, 8)}
+            decisionStatus="pending"
+            boardLabel={tPersona('automotive_claims')}
+            severity={severityFromSentiment(d.application?.sentiment_analysis)}
+          />
+          {d.application && !d.application.external_reference && (
+            <CustomerAffiliationBanner
+              applicationId={applicationId}
+              suggestedName={getExtractedText(d.application.extracted_fields || {}, ['NomAssure', 'assure', 'Conducteur'])}
+              suggestedPhone={getExtractedText(d.application.extracted_fields || {}, ['TelephoneAssure'])}
+              suggestedEmail={getExtractedText(d.application.extracted_fields || {}, ['EmailAssure'])}
+              onAffiliated={() => d.fetchClaimData()}
+            />
+          )}
+        </>
       )}
 
       {/* ── Error Banner ── */}

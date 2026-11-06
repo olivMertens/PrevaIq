@@ -255,7 +255,7 @@ export default function DocumentsTab({
               <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <div className="text-slate-600">
-              <label className="cursor-pointer" style={{ color: brand.primary }}>
+              <label className="cursor-pointer" style={{ color: brand.ink }}>
                 <span>{isMultimodalPersona ? t('evidenceFiles') : t('uploadFiles')}</span>
                 <input type="file" className="sr-only" accept={acceptedFileTypes} multiple onChange={handleFileInput} disabled={isProcessing} />
               </label>
@@ -303,7 +303,7 @@ export default function DocumentsTab({
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
                     useLargeDocMode === mode ? '' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700'
                   } ${isProcessing ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-                  style={useLargeDocMode === mode ? { color: brand.primary, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` } : undefined}>
+                  style={useLargeDocMode === mode ? { color: brand.ink, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` } : undefined}>
                   {mode === 'auto' ? t('auto') : mode === 'on' ? t('always') : t('never')}
                   {useLargeDocMode === mode && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: brand.primary }} />}
                 </button>
@@ -327,7 +327,7 @@ export default function DocumentsTab({
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-slate-900">{t('applications')}</h2>
-          <button onClick={onRefresh} className="text-sm disabled:opacity-50" style={{ color: brand.primary }} disabled={loading}>{t('refresh')}</button>
+          <button onClick={onRefresh} className="text-sm disabled:opacity-50" style={{ color: brand.ink }} disabled={loading}>{t('refresh')}</button>
         </div>
 
         {loading ? (

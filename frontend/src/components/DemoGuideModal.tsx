@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { HelpCircle, X, ChevronDown, ChevronRight, Upload, MessageSquare, CheckCircle, Search, CloudRain, CloudHail, Watch, FileText, ClipboardList, Car, Home, Shield, Users, Stethoscope } from 'lucide-react';
 import clsx from 'clsx';
-import { brand } from '@/lib/brand';
+import { brand, readableAccent } from '@/lib/brand';
 
 interface Step {
   icon: typeof Upload;
@@ -89,7 +89,7 @@ const SCENARIOS: Scenario[] = [
   {
     id: "sante",
     icon: ClipboardList,
-    color: brand.primary,
+    color: brand.ink,
     demoPdf: `${DEMO_DIR}/health-underwriting/souscription-sante-lefevre.pdf`,
     steps: [
       { icon: ClipboardList },
@@ -167,7 +167,7 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
       <button
         onClick={() => setIsOpen(true)}
         className="flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors"
-        style={{ color: brand.primary, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` }}
+        style={{ color: brand.ink, backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` }}
         title={t('openTitle')}
         aria-label={t('openTitle')}
       >
@@ -190,7 +190,7 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
           style={{ background: `linear-gradient(90deg, ${brand.gradientStart}, ${brand.gradientEnd})` }}
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
+            <div data-theme-static className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 shadow-sm">
               <img src={brand.favicon} alt="" className="h-9 w-9 rounded-lg" />
               <span className="text-sm font-bold tracking-tight" style={{ color: brand.primary }}>
                 {brand.name}
@@ -231,7 +231,7 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
                     ? 'bg-white border-current shadow-sm'
                     : 'border-transparent text-slate-600 hover:text-slate-900 hover:bg-white/60'
                 )}
-                style={active ? { color: s.color } : {}}
+                style={active ? { color: readableAccent(s.color) } : {}}
               >
                 <Icon className="h-[18px] w-[18px]" />
                 {content.label}
@@ -248,6 +248,9 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
           <p className="text-amber-700">
             {scenarioContent.summary}
           </p>
+          {['habitation', 'habitation-ch', 'habitation-ch-watch', 'auto'].includes(scenario.id) && (
+            <p className="mt-2 text-sm text-slate-700">{t('claimsNavigation')}</p>
+          )}
         </div>
 
         {/* Steps */}
@@ -268,11 +271,11 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
                 >
                   <Icon
                     className={clsx('w-5 h-5 flex-shrink-0', isExpanded ? '' : 'text-slate-400')}
-                    style={isExpanded ? { color: brand.primary } : undefined}
+                    style={isExpanded ? { color: brand.ink } : undefined}
                   />
                   <span
                     className={clsx('text-sm font-medium flex-1', isExpanded ? '' : 'text-slate-700')}
-                    style={isExpanded ? { color: brand.primary } : undefined}
+                    style={isExpanded ? { color: brand.ink } : undefined}
                   >
                     {content.title}
                   </span>
@@ -300,12 +303,12 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
         {/* Footer */}
         <div className="flex min-h-[88px] items-center justify-between gap-5 rounded-b-2xl border-t border-slate-200 bg-slate-50 px-6 py-4">
           <div className="flex flex-shrink-0 items-center gap-3">
-            <div className="flex h-14 items-center rounded-xl bg-white px-4 shadow-sm ring-1 ring-slate-200">
+            <div data-theme-static className="flex h-14 items-center rounded-xl bg-white px-4 shadow-sm ring-1 ring-slate-200">
               <img src="/microsoft-logo-gray.avif" alt="Microsoft" className="h-10 w-auto opacity-100" />
             </div>
             <span className="text-lg font-bold text-slate-700">×</span>
-            <div className="flex h-14 items-center rounded-xl bg-white px-4 shadow-sm ring-1 ring-slate-200">
-              <BrandMark />
+            <div data-theme-static className="flex h-14 items-center rounded-xl bg-white px-4 shadow-sm ring-1 ring-slate-200">
+              <BrandMark surface="light" />
             </div>
           </div>
           <p className="hidden flex-1 text-center text-xs font-medium text-slate-700 sm:block">

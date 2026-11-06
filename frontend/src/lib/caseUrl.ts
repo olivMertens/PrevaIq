@@ -2,7 +2,7 @@
 // the language switch reloads the page — reopens the same case, tab and page.
 // Pure helpers (no imports) plus one browser-only writer.
 
-export const CASE_VIEWS = ['overview', 'timeline', 'documents', 'source'] as const;
+export const CASE_VIEWS = ['overview', 'timeline', 'documents', 'source', 'analysis', 'customer', 'weather', 'data', 'pipeline'] as const;
 export type CaseView = (typeof CASE_VIEWS)[number];
 
 export type CaseParams = Partial<Record<'app' | 'persona' | 'view' | 'page' | 'conversation', string | number | null>>;

@@ -52,6 +52,18 @@
     "severe": "Schwer"
   },
   "nav": {
+    "claims": {
+      "navigation": "Schadenarbeitsbereich",
+      "overview": "Übersicht",
+      "documents": "Belege",
+      "analysis": "Analyse und Fakten",
+      "customer": "Kunde",
+      "weather": "Wetter und Karte",
+      "timeline": "Zeitachse",
+      "more": "Mehr",
+      "data": "Extrahierte Daten",
+      "pipeline": "KI-Pipeline"
+    },
     "overview": "Übersicht",
     "timeline": "Zeitachse",
     "documents": "Dokumente",
@@ -69,12 +81,18 @@
     "userMenu": "Konto und Einstellungen",
     "signedInAs": "Angemeldet als {user}"
   },
+  "appearance": {
+    "title": "Darstellung",
+    "light": "Helles Design",
+    "dark": "Dunkles Design"
+  },
   "auth": {
     "splashEyebrow": "KI-Arbeitsbereich für Versicherungen",
     "languageLabel": "Sprache",
     "languageEnglish": "Englisch",
     "languageFrench": "Französisch",
     "languageGerman": "Deutsch",
+    "languageGermanSwiss": "Deutsch (Schweiz)",
     "useLightTheme": "Zum hellen Design wechseln",
     "useDarkTheme": "Zum dunklen Design wechseln",
     "signIn": "Melden Sie sich an, um fortzufahren",
@@ -318,6 +336,22 @@
       "loadError": "Die Aurora-Konfiguration konnte nicht geladen werden.",
       "saveError": "Die Aurora-Konfiguration konnte nicht gespeichert werden.",
       "testError": "Der Aurora-Bereitschaftstest konnte nicht abgeschlossen werden.",
+      "testScope": "Die Diagnose erfolgt im PrevaIQ-Backend, auch bei deaktiviertem Aurora. Dieser Test startet keine Vorhersage und prüft nicht den Blob-Zugriff des Aurora-Workers. Eine erreichbare API oder ein erstellter SAS belegen keine vollständige Inferenz.",
+      "diagnostics": {
+        "origin": "Ursprung der Anfrage",
+        "backend": "PrevaIQ-Backend",
+        "operation": "Vorgang",
+        "checkedAt": "Geprüft um (UTC)",
+        "httpStatus": "HTTP-Status",
+        "errorCode": "Fehlercode",
+        "requestId": "Anfrage-ID",
+        "operations": {
+          "acquire_endpoint_credential": "Authentifizierung an der Aurora-API",
+          "endpoint_task_info": "Aurora-API-Test ohne Inferenz",
+          "download_initial_condition": "Initiales NetCDF lesen",
+          "get_user_delegation_key": "SAS für den Blob-Kanal erstellen"
+        }
+      },
       "saved": "Aurora-Konfiguration gespeichert.",
       "testPassed": "Alle Aurora-Bereitschaftsprüfungen waren erfolgreich.",
       "testFailed": "Mindestens eine Aurora-Prüfung erfordert Aufmerksamkeit.",
@@ -331,6 +365,12 @@
         "title": "Konfiguration des verwalteten Endpunkts",
         "lead": "Konfigurieren Sie nur nicht geheime Ressourcenbezeichner. Der Blob-Zugriff nutzt die verwaltete Identität; die Endpunktauthentifizierung wird sicher durch die Bereitstellung bereitgestellt.",
         "enabled": "Aurora aktivieren",
+        "disabledReason": {
+          "label": "In Fällen angezeigter Aussetzungsgrund",
+          "unspecified": "Ohne angegebenen Grund ausgesetzt",
+          "blobAccessDenied": "Zugriff auf den Blob-Kanal verweigert (403)",
+          "help": "Wählen Sie die Blob-Verweigerung nur, wenn sie beobachtet wurde. Sie benennt weder eine bestimmte Netzwerkregel noch die verantwortliche Komponente. Die Aktivierung löscht diesen Grund."
+        },
         "security": "Sicherheit: Der Endpunktschlüssel stammt aus einem Key-Vault-gestützten Container-App-Geheimnis. Token, Kontoschlüssel und SAS-Abfrageparameter werden hier abgelehnt und niemals gespeichert.",
         "fields": {
           "endpoint": {
@@ -3010,6 +3050,7 @@
     }
   },
   "demoGuide": {
+    "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.",
     "openTitle": "Demoleitfaden",
     "openBadge": "Demo",
     "title": "Demoleitfaden",
@@ -3040,7 +3081,7 @@
           },
           {
             "title": "4. Wetter-, Betrugs- und Cat-Nat-Analyse",
-            "detail": "Starten Sie Aurora in der Standortkarte, um die zurückgegebenen Wetterpunkte vor, während und nach dem vorhergesagten Sturmfenster abzuspielen. Das gemeldete Schadendatum wird markiert, wenn es im Modellhorizont liegt; andernfalls fordert die Oberfläche historische Belege an.\n\nKlicken Sie danach auf „Betrugsrisiko“ und „Betrugsanalyse starten“. Microsoft Web IQ prüft das Cat-Nat-Dekret und öffentliche Quellen. „Zu beachten“ listet jedes Signal einmal auf, das kritischste zuerst.",
+            "detail": "Öffnen Sie Wetter und Karte für Standort und Aurora-Verfügbarkeit. Starten Sie Aurora nur bei verfügbarem Dienst; ohne abgeschlossene Vorhersage wird kein Wetterdiagramm angezeigt. Historische Anfangsdaten sind keine Live-Beobachtungen.\n\nBetrugsanalyse starten in Übersicht beginnt die Prüfung direkt. Vorhandene Berichte stehen unter Analyse und Fakten; eine Wiederholung ist eine eigene Aktion. Web IQ läuft mit der Betrugsanalyse und prüft öffentliche Quellen und gegebenenfalls französische Cat-Nat-Informationen. Jeder Hinweis erscheint nur einmal.",
             "tip": "Aurora-Belege sind prognostisch und beratend; Web-IQ-Quellen bleiben anklickbare historische Belege."
           },
           {
@@ -3050,7 +3091,7 @@
           },
           {
             "title": "6. Entscheidung der Sachbearbeitung",
-            "detail": "Die Fallbewertung zeigt die KI-Empfehlung und ihre Begründung. „Bestätigen“ öffnet die daraus vorausgefüllte Entscheidung; „Andere Entscheidung“ bietet Genehmigen / Unter Auflagen genehmigen / Zurückstellen / Ablehnen, mit Notizen.\nBeispiel: „Gedeckt nach Art. 3.2, 250 € Selbstbehalt angewendet.“"
+            "detail": "Die Fallbewertung zeigt KI-Empfehlung und Begründung. Entscheidung erfassen öffnet einen vorausgefüllten Entwurf; Andere Entscheidung bietet Genehmigen (grün), unter Auflagen genehmigen (gelb), Zurückstellen (grau) oder Ablehnen (rot). Prüfen Sie Belege, Bedingungen und Notizen vor der Bestätigung. Der Mensch entscheidet."
           }
         ]
       },
@@ -3071,7 +3112,7 @@
           },
           {
             "title": "3. KI-Verarbeitung verfolgen (2–3 Min.)",
-            "detail": "Deutsche und englische Dokumente werden unverändert gelesen; die Analyse erscheint in der Sprache der Oberfläche und wendet die Schweizer Bedingungen an (AVB KMU-Geschäftsversicherung 2026). Unter Alle Belege die AVB KMU-Geschäftsversicherung als PDF öffnen; französische Hausrat- und Krankenbedingungen werden nicht angeboten. Beträge und Gutachtenschwelle bleiben in CHF."
+            "detail": "Deutsche und englische Dokumente werden unverändert gelesen; die Analyse erscheint in der Sprache der Oberfläche und wendet die Schweizer Bedingungen an (AVB KMU-Geschäftsversicherung 2026). Unter Belege die AVB KMU-Geschäftsversicherung als PDF öffnen; französische Hausrat- und Krankenbedingungen werden nicht angeboten. Beträge und Gutachtenschwelle bleiben in CHF."
           },
           {
             "title": "4. Betrugsanalyse, Web IQ und Herkunft",
@@ -3079,8 +3120,8 @@
             "tip": "Synthetische Bilder; JPEG-Kopien ohne C2PA-Daten. Markise vor dem Unwetter eingefahren; schräger windgetriebener Hagel, gebundene Risse im Sicherheitsglas, keine ausgestanzten Löcher. Hagel auf den exponierten Strassenflächen verteilt, nicht nur an einer Stelle. Lokale Wasserspuren an Rahmenanschlüssen, nicht durch geschlossene Scheiben. Schokolade in geschlossenen Vitrinen, Verpackungen und Küchengeräten mit Deckel geschützt. Der trockene Kühlraum zeigt 23,8 °C nach Stromrückkehr, keinen Verderbnachweis oder Gesamtverlust. Beträge vorläufig; technische Berichte, Inventar- und Temperaturprotokolle nicht beigefügt."
           },
           {
-            "title": "5. Ask IQ auf Deutsch",
-            "detail": "Auf DE umschalten und fragen:\n→ „Ist das Kühlgut versichert?“\n→ „Welcher Selbstbehalt gilt für Elementarschäden?“\n→ „Wer deckt den Gebäudeschaden im Kanton Zürich?“",
+            "title": "5. DE-CH auswählen und Ask IQ befragen",
+            "detail": "Die Oberfläche auf DE-CH (Deutsch, Schweiz) umschalten. Ask IQ antwortet auf Schweizer Hochdeutsch, nicht im Dialekt; Quellenzitate bleiben unverändert. Fragen:\n→ „Ist das Kühlgut versichert?“\n→ „Welcher Selbstbehalt gilt für Elementarschäden?“\n→ „Wer deckt den Gebäudeschaden im Kanton Zürich?“",
             "tip": "Die Antworten zitieren die Artikel der Schweizer AVB (CH-AVB-…)."
           },
           {
@@ -3106,7 +3147,7 @@
           },
           {
             "title": "3. Extraktion und Deckungsanalyse verfolgen",
-            "detail": "Die deutschen und englischen Dokumente anhand der Schweizer AVB KMU-Geschäftsversicherung 2026 prüfen. Uhrwerke und fertige Uhren werden zu Herstellungs-, nicht zu Verkaufskosten geltend gemacht. Die Versicherungssumme übersteigt den angegebenen Versicherungswert. Unter Alle Belege die AVB KMU-Geschäftsversicherung statt französischer Bedingungen öffnen; Empfehlungsbeträge und Gutachtenschwelle verwenden CHF.",
+            "detail": "Die deutschen und englischen Dokumente anhand der Schweizer AVB KMU-Geschäftsversicherung 2026 prüfen. Uhrwerke und fertige Uhren werden zu Herstellungs-, nicht zu Verkaufskosten geltend gemacht. Die Versicherungssumme übersteigt den angegebenen Versicherungswert. Unter Belege die AVB KMU-Geschäftsversicherung statt französischer Bedingungen öffnen; Empfehlungsbeträge und Gutachtenschwelle verwenden CHF.",
             "tip": "Die passende Police ist assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf; vor dem Testen belegter Deckungsantworten indexieren."
           },
           {
@@ -3326,6 +3367,9 @@
     "genericError": "Fehler"
   },
   "communicationGenerator": {
+    "draftBody": "Bearbeitbarer Nachrichtenentwurf",
+    "templateFallback": "Die KI-Erstellung ist fehlgeschlagen. Stattdessen wird eine Standardvorlage angeboten. Prüfen und bearbeiten Sie diese vor der Verwendung.",
+    "copyError": "Der Entwurf konnte nicht kopiert werden. Markieren und kopieren Sie den Text manuell.",
     "defaultClient": "Kunde",
     "types": {
       "email": "E-Mail",
@@ -3348,7 +3392,7 @@
       }
     },
     "generating": "Generieren mit AI...",
-    "generate": "{type}erzeugen",
+    "generate": "{type} vorbereiten",
     "generated": "{type}erzeugt",
     "subject": "Thema",
     "regenerate": "Regenerat",
@@ -3456,6 +3500,13 @@
     "reviewServiceWithStatus": "Prüfen: {service} ({status})"
   },
   "caseCockpit": {
+    "workspace": {
+      "analysisSections": "Zu einem Analyseabschnitt wechseln",
+      "refreshError": "Der aktualisierte Vorgang konnte nicht geladen werden. Aktualisieren Sie vor einer Entscheidung.",
+      "viewSources": "Quellen anzeigen",
+      "aiEstimate": "KI-Einschätzung — mit dem Kunden bestätigen",
+      "prepareReply": "Antwort vorbereiten"
+    },
     "dismiss": "Schließen",
     "severity": {
       "critical": "Kritisch",
@@ -3513,7 +3564,7 @@
       "label": "Fallbewertung",
       "recommendation": "KI-Empfehlung",
       "why": "Warum?",
-      "validate": "Bestätigen",
+      "validate": "Entscheidung erfassen",
       "otherDecision": "Andere Entscheidung",
       "pending": "Noch keine Empfehlung: Starten Sie zuerst die KI-Analyse.",
       "analysisRunning": "KI-Analyse läuft…",
@@ -3540,10 +3591,10 @@
       "customer": "Kunde",
       "customerUnknown": "Noch nicht bewertet",
       "customerLevels": {
-        "calm": "Ruhig",
-        "moderate": "Mäßig",
-        "stressed": "Angespannt",
-        "critical": "Kritisch"
+        "calm": "Standardbetreuung",
+        "moderate": "Aufmerksame Betreuung",
+        "stressed": "Verstärkte Betreuung",
+        "critical": "Vorrangige Betreuung"
       },
       "score": "Wert {score}"
     },
@@ -3631,6 +3682,11 @@
     },
     "aurora": {
       "title": "Wetterrisiko-Ausblick",
+      "unavailable": "Vorhersage nicht verfügbar",
+      "blobAccessDenied": "Ein Zugriff auf den Blob-Kanal wurde verweigert (403). Die Diagnose läuft: Die verantwortliche Komponente und Regel sind noch nicht ermittelt. Die Berechnung bleibt deaktiviert.",
+      "loadingStatus": "Aurora-Verfügbarkeit wird geprüft…",
+      "disabled": "Aurora ist nicht verfügbar. Es kann keine neue Vorhersage berechnet werden. Vorhandene Ergebnisse bleiben historische Hinweise.",
+      "locationRequired": "Für eine Vorhersage ist ein bestätigter Schadenort erforderlich.",
       "description": "Aurora 1.5 liefert unverbindliche Modelldaten für die angezeigten Zeitpunkte. Vergangene Anfangsbedingungen ergeben eine historische Simulation, kein Live-Wetter und keinen beobachteten Nachweis. Fachliche Prüfung bleibt erforderlich; die Ergebnisse entscheiden nicht über Deckung oder Zahlung.",
       "run": "Aurora-Prognose starten",
       "running": "Prognose läuft…",
@@ -3749,11 +3805,13 @@
     "decision": {
       "title": "Entscheidung erfassen",
       "prefilled": "Aus der KI-Empfehlung vorausgefüllt. Prüfen Sie sie vor dem Bestätigen.",
+      "confirm": "Bestätigen: {decision}",
       "conditions": "Bedingungen",
       "cancel": "Abbrechen",
       "saving": "Wird gespeichert…"
     },
     "fraudTab": {
+      "rerun": "Analyse erneut starten",
       "none": "Noch keine Betrugsanalyse.",
       "run": "Betrugsanalyse starten",
       "openReport": "Vollständigen Bericht öffnen",
@@ -3764,6 +3822,10 @@
       "mismatch": "Nicht übereinstimmend"
     },
     "webTab": {
+      "integratedCheck": "Web IQ wird derzeit mit der Betrugsanalyse ausgeführt. Diese Aktion startet beide Prüfungen.",
+      "runWithFraud": "Mit Betrugsanalyse prüfen",
+      "running": "Prüfung läuft…",
+      "error": "Die Web-IQ-Prüfung ist fehlgeschlagen. Eine Bestätigung des Ereignisses ist nicht möglich.",
       "none": "Noch keine Web-IQ-Prüfung. Sie läuft mit der Betrugsanalyse.",
       "verdict": {
         "confirmed": "Ereignis durch öffentliche Quellen bestätigt",
@@ -3850,7 +3912,16 @@
       }
     },
     "customerTab": {
-      "sentiment": "Kundenstimmung",
+      "sentiment": "Kundenbetreuung",
+      "estimateNotice": "KI- oder kontextbasierte Einschätzung, keine bestätigte Aussage zur Stimmung. Klären Sie den Bedarf direkt; die Schadenhöhe allein belegt keine Belastung.",
+      "reviewDraft": "Erstellen und bearbeiten Sie einen Entwurf. Es wird nichts automatisch gesendet. Prüfen Sie Fakten und die erfasste Entscheidung.",
+      "callGuide": "Gesprächsleitfaden öffnen",
+      "linkProfile": "Kundenprofil zuordnen",
+      "call": {
+        "acknowledge": "Fragen Sie nach den Auswirkungen und gehen Sie auf geäußerte Sorgen ein, ohne Gefühle vorauszusetzen.",
+        "confirm": "Bestätigen Sie bekannte Fakten, dringenden Bedarf und fehlende Belege. Trennen Sie bestätigte Deckung von offenen Prüfpunkten.",
+        "nextStep": "Erklären Sie den nächsten Schritt und vereinbaren Sie eine Rückmeldung. Versprechen Sie keine unbestätigte Zahlung oder Frist."
+      },
       "client360": "Client 360",
       "openProfile": "Client-360-Profil öffnen",
       "message": "Nachricht an den Kunden"

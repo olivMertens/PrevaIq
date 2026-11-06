@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 
 from app.agents import tools as agent_tools
 from app.claims import api as claims_api
+from app.languages import require_language
 
 PROMPTS_ROOT = Path(__file__).resolve().parents[1] / "prompts"
 
@@ -28,7 +29,8 @@ def client(monkeypatch):
     return TestClient(app)
 
 
-def test_fraud_analysis_generates_content_in_the_ui_language(client, monkeypatch):
+@pytest.mark.parametrize("language", ["de", "de-DE", "de-CH"])
+def test_fraud_analysis_generates_content_in_the_ui_language(client, monkeypatch, language):
     calls = []
 
     def fake_analyze(**kwargs):
@@ -44,10 +46,10 @@ def test_fraud_analysis_generates_content_in_the_ui_language(client, monkeypatch
 
     monkeypatch.setattr(agent_tools, "analyze_image_fraud", fake_analyze)
 
-    response = client.post("/api/claims/APP-1/fraud-analysis?language=de-DE")
+    response = client.post(f"/api/claims/APP-1/fraud-analysis?language={language}")
 
     assert response.status_code == 200
-    assert calls[0]["language"] == "de"
+    assert calls[0]["language"] == require_language(language)
     assert response.json()["web_intelligence"]["search_queries"] == [
         "météo Bordeaux 27 mars 2026 pluie vent orage"
     ]

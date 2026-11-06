@@ -1,5 +1,20 @@
 # Configuration
 
+## UI and AI response locales
+
+The login switcher and account menu offer EN, FR, DE and **DE-CH — Deutsch (Schweiz)**.
+After a frontend rollout, reload an already-open browser tab to load the new menu.
+The `locale` cookie selects the UI locale and generated-content language; no Azure
+setting or separate tenant configuration is needed.
+
+`de-CH` is preserved in AI requests and revision-bound translation caches. Prompts
+request Swiss Standard German (Schweizer Hochdeutsch), without dialect, and Swiss
+orthography (`ss`, not `ß`). DE remains generic German. Original documents, quoted
+evidence, names, identifiers, amounts, currencies and legal references are preserved.
+The language selection never changes the jurisdiction or converts EUR into CHF.
+Source matching and Web IQ search parameters still use the base language, while
+AI summaries and translations use the requested output variant.
+
 ## Environment variables
 
 | Variable | Required | Default | Description |
@@ -70,9 +85,46 @@ development uses `UW_APP_STORAGE_ROOT`. A persisted admin record takes precedenc
 Runtime authentication is deployment-owned: managed identity for Blob access and either managed
 identity or the Key Vault-backed `aurora-endpoint-key` secret for the endpoint. The admin API rejects
 account keys, tokens, URL query strings, and SAS URLs, and never returns the runtime endpoint key.
-Use `infra/set-aurora-endpoint-secret.ps1` for a Key-authenticated endpoint. The readiness test
-verifies endpoint authentication, reachability, the two-step NetCDF input contract, and delegated
-Blob-channel access before enabling the case experience.
+Use `infra/set-aurora-endpoint-secret.ps1` for a Key-authenticated endpoint. The readiness test can
+run while Aurora is disabled. It checks endpoint authentication, reachability, the two-step NetCDF
+input contract, and delegated SAS creation **from the PrevaIQ backend**. It does not submit a
+forecast or prove that the Aurora worker can read or write the task channel. Only a completed
+task with returned NetCDF artifacts establishes end-to-end inference.
+
+The case panel remains visible while calculation is disabled, including when a stored forecast
+exists; both calculation and refresh are disabled. Administrators may persist the non-secret
+`disabled_reason=blob_access_denied` only after observing a Blob access refusal. It displays the
+403 as an observed refusal, not as proof of a particular firewall rule or an Aurora-side failure.
+An unspecified suspension does not claim a Blob error. Enabling Aurora clears the suspension reason.
+Admin readiness failures expose the originating backend operation, UTC check time, and available
+HTTP status, Storage error code and request ID, without exception text, URLs, SAS or credentials.
+Correlate these with Storage logs to distinguish backend and worker access failures before changing
+network rules. The endpoint invocation protocol and authentication are unchanged.
+
+PrevaIQ uses managed identity for its own task-channel uploads, markers and prediction
+downloads when `AURORA_CHANNEL_CONTAINER_URL` is configured. The short-lived delegated SAS
+is passed only to Aurora, not used to authenticate PrevaIQ's own data operations. The
+explicit legacy `AURORA_BLOB_CHANNEL_SAS_URL` rollback retains SAS-authenticated I/O.
+This distinction matters with Network Security Perimeter: subscription-based inbound
+rules accept the managed identity but do not support SAS authentication. Such rules alone
+cannot authorize the Aurora worker. A worker still needs an independently approved network
+path, such as a private endpoint or a narrowly scoped, verified source-IP rule on a dedicated
+weather account. Never infer that a denied public IP belongs to Aurora without correlating
+it to a real task; never relax the business-document account to test weather connectivity.
+
+An Aurora workspace in the application tenant can use its existing associated Storage account.
+Set `auroraChannelStorageAccountName` / `aurora_channel_storage_account_name` to opt in to an
+existing account in the deployment resource group; the default is empty and preserves the
+original application channel. Both IaC variants create only a private `aurora-tasks` container
+(`auroraChannelContainerName` / `aurora_channel_container_name`), grant the application identity
+Blob Data Contributor at container scope and Blob Delegator at account scope, and wire its URL.
+They do not create an AML workspace, GPU, account, or change that account's network perimeter.
+Adopt/import any manually created container and role assignments before managing them with IaC;
+never apply both infrastructure tools to the same environment.
+
+`infra/set-aurora-endpoint-secret.ps1` still prompts for hidden key input by default. Automation
+with authorized Azure ML access may instead pass `-EndpointKey` as an in-memory `SecureString`;
+never put the plain key in a command argument, environment file, chat or source control.
 | `AZURE_STORAGE_ALLOW_CREATE_CONTAINER` | No | `false` | Auto-create the container at startup; set `true` for development only |
 | `DATABASE_BACKEND` | No | `json` | Database backend: `json` or `postgresql` |
 | `POSTGRESQL_HOST` | Conditional | - | PostgreSQL host when using the PostgreSQL backend |

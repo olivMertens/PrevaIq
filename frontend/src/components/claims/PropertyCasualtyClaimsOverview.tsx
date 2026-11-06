@@ -10,7 +10,8 @@ import GalleryLightbox from '../GalleryLightbox';
 import AttentionList, { type Density } from '@/components/case/AttentionList';
 import CaseFacts from '@/components/case/CaseFacts';
 import DecisionDialog, { type DecisionDraft } from '@/components/case/DecisionDialog';
-import DeepDiveDrawer from '@/components/case/DeepDiveDrawer';
+import ClaimAnalysisSections from '@/components/case/ClaimAnalysisSections';
+import ChronologicalOverview from '@/components/ChronologicalOverview';
 import EvidenceStrip from '@/components/case/EvidenceStrip';
 import LatestUpdates from '@/components/case/LatestUpdates';
 import LocationCard from '@/components/case/LocationCard';
@@ -22,7 +23,10 @@ import { usePersistentChoice, usePreviousVisit } from '@/components/case/usePers
 import FraudAnalysisPanel from './FraudAnalysisPanel';
 import { generateNoteDeReglement } from './generateNoteDeReglement';
 import AnalysisLaunchDialog from './property/AnalysisLaunchDialog';
-import PropertyDeepDive, { DEEP_DIVE_TABS } from './property/PropertyDeepDive';
+import PropertyDeepDive from './property/PropertyDeepDive';
+import type { CaseView } from '@/lib/caseUrl';
+import { claimCommunicationStatus, claimViewForDetail, savedClaimFraud } from '@/lib/claimsWorkspace';
+import { useToast } from '@/lib/ToastProvider';
 import { getFieldValue } from './property/propertyClaimHelpers';
 import { useAnalysisRun } from './property/useAnalysisRun';
 import { useFileUpload } from './property/useFileUpload';
@@ -32,17 +36,14 @@ import { usePropertyCockpit } from './property/usePropertyCockpit';
 interface PropertyCasualtyClaimsOverviewProps {
   application: ApplicationMetadata | null;
   onApplicationUpdate?: (app: ApplicationMetadata) => void;
-}
-
-interface DrawerState {
-  open: boolean;
-  tab: DeepDiveTab;
-  context?: string;
+  view?: CaseView;
+  onChangeView: (view: CaseView) => void;
 }
 
 interface FraudStatus {
   isLoading: boolean;
   progress: number;
+  error?: string | null;
 }
 
 const DENSITIES: readonly Density[] = ['essential', 'detailed'];
@@ -57,20 +58,16 @@ const WHY_TAB: Record<RecommendationId, DeepDiveTab> = {
   approve_standard: 'summary',
 };
 
-function savedFraud(application: ApplicationMetadata | null): FraudAnalysisResponse | null {
-  const saved = application?.fraud_analysis as unknown as FraudAnalysisResponse | null | undefined;
-  return saved?.overall_assessment ? saved : null;
-}
-
 /**
  * Property claim cockpit: verdict first, then what needs attention, the next steps and
  * what changed; every detail opens on demand in the deep-dive drawer.
  */
-function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyClaimsOverviewProps) {
+function PropertyCockpit({ application, onApplicationUpdate, view = 'overview', onChangeView }: PropertyCasualtyClaimsOverviewProps) {
   const t = useTranslations('claims');
   const tReport = useTranslations('claims.report.note');
   const tc = useTranslations('caseCockpit');
   const locale = useLocale();
+  const { addToast } = useToast();
 
   const data = usePropertyClaimData(application);
   const run = useAnalysisRun(application, onApplicationUpdate);
@@ -79,15 +76,16 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
   const previousVisit = usePreviousVisit(application?.id);
 
   const [checked, setChecked] = useState<number[]>([]);
-  const [drawer, setDrawer] = useState<DrawerState>({ open: false, tab: 'summary' });
+  const [focus, setFocus] = useState<DeepDiveTab>('summary');
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [launchOpen, setLaunchOpen] = useState(false);
   const [decision, setDecision] = useState<{ open: boolean; draft: DecisionDraft | null }>({ open: false, draft: null });
   const [fraudOpen, setFraudOpen] = useState(false);
+  const [fraudStartRequest, setFraudStartRequest] = useState(0);
   const [fraudStatus, setFraudStatus] = useState<FraudStatus>(IDLE_FRAUD);
   // The case carries the fraud analysis in the UI language; a fresh run wins until the case
   // is reloaded with it.
-  const appFraud = useMemo(() => savedFraud(application), [application]);
+  const appFraud = useMemo(() => savedClaimFraud(application), [application]);
   const [runFraud, setRunFraud] = useState<FraudAnalysisResponse | null>(null);
   const fraudResult =
     runFraud && runFraud.analysis_timestamp !== appFraud?.analysis_timestamp ? runFraud : appFraud ?? runFraud;
@@ -96,9 +94,9 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
 
   const refresh = useCallback(() => {
     if (applicationId && onApplicationUpdate) {
-      getApplication(applicationId).then(onApplicationUpdate).catch(() => {});
+      getApplication(applicationId).then(onApplicationUpdate).catch(() => addToast('error', tc('workspace.refreshError')));
     }
-  }, [applicationId, onApplicationUpdate]);
+  }, [applicationId, onApplicationUpdate, addToast, tc]);
 
   const handleFraudComplete = useCallback((result: FraudAnalysisResponse) => {
     if (result.analysis_timestamp === appFraudStamp) return;
@@ -106,9 +104,9 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
     refresh();
   }, [appFraudStamp, refresh]);
 
-  const handleFraudStatus = useCallback(({ isLoading, progress }: FraudStatus) => {
+  const handleFraudStatus = useCallback(({ isLoading, progress, error }: FraudStatus) => {
     setFraudStatus((current) =>
-      current.isLoading === isLoading && current.progress === progress ? current : { isLoading, progress },
+      current.isLoading === isLoading && current.progress === progress && current.error === error ? current : { isLoading, progress, error },
     );
   }, []);
 
@@ -121,8 +119,10 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
     checkedCount: checked.length,
   });
 
-  const openTab = useCallback((tab: DeepDiveTab, context?: string) => setDrawer({ open: true, tab, context }), []);
-  const closeDrawer = useCallback(() => setDrawer((current) => ({ ...current, open: false })), []);
+  const openTab = useCallback((tab: DeepDiveTab) => {
+    setFocus(tab);
+    onChangeView(claimViewForDetail(tab));
+  }, [onChangeView]);
   const closeDecision = useCallback(() => setDecision((current) => ({ ...current, open: false })), []);
   const closeLaunch = useCallback(() => setLaunchOpen(false), []);
   const closeLightbox = useCallback(() => setLightboxIndex(null), []);
@@ -139,17 +139,15 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
   const { recommendation } = cockpit;
   const { ef, steps } = data;
   const claimDate = getFieldValue(ef, ['DateSinistre', 'ClaimDate', 'DateEvenement']);
-  const stepsDone = steps.length > 0 && checked.length >= steps.length;
   const fieldCount = Object.values(ef).filter((entry) => entry?.value != null && entry.value !== '').length;
-  const tabs = DEEP_DIVE_TABS.map((id) => ({ id, label: tc(`drawer.tabs.${id}`) }));
-
   const relaunch = () => {
-    closeDrawer();
     setLaunchOpen(true);
   };
   const openFraudReport = () => {
-    closeDrawer();
     setFraudOpen(true);
+  };
+  const startFraud = () => {
+    if (!fraudStatus.isLoading) setFraudStartRequest((current) => current + 1);
   };
   const validate = () => {
     if (!recommendation) return;
@@ -183,10 +181,22 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
     }, tReport, locale);
   };
 
+  const details = (tab: DeepDiveTab) => (
+    <PropertyDeepDive tab={tab} application={application} data={data} fraud={fraudResult}
+      fraudStatus={fraudStatus} analyzing={run.analyzing} estimatedAmount={cockpit.amount}
+      decisionStatus={claimCommunicationStatus(application)}
+      upload={upload} onRelaunch={relaunch} onOpenFraudReport={openFraudReport}
+      onRunFraud={startFraud} onOpenFile={setLightboxIndex} onRefresh={refresh} />
+  );
+  const facts = (
+    <CaseFacts facts={cockpit.facts} fieldCount={fieldCount} linkedCustomerId={application.external_reference}
+      onOpenData={() => openTab('data')} onOpenCustomer={() => openTab('customer')} />
+  );
+
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-slate-100">
       <div className="mx-auto w-full max-w-[1600px] space-y-4 p-4 pb-24">
-        <VerdictBar
+        {view === 'overview' && <VerdictBar
           identity={cockpit.identity}
           recommendation={recommendation}
           criticalCount={cockpit.criticalCount}
@@ -201,7 +211,9 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
           onWhy={() => openTab(recommendation ? WHY_TAB[recommendation.id] : 'summary')}
           onRunAnalysis={() => setLaunchOpen(true)}
           onOpenTab={openTab}
-        />
+          onRunFraud={startFraud}
+          web={fraudResult?.web_intelligence}
+        />}
 
         {run.error && !launchOpen && (
           <div role="alert" className="flex items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900">
@@ -218,9 +230,18 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
             {upload.progressMessage}
           </p>
         )}
+        {fraudStatus.error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">{fraudStatus.error}</p>}
+        {view !== 'overview' && fraudStatus.isLoading && <p role="status" className="rounded-lg bg-purple-50 p-3 text-sm text-purple-900">{tc('kpi.analyzing', { progress: fraudStatus.progress })}</p>}
+        {view === 'analysis' && <ClaimAnalysisSections focus={focus} facts={facts} renderSection={details} />}
+        {view === 'customer' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('customer')}</div>}
+        {view === 'documents' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('evidence')}</div>}
+        {view === 'data' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('data')}</div>}
+        {view === 'pipeline' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('pipeline')}</div>}
+        {view === 'weather' && <LocationCard applicationId={application.id} claimDate={claimDate} />}
+        {view === 'timeline' && <ChronologicalOverview application={application} fullWidth persona={application.persona} />}
 
         {/* Two columns from lg; below lg the cards interleave by importance (attention, steps, evidence…). */}
-        <div className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start">
+        {view === 'overview' && <div className="flex flex-col gap-4 lg:grid lg:grid-cols-12 lg:items-start">
           <div className="contents lg:col-span-8 lg:block lg:space-y-4">
             <div className="order-1">
               <AttentionList
@@ -229,7 +250,7 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
                 analysisReady={!!data.aiSummary || !!fraudResult}
                 density={density}
                 onDensityChange={setDensity}
-                onOpenEvidence={(signal: CaseSignal) => openTab(signal.tab, signal.title)}
+                onOpenEvidence={(signal: CaseSignal) => openTab(signal.tab)}
               />
             </div>
             <div className="order-3">
@@ -257,20 +278,8 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
             <div className="order-4">
               <LatestUpdates updates={cockpit.updates} previousVisit={previousVisit} onOpenTimeline={() => openTab('timeline')} />
             </div>
-            <div className="order-5">
-              <LocationCard applicationId={application.id} claimDate={claimDate} />
-            </div>
-            <div className="order-6">
-              <CaseFacts
-                facts={cockpit.facts}
-                fieldCount={fieldCount}
-                linkedCustomerId={application.external_reference}
-                onOpenData={() => openTab('data')}
-                onOpenCustomer={() => openTab('customer')}
-              />
-            </div>
           </div>
-        </div>
+        </div>}
       </div>
 
       <FraudAnalysisPanel
@@ -281,33 +290,8 @@ function PropertyCockpit({ application, onApplicationUpdate }: PropertyCasualtyC
         onFraudComplete={handleFraudComplete}
         onStatusChange={handleFraudStatus}
         savedResult={appFraud}
+        startRequest={fraudStartRequest}
       />
-
-      <DeepDiveDrawer
-        open={drawer.open}
-        tabs={tabs}
-        activeTab={drawer.tab}
-        title={tc(`drawer.tabs.${drawer.tab}`)}
-        context={drawer.context}
-        onTabChange={(tab) => setDrawer((current) => ({ ...current, tab }))}
-        onClose={closeDrawer}
-      >
-        <PropertyDeepDive
-          tab={drawer.tab}
-          application={application}
-          data={data}
-          fraud={fraudResult}
-          fraudStatus={fraudStatus}
-          analyzing={run.analyzing}
-          estimatedAmount={cockpit.amount}
-          decisionStatus={stepsDone ? 'approved' : 'pending'}
-          upload={upload}
-          onRelaunch={relaunch}
-          onOpenFraudReport={openFraudReport}
-          onOpenFile={setLightboxIndex}
-          onRefresh={refresh}
-        />
-      </DeepDiveDrawer>
 
       <DecisionDialog
         applicationId={application.id}

@@ -14,6 +14,7 @@ interface BrandConfig {
   logoAlt: string;
   favicon: string;
   primary: string;     // hex
+  ink: string;
   secondary: string;
   accent: string;
   gradientStart: string;
@@ -37,6 +38,7 @@ const brands: Record<string, BrandConfig> = {
     logoAlt: 'PrevaIQ',
     favicon: '/favicon.svg',
     primary: '#17395C',
+    ink: 'var(--app-brand-ink, #17395C)',
     secondary: '#2EC4B6',
     accent: '#0F2E4D',
     gradientStart: '#17395C',
@@ -50,6 +52,11 @@ const brands: Record<string, BrandConfig> = {
 
 const brandKey = process.env.NEXT_PUBLIC_BRAND_NAME || 'PrevaIQ';
 export const brand: BrandConfig = brands[brandKey] || brands.PrevaIQ;
+
+/** Inline persona/demo accents stay legible on dark cards without recoloring assets. */
+export function readableAccent(color: string): string {
+  return `light-dark(${color}, color-mix(in srgb, ${color} 35%, white))`;
+}
 
 /** True when an action-history system tag refers to the workbench itself (e.g. "PrevaIQ"). */
 export function isWorkbenchSystem(system: string): boolean {

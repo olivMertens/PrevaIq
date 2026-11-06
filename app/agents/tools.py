@@ -182,7 +182,9 @@ def _reconcile_fraud_assessment(data: Any, language: str = "en") -> Any:
         mean_score = sum(scores) / len(scores)
         image_auth_risk = max(worst, 1.0 - mean_score)
         suspect_ratio = suspect_count / analysed_count
-        decl_risk = max(0.4, 1.0 - decl_consistency) if decl_inconsistent else (1.0 - decl_consistency)
+        decl_risk = (
+            max(0.4, 1.0 - decl_consistency) if decl_inconsistent else (1.0 - decl_consistency)
+        )
         floor = _clamp01(0.45 * image_auth_risk + 0.25 * suspect_ratio + 0.30 * decl_risk)
 
     llm_score = _clamp01(_safe_float(overall.get("risk_score"), 0.0))
@@ -275,8 +277,10 @@ async def search_policies(query: str, category: str = "", top_k: int = 5) -> str
         "life_health": "health_claims_policy_chunks",
     }
     schema = settings.database.schema or "workbenchiq"
-    names = [tables[category]] if category in tables else (
-        ["policy_chunks"] if category else ["policy_chunks", *tables.values()]
+    names = (
+        [tables[category]]
+        if category in tables
+        else (["policy_chunks"] if category else ["policy_chunks", *tables.values()])
     )
 
     async def _search(table: str):
@@ -301,7 +305,8 @@ async def search_policies(query: str, category: str = "", top_k: int = 5) -> str
         logger.warning("RAG search failed on one table: %r", failure)
     results = sorted(
         (r for b in batches if not isinstance(b, BaseException) for r in b),
-        key=lambda r: r.similarity, reverse=True,
+        key=lambda r: r.similarity,
+        reverse=True,
     )[:top_k]
 
     if not results:
@@ -467,7 +472,9 @@ def get_application_summary(application_id: str) -> str:
             parts.append(f"- **Risque fraude** : {oa.get('overall_fraud_risk', 'N/A')}")
             parts.append(f"- **Score** : {_pct(oa.get('risk_score', 0))}%")
             if oa.get("siu_referral_recommended"):
-                parts.append(f"- **⚠ Renvoi SIU recommandé** : {_coerce_text(oa.get('siu_referral_reason', ''))}")
+                parts.append(
+                    f"- **⚠ Renvoi SIU recommandé** : {_coerce_text(oa.get('siu_referral_reason', ''))}"
+                )
             if oa.get("summary"):
                 parts.append(f"- **Synthèse** : {_coerce_text(oa['summary'])[:300]}")
             for item in (oa.get("attention_items") or [])[:4]:
@@ -1523,7 +1530,9 @@ def query_fabric_data(
                         MicrosoftFabricPreviewTool(
                             fabric_dataagent_preview=FabricDataAgentToolParameters(
                                 project_connections=[
-                                    ToolProjectConnection(project_connection_id=fabric_connection.id)
+                                    ToolProjectConnection(
+                                        project_connection_id=fabric_connection.id
+                                    )
                                 ]
                             )
                         )
@@ -1531,7 +1540,10 @@ def query_fabric_data(
                 ),
             )
             logger.debug(
-                "Fabric Data Agent: temporary agent %s v%s created (model=%s)", agent.name, agent.version, model
+                "Fabric Data Agent: temporary agent %s v%s created (model=%s)",
+                agent.name,
+                agent.version,
+                model,
             )
             span.set_attribute("gen_ai.agent.version", str(agent.version))
 
@@ -1547,18 +1559,27 @@ def query_fabric_data(
             finally:
                 # Clean up the temporary agent
                 try:
-                    project.agents.delete_version(agent_name=agent.name, agent_version=agent.version)
-                    logger.debug("Fabric Data Agent: temporary agent %s v%s deleted", agent.name, agent.version)
+                    project.agents.delete_version(
+                        agent_name=agent.name, agent_version=agent.version
+                    )
+                    logger.debug(
+                        "Fabric Data Agent: temporary agent %s v%s deleted",
+                        agent.name,
+                        agent.version,
+                    )
                 except Exception:
                     logger.warning(
                         "Fabric Data Agent: could not delete temporary agent %s v%s",
-                        agent.name, agent.version, exc_info=True,
+                        agent.name,
+                        agent.version,
+                        exc_info=True,
                     )
 
             span.set_attribute("workbenchiq.response_chars", len(result_text or ""))
             logger.info(
                 "Fabric Data Agent query completed in %d ms (response_chars=%d)",
-                (time.perf_counter() - started) * 1000, len(result_text or ""),
+                (time.perf_counter() - started) * 1000,
+                len(result_text or ""),
             )
             return result_text or "Aucune donnée retournée par le Data Agent Fabric."
 
@@ -1668,12 +1689,32 @@ _webiq_cache: dict[tuple[str, str, str, str], tuple[float, str]] = {}
 _WEBIQ_REGIONS = frozenset({"FR", "CH"})
 
 _FRENCH_MONTHS = (
-    "janvier", "février", "mars", "avril", "mai", "juin",
-    "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre",
 )
 _GERMAN_MONTHS = (
-    "Januar", "Februar", "März", "April", "Mai", "Juni",
-    "Juli", "August", "September", "Oktober", "November", "Dezember",
+    "Januar",
+    "Februar",
+    "März",
+    "April",
+    "Mai",
+    "Juni",
+    "Juli",
+    "August",
+    "September",
+    "Oktober",
+    "November",
+    "Dezember",
 )
 # Municipality after a French postcode, up to a separator ("33000 Bordeaux - cave" -> "Bordeaux").
 _POSTCODE_CITY_RE = re.compile(
@@ -1836,9 +1877,9 @@ async def webiq_search(
         Source passages and URLs in the requested Web IQ search language.
     """
     from ..config import load_settings
-    from ..languages import localized_message, require_language
+    from ..languages import base_language, localized_message
 
-    locale = require_language(language)
+    locale = base_language(language)
     region = (region or "FR").strip().upper()
     if region not in _WEBIQ_REGIONS:
         region = "FR"
@@ -1968,9 +2009,7 @@ def analyze_image_fraud(
         return raw_result
     if not isinstance(parsed, dict):
         return raw_result
-    return json.dumps(
-        _reconcile_fraud_assessment(parsed, language), ensure_ascii=False, indent=2
-    )
+    return json.dumps(_reconcile_fraud_assessment(parsed, language), ensure_ascii=False, indent=2)
 
 
 async def _fraud_orchestrator(
@@ -1998,6 +2037,7 @@ async def _fraud_orchestrator(
     if not prompts:
         return "Prompts de détection de fraude non disponibles."
     from ..languages import language_instruction, localized_message
+
     for prompt_group in prompts.values():
         if isinstance(prompt_group, dict) and isinstance(prompt_group.get("system_prompt"), str):
             prompt_group["system_prompt"] += "\n\n" + language_instruction(language)
@@ -2224,6 +2264,7 @@ def _fraud_orchestrator_sync(
     if not prompts:
         return "Prompts de détection de fraude non disponibles."
     from ..languages import language_instruction, localized_message
+
     for prompt_group in prompts.values():
         if isinstance(prompt_group, dict) and isinstance(prompt_group.get("system_prompt"), str):
             prompt_group["system_prompt"] += "\n\n" + language_instruction(language)
@@ -2583,9 +2624,9 @@ def _run_webiq_intelligence(
         logger.warning("Web IQ fraud branch failed: %r", exc)
         return {"error": f"Web IQ indisponible: {exc}"}
 
-    corpus = "\n\n".join(
-        f"=== Recherche : {q} ===\n{p}" for (q, _), p in zip(queries, passages)
-    )[:12000]
+    corpus = "\n\n".join(f"=== Recherche : {q} ===\n{p}" for (q, _), p in zip(queries, passages))[
+        :12000
+    ]
     source_urls = list(
         dict.fromkeys(re.findall(r"(?:Source|Quelle)\s*:\s*(https?://\S+)", corpus))
     )[:10]
@@ -2598,8 +2639,7 @@ def _run_webiq_intelligence(
                 "à la date et au lieu du sinistre. N'invente aucune source. Réponds en JSON : "
                 '{"event_verified": true|false|null, "confidence": 0.0-1.0, '
                 '"findings": [{"title": str, "summary": str, "source_url": str, "supports_claim": true|false|null}], '
-                '"overall_assessment": str}. '
-                + language_instruction(language)
+                '"overall_assessment": str}. ' + language_instruction(language)
             ),
         },
         {
@@ -2639,7 +2679,9 @@ def _run_webiq_intelligence(
     parsed["provider"] = "webiq"
     logger.info(
         "Web IQ fraud branch completed: duration_ms=%d sources=%d region=%s",
-        (time.perf_counter() - started) * 1000, len(source_urls), jurisdiction.country,
+        (time.perf_counter() - started) * 1000,
+        len(source_urls),
+        jurisdiction.country,
     )
     return parsed
 

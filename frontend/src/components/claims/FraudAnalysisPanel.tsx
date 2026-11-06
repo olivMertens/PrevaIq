@@ -74,6 +74,7 @@ interface FraudAnalysisPanelProps {
   onStatusChange?: (status: { isLoading: boolean; progress: number; error: string | null }) => void;
   /** Saved analysis supplied by the host, already in the UI language (skips the extra fetch). */
   savedResult?: FraudAnalysisResponse | null;
+  startRequest?: number;
 }
 
 // Estimated duration in seconds per effort level (used for progress simulation)
@@ -93,6 +94,7 @@ export default function FraudAnalysisPanel({
   onOpenChange,
   onStatusChange,
   savedResult,
+  startRequest = 0,
 }: FraudAnalysisPanelProps) {
   const t = useTranslations('fraudAnalysis');
   const locale = useLocale();
@@ -118,6 +120,8 @@ export default function FraudAnalysisPanel({
   const dialogRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
+  const handledStartRequest = useRef(0);
+  const analysisInFlight = useRef(false);
 
   // Cleanup progress timer
   useEffect(() => {
@@ -152,6 +156,8 @@ export default function FraudAnalysisPanel({
   }, [applicationId, hostProvidesResult, locale, onFraudComplete]);
 
   const handleAnalyze = useCallback(async () => {
+    if (analysisInFlight.current) return;
+    analysisInFlight.current = true;
     setIsLoading(true);
     setError(null);
     setProgress(0);
@@ -173,15 +179,22 @@ export default function FraudAnalysisPanel({
       setResult(data);
       onFraudComplete?.(data);
       setProgress(100);
-      setDialogOpen(true); // Auto-open dialog with results
+      if (variant !== 'headless') setDialogOpen(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('analysisFailed'));
       setProgress(0);
     } finally {
+      analysisInFlight.current = false;
       setIsLoading(false);
       if (progressRef.current) { clearInterval(progressRef.current); progressRef.current = null; }
     }
-  }, [applicationId, effort, locale, setDialogOpen]);
+  }, [applicationId, effort, locale, setDialogOpen, onFraudComplete, t, variant]);
+
+  useEffect(() => {
+    if (startRequest <= handledStartRequest.current) return;
+    handledStartRequest.current = startRequest;
+    if (!analysisInFlight.current) void handleAnalyze();
+  }, [startRequest, handleAnalyze]);
 
   const generateMarkdown = useCallback((): string => {
     if (!result) return '';

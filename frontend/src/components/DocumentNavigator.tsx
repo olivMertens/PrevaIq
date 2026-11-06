@@ -7,6 +7,7 @@ import { getMediaUrl } from '@/lib/api';
 import type { CaseDocument, DocumentKind } from '@/lib/documentFiles';
 import { previewUrl } from '@/lib/media';
 import type { BatchSummary, MarkdownPage } from '@/lib/types';
+import { sameLanguage } from '@/i18n/locales';
 
 export const KIND_ICON: Record<DocumentKind, LucideIcon> = {
   pdf: FileText,
@@ -76,7 +77,7 @@ export default function DocumentNavigator({
                         <span className="block truncate font-medium">{doc.name}</span>
                         <span className="flex items-center gap-1.5 text-xs text-slate-500">
                           {doc.kind === 'email' ? t('email') : t('pageCount', { count: doc.pages.length })}
-                          {doc.language && doc.language !== locale && (
+                          {doc.language && !sameLanguage(doc.language, locale) && (
                             <span
                               className="rounded bg-slate-200 px-1 text-[10px] font-semibold uppercase text-slate-600"
                               title={t('originalLanguage', { language: doc.language.toUpperCase() })}

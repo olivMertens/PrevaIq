@@ -116,8 +116,10 @@ def test_parse_amount_handles_swiss_and_french_formats(text, expected) -> None:
 
 def test_format_amount_is_local() -> None:
     assert format_amount(1697400, "CHF", "de") == "CHF 1'697'400"
+    assert format_amount(1697400, "CHF", "de-CH") == "CHF 1'697'400"
     assert format_amount(1697400, "CHF", "en") == "CHF 1,697,400"
     assert format_amount(1697400, "CHF", "fr") == "1\u202f697\u202f400 CHF"
     assert format_amount(6560, "EUR", "en") == "€6,560"
     assert format_amount(6560, "EUR", "fr") == "6\u202f560 €"
+    assert format_amount(6560, "EUR", "de-CH") == "6'560 €"
     assert format_amount(None, "EUR") == ""

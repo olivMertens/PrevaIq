@@ -165,14 +165,12 @@ export default function LocationCard({
       <CockpitCard title={t('title')} headingId="cockpit-location" aside={basemapSwitch}>
         <div className="px-4 py-3">{body}</div>
       </CockpitCard>
-      {place && (
-        <AuroraRiskPanel
+      <AuroraRiskPanel
           applicationId={applicationId}
-          latitude={place.lat}
-          longitude={place.lon}
+          latitude={place?.lat}
+          longitude={place?.lon}
           claimDate={claimDate}
-        />
-      )}
+      />
     </div>
   );
 }

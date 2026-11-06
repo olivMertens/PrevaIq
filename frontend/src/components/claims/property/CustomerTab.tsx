@@ -18,7 +18,7 @@ interface CustomerTabProps {
   insuredName: string;
   claimReference: string;
   settlementAmount: string;
-  decisionStatus: 'approved' | 'pending';
+  decisionStatus: 'approved' | 'pending' | 'denied';
   suggestedAddress: string;
   suggestedPhone: string;
   suggestedEmail: string;
@@ -49,9 +49,10 @@ export default function CustomerTab({
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="grid gap-6 xl:grid-cols-2">
       <section>
         <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('sentiment')}</h3>
+        <p className="mb-3 text-sm text-slate-600">{t('estimateNotice')}</p>
         <ClientSentimentPanel
           customerData={customerData}
           claimNature={claimNature}
@@ -63,8 +64,28 @@ export default function CustomerTab({
         />
       </section>
 
-      <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('client360')}</h3>
+      <section className="space-y-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">{t('message')}</h3>
+        <p className="text-sm text-slate-600">{t('reviewDraft')}</p>
+        <CommunicationGenerator
+          applicationId={application.id}
+          insuredName={insuredName}
+          claimReference={claimReference}
+          decisionStatus={decisionStatus}
+          settlementAmount={settlementAmount}
+          defaultTone={severity === 'critical' || severity === 'warning' ? 'empathetic' : 'standard'}
+        />
+        <details className="rounded-lg border border-slate-200 p-3">
+          <summary className="cursor-pointer text-sm font-medium text-indigo-800">{t('callGuide')}</summary>
+          <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-slate-700">
+            {['acknowledge', 'confirm', 'nextStep'].map((step) => <li key={step}>{t(`call.${step}`)}</li>)}
+          </ol>
+        </details>
+      </section>
+
+      <details className="rounded-lg border border-slate-200 p-3 xl:col-span-2">
+        <summary className="cursor-pointer text-sm font-medium text-slate-700">{t('client360')} — {linkedCustomerId ? t('openProfile') : t('linkProfile')}</summary>
+        <div className="mt-3">
         {linkedCustomerId ? (
           <a href={`/customers/${linkedCustomerId}`} className="text-sm font-medium text-indigo-700 underline">{t('openProfile')}</a>
         ) : (
@@ -77,19 +98,8 @@ export default function CustomerTab({
             onAffiliated={onAffiliated}
           />
         )}
-      </section>
-
-      <section>
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{t('message')}</h3>
-        <CommunicationGenerator
-          applicationId={application.id}
-          insuredName={insuredName}
-          claimReference={claimReference}
-          decisionStatus={decisionStatus}
-          settlementAmount={settlementAmount}
-          defaultTone={severity === 'critical' || severity === 'warning' ? 'empathetic' : 'standard'}
-        />
-      </section>
+        </div>
+      </details>
     </div>
   );
 }

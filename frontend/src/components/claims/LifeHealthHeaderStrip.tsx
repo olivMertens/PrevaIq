@@ -41,33 +41,33 @@ export default function LifeHealthHeaderStrip({ application }: HeaderStripProps)
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2">
-            <span className="text-indigo-200 text-xs">{t('policyLabel')}</span>
+            <span className="text-indigo-100 text-xs">{t('policyLabel')}</span>
             <FieldWithConfidence data={planNameData} className="font-medium" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-indigo-200 text-xs">{t('coverageLabel')}</span>
+            <span className="text-indigo-100 text-xs">{t('coverageLabel')}</span>
             <FieldWithConfidence data={coverageDatesData} className="font-medium" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-indigo-200 text-xs">{t('providerLabel')}</span>
+            <span className="text-indigo-100 text-xs">{t('providerLabel')}</span>
             <FieldWithConfidence data={providerNameData} className="font-medium" />
           </div>
         </div>
         <div className="flex items-center gap-5">
           <div className="text-center">
-            <div className="text-xs text-indigo-200">{t('billed')}</div>
+            <div className="text-xs text-indigo-100">{t('billed')}</div>
             <div className="flex justify-center"><FieldWithConfidence data={billedAmountData} className="font-semibold" formatAsMoney /></div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-indigo-200">{t('allowed')}</div>
+            <div className="text-xs text-indigo-100">{t('allowed')}</div>
             <div className="flex justify-center"><FieldWithConfidence data={allowedAmountData} className="font-semibold" formatAsMoney /></div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-indigo-200">{t('planPays')}</div>
-            <div className="flex justify-center"><FieldWithConfidence data={planLiabilityData} className="font-semibold text-emerald-300" formatAsMoney /></div>
+            <div className="text-xs text-indigo-100">{t('planPays')}</div>
+            <div className="flex justify-center"><FieldWithConfidence data={planLiabilityData} className="font-semibold text-emerald-100" formatAsMoney /></div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-indigo-200">{t('memberOOP')}</div>
+            <div className="text-xs text-indigo-100">{t('memberOOP')}</div>
             <div className="flex justify-center"><FieldWithConfidence data={memberOOPData} className="font-semibold" formatAsMoney /></div>
           </div>
           <span className="px-2.5 py-1 bg-rose-500 rounded-full text-xs font-medium">{t('riskHigh')}</span>

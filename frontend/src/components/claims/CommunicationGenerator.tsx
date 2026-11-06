@@ -61,9 +61,11 @@ export default function CommunicationGenerator({
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showToneOptions, setShowToneOptions] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
+    setError(null);
     try {
       const response = await fetch(`/api/applications/${applicationId}/generate-communication`, {
         method: 'POST',
@@ -72,6 +74,7 @@ export default function CommunicationGenerator({
       });
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
+      if (typeof result.body !== 'string' || !result.body.trim()) throw new Error('Empty communication response');
 
       setGenerated({
         type: commType,
@@ -82,7 +85,7 @@ export default function CommunicationGenerator({
       });
     } catch (err) {
       console.error('[CommunicationGenerator] Generation failed:', err);
-      // Fallback to template if API fails
+      setError(t('templateFallback'));
       const status = decisionStatus === 'approved' || decisionStatus === 'denied' ? decisionStatus : 'pending';
       const values = {
         name: insuredName || t('defaultClient'),
@@ -109,19 +112,22 @@ export default function CommunicationGenerator({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
+      setError(t('copyError'));
     }
   }, [generated, t]);
 
   return (
     <div className="space-y-3">
+      {error && <p role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">{error}</p>}
       {/* Type selector */}
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {COMM_TYPES.map((ct) => {
           const Icon = ct.icon;
           return (
             <button
               key={ct.id}
+              type="button"
+              aria-pressed={commType === ct.id}
               onClick={() => { setCommType(ct.id); setGenerated(null); }}
               className={clsx(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
@@ -130,7 +136,7 @@ export default function CommunicationGenerator({
                   : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
               )}
               style={commType === ct.id ? {
-                color: brand.primary,
+                color: brand.ink,
                 borderColor: `${brand.primary}33`,
                 backgroundColor: `${brand.primary}0D`,
               } : undefined}
@@ -159,7 +165,7 @@ export default function CommunicationGenerator({
                     'w-full text-left px-3 py-2 text-xs hover:bg-slate-50',
                     tone === toneOption ? '' : 'text-slate-600'
                   )}
-                  style={tone === toneOption ? { color: brand.primary, backgroundColor: `${brand.primary}0D` } : undefined}
+                  style={tone === toneOption ? { color: brand.ink, backgroundColor: `${brand.primary}0D` } : undefined}
                 >
                   <div className="font-medium">{t(`tones.${toneOption}.label`)}</div>
                   <div className="text-[10px] text-slate-400">{t(`tones.${toneOption}.description`)}</div>
@@ -188,7 +194,7 @@ export default function CommunicationGenerator({
         <div className="rounded-lg border border-slate-200 bg-white overflow-hidden">
           {/* Header */}
           <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
-            <Sparkles className="w-3.5 h-3.5" style={{ color: brand.primary }} />
+            <Sparkles className="w-3.5 h-3.5" style={{ color: brand.ink }} />
             <span className="text-xs font-medium text-slate-700">
               {t('generated', { type: t(`types.${commType}`) })}
             </span>
@@ -205,23 +211,26 @@ export default function CommunicationGenerator({
             </div>
           </div>
           {/* Subject (email/letter only) */}
-          {generated.subject && (
+          {generated.subject !== undefined && (
             <div className="px-3 py-1.5 border-b border-slate-100 text-xs">
-              <span className="text-slate-400">{t('subject')} : </span>
-              <span className="font-medium text-slate-800">{generated.subject}</span>
+              <label className="block text-slate-500">{t('subject')}
+                <input value={generated.subject} onChange={(event) => setGenerated((current) => current && ({ ...current, subject: event.target.value }))}
+                  className="mt-1 w-full rounded border border-slate-200 p-2 text-sm text-slate-900" />
+              </label>
             </div>
           )}
           {/* Body */}
-          <div className="px-3 py-3 text-xs text-slate-700 whitespace-pre-line leading-relaxed max-h-48 overflow-auto">
-            {generated.body}
-          </div>
+          <textarea aria-label={t('draftBody')} value={generated.body}
+            onChange={(event) => setGenerated((current) => current && ({ ...current, body: event.target.value }))}
+            className="min-h-64 w-full resize-y p-3 text-sm leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" />
           {/* Footer actions */}
           <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
             <button
               onClick={handleGenerate}
+              disabled={isGenerating}
               className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium border rounded transition-colors"
               style={{
-                color: brand.primary,
+                color: brand.ink,
                 borderColor: `${brand.primary}33`,
                 backgroundColor: `${brand.primary}0D`,
               }}

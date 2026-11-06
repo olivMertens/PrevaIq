@@ -120,13 +120,51 @@ resource "azurerm_storage_container" "this" {
   storage_account_id = azurerm_storage_account.this.id
 }
 
+data "azurerm_storage_account" "aurora_channel" {
+  count = var.aurora_channel_storage_account_name == "" ? 0 : 1
+
+  name                = var.aurora_channel_storage_account_name
+  resource_group_name = local.resource_group_name
+}
+
+resource "azurerm_storage_container" "aurora_channel" {
+  count = var.aurora_channel_storage_account_name == "" ? 0 : 1
+
+  name                  = var.aurora_channel_container_name
+  storage_account_id    = data.azurerm_storage_account.aurora_channel[0].id
+  container_access_type = "private"
+}
+
+resource "azurerm_role_assignment" "aurora_channel_data" {
+  count = var.aurora_channel_storage_account_name == "" ? 0 : 1
+
+  name                             = uuidv5("11fb06fb-712d-4ddd-98c7-e71bbd588830", "${local.aurora_channel_container_scope}-${azurerm_user_assigned_identity.this.id}-aurora-task-contributor")
+  scope                            = local.aurora_channel_container_scope
+  role_definition_name             = "Storage Blob Data Contributor"
+  principal_id                     = azurerm_user_assigned_identity.this.principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
+resource "azurerm_role_assignment" "aurora_channel_delegator" {
+  count = var.aurora_channel_storage_account_name == "" ? 0 : 1
+
+  name                             = uuidv5("11fb06fb-712d-4ddd-98c7-e71bbd588830", "${data.azurerm_storage_account.aurora_channel[0].id}-${azurerm_user_assigned_identity.this.id}-aurora-blob-delegator")
+  scope                            = data.azurerm_storage_account.aurora_channel[0].id
+  role_definition_name             = "Storage Blob Delegator"
+  principal_id                     = azurerm_user_assigned_identity.this.principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
 # -----------------------------------------------------------------------------
 # RBAC. The apps use the user-assigned identity; the Foundry project identity backs the
 # project's Entra-authenticated connections (Storage, AI Search).
 # -----------------------------------------------------------------------------
 locals {
-  app_identity     = azurerm_user_assigned_identity.this.principal_id
-  project_identity = azurerm_cognitive_account_project.foundry.identity[0].principal_id
+  app_identity                   = azurerm_user_assigned_identity.this.principal_id
+  project_identity               = azurerm_cognitive_account_project.foundry.identity[0].principal_id
+  aurora_channel_container_scope = var.aurora_channel_storage_account_name == "" ? null : "${data.azurerm_storage_account.aurora_channel[0].id}/blobServices/default/containers/${azurerm_storage_container.aurora_channel[0].name}"
 
   identity_roles = {
     acr_pull                   = { principal_id = local.app_identity, scope = azurerm_container_registry.this.id, role = "AcrPull" }

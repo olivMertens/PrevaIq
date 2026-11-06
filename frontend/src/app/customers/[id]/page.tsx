@@ -24,6 +24,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import BrandMark from '@/components/BrandMark';
+import AppearanceSwitcher from '@/components/AppearanceSwitcher';
 
 export default function CustomerDetailPage() {
   const params = useParams();
@@ -94,8 +95,8 @@ export default function CustomerDetailPage() {
               className="flex items-center gap-1 px-3 py-1.5 border rounded-lg transition-colors"
               style={{ backgroundColor: `${brand.primary}0D`, borderColor: `${brand.primary}33` }}
             >
-              <Users className="w-4 h-4" style={{ color: brand.primary }} />
-              <span className="text-sm font-medium" style={{ color: brand.primary }}>{t('title')}</span>
+              <Users className="w-4 h-4" style={{ color: brand.ink }} />
+              <span className="text-sm font-medium" style={{ color: brand.ink }}>{t('title')}</span>
             </Link>
           </div>
 
@@ -109,6 +110,7 @@ export default function CustomerDetailPage() {
             </Link>
 
             <LanguageSwitcher />
+            <AppearanceSwitcher />
 
             {authEnabled && (
               <div className="flex items-center gap-2 ml-2 pl-2 border-l border-slate-200">
@@ -121,7 +123,7 @@ export default function CustomerDetailPage() {
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-slate-500 rounded-lg transition-colors"
-                  style={{ color: brand.primary, backgroundColor: `${brand.primary}0D` }}
+                  style={{ color: brand.ink, backgroundColor: `${brand.primary}0D` }}
                   title={t('signOut')}
                 >
                   <LogOut className="w-4 h-4" />
@@ -138,7 +140,7 @@ export default function CustomerDetailPage() {
         <button
           onClick={() => router.push('/customers')}
           className="flex items-center gap-1.5 text-sm transition-colors mb-6"
-          style={{ color: brand.primary }}
+          style={{ color: brand.ink }}
         >
           <ArrowLeft className="w-4 h-4" />
           {t('backToList')}
@@ -146,7 +148,7 @@ export default function CustomerDetailPage() {
 
         {loading && (
           <div className="flex items-center justify-center py-24">
-            <Loader2 className="w-8 h-8 animate-spin" style={{ color: brand.primary }} />
+            <Loader2 className="w-8 h-8 animate-spin" style={{ color: brand.ink }} />
             <span className="ml-3 text-slate-500">{t('loadingCustomer')}</span>
           </div>
         )}
@@ -158,7 +160,7 @@ export default function CustomerDetailPage() {
             <button
               onClick={() => router.push('/customers')}
               className="mt-4 text-sm"
-              style={{ color: brand.primary }}
+              style={{ color: brand.ink }}
             >
               ← {t('backToList')}
             </button>
