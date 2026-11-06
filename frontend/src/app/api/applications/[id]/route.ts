@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
 import { getApiBaseUrl } from '@/lib/api-base-url';
 
 function getHeaders(): Record<string, string> {
@@ -28,7 +26,10 @@ export async function GET(
     });
 
     if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+      const data = await response.json().catch(() => ({
+        error: `Application request failed: ${response.status}`,
+      }));
+      return NextResponse.json(data, { status: response.status });
     }
 
     const data = await response.json();
@@ -36,28 +37,9 @@ export async function GET(
   } catch (error) {
     console.error(`Failed to fetch application ${appId}:`, error);
     
-    // Try to load from local data directory for demo purposes
-    try {
-      const metadataPath = join(
-        process.cwd(),
-        '..',
-        'data',
-        'applications',
-        appId,
-        'metadata.json'
-      );
-      
-      if (existsSync(metadataPath)) {
-        const metadata = JSON.parse(readFileSync(metadataPath, 'utf-8'));
-        return NextResponse.json(metadata);
-      }
-    } catch (localError) {
-      console.error('Local data load failed:', localError);
-    }
-
     return NextResponse.json(
-      { error: 'Application not found' },
-      { status: 404 }
+      { error: 'Application service is unavailable' },
+      { status: 502 }
     );
   }
 }

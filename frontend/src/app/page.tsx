@@ -9,6 +9,7 @@ import { usePersona } from '@/lib/PersonaContext';
 import { ApplicationListItem } from '@/lib/types';
 import { PersonaId, PERSONAS } from '@/lib/personas';
 import { readCaseParams, writeCaseParams, type CaseView } from '@/lib/caseUrl';
+import { useTranslations } from 'next-intl';
 
 type ViewType = 'landing' | 'workbench';
 
@@ -29,9 +30,11 @@ export default function Home() {
 }
 
 function HomeContent() {
+  const t = useTranslations('dashboard');
   const [applications, setApplications] = useState<ApplicationListItem[]>([]);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [view, setView] = useState<ViewType>('landing');
   const [username, setUsername] = useState<string | null>(null);
   const { currentPersona, setPersona, isLoading: personaLoading } = usePersona();
@@ -72,6 +75,7 @@ function HomeContent() {
     const p = persona || currentPersona;
     try {
       setLoading(true);
+      setLoadError(false);
       console.log('Loading applications for persona:', p);
       const response = await fetch(`/api/applications?persona=${p}`, {
         cache: 'no-store',
@@ -82,11 +86,11 @@ function HomeContent() {
         setApplications(apps);
         return apps;
       } else {
-        setApplications([]);
-        return [];
+        throw new Error(`Application list request failed: ${response.status}`);
       }
     } catch (err) {
       console.error('Failed to load applications:', err);
+      setLoadError(true);
       setApplications([]);
       return [];
     } finally {
@@ -188,6 +192,11 @@ function HomeContent() {
              showWorkbenchControls={false}
         />
       </header>
+      {loadError && (
+        <div role="alert" className="mx-6 mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {t('loadError')}
+        </div>
+      )}
       <LandingPage 
         applications={applications}
         onSelectApp={handleSelectApp}

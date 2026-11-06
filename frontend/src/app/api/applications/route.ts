@@ -44,17 +44,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('Failed to fetch applications:', error);
-    
-    // Return demo data for development
-    return NextResponse.json([
-      {
-        id: '3c0452c0',
-        created_at: '2025-11-25T17:40:26Z',
-        external_reference: 'UW-004',
-        status: 'completed',
-        summary_title: 'Mike Johnson - APS Review',
-      },
-    ]);
+    return NextResponse.json(
+      { error: 'Application service is unavailable' },
+      { status: 502 }
+    );
   }
 }
 
