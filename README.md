@@ -120,10 +120,17 @@ responsibility and must provide the required two time steps, variables, and
 credible source provenance.
 The UI action is available on the property-claims location card. It restores
 the latest persisted forecast, classifies the weather signal with transparent
-thresholds, highlights the potential hazard window, and proposes localized
-case actions and customer-call talking points. If Aurora is disabled, the panel
+thresholds, plots the hourly gust, precipitation, and temperature evidence,
+highlights the potential hazard window, and proposes localized case actions
+and customer-call talking points. If Aurora is disabled, the panel
 is hidden; if it is enabled but incomplete, the panel reports the missing
 administrator configuration without exposing credentials.
+
+Tenant administrators can prepare the integration from **Admin > Aurora
+weather**. The tab stores only non-secret Azure resource identifiers, tests
+managed identity and input/channel readiness, and shows the exact evidence
+contract agents receive. Persisted admin configuration overrides the
+environment resource values; tokens, keys, and SAS query strings are rejected.
 
 For the `Aurora-v1p5` custom model asset in Foundry, choose **Use this model >
 Real-time endpoint**. The current adapter targets that inference environment's
@@ -134,6 +141,12 @@ Aurora remains a research model and must be benchmarked against an accepted
 meteorological baseline for the geography and variables used. Do not use the
 demo output for autonomous claim denial, payment, underwriting rejection or
 operational alerts.
+
+The repository-local
+[Aurora skill](.github/skills/msresearch-aurora/SKILL.md) contains the managed
+endpoint workflow, input contract, evaluation gate, troubleshooting path, and
+upstream Microsoft Research Vibe Kit attribution without vendoring its large
+research and sample-data assets.
 
 ## Documentation
 

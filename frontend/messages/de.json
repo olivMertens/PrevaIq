@@ -239,6 +239,120 @@
     "glossaryTab": "Glossar",
     "correctionsTab": "Korrekturen",
     "accessTab": "Zugänge",
+    "auroraTab": "Aurora-Wetter",
+    "aurora": {
+      "eyebrow": "Microsoft Research · Aurora 1.5",
+      "title": "Erdsystem-Intelligenz für Versicherungsentscheidungen",
+      "lead": "Bereiten Sie den verwalteten Endpunkt vor und stellen Sie Fallagenten nachvollziehbare Wetterdaten bereit, ohne Anmeldedaten zu speichern oder Deckungsentscheidungen zu automatisieren.",
+      "facts": {
+        "hourly": "Stündliche hochauflösende Prognosen",
+        "variables": "22 zusätzliche Erdsystemvariablen",
+        "ensemble": "Deterministische und Ensemble-Modelle",
+        "advisory": "Nur beratend · fachliche Prüfung"
+      },
+      "readiness": "Bereitschaft für die Bereitstellung",
+      "readyCount": "{ready} von {total} Voraussetzungen erfüllt",
+      "source": {
+        "admin": "Sicher gespeicherte Administratorkonfiguration wird verwendet",
+        "environment": "Konfiguration der Bereitstellungsumgebung wird verwendet"
+      },
+      "loading": "Aurora-Bereitschaft wird geladen…",
+      "loadError": "Die Aurora-Konfiguration konnte nicht geladen werden.",
+      "saveError": "Die Aurora-Konfiguration konnte nicht gespeichert werden.",
+      "testError": "Der Aurora-Bereitschaftstest konnte nicht abgeschlossen werden.",
+      "saved": "Aurora-Konfiguration gespeichert.",
+      "testPassed": "Alle Aurora-Bereitschaftsprüfungen waren erfolgreich.",
+      "testFailed": "Mindestens eine Aurora-Prüfung erfordert Aufmerksamkeit.",
+      "save": "Konfiguration speichern",
+      "saving": "Wird gespeichert…",
+      "test": "Bereitschaft testen",
+      "testing": "Test läuft…",
+      "reload": "Neu laden",
+      "hours": "{count} Stunden",
+      "configuration": {
+        "title": "Konfiguration des verwalteten Endpunkts",
+        "lead": "Konfigurieren Sie nur nicht geheime Ressourcenbezeichner. Der Laufzeitzugriff verwendet die verwaltete Identität der Container App.",
+        "enabled": "Aurora aktivieren",
+        "security": "Sicherheit: Token, Kontoschlüssel und SAS-Abfrageparameter werden abgelehnt und niemals gespeichert.",
+        "fields": {
+          "endpoint": {
+            "label": "URL des verwalteten Foundry-Endpunkts",
+            "placeholder": "https://…inference.ml.azure.com/score",
+            "help": "Verwenden Sie den Scoring-Endpunkt des bereitgestellten Aurora-v1p5-Modells."
+          },
+          "initial_condition_blob_url": {
+            "label": "Blob-URL der NetCDF-Anfangsbedingungen",
+            "placeholder": "https://…blob.core.windows.net/aurora-input/initial.nc",
+            "help": "Eine private Blob-URL ohne SAS-Abfrageparameter."
+          },
+          "channel_container_url": {
+            "label": "Container-URL des Aufgabenkanals",
+            "placeholder": "https://…blob.core.windows.net/aurora-tasks",
+            "help": "Container für den begrenzten Ein- und Ausgabeaustausch mit dem Endpunkt."
+          },
+          "deterministic_model": {
+            "label": "Kennung des deterministischen Modells",
+            "placeholder": "aurora-0.25-v1.5",
+            "help": "Empfohlen für den interaktiven Schadenprozess."
+          },
+          "ensemble_model": {
+            "label": "Kennung des Ensemble-Modells",
+            "placeholder": "aurora-0.25-v1.5-ensemble",
+            "help": "Für Unsicherheitsanalysen und künftige Portfolioläufe vorgesehen."
+          },
+          "default_horizon_hours": {
+            "label": "Interaktiver Standardhorizont"
+          }
+        }
+      },
+      "checklist": {
+        "title": "Bereitschaftscheckliste",
+        "testPassed": "Live-Test bestanden",
+        "testFailed": "Live-Test erfordert Aufmerksamkeit",
+        "items": {
+          "enabled": "Aurora-Funktion aktiviert",
+          "managed_identity": "Verwaltete Identität kann sich authentifizieren",
+          "endpoint": "Verwalteter Endpunkt ist erreichbar",
+          "initial_conditions": "Anfangsbedingungen erfüllen den Aurora-Vertrag",
+          "blob_channel": "Aufgabenkanal unterstützt delegierten Blob-Zugriff"
+        }
+      },
+      "inputContract": {
+        "title": "Erforderlicher Vertrag für Anfangsbedingungen",
+        "history": "Historische Schritte",
+        "surface": "Oberflächeneingaben",
+        "atmospheric": "Atmosphärische Eingaben",
+        "format": "Format"
+      },
+      "agentContext": {
+        "title": "Vom Agenten nutzbarer Evidenzvertrag",
+        "lead": "Die Prognose wird auf begrenzte Fakten, Aktionen und Herkunft reduziert, bevor ein Agent sie im Kundengespräch verwenden kann.",
+        "guardrail": "Der Agent erhält Evidenz und empfohlene nächste Schritte, niemals eine autonome Entscheidung über Deckung, Haftung oder Zahlung."
+      },
+      "roi": {
+        "title": "Wertbeitrag für Versicherungen",
+        "lead": "Zeigen Sie operative Ergebnisse in der Demo und messen Sie sie am aktuellen Prozess, bevor Sie finanzielle Auswirkungen ausweisen.",
+        "items": {
+          "triage": {
+            "title": "Wettergestützte Triage",
+            "body": "Priorisieren Sie exponierte Schäden anhand des vorhergesagten Gefahrenfensters und Schweregrads."
+          },
+          "outreach": {
+            "title": "Proaktiver Kundenkontakt",
+            "body": "Geben Sie Sachbearbeitern zeitnahe, belegte Gesprächspunkte und Sicherheitshinweise."
+          },
+          "evidence": {
+            "title": "Abgleich der Evidenz",
+            "body": "Vergleichen Sie gemeldeten Ereigniszeitpunkt und Schaden mit nachvollziehbarer Modellevidenz."
+          },
+          "portfolio": {
+            "title": "Portfoliobereitschaft",
+            "body": "Erweitern Sie erst nach Nachweis des interaktiven Endpunkts auf Batch-Expositionsanalysen."
+          }
+        },
+        "measurement": "Demo-Kennzahlen: Vergleichen Sie Triagezeit, vermeidbare Informationsanfragen, Vorbereitungszeit und Eskalationsgenauigkeit. Stellen Sie prognostizierte Einsparungen nicht als erzielten ROI dar."
+      }
+    },
     "accessRequests": {
       "lead": "Anfragen, die bei Microsoft Entra ID-Anmeldung erstellt wurden. Die genehmigung öffnet nur die benutzerdemo; die verwaltung bleibt admin-konten vorbehalten.",
       "authorizeLabel": "Autorisieren einer E-Mail-Adresse",
@@ -3428,6 +3542,24 @@
       "hazardWindow": "Mögliches Gefahrenfenster: {start} bis {end}.",
       "recommendedActions": "Empfohlene Fallmaßnahmen",
       "customerCall": "Leitfaden für das Kundengespräch",
+      "chart": {
+        "title": "Stündliche Modellevidenz",
+        "hourly": "Punkt überfahren, um Zeitpunkt und Wert anzuzeigen",
+        "ariaLabel": "Stündliches Aurora-Prognosediagramm für Windböen, Niederschlag und Temperatur",
+        "gust": "Böe",
+        "rain": "Regen",
+        "temperature": "Temp.",
+        "metersPerSecondShort": "m/s",
+        "millimetersShort": "mm",
+        "celsiusShort": "°C",
+        "empty": "Keine stündliche Modellevidenz verfügbar."
+      },
+      "evidence": {
+        "title": "Evidenznachweis",
+        "location": "Prognosepunkt",
+        "generated": "Angefordert",
+        "source": "Eingabequelle"
+      },
       "severity": {
         "low": "Geringes Wettersignal",
         "moderate": "Moderates Wettersignal",

@@ -239,6 +239,120 @@
     "glossaryTab": "Glossaire",
     "correctionsTab": "Corrections",
     "accessTab": "Accès",
+    "auroraTab": "Météo Aurora",
+    "aurora": {
+      "eyebrow": "Microsoft Research · Aurora 1.5",
+      "title": "Intelligence du système Terre pour les décisions d'assurance",
+      "lead": "Préparez le point de terminaison managé et fournissez aux agents des preuves météo traçables, sans stocker d'identifiants ni automatiser les décisions de couverture.",
+      "facts": {
+        "hourly": "Prévisions horaires à haute résolution",
+        "variables": "22 variables supplémentaires du système Terre",
+        "ensemble": "Modèles déterministe et d'ensemble",
+        "advisory": "Indicatif uniquement · revue experte"
+      },
+      "readiness": "Préparation au déploiement",
+      "readyCount": "{ready} prérequis prêts sur {total}",
+      "source": {
+        "admin": "Configuration d'administration sécurisée utilisée",
+        "environment": "Configuration de l'environnement de déploiement utilisée"
+      },
+      "loading": "Chargement de la préparation Aurora…",
+      "loadError": "Impossible de charger la configuration Aurora.",
+      "saveError": "Impossible d'enregistrer la configuration Aurora.",
+      "testError": "Impossible de terminer le test de préparation Aurora.",
+      "saved": "Configuration Aurora enregistrée.",
+      "testPassed": "Tous les contrôles de préparation Aurora ont réussi.",
+      "testFailed": "Un ou plusieurs contrôles Aurora nécessitent votre attention.",
+      "save": "Enregistrer la configuration",
+      "saving": "Enregistrement…",
+      "test": "Tester la préparation",
+      "testing": "Test en cours…",
+      "reload": "Recharger",
+      "hours": "{count} heures",
+      "configuration": {
+        "title": "Configuration du point de terminaison managé",
+        "lead": "Configurez uniquement les identifiants de ressources non secrets. L'accès utilise l'identité managée de la Container App.",
+        "enabled": "Activer Aurora",
+        "security": "Sécurité : les jetons, clés de compte et paramètres SAS sont refusés et ne sont jamais enregistrés.",
+        "fields": {
+          "endpoint": {
+            "label": "URL du point de terminaison managé Foundry",
+            "placeholder": "https://…inference.ml.azure.com/score",
+            "help": "Utilisez le point de scoring du modèle Aurora-v1p5 déployé."
+          },
+          "initial_condition_blob_url": {
+            "label": "URL Blob NetCDF des conditions initiales",
+            "placeholder": "https://…blob.core.windows.net/aurora-input/initial.nc",
+            "help": "URL de Blob privée, sans paramètre SAS."
+          },
+          "channel_container_url": {
+            "label": "URL du conteneur du canal de tâches",
+            "placeholder": "https://…blob.core.windows.net/aurora-tasks",
+            "help": "Conteneur utilisé pour l'échange borné des entrées et sorties avec le point de terminaison."
+          },
+          "deterministic_model": {
+            "label": "Identifiant du modèle déterministe",
+            "placeholder": "aurora-0.25-v1.5",
+            "help": "Recommandé pour le parcours interactif d'un sinistre."
+          },
+          "ensemble_model": {
+            "label": "Identifiant du modèle d'ensemble",
+            "placeholder": "aurora-0.25-v1.5-ensemble",
+            "help": "Réservé à l'analyse d'incertitude et aux futurs traitements de portefeuille."
+          },
+          "default_horizon_hours": {
+            "label": "Horizon interactif par défaut"
+          }
+        }
+      },
+      "checklist": {
+        "title": "Liste de préparation",
+        "testPassed": "Test réel réussi",
+        "testFailed": "Le test réel nécessite une action",
+        "items": {
+          "enabled": "Fonctionnalité Aurora activée",
+          "managed_identity": "L'identité managée peut s'authentifier",
+          "endpoint": "Le point de terminaison managé est joignable",
+          "initial_conditions": "Les conditions initiales respectent le contrat Aurora",
+          "blob_channel": "Le canal de tâches autorise l'accès Blob délégué"
+        }
+      },
+      "inputContract": {
+        "title": "Contrat requis des conditions initiales",
+        "history": "Pas historiques",
+        "surface": "Entrées de surface",
+        "atmospheric": "Entrées atmosphériques",
+        "format": "Format"
+      },
+      "agentContext": {
+        "title": "Contrat de preuve exploitable par l'agent",
+        "lead": "La prévision est réduite à des faits bornés, des actions et une provenance avant toute utilisation dans un échange client.",
+        "guardrail": "L'agent reçoit des preuves et des prochaines étapes recommandées, jamais une décision autonome de couverture, responsabilité ou paiement."
+      },
+      "roi": {
+        "title": "Parcours de valeur pour l'assurance",
+        "lead": "Démontrez les résultats opérationnels et mesurez-les face au processus actuel avant d'affirmer un impact financier.",
+        "items": {
+          "triage": {
+            "title": "Triage sensible à la météo",
+            "body": "Priorisez les sinistres exposés selon la fenêtre de risque et la sévérité prévues."
+          },
+          "outreach": {
+            "title": "Appel client proactif",
+            "body": "Donnez aux gestionnaires des messages opportuns, étayés et accompagnés de conseils de sécurité."
+          },
+          "evidence": {
+            "title": "Alignement des preuves",
+            "body": "Comparez l'heure déclarée et les dommages avec des preuves de modèle traçables."
+          },
+          "portfolio": {
+            "title": "Préparation du portefeuille",
+            "body": "Étendez aux analyses d'exposition en lot seulement après validation du parcours interactif."
+          }
+        },
+        "measurement": "Tableau de mesure : comparez le temps de triage, les demandes d'informations évitables, le temps de préparation du gestionnaire et la précision des escalades. Ne présentez pas les économies projetées comme un ROI acquis."
+      }
+    },
     "accessRequests": {
       "lead": "Demandes créées à la connexion Microsoft Entra ID. Une approbation ouvre uniquement la démo utilisateur ; l'administration reste réservée aux comptes administrateur.",
       "authorizeLabel": "Autoriser une adresse e-mail",
@@ -3428,6 +3542,24 @@
       "hazardWindow": "Fenêtre de danger potentielle : du {start} au {end}.",
       "recommendedActions": "Actions recommandées pour le dossier",
       "customerCall": "Conseils pour l'appel client",
+      "chart": {
+        "title": "Preuves horaires du modèle",
+        "hourly": "Survolez un point pour afficher son heure et sa valeur",
+        "ariaLabel": "Graphique de la prévision Aurora horaire pour les rafales, les précipitations et la température",
+        "gust": "Rafale",
+        "rain": "Pluie",
+        "temperature": "Temp.",
+        "metersPerSecondShort": "m/s",
+        "millimetersShort": "mm",
+        "celsiusShort": "°C",
+        "empty": "Aucune preuve horaire du modèle n'est disponible."
+      },
+      "evidence": {
+        "title": "Traçabilité des preuves",
+        "location": "Point de prévision",
+        "generated": "Demandée le",
+        "source": "Source d'entrée"
+      },
       "severity": {
         "low": "Signal météo faible",
         "moderate": "Signal météo modéré",

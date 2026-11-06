@@ -239,6 +239,120 @@
     "glossaryTab": "Glossary",
     "correctionsTab": "Corrections",
     "accessTab": "Access",
+    "auroraTab": "Aurora weather",
+    "aurora": {
+      "eyebrow": "Microsoft Research · Aurora 1.5",
+      "title": "Earth-system intelligence for insurance decisions",
+      "lead": "Prepare the managed endpoint and expose traceable weather evidence to case agents without storing credentials or automating coverage decisions.",
+      "facts": {
+        "hourly": "Hourly high-resolution forecasts",
+        "variables": "22 additional Earth-system variables",
+        "ensemble": "Deterministic and ensemble models",
+        "advisory": "Advisory only · expert review"
+      },
+      "readiness": "Deployment readiness",
+      "readyCount": "{ready} of {total} prerequisites ready",
+      "source": {
+        "admin": "Using the securely persisted admin configuration",
+        "environment": "Using deployment environment configuration"
+      },
+      "loading": "Loading Aurora readiness…",
+      "loadError": "Aurora configuration could not be loaded.",
+      "saveError": "Aurora configuration could not be saved.",
+      "testError": "The Aurora readiness test could not be completed.",
+      "saved": "Aurora configuration saved.",
+      "testPassed": "All Aurora readiness checks passed.",
+      "testFailed": "One or more Aurora readiness checks require attention.",
+      "save": "Save configuration",
+      "saving": "Saving…",
+      "test": "Test readiness",
+      "testing": "Testing…",
+      "reload": "Reload",
+      "hours": "{count} hours",
+      "configuration": {
+        "title": "Managed endpoint configuration",
+        "lead": "Configure non-secret resource identifiers. Runtime access uses the Container App managed identity.",
+        "enabled": "Enable Aurora",
+        "security": "Security: tokens, account keys and SAS query strings are rejected and never persisted.",
+        "fields": {
+          "endpoint": {
+            "label": "Foundry managed endpoint URL",
+            "placeholder": "https://…inference.ml.azure.com/score",
+            "help": "Use the scoring endpoint for the deployed Aurora-v1p5 model."
+          },
+          "initial_condition_blob_url": {
+            "label": "Initial-condition NetCDF Blob URL",
+            "placeholder": "https://…blob.core.windows.net/aurora-input/initial.nc",
+            "help": "A private Blob URL without a SAS query string."
+          },
+          "channel_container_url": {
+            "label": "Task channel container URL",
+            "placeholder": "https://…blob.core.windows.net/aurora-tasks",
+            "help": "Container used for bounded input and output exchange with the endpoint."
+          },
+          "deterministic_model": {
+            "label": "Deterministic model identifier",
+            "placeholder": "aurora-0.25-v1.5",
+            "help": "Recommended for the interactive claim workflow."
+          },
+          "ensemble_model": {
+            "label": "Ensemble model identifier",
+            "placeholder": "aurora-0.25-v1.5-ensemble",
+            "help": "Reserved for uncertainty analysis and future portfolio runs."
+          },
+          "default_horizon_hours": {
+            "label": "Default interactive horizon"
+          }
+        }
+      },
+      "checklist": {
+        "title": "Readiness checklist",
+        "testPassed": "Live test passed",
+        "testFailed": "Live test requires attention",
+        "items": {
+          "enabled": "Aurora feature enabled",
+          "managed_identity": "Managed identity can authenticate",
+          "endpoint": "Managed endpoint is reachable",
+          "initial_conditions": "Initial conditions satisfy the Aurora contract",
+          "blob_channel": "Task channel supports delegated Blob access"
+        }
+      },
+      "inputContract": {
+        "title": "Required initial-condition contract",
+        "history": "History steps",
+        "surface": "Surface inputs",
+        "atmospheric": "Atmospheric inputs",
+        "format": "Format"
+      },
+      "agentContext": {
+        "title": "Agent-consumable evidence contract",
+        "lead": "The forecast is reduced to bounded facts, actions and provenance before an agent can use it in a customer conversation.",
+        "guardrail": "The agent receives evidence and recommended next steps, never an autonomous coverage, liability or payment decision."
+      },
+      "roi": {
+        "title": "Insurance value path",
+        "lead": "Show operational outcomes in the demo and measure them against the current workflow before claiming financial impact.",
+        "items": {
+          "triage": {
+            "title": "Weather-aware triage",
+            "body": "Prioritize exposed claims using the predicted hazard window and severity."
+          },
+          "outreach": {
+            "title": "Proactive customer call",
+            "body": "Give handlers timely, evidence-backed talking points and safety guidance."
+          },
+          "evidence": {
+            "title": "Evidence alignment",
+            "body": "Compare the reported event time and damage with traceable model evidence."
+          },
+          "portfolio": {
+            "title": "Portfolio readiness",
+            "body": "Extend to batch exposure sweeps only after the interactive endpoint is proven."
+          }
+        },
+        "measurement": "Demo scorecard: compare triage time, avoidable information requests, handler preparation time and escalation accuracy. Do not present projected savings as achieved ROI."
+      }
+    },
     "accessRequests": {
       "lead": "Requests created at Microsoft Entra ID sign-in. Approval opens the user demo only; administration remains reserved to admin accounts.",
       "authorizeLabel": "Authorize an e-mail address",
@@ -3428,6 +3542,24 @@
       "hazardWindow": "Potential hazard window: {start} to {end}.",
       "recommendedActions": "Recommended case actions",
       "customerCall": "Customer call guidance",
+      "chart": {
+        "title": "Hourly model evidence",
+        "hourly": "Hover a point for its timestamp and value",
+        "ariaLabel": "Hourly Aurora forecast chart for wind gust, precipitation and temperature",
+        "gust": "Gust",
+        "rain": "Rain",
+        "temperature": "Temp.",
+        "metersPerSecondShort": "m/s",
+        "millimetersShort": "mm",
+        "celsiusShort": "°C",
+        "empty": "No hourly model evidence is available."
+      },
+      "evidence": {
+        "title": "Evidence trace",
+        "location": "Forecast point",
+        "generated": "Requested",
+        "source": "Input source"
+      },
       "severity": {
         "low": "Low weather signal",
         "moderate": "Moderate weather signal",

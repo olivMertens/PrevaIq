@@ -36,6 +36,7 @@
 | `AURORA_BLOB_CHANNEL_SAS_URL` | Conditional | - | Local-development alternative to `AURORA_CHANNEL_CONTAINER_URL`; SAS must grant read/write/create. Never commit it. |
 | `AURORA_TIMEOUT_SECONDS` | No | `900` | End-to-end deadline for task execution and prediction retrieval. |
 | `AURORA_POLL_INTERVAL_SECONDS` | No | `2` | Delay between bounded task and Blob marker checks. |
+| `AURORA_DEFAULT_HORIZON_HOURS` | No | `12` | Default interactive forecast horizon; must be a multiple of six between 6 and 240 hours. |
 | `AURORA_USE_AZURE_AD` | No | `true` | Use DefaultAzureCredential for the managed Aurora endpoint. |
 | `AURORA_TOKEN_SCOPE` | No | `https://ml.azure.com/.default` | Entra token scope for an Azure ML managed online endpoint. Override only if the provisioned endpoint specifies another audience. |
 | `AURORA_ENDPOINT_TOKEN` | Conditional | - | Endpoint bearer token when Entra auth is disabled. Store in Key Vault; never commit it. |
@@ -56,6 +57,19 @@
 | `AZURE_STORAGE_ACCOUNT_NAME` | Conditional | - | Azure storage account name, required for DAC and key auth |
 | `AZURE_STORAGE_ACCOUNT_KEY` | Conditional | - | Azure storage account key if not using DAC |
 | `AZURE_STORAGE_CONTAINER_NAME` | No | `prevaiq-data` | Azure blob container name |
+
+### Aurora admin override
+
+Administrators can configure Aurora from the **Admin > Aurora weather** tab after deployment.
+The form persists only non-secret endpoint, model, Blob resource, and default-horizon values under
+the current brand. In Azure the record is stored in the application Blob container; local
+development uses `UW_APP_STORAGE_ROOT`. A persisted admin record takes precedence over the
+`AURORA_*` resource settings above.
+
+Runtime authentication remains managed identity. The admin API rejects account keys, tokens, URL
+query strings, and SAS URLs, and the readiness test generates delegated Blob access only in memory.
+Use the live checklist to verify identity, endpoint reachability, the two-step NetCDF input
+contract, and task-channel access before enabling the case experience.
 | `AZURE_STORAGE_ALLOW_CREATE_CONTAINER` | No | `false` | Auto-create the container at startup; set `true` for development only |
 | `DATABASE_BACKEND` | No | `json` | Database backend: `json` or `postgresql` |
 | `POSTGRESQL_HOST` | Conditional | - | PostgreSQL host when using the PostgreSQL backend |

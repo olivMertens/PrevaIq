@@ -240,12 +240,23 @@ az deployment group create `
   -AdminEmails $adminEmail
 ```
 
+Alternatively, deploy the identity and storage permissions with Aurora disabled, then sign in with
+an administrator account and open **Admin > Aurora weather**. Enter the managed endpoint, model
+identifiers, private initial-condition Blob URL, task-channel container URL, and a 6-12 hour demo
+horizon. Save the configuration, enable Aurora, and run **Test readiness**. The live test verifies
+managed-identity authentication, endpoint reachability, the full NetCDF input contract, and
+delegated Blob-channel access.
+
+This admin record contains no credentials and takes precedence over the resource settings supplied
+by Bicep or Terraform. Tokens, keys, SAS URLs, and URL query strings are rejected. Keep infrastructure
+defaults in Bicep and Terraform aligned even when an operator uses the admin override.
+
 Run local contract tests, then a real six-hour forecast through the deployed
 API. Restore a property-claims demo case in the UI first if the environment has
 no suitable dossier:
 
 ```powershell
-uv run python -m pytest tests/test_aurora.py -q
+uv run python -m pytest tests/test_aurora.py tests/test_aurora_admin.py -q
 
 $apiUrl = az containerapp show -g $resourceGroup -n ca-api-demo `
   --query "'https://' + properties.configuration.ingress.fqdn" -o tsv
@@ -263,7 +274,8 @@ deterministic path succeeds. Aurora remains advisory and requires expert review.
 
 In the customer-facing property-claim workflow, the persisted Aurora result is
 converted into bounded decision support: weather severity, a potential hazard
-window, case-triage actions, and localized customer-call talking points. These
+window, an hourly gust/precipitation/temperature evidence timeline, case-triage
+actions, and localized customer-call talking points. These
 signals can prioritize outreach and evidence collection, but they never approve,
 deny, price, or pay a claim.
 

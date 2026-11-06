@@ -13,6 +13,7 @@ import {
   type AuroraStatus,
 } from '@/lib/api';
 import { CockpitCard } from './caseUi';
+import AuroraForecastChart from './AuroraForecastChart';
 
 export default function AuroraRiskPanel({
   applicationId,
@@ -61,7 +62,7 @@ export default function AuroraRiskPanel({
       const response = await createAuroraForecast(applicationId, {
         latitude,
         longitude,
-        horizon_hours: 48,
+        horizon_hours: status?.default_horizon_hours ?? 12,
         ensemble: false,
       });
       setForecast(response.result);
@@ -155,6 +156,20 @@ export default function AuroraRiskPanel({
                 })}
               </p>
             )}
+            <div className="mt-3">
+              <AuroraForecastChart series={forecast.forecast.series} locale={locale} />
+            </div>
+            <div className="mt-3 rounded-md border border-current/10 bg-white/70 p-2">
+              <p className="font-semibold">{t('evidence.title')}</p>
+              <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
+                <dt className="opacity-70">{t('evidence.location')}</dt>
+                <dd className="text-right font-medium">{forecast.latitude.toFixed(3)}, {forecast.longitude.toFixed(3)}</dd>
+                <dt className="opacity-70">{t('evidence.generated')}</dt>
+                <dd className="text-right font-medium">{formatDateTime(forecast.requested_at)}</dd>
+                <dt className="opacity-70">{t('evidence.source')}</dt>
+                <dd className="text-right font-medium">{forecast.provenance.source}</dd>
+              </dl>
+            </div>
             <div className="mt-3 rounded-md bg-white/70 p-2">
               <p className="font-semibold">{t('recommendedActions')}</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-4">

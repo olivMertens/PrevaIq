@@ -2171,6 +2171,8 @@ export interface AuroraStatus {
   mode: string;
   human_review_required: boolean;
   requires_initial_conditions: boolean;
+  default_horizon_hours: number;
+  configuration_source: 'admin' | 'environment';
   missing: string[];
 }
 

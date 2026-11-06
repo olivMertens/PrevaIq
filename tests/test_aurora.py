@@ -23,6 +23,8 @@ def test_aurora_status_is_safe_when_disabled():
         "mode": "managed_foundry",
         "human_review_required": True,
         "requires_initial_conditions": True,
+        "default_horizon_hours": 12,
+        "configuration_source": "environment",
         "missing": ["endpoint", "initial_condition", "blob_channel"],
     }
 

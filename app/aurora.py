@@ -94,10 +94,12 @@ class AuroraSettings:
     timeout_seconds: int = 900
     poll_interval_seconds: float = 2.0
     use_azure_ad: bool = True
+    default_horizon_hours: int = 12
+    configuration_source: str = "environment"
 
     @classmethod
     def from_env(cls) -> "AuroraSettings":
-        return cls(
+        environment = cls(
             enabled=os.getenv("AURORA_ENABLED", "false").lower() == "true",
             endpoint=os.getenv("AURORA_FOUNDRY_ENDPOINT", "").strip(),
             deterministic_model=os.getenv("AURORA_DEPLOYMENT_NAME", _DETERMINISTIC_MODEL).strip(),
@@ -110,6 +112,28 @@ class AuroraSettings:
             timeout_seconds=int(os.getenv("AURORA_TIMEOUT_SECONDS", "900")),
             poll_interval_seconds=float(os.getenv("AURORA_POLL_INTERVAL_SECONDS", "2")),
             use_azure_ad=os.getenv("AURORA_USE_AZURE_AD", "true").lower() == "true",
+            default_horizon_hours=int(os.getenv("AURORA_DEFAULT_HORIZON_HOURS", "12")),
+        )
+        from app.aurora_config import load_config
+
+        persisted = load_config()
+        if persisted is None:
+            return environment
+        return cls(
+            enabled=persisted.enabled,
+            endpoint=persisted.endpoint,
+            deterministic_model=persisted.deterministic_model,
+            ensemble_model=persisted.ensemble_model,
+            initial_condition_blob_url=persisted.initial_condition_blob_url,
+            channel_container_url=persisted.channel_container_url,
+            channel_sas_url="",
+            endpoint_token="",
+            token_scope=environment.token_scope,
+            timeout_seconds=environment.timeout_seconds,
+            poll_interval_seconds=environment.poll_interval_seconds,
+            use_azure_ad=True,
+            default_horizon_hours=persisted.default_horizon_hours,
+            configuration_source="admin",
         )
 
     @property
@@ -618,5 +642,7 @@ def status(settings: AuroraSettings | None = None) -> dict[str, Any]:
         "mode": "managed_foundry",
         "human_review_required": True,
         "requires_initial_conditions": True,
+        "default_horizon_hours": active_settings.default_horizon_hours,
+        "configuration_source": active_settings.configuration_source,
         "missing": missing,
     }

@@ -152,8 +152,10 @@ async def auth_and_health_middleware(request: Request, call_next):
 
 # Include modular routers (lazy loading to avoid circular imports)
 from app.access_api import router as access_api_router  # noqa: E402
+from app.aurora_admin_api import router as aurora_admin_api_router  # noqa: E402
 
 app.include_router(access_api_router)
+app.include_router(aurora_admin_api_router)
 
 try:
     from app.claims.api import router as claims_api_router

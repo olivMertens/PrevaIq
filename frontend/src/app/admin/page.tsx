@@ -19,10 +19,11 @@ import AnalyzerTab from '@/components/admin/AnalyzerTab';
 import PoliciesTab from '@/components/admin/PoliciesTab';
 import CorrectionsTab from '@/components/admin/CorrectionsTab';
 import AccessRequestsTab from '@/components/admin/AccessRequestsTab';
+import AuroraAdminTab from '@/components/admin/AuroraAdminTab';
 import BrandMark from '@/components/BrandMark';
 import { useSessionRole } from '@/lib/useSessionRole';
 
-type AdminTab = 'documents' | 'prompts' | 'policies' | 'analyzer' | 'glossary' | 'corrections' | 'access';
+type AdminTab = 'documents' | 'prompts' | 'policies' | 'analyzer' | 'glossary' | 'corrections' | 'access' | 'aurora';
 
 export default function AdminPage() {
   const { currentPersona, personaConfig } = usePersona();
@@ -45,6 +46,7 @@ export default function AdminPage() {
     { id: 'analyzer', label: t('analyzerManagement') },
     { id: 'glossary', label: t('glossaryTab') },
     { id: 'corrections', label: t('correctionsTab') },
+    ...(role === 'admin' ? [{ id: 'aurora' as const, label: t('auroraTab') }] : []),
     ...(role === 'admin' ? [{ id: 'access' as const, label: t('accessTab') }] : []),
   ];
 
@@ -210,6 +212,7 @@ export default function AdminPage() {
         )}
 
         {activeTab === 'access' && role === 'admin' && <AccessRequestsTab />}
+        {activeTab === 'aurora' && role === 'admin' && <AuroraAdminTab />}
       </main>
     </div>
   );
