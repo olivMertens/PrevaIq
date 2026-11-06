@@ -27,6 +27,30 @@
     "title": "{brand}",
     "description": "AI-powered document processing workbench for insurance"
   },
+  "claimSubjects": {
+    "water": "Water damage",
+    "storm": "Storm",
+    "hail": "Hail",
+    "structural": "Structural damage",
+    "flood": "Flooding",
+    "fire": "Fire",
+    "theft": "Theft",
+    "vandalism": "Vandalism",
+    "glass": "Glass breakage",
+    "electrical": "Electrical damage",
+    "liability": "Liability",
+    "natural": "Natural hazards",
+    "naturalDisaster": "Natural disaster",
+    "collision": "Collision",
+    "sideScrape": "Side scrape with glass breakage",
+    "infiltration": "Water ingress following a storm",
+    "dental": "Dental care",
+    "hospitalization": "Hospitalization",
+    "low": "Low",
+    "moderate": "Moderate",
+    "high": "High",
+    "severe": "Severe"
+  },
   "nav": {
     "overview": "Overview",
     "timeline": "Timeline",
@@ -160,6 +184,7 @@
   "dashboard": {
     "title": "Dashboard",
     "greetingMorning": "Good Morning",
+    "loadError": "Cases could not be loaded. Check the backend connection and try again.",
     "greetingAfternoon": "Good Afternoon",
     "greetingEvening": "Good Evening",
     "readyForReview": "Ready for Review",
@@ -229,13 +254,21 @@
       "wealth": "Wealth"
     },
     "labels": {
-      "underwriting": "Souscription",
-      "life_health_claims": "Sinistres Santé",
-      "automotive_claims": "Sinistres Auto",
-      "property_casualty_claims": "Sinistres IARD (legacy)",
-      "habitation_claims": "Sinistres Habitation",
-      "mortgage": "Souscription Hypothécaire",
+      "underwriting": "Life & Health Underwriting",
+      "life_health_claims": "Health Claims",
+      "automotive_claims": "Auto Claims",
+      "property_casualty_claims": "Property & Casualty Claims (legacy)",
+      "habitation_claims": "Property Claims",
+      "mortgage": "Mortgage Underwriting",
       "securities_lending": "Securities Lending"
+    },
+    "descriptions": {
+      "underwriting": "Underwriting workbench for applications and medical documents",
+      "life_health_claims": "Health claims workbench: eligibility checks and adjudication",
+      "automotive_claims": "Multimodal auto damage assessment workbench for images, videos and documents",
+      "property_casualty_claims": "Legacy property & casualty module: use Property Claims instead",
+      "habitation_claims": "Property claims workbench: water damage, storms and natural disasters, with photos and documents",
+      "mortgage": "Mortgage underwriting workbench with HCSF compliance checks"
     },
     "comingSoon": "Coming soon"
   },
@@ -1296,7 +1329,7 @@
     }
   },
   "mortgage": {
-    "title": "Souscription Hypothécaire",
+    "title": "Mortgage Underwriting",
     "compliance": "OSFI B-20 Compliance",
     "gds": "GDS (Gross Debt Service)",
     "tds": "TDS (Total Debt Service)",
@@ -1311,11 +1344,11 @@
     "refer": "Refer"
   },
   "personas": {
-    "underwriting": "Souscription",
-    "lifeHealthClaims": "Sinistres Santé",
-    "automotiveClaims": "Sinistres Auto",
-    "habitationClaims": "Sinistres Habitation",
-    "mortgageUnderwriting": "Souscription Hypothécaire",
+    "underwriting": "Life & Health Underwriting",
+    "lifeHealthClaims": "Health Claims",
+    "automotiveClaims": "Auto Claims",
+    "habitationClaims": "Property Claims",
+    "mortgageUnderwriting": "Mortgage Underwriting",
     "customer360": "Client 360",
     "selectPersona": "Select Persona"
   },
@@ -1361,7 +1394,7 @@
     "agentWorkflow": "Workflows",
     "agentWorkflowDesc": "Multi-agent workflows — express processing, full analysis, or fraud investigation",
     "workflowsTitle": "Available multi-agent workflows",
-    "workflowsRequireData": "Workflows require an extracted or analyzed dossier.",
+    "workflowsRequireData": "Workflows require an extracted or analyzed case.",
     "newChat": "New Chat",
     "conversation": "Conversation",
     "errorMessage": "Sorry, I encountered an error. Please try again.",
@@ -1408,7 +1441,7 @@
     "suggestionDataTrend": "Auto claims cost trend over 12 months?",
     "suggestionPolicyCoverage": "Is this claim covered by the DDE guarantee?",
     "suggestionPolicyExclusion": "Are there applicable exclusions?",
-    "suggestionPolicyFranchise": "What is the franchise amount?",
+    "suggestionPolicyFranchise": "What is the deductible amount?",
     "suggestionPolicyIRSI": "Does the IRSI convention apply?",
     "suggestionAnalysisRisk": "What is the risk level of this case?",
     "suggestionAnalysisLiability": "Liability analysis for this claim?",
@@ -1722,11 +1755,11 @@
     "activeClaims": "Active Claims",
     "customerJourney": "Customer Journey",
     "noJourneyEvents": "No journey events yet.",
-    "personaUnderwriting": "Souscription",
-    "personaHealthClaims": "Sinistres Santé",
-    "personaAutoClaims": "Automotive Claims",
-    "personaMortgage": "Souscription Hypothécaire",
-    "personaHabitation": "Habitation Claims",
+    "personaUnderwriting": "Life & Health Underwriting",
+    "personaHealthClaims": "Health Claims",
+    "personaAutoClaims": "Auto Claims",
+    "personaMortgage": "Mortgage Underwriting",
+    "personaHabitation": "Property Claims",
     "personaSouscria": "Souscr'IA Acquisition",
     "statusApproved": "Approved",
     "statusCompleted": "Completed",
@@ -1982,7 +2015,7 @@
   "chronological": {
     "claimsTitle": "Claim Timeline",
     "claimsSubtitle": "Events and documents extracted from the claim file",
-    "habitationSubtitle": "Events and documents extracted from the habitation file",
+    "habitationSubtitle": "Events and documents extracted from the property claim file",
     "mortgageTitle": "File Timeline",
     "mortgageSubtitle": "Steps and documents from the mortgage file",
     "defaultTitle": "Chronological Overview",
@@ -2125,7 +2158,8 @@
     "resultsCount": "{count} results",
     "termsStartingWith": "{count} terms starting with \"{letter}\"",
     "showingTerms": "Showing {shown} of {total} terms",
-    "loadError": "Unable to load the glossary"
+    "loadError": "Unable to load the glossary",
+    "originalLanguage": "Shown in its original language: the translation is not available right now."
   },
   "claimsModals": {
     "proposeFinalDecision": "Propose Final Decision",
@@ -2760,7 +2794,7 @@
     "nameMatchesContent": "Filename matches image content",
     "nameMismatch": "Filename does not match image content",
     "genericFilename": "Generic filename (non-descriptive)",
-    "dossierConcordance": "Dossier concordance",
+    "dossierConcordance": "Case consistency",
     "concordanceScore": "Concordance score",
     "webIntelligence": "Web verification (internet sources)",
     "eventVerified": "Event confirmed by public sources",
@@ -2981,13 +3015,13 @@
     "close": "Close",
     "scenarios": {
       "habitation": {
-        "label": "Sinistres Habitation",
+        "label": "Property Claims",
         "summary": "Olivier MERTENS LAFFITE (mlo@wine.com) — Storm Gérard 03/27/2026 — Flooded cellar, wine collection destroyed — €10,825\nFile E0FF1B47 — 4 photos + 1 PDF (insurer claim form)",
         "emptyDemo": "Preloaded Client 360",
         "steps": [
           {
-            "title": "1. Select \"Sinistres Habitation\"",
-            "detail": "Top persona selector → \"Claims\" group → \"Sinistres Habitation\" (cloud/rain line icon).",
+            "title": "1. Select \"Property Claims\"",
+            "detail": "Top persona selector → \"Claims\" group → \"Property Claims\" (cloud/rain line icon).",
             "tip": "Accepts PDF + images. RAG searches the indexed habitation policy terms."
           },
           {
@@ -3016,18 +3050,18 @@
         ]
       },
       "habitation-ch": {
-        "label": "Sinistres Habitation (CH)",
+        "label": "Property Claims (CH)",
         "summary": "Schoggimanufaktur Eulachblick GmbH (fictitious) — Hailstorm in Winterthur 08/28/2026 — Shop, workshop and cold room damaged — CHF 1,697,400 claimed\nGerman claim form + German and English e-mails + 6 AI photos (MAI-Image-2.6) — 3 points to check: GVZ building, refrigerated goods, photo taken before the storm",
         "emptyDemo": "Swiss demo files",
         "steps": [
           {
-            "title": "1. Select \"Sinistres Habitation\"",
+            "title": "1. Select \"Property Claims\"",
             "detail": "Same persona as the French home claims: the jurisdiction (Switzerland, CHF, German sources) is detected from the documents.",
-            "tip": "Amounts are shown in CHF and Web IQ searches Swiss sources (region CH)."
+            "tip": "Real demo map anchor: Steinberggasse 23, 8400 Winterthur. The business, premises and loss are fictional; AI photos do not depict the actual building or occupants. Street View shows the real location, not the damage."
           },
           {
             "title": "2. Upload the Swiss claim",
-            "detail": "• schadenmeldung-geschaeftsversicherung.pdf (German claim form)\n• email-01-schadenmeldung-de.eml or .pdf (first notice, German)\n• email-02-loss-estimate-en.eml or .pdf (consolidated estimate, English)\n• 6 photos IMG_2026…jpg",
+            "detail": "Recommended: schadenmeldung-geschaeftsversicherung.pdf, email-01-schadenmeldung-de.pdf, email-02-loss-estimate-en.pdf and the 6 IMG_2026…jpg photos (9 files). The .eml files are alternative original bundles with attachments; do not upload them alongside the same PDFs and photos.",
             "tip": "Files are in assets/demo-prevaiq/property-claims/swiss-chocolate-storm/; manifest.json documents the synthetic data."
           },
           {
@@ -3037,7 +3071,7 @@
           {
             "title": "4. Fraud analysis, Web IQ and provenance",
             "detail": "Run the fraud analysis:\n• Web IQ searches in German, region CH (\"Unwetter Winterthur 28. August 2026 Hagel Sturm\"), without a Cat-Nat query\n• Expected points: building items also reported to the GVZ, refrigerated goods without the Kühlgut extension, a photo dated 26.08 (before the storm)\n• Each photo shows its Content Credentials (C2PA) badge, for information only",
-            "tip": "The photos are AI-generated demo images; their JPEG copies carry no C2PA data."
+            "tip": "Synthetic images; JPEG copies have no C2PA data. Awning retracted before the storm; oblique wind-driven hail, retained cracks in safety glazing, no punched-out holes. Hail covers exposed street areas, not just one spot. Local water tracks come from frame joints, not solid glass. Chocolate stays in closed showcases, packaging and lidded kitchen equipment. The dry cold room shows 23.8 °C after power restoration, not proof of spoilage or full stock loss. Amounts are provisional; technical reports, inventory and temperature records are not attached."
           },
           {
             "title": "5. Ask IQ in German",
@@ -3050,14 +3084,50 @@
           }
         ]
       },
+      "habitation-ch-watch": {
+        "label": "Property Claims (CH · Watches)",
+        "summary": "Rheinkaliber Uhrenmanufaktur AG (fictitious) — Schaffhausen windstorm, 28/08/2026 — Haute horlogerie workshop, clean room and machines damaged — CHF 14,968,600 claimed\nGerman claim form and cost estimate, German and English e-mails, 10 AI photos (MAI-Image-2.6). A consistent large-loss scenario: no planted fraud or coverage anomaly.",
+        "emptyDemo": "Swiss watch claim files",
+        "steps": [
+          {
+            "title": "1. Select \"Property Claims\"",
+            "detail": "Use the property claims persona. The documents identify Switzerland, Schaffhausen and CHF; this is a commercial contents and business interruption claim, not a French Cat-Nat case.",
+            "tip": "Real demo map anchor: Mühlentalstrasse 185, 8200 Schaffhausen. The business, premises and loss are fictional; AI photos do not depict the actual building or occupants. Street View shows the real location, not the damage. No real watch brand is used."
+          },
+          {
+            "title": "2. Upload the watch manufacture claim",
+            "detail": "Recommended selection: schadenmeldung-geschaeftsversicherung.pdf, kostenvoranschlag-schadenbehebung.pdf, email-01-schadenmeldung-de.pdf, email-02-loss-estimate-en.pdf and the 10 IMG_2026…jpg photos (14 files). The two .eml files are alternative original email bundles with embedded attachments, not additional files to include with this selection.",
+            "tip": "Files: assets/demo-prevaiq/property-claims/swiss-watch-storm/. manifest.json lists the photos, amounts and expected outcome. Any promotional wristwatch concept is separate and must not be uploaded as damage evidence."
+          },
+          {
+            "title": "3. Follow extraction and coverage analysis",
+            "detail": "Check the German and English documents against the Swiss AVB KMU-Geschäftsversicherung 2026. Movements and finished watches are claimed at manufacturing cost, not retail value. The sum insured exceeds the declared insurable value.",
+            "tip": "The matching policy is assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf; index it before testing policy-grounded answers."
+          },
+          {
+            "title": "4. Check consistency, Web IQ and provenance",
+            "detail": "Run the fraud analysis and verify the storm against Swiss public sources for Schaffhausen on 28 August 2026. All ten photo scenario times follow the storm; later photos show mitigation, inventory and the adjuster's visit. Building repairs and emergency roof cover are handled by the GVSH, not included in this claim.",
+            "tip": "Expected: no planted inconsistency. Photos show samples, not the full inventory or internal watch damage. Request inventory records, technical reports and valuation evidence; these are not attached. Images are synthetic; JPEG copies have no C2PA credentials. The net amount remains an estimate subject to adjuster validation."
+          },
+          {
+            "title": "5. Ask IQ about the large loss",
+            "detail": "Ask:\n→ \"Why are the watches valued at manufacturing cost?\"\n→ \"Is there underinsurance?\"\n→ \"Who covers the building damage in Schaffhausen?\"\n→ \"What is the net claim after the Elementar deductible?\"",
+            "tip": "Expected calculation: CHF 14,968,600 less CHF 50,000 = CHF 14,918,600. Ask for the relevant AVB citations."
+          },
+          {
+            "title": "6. Record the adjuster decision",
+            "detail": "Expected demo decision, subject to the adjuster's validation: contents, equipment, clean-up and business interruption covered under the Swiss AVB; building excluded from this demand and referred to GVSH; capped Elementar deductible CHF 50,000; net CHF 14,918,600. A high amount alone is not a fraud indicator."
+          }
+        ]
+      },
       "auto": {
-        "label": "Sinistres Auto",
-        "summary": "Parking accident — dented door — Mutual claim form + damage photo\nFile thread2 — 2 PDFs + 1 photo",
+        "label": "Auto Claims",
+        "summary": "Reported collision — dented door — client email, insurer response and damage photo\nParking-impact demo — 2 PDFs + 1 photo; signed accident report and vehicle details not supplied",
         "emptyDemo": "Preloaded Client 360",
         "steps": [
           {
-            "title": "1. Select \"Sinistres Auto\"",
-            "detail": "Top persona selector → \"Claims\" group → \"Sinistres Auto\" (car line icon).",
+            "title": "1. Select \"Auto Claims\"",
+            "detail": "Top persona selector → \"Claims\" group → \"Auto Claims\" (car line icon).",
             "tip": "RAG searches the indexed Auto and Fleet Auto policy terms."
           },
           {
@@ -3067,11 +3137,11 @@
           },
           {
             "title": "3. Multimodal AI processing",
-            "detail": "① Extraction engine → extracts the client message and attachments\n② Multimodal analysis → analyzes the vehicle damage photo\n③ Dedicated Auto view → documents, estimate, liability and fraud indicators in the same screen"
+            "detail": "① Extraction engine → extracts the two email PDFs\n② Multimodal analysis → analyzes the separately uploaded damage photo\n③ Dedicated Auto view → documents, provisional estimate, liability and fraud indicators\n\nAttachments mentioned in the emails are not embedded in these PDFs. The school-insurance request is separate from the auto claim."
           },
           {
             "title": "4. Results & liability",
-            "detail": "• Liability analysis → fault allocation\n• Repair estimate → amounts per item\n• IRSA convention → automatic application\n• Fraud indicators → declaration vs. photo consistency"
+            "detail": "• Liability → remains to be established from the signed accident report and circumstances\n• Repairs → provisional photo-based estimate, subject to expert review\n• IRSA → check applicability; no automatic allocation without a documented third party\n• Fraud indicators → compare the declaration with the photo; missing evidence is not proof of fraud"
           },
           {
             "title": "5. Ask IQ — Auto questions",
@@ -3079,23 +3149,23 @@
           },
           {
             "title": "6. Auto claim decision",
-            "detail": "Approve / Adjust / Deny.\nEx: \"Covered per Auto Terms Art. 5.1, €150 deductible, third-party recovery initiated.\""
+            "detail": "Keep the decision pending until the signed accident report, vehicle details, policy and repair estimate are verified. Do not invent a deductible, policy article, repairability verdict or third-party recovery from the photo alone."
           }
         ]
       },
       "sante": {
-        "label": "Souscription",
+        "label": "Life & Health Underwriting",
         "summary": "Antoine LEFEVRE, 48 yo, chef — Complementary Health Equilibre Plus — Controlled hypertension, ex-smoker, father diabetic — €127/mo",
         "emptyDemo": "Preloaded Client 360",
         "steps": [
           {
-            "title": "1. Select \"Souscription\"",
-            "detail": "Top persona selector → \"Underwriting\" group → \"Souscription\" (clipboard/list line icon).",
+            "title": "1. Select \"Life & Health Underwriting\"",
+            "detail": "Top persona selector → \"Underwriting\" group → \"Life & Health Underwriting\" (clipboard/list line icon).",
             "tip": "RAG searches underwriting policies + the indexed Health terms."
           },
           {
             "title": "2. Upload underwriting file",
-            "detail": "• souscription-sante-lefevre.pdf (client email + health questionnaire)\n• Medical attachments listed in the PDF: hypertension prescription, lab results, health coverage certificate, bank details\n\nUse \"New Application\" or drag and drop the PDF. Enable \"Large document\" only for very long files.",
+            "detail": "Upload only souscription-sante-lefevre.pdf: 3 pages containing the client request, health questionnaire and blood-test results (page 3).\n\nThe prescription, identity document, health coverage certificate and bank details are mentioned but not supplied as separate files. Do not treat them as verified evidence.\n\nUse \"New Application\" or drag and drop the PDF. Enable \"Large document\" only for very long files.",
             "tip": "PDF is in assets/demo-prevaiq/health-underwriting/."
           },
           {
@@ -3118,13 +3188,13 @@
         ]
       },
       "sante-sinistre": {
-        "label": "Sinistres Santé",
+        "label": "Health Claims",
         "summary": "Urgent dental request — consultation, X-ray, extraction + implant — €2,800 estimate / €1,900 estimated out-of-pocket",
         "emptyDemo": "Preloaded Client 360",
         "steps": [
           {
-            "title": "1. Select \"Sinistres Santé\"",
-            "detail": "Top persona selector → \"Claims\" group → \"Sinistres Santé\" (stethoscope line icon).",
+            "title": "1. Select \"Health Claims\"",
+            "detail": "Top persona selector → \"Claims\" group → \"Health Claims\" (stethoscope line icon).",
             "tip": "RAG searches the indexed Complementary Health policy."
           },
           {
@@ -3151,13 +3221,13 @@
         ]
       },
       "hypothecaire": {
-        "label": "Souscription Hypothécaire",
+        "label": "Mortgage Underwriting",
         "summary": "First-time buyer file — Loan application + sale agreement + tax notice\nFile app-mtg-004",
         "emptyDemo": "Preloaded Client 360",
         "steps": [
           {
-            "title": "1. Select \"Souscription Hypothécaire\"",
-            "detail": "Top persona selector → \"Underwriting\" group → \"Souscription Hypothécaire\" (home line icon).",
+            "title": "1. Select \"Mortgage Underwriting\"",
+            "detail": "Top persona selector → \"Underwriting\" group → \"Mortgage Underwriting\" (home line icon).",
             "tip": "Dedicated interface with integrated mortgage chat."
           },
           {
@@ -3175,7 +3245,7 @@
           },
           {
             "title": "5. Mortgage chat",
-            "detail": "Mortgage chat integrated in the \"Souscription Hypothécaire\" view:\n\n→ \"Is the file eligible for PTZ?\"\n→ \"What is the calculated debt-to-income ratio?\"\n→ \"What documents are missing to finalize?\""
+            "detail": "Mortgage chat integrated in the \"Mortgage Underwriting\" view:\n\n→ \"Is the file eligible for PTZ?\"\n→ \"What is the calculated debt-to-income ratio?\"\n→ \"What documents are missing to finalize?\""
           },
           {
             "title": "6. Mortgage decision",

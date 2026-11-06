@@ -103,7 +103,7 @@ export default function LandingPage({
     return t('greetingEvening');
   };
 
-  const getAppDisplayTitle = getApplicationDisplayTitle;
+  const getAppDisplayTitle = (app: ApplicationListItem) => getApplicationDisplayTitle(app, locale);
 
   // Poll for completion
   const pollForCompletion = useCallback((appId: string) => {

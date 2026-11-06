@@ -4,6 +4,59 @@ type DisplayApplication = ApplicationListItem | ApplicationMetadata;
 type FieldMap = Record<string, string>;
 type DisplayLocale = 'en' | 'fr' | 'de';
 
+const CLAIM_SUBJECT_ALIASES = {
+  water: ['Dégâts des eaux', 'Dégât des eaux', 'DDE', 'Water damage', 'Wasserschaden'],
+  storm: ['Tempête', 'Storm', 'Sturm'],
+  hail: ['Grêle', 'Hail', 'Hagel'],
+  structural: ['Dommages structure', 'Dommages structurels', 'Structural damage', 'Strukturschäden'],
+  flood: ['Inondation', 'Flood', 'Flooding', 'Überschwemmung'],
+  fire: ['Incendie', 'Fire', 'Brand', 'Feuer'],
+  theft: ['Vol', 'Theft', 'Diebstahl'],
+  vandalism: ['Vandalisme', 'Vandalism', 'Vandalismus'],
+  glass: ['Bris de glace', 'Glass breakage', 'Glasbruch'],
+  electrical: ['Dommages électriques', 'Electrical damage', 'Elektroschäden'],
+  liability: ['Responsabilité civile', 'Liability', 'Third-party liability', 'Haftpflicht'],
+  natural: ['Dommage élémentaire', 'Dommages élémentaires', 'Natural hazards', 'Elementarschaden'],
+  naturalDisaster: ['Catastrophe naturelle', 'Natural disaster', 'Naturkatastrophe'],
+  collision: ['Collision', 'Kollision'],
+  sideScrape: ['Frottement latéral avec bris de glace', 'Side scrape with glass breakage', 'Seitlicher Streifschaden mit Glasbruch'],
+  infiltration: ['Infiltration suite à tempête', 'Water ingress following a storm', 'Wassereintritt nach Sturm'],
+  dental: ['Soins dentaires', 'Dental care', 'Zahnbehandlung'],
+  hospitalization: ['Hospitalisation', 'Hospitalization', 'Krankenhausaufenthalt'],
+  low: ['Faible', 'Low', 'Gering'],
+  moderate: ['Modéré', 'Modérée', 'Moderate', 'Mittel'],
+  high: ['Élevé', 'Élevée', 'High', 'Hoch'],
+  severe: ['Grave', 'Severe', 'Schwer'],
+} as const;
+
+export type ClaimSubjectKey = keyof typeof CLAIM_SUBJECT_ALIASES;
+type ClaimSubjectTranslator = (key: ClaimSubjectKey) => string;
+
+function subjectToken(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+const CLAIM_SUBJECT_KEYS = new Map(
+  (Object.entries(CLAIM_SUBJECT_ALIASES) as [ClaimSubjectKey, readonly string[]][])
+    .flatMap(([key, aliases]) => aliases.map((alias) => [subjectToken(alias), key] as const))
+);
+
+/** Translate known category labels, not arbitrary source prose, names or references. */
+export function localizeClaimSubject(subject: string, translate: ClaimSubjectTranslator): string {
+  const key = CLAIM_SUBJECT_KEYS.get(subjectToken(subject));
+  if (key) return translate(key);
+  return subject.split(/(\s*\/\s*|\s+[—–-]\s+|\s*[()]\s*)/).map((part) => {
+    const partKey = CLAIM_SUBJECT_KEYS.get(subjectToken(part));
+    return partKey ? part.replace(part.trim(), translate(partKey)) : part;
+  }).join('');
+}
+
+export function localizeApplicationTitle(title: string, translate: ClaimSubjectTranslator): string {
+  const separator = title.indexOf(' — ');
+  if (separator < 0) return title;
+  return title.slice(0, separator + 3) + localizeClaimSubject(title.slice(separator + 3), translate);
+}
+
 const HTML_TAG_RE = /<[^>]+>/g;
 const HTML_ONLY_RE = /^(?:<\/?(?:td|tr|th|table|tbody|thead|p|span|div|br)\s*\/?>\s*)+$/i;
 

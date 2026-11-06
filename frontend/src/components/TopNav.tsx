@@ -17,7 +17,7 @@ import PersonaSelector from './PersonaSelector';
 import GlossaryDropdown from './GlossaryDropdown';
 import { brand } from '@/lib/brand';
 import { usePersona } from '@/lib/PersonaContext';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import UserMenu from './UserMenu';
 import BrandMark from './BrandMark';
 import StatusBadge from './landing/StatusBadge';
@@ -48,6 +48,7 @@ export default function TopNav({
   const { personaConfig } = usePersona();
   const router = useRouter();
   const t = useTranslations('nav');
+  const locale = useLocale();
   const [authUser, setAuthUser] = useState<string | null>(null);
   const [authEnabled, setAuthEnabled] = useState(false);
   // Entra-approved users get the user demo only (no administration).
@@ -87,7 +88,7 @@ export default function TopNav({
   // Automotive claims has its own overview with inline documents/timeline - hide these tabs
   const isAutomotiveClaims = personaConfig.id === 'automotive_claims';
 
-  const getAppDisplayTitle = getApplicationDisplayTitle;
+  const getAppDisplayTitle = (app: ApplicationListItem) => getApplicationDisplayTitle(app, locale);
 
   const navItems = [
     { id: 'overview' as const, label: t('overview'), icon: LayoutDashboard, enabled: true },

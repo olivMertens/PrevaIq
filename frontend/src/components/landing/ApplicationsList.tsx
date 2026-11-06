@@ -21,6 +21,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ApplicationListItem } from '@/lib/types';
 import StatusBadge from './StatusBadge';
 import CaseTitle from '../case/CaseTitle';
+import { localizeApplicationTitle, localizeClaimSubject } from '@/lib/applicationDisplay';
 
 const PAGE_SIZE = 10;
 
@@ -71,6 +72,7 @@ export default function ApplicationsList({
   onSelectApp,
 }: ApplicationsListProps) {
   const t = useTranslations('dashboard');
+  const tSubjects = useTranslations('claimSubjects');
   const locale = useLocale();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
@@ -83,13 +85,15 @@ export default function ApplicationsList({
       app.id.toLowerCase().includes(search) ||
       app.external_reference?.toLowerCase().includes(search) ||
       app.summary_title?.toLowerCase().includes(search) ||
+      localizeApplicationTitle(getAppDisplayTitle(app), tSubjects).toLowerCase().includes(search) ||
+      localizeClaimSubject(getClaimType(app.key_fields) || '', tSubjects).toLowerCase().includes(search) ||
       Object.values(app.key_fields || {}).some((value) => value.toLowerCase().includes(search));
     if (!matchesSearch) return false;
     if (statusFilter === 'all') return true;
     if (statusFilter === 'processing') return app.status !== 'completed' && app.status !== 'error' && app.status !== 'pending' && app.status !== 'uploaded';
     if (statusFilter === 'pending') return app.status === 'pending' || app.status === 'uploaded' || app.status === 'pending_review';
     return app.status === statusFilter;
-  }), [applications, searchQuery, statusFilter]);
+  }), [applications, searchQuery, statusFilter, getAppDisplayTitle, tSubjects]);
 
   const totalPages = Math.max(1, Math.ceil(filteredApps.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -183,7 +187,7 @@ export default function ApplicationsList({
                           )}
                         </div>
                         {getClaimType(app.key_fields) && (
-                          <div className="text-xs text-slate-500 mt-0.5">{getClaimType(app.key_fields)}</div>
+                          <div className="text-xs text-slate-500 mt-0.5">{localizeClaimSubject(getClaimType(app.key_fields) || '', tSubjects)}</div>
                         )}
                       </div>
                     </div>
@@ -242,7 +246,7 @@ export default function ApplicationsList({
                 </div>
               )}
               {getClaimType(app.key_fields) && (
-                <div className="text-xs text-slate-500 mb-1">{getClaimType(app.key_fields)}</div>
+                <div className="text-xs text-slate-500 mb-1">{localizeClaimSubject(getClaimType(app.key_fields) || '', tSubjects)}</div>
               )}
               <div className="mt-auto pt-3 border-t border-slate-100 flex justify-between items-center text-sm text-slate-500 w-full">
                 <div className="flex items-center gap-3">

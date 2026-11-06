@@ -216,6 +216,7 @@ For Azure Container Apps, read the FQDNs for `ca-frontend-demo` and `ca-api-demo
 | `GET` | `/api/rag/stats` | Get RAG index statistics |
 | `POST` | `/api/rag/query` | Query policies with semantic search |
 | **Admin** | | |
+| `GET` | `/api/glossary/{persona}` | Persona glossary; `?language=en\|fr\|de` returns its categories, meanings and contexts in that language |
 | `GET` | `/api/prompts` | Get prompt catalog |
 | `PUT` | `/api/prompts/{section}/{subsection}` | Update a prompt |
 | `GET` | `/api/policies` | Get underwriting policies |
@@ -241,6 +242,13 @@ arrondissement, so the map shows the building, else the street, else the town (s
 search on town and postcode), and says which. The browser loads OpenStreetMap or Esri World
 Imagery tiles; the links open Google Maps, Street View (building only) and directions. The
 demo addresses are fictitious; a deployment with real customer addresses should use Azure Maps.
+
+The Glossary menu follows the UI language. Each glossary in `prompts/glossary.json` declares
+the language its terms are written in (`language`: French for property claims and mortgage,
+English for the others). For another UI language, the API translates category names, meanings
+and contexts once with the model (abbreviations never change) and keeps the result in memory,
+keyed by the glossary content, so an edited term is translated again. If the translation fails,
+the menu shows the original terms and says so. The admin glossary editor keeps the source text.
 
 ## Development tasks
 

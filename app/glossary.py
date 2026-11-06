@@ -97,6 +97,8 @@ def get_glossary_for_persona(prompts_root: str, persona: str) -> Dict[str, Any]:
         "persona": persona_key,
         "name": persona_data.get("name", persona_key),
         "description": persona_data.get("description", ""),
+        # Language the terms are written in ("fr", "en"); None when not declared.
+        "language": persona_data.get("language"),
         "categories": persona_data.get("categories", []),
         "total_terms": total_terms
     }

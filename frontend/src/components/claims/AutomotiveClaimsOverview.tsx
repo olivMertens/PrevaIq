@@ -98,6 +98,7 @@ export function AutomotiveClaimsOverview({
 }: AutomotiveClaimsOverviewProps) {
   const d = useAutomotiveClaimData(applicationId);
   const t = useTranslations('claimsModals');
+  const tPersona = useTranslations('persona.labels');
   const locale = useLocale();
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat(locale, {
@@ -214,7 +215,7 @@ export function AutomotiveClaimsOverview({
           insuredName={getExtractedText(d.application?.extracted_fields || {}, ['NomAssure', 'assure', 'Conducteur'])}
           claimReference={d.application?.external_reference || applicationId.slice(0, 8)}
           decisionStatus="pending"
-          boardLabel="Sinistres Auto"
+          boardLabel={tPersona('automotive_claims')}
           severity={severityFromSentiment((d.application as any)?.sentiment_analysis)}
         />
       </div>

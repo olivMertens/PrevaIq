@@ -19,6 +19,54 @@ const timelineDates = load('timelineDates.ts', libDir);
 const analysisMarkdown = load('analysisMarkdown.ts', propertyDir);
 const coverageView = load('coverageView.ts', propertyDir);
 
+test('case categories follow the UI locale before compacting, without changing holder names', () => {
+  const { localizeApplicationTitle, compactApplicationTitle, localizeClaimSubject } = display;
+  const cases = [
+    ['Schoggimanufaktur Eulachblick GmbH — Grêle / tempête (dommage élémentaire)',
+      { en: 'Hail / Storm (Natural hazards)', fr: 'Grêle / Tempête (Dommages élémentaires)', de: 'Hagel / Sturm (Elementarschaden)' }],
+    ['Olivier MERTENS LAFFITE — Dégâts des eaux - infiltration suite à tempête',
+      { en: 'Water damage - Water ingress following a storm', fr: 'Dégâts des eaux - Infiltration suite à tempête', de: 'Wasserschaden - Wassereintritt nach Sturm' }],
+    ['MARTIN Claire — Dommages structure',
+      { en: 'Structural damage', fr: 'Dommages structurels', de: 'Strukturschäden' }],
+    ['LECOMTE Sandrine — Inondation',
+      { en: 'Flooding', fr: 'Inondation', de: 'Überschwemmung' }],
+  ];
+  for (const locale of ['en', 'fr', 'de']) {
+    const subjects = JSON.parse(fs.readFileSync(path.join(srcDir, '..', 'messages', `${locale}.json`), 'utf8')).claimSubjects;
+    const translate = (key) => {
+      assert.equal(typeof subjects[key], 'string', `missing ${locale}.${key}`);
+      return subjects[key];
+    };
+    for (const [source, expected] of cases) {
+      const localized = localizeApplicationTitle(source, translate);
+      assert.equal(localized, `${source.split(' — ')[0]} — ${expected[locale]}`);
+      assert.equal(
+        compactApplicationTitle(localized).holder,
+        compactApplicationTitle(source).holder
+      );
+      // Switching locale uses the original data, and already localized labels stay stable.
+      assert.equal(localizeApplicationTitle(localized, translate), localized);
+    }
+    assert.equal(localizeApplicationTitle('Tempête SARL', translate), 'Tempête SARL');
+    assert.equal(localizeApplicationTitle('Flood — POL-FR-001', translate), 'Flood — POL-FR-001');
+    assert.equal(localizeClaimSubject('Water damage caused by the neighbour upstairs', translate),
+      'Water damage caused by the neighbour upstairs');
+    assert.equal(localizeClaimSubject('Inondation exceptionnelle non classée', translate),
+      'Inondation exceptionnelle non classée');
+    assert.equal(localizeClaimSubject('', translate), '');
+  }
+});
+
+test('known English and German claim labels also translate into French', () => {
+  const fr = JSON.parse(fs.readFileSync(path.join(srcDir, '..', 'messages', 'fr.json'), 'utf8')).claimSubjects;
+  const translate = (key) => fr[key];
+  assert.equal(display.localizeClaimSubject('Hail / Storm', translate), 'Grêle / Tempête');
+  assert.equal(display.localizeClaimSubject('Hagel / Sturm (Elementarschaden)', translate),
+    'Grêle / Tempête (Dommages élémentaires)');
+  assert.equal(display.localizeClaimSubject('Structural damage', translate), 'Dommages structurels');
+  assert.equal(display.localizeClaimSubject('ÉLEVÉ', translate), 'Élevé');
+});
+
 // Coverage and settlement analyses as the LLM wrote them (trimmed from production cases).
 const citation = (criteria, article, why) => ({
   policy_id: criteria.slice(0, -2),

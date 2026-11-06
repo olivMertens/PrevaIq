@@ -3,25 +3,28 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { Book, ChevronDown, Search, X } from 'lucide-react';
 import { usePersona } from '@/lib/PersonaContext';
-import { searchGlossary, getGlossary } from '@/lib/api';
+import { getGlossary } from '@/lib/api';
 import type { GlossaryTerm, PersonaGlossary } from '@/lib/api';
 import { useToast } from '@/lib/ToastProvider';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 interface GlossaryDropdownProps {
   className?: string;
 }
 
+const searchable = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
 export default function GlossaryDropdown({ className = '' }: GlossaryDropdownProps) {
   const { currentPersona, personaConfig } = usePersona();
   const { addToast } = useToast();
   const t = useTranslations('glossaryDropdown');
+  const locale = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<GlossaryTerm[]>([]);
   const [allTerms, setAllTerms] = useState<GlossaryTerm[]>([]);
   const [loading, setLoading] = useState(false);
-  const [glossaryInfo, setGlossaryInfo] = useState<{ name: string; count: number } | null>(null);
+  // `language`: language of the terms shown, the glossary's own when it could not be translated.
+  const [glossaryInfo, setGlossaryInfo] = useState<{ count: number; language: string | null } | null>(null);
   const [letterFilter, setLetterFilter] = useState<string | null>(null);
   
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -45,8 +48,8 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
     async function loadGlossary() {
       try {
         setLoading(true);
-        const glossary = await getGlossary(currentPersona);
-        setGlossaryInfo({ name: glossary.name, count: glossary.total_terms });
+        const glossary = await getGlossary(currentPersona, locale);
+        setGlossaryInfo({ count: glossary.total_terms, language: glossary.language ?? null });
         
         // Flatten all terms for display
         const terms: GlossaryTerm[] = [];
@@ -71,26 +74,16 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
     }
     
     loadGlossary();
-  }, [currentPersona, isOpen, addToast, t]);
+  }, [currentPersona, isOpen, addToast, t, locale]);
 
-  // Search effect with debounce
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    const timeoutId = setTimeout(async () => {
-      try {
-        const result = await searchGlossary(currentPersona, searchQuery);
-        setSearchResults(result.results);
-      } catch (err) {
-        console.error('Search failed:', err);
-      }
-    }, 200);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentPersona]);
+  // Search the terms as shown (in the UI language), accents and case ignored.
+  const searchResults = useMemo(() => {
+    const query = searchable(searchQuery.trim());
+    if (!query) return [];
+    return allTerms.filter((term) =>
+      [term.abbreviation, term.meaning, term.context ?? ''].some((value) => searchable(value).includes(query))
+    );
+  }, [allTerms, searchQuery]);
 
   // Get available letters for quick navigation
   const availableLetters = useMemo(() => {
@@ -153,7 +146,7 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
               <div className="flex items-center gap-2">
                 <Book className="w-4 h-4 text-indigo-600" />
                 <span className="font-medium text-slate-800">
-                  {t('glossaryFor', { name: glossaryInfo?.name || personaConfig.name })}
+                  {t('glossaryFor', { name: personaConfig.name })}
                 </span>
               </div>
               <button
@@ -165,6 +158,9 @@ export default function GlossaryDropdown({ className = '' }: GlossaryDropdownPro
             </div>
             <div className="text-xs text-slate-500 mb-2">
               {glossaryInfo ? t('termsCount', { count: glossaryInfo.count }) : t('loading')}
+              {glossaryInfo?.language && glossaryInfo.language !== locale && (
+                <span className="block text-amber-700">{t('originalLanguage')}</span>
+              )}
             </div>
             
             {/* Search Input */}

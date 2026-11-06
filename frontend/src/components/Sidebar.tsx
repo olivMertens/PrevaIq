@@ -14,6 +14,7 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import BrandMark from './BrandMark';
+import { localizeApplicationTitle } from '@/lib/applicationDisplay';
 
 interface SidebarProps {
   applications: ApplicationListItem[];
@@ -33,6 +34,7 @@ export default function Sidebar({
   onChangeView,
 }: SidebarProps) {
   const t = useTranslations('nav');
+  const tSubjects = useTranslations('claimSubjects');
   // Check if there are documents available
   const hasDocuments = selectedApp?.files && selectedApp.files.length > 0;
   const hasSourcePages = selectedApp?.markdown_pages && selectedApp.markdown_pages.length > 0;
@@ -143,7 +145,7 @@ export default function Sidebar({
                     style={selectedAppId === app.id ? { backgroundColor: brand.primary } : undefined}
                   >
                     <div className="font-medium truncate">
-                      {app.summary_title || app.id.substring(0, 8)}
+                      {localizeApplicationTitle(app.summary_title || app.id.substring(0, 8), tSubjects)}
                     </div>
                     <div className="text-xs text-slate-500">
                       {app.external_reference || t('noReference')}

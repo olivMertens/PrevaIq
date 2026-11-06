@@ -27,6 +27,30 @@
     "title": "{brand}",
     "description": "KI-gestützte Dokumentenverarbeitung für Versicherungen"
   },
+  "claimSubjects": {
+    "water": "Wasserschaden",
+    "storm": "Sturm",
+    "hail": "Hagel",
+    "structural": "Strukturschäden",
+    "flood": "Überschwemmung",
+    "fire": "Brand",
+    "theft": "Diebstahl",
+    "vandalism": "Vandalismus",
+    "glass": "Glasbruch",
+    "electrical": "Elektroschäden",
+    "liability": "Haftpflicht",
+    "natural": "Elementarschaden",
+    "naturalDisaster": "Naturkatastrophe",
+    "collision": "Kollision",
+    "sideScrape": "Seitlicher Streifschaden mit Glasbruch",
+    "infiltration": "Wassereintritt nach Sturm",
+    "dental": "Zahnbehandlung",
+    "hospitalization": "Krankenhausaufenthalt",
+    "low": "Gering",
+    "moderate": "Mittel",
+    "high": "Hoch",
+    "severe": "Schwer"
+  },
   "nav": {
     "overview": "Übersicht",
     "timeline": "Zeitachse",
@@ -160,6 +184,7 @@
   "dashboard": {
     "title": "Übersicht",
     "greetingMorning": "Guten Morgen",
+    "loadError": "Fälle konnten nicht geladen werden. Prüfen Sie die Serververbindung und versuchen Sie es erneut.",
     "greetingAfternoon": "Guten Tag",
     "greetingEvening": "Guten Abend",
     "readyForReview": "Bereit zur Prüfung",
@@ -224,20 +249,28 @@
   },
   "persona": {
     "groups": {
-      "underwriting": "Zeichnung",
-      "claims": "Forderungen",
+      "underwriting": "Risikoprüfung",
+      "claims": "Schadenfälle",
       "wealth": "Vermögen"
     },
     "labels": {
-      "underwriting": "Souscription",
-      "life_health_claims": "Sinistres Santé",
-      "automotive_claims": "Sinistres Auto",
-      "property_casualty_claims": "Sinistres IARD (Legacy)",
-      "habitation_claims": "Sinistres Habitation",
-      "mortgage": "Souscription Hypothécaire",
+      "underwriting": "Risikoprüfung Leben & Gesundheit",
+      "life_health_claims": "Gesundheitsschäden",
+      "automotive_claims": "Kfz-Schäden",
+      "property_casualty_claims": "Sach- und Haftpflichtschäden (alt)",
+      "habitation_claims": "Sachschäden",
+      "mortgage": "Hypothekenprüfung",
       "securities_lending": "Wertpapierleihgeschäft"
     },
-    "comingSoon": "Bald kommen"
+    "descriptions": {
+      "underwriting": "Arbeitsplatz für die Risikoprüfung von Anträgen und medizinischen Unterlagen",
+      "life_health_claims": "Arbeitsplatz für Gesundheitsschäden: Anspruchsprüfung und Regulierung",
+      "automotive_claims": "Multimodaler Arbeitsplatz zur Bewertung von Kfz-Schäden mit Bildern, Videos und Dokumenten",
+      "property_casualty_claims": "Altes Sach- und Haftpflichtmodul: stattdessen Sachschäden verwenden",
+      "habitation_claims": "Arbeitsplatz für Sachschäden: Wasserschäden, Stürme und Naturkatastrophen, mit Fotos und Dokumenten",
+      "mortgage": "Arbeitsplatz für Hypothekenprüfung mit HCSF-Konformitätsprüfungen"
+    },
+    "comingSoon": "Demnächst verfügbar"
   },
   "documents": {
     "title": "Dokumente",
@@ -1296,7 +1329,7 @@
     }
   },
   "mortgage": {
-    "title": "Souscription Hypothécaire",
+    "title": "Hypothekenprüfung",
     "compliance": "OSFI B-20 Einhaltung",
     "gds": "GDS (Bruttoschuldendienst)",
     "tds": "TDS (Gesamtschuldendienst)",
@@ -1311,11 +1344,11 @@
     "refer": "Referat"
   },
   "personas": {
-    "underwriting": "Souscription",
-    "lifeHealthClaims": "Sinistres Santé",
-    "automotiveClaims": "Sinistres Auto",
-    "habitationClaims": "Sinistres Habitation",
-    "mortgageUnderwriting": "Souscription Hypothécaire",
+    "underwriting": "Risikoprüfung Leben & Gesundheit",
+    "lifeHealthClaims": "Gesundheitsschäden",
+    "automotiveClaims": "Kfz-Schäden",
+    "habitationClaims": "Sachschäden",
+    "mortgageUnderwriting": "Hypothekenprüfung",
     "customer360": "Client 360",
     "selectPersona": "Wählen Sie Persona"
   },
@@ -1722,11 +1755,11 @@
     "activeClaims": "Aktive Forderungen",
     "customerJourney": "Kundenverlauf",
     "noJourneyEvents": "Noch keine Reise-Events.",
-    "personaUnderwriting": "Souscription",
-    "personaHealthClaims": "Sinistres Santé",
-    "personaAutoClaims": "Sinistres Auto",
-    "personaMortgage": "Souscription Hypothécaire",
-    "personaHabitation": "Lebensraumangaben",
+    "personaUnderwriting": "Risikoprüfung Leben & Gesundheit",
+    "personaHealthClaims": "Gesundheitsschäden",
+    "personaAutoClaims": "Kfz-Schäden",
+    "personaMortgage": "Hypothekenprüfung",
+    "personaHabitation": "Sachschäden",
     "personaSouscria": "Erwerb von Souscr'IA",
     "statusApproved": "Zugelassen",
     "statusCompleted": "Abgeschlossen",
@@ -2125,7 +2158,8 @@
     "resultsCount": "{count} Ergebnisse",
     "termsStartingWith": "{count} Begriffe, die mit \"{letter}\" beginnen",
     "showingTerms": "Zeigen {shown} von {total} Bedingungen",
-    "loadError": "Glossar konnte nicht geladen werden"
+    "loadError": "Glossar konnte nicht geladen werden",
+    "originalLanguage": "In der Originalsprache angezeigt: Die Übersetzung ist derzeit nicht verfügbar."
   },
   "claimsModals": {
     "proposeFinalDecision": "Vorschlag für eine endgültige Entscheidung",
@@ -2981,13 +3015,13 @@
     "close": "Schließen",
     "scenarios": {
       "habitation": {
-        "label": "Sinistres Habitation",
+        "label": "Sachschäden",
         "summary": "Olivier MERTENS LAFFITE (mlo@wine.com) — Storm Gérard 27.03.2026 — Überfluteter Keller, zerstörte Weinsammlung — 10.825 €\nDatei E0FF1B47 — 4 Fotos + 1 PDF (Versicherungsanspruchsformular)",
         "emptyDemo": "Vorinstallierter Kunde 360",
         "steps": [
           {
-            "title": "1. „Sinistres Habitation“ auswählen",
-            "detail": "Oberer Persona-Selektor → Gruppe „Schadenfälle“ → „Sinistres Habitation“ (Wolken-/Regensymbol).",
+            "title": "1. „Sachschäden“ auswählen",
+            "detail": "Oberer Persona-Selektor → Gruppe „Schadenfälle“ → „Sachschäden“ (Wolken-/Regensymbol).",
             "tip": "Akzeptiert PDF + Bilder. RAG durchsucht die indizierten Besiedlungsrichtlinien."
           },
           {
@@ -3016,18 +3050,18 @@
         ]
       },
       "habitation-ch": {
-        "label": "Sinistres Habitation (CH)",
+        "label": "Sachschäden (CH)",
         "summary": "Schoggimanufaktur Eulachblick GmbH (fiktiv) — Hagelunwetter in Winterthur am 28.08.2026 — Laden, Atelier und Kühlraum beschädigt — CHF 1'697'400 geltend gemacht\nSchadenmeldung auf Deutsch + E-Mails auf Deutsch und Englisch + 6 KI-Fotos (MAI-Image-2.6) — 3 Prüfpunkte: Gebäude bei der GVZ, Kühlgut, Foto vor dem Unwetter",
         "emptyDemo": "Schweizer Demodateien",
         "steps": [
           {
-            "title": "1. „Sinistres Habitation“ auswählen",
+            "title": "1. „Sachschäden“ auswählen",
             "detail": "Dieselbe Persona wie für französische Hausratschäden: Die Rechtsordnung (Schweiz, CHF, deutschsprachige Quellen) wird aus den Dokumenten erkannt.",
-            "tip": "Beträge erscheinen in CHF und Web IQ durchsucht Schweizer Quellen (Region CH)."
+            "tip": "Realer Demo-Kartenanker: Steinberggasse 23, 8400 Winterthur. Firma, Betriebsräume und Schaden sind erfunden; die KI-Fotos zeigen weder das reale Gebäude noch dessen Nutzer. Street View zeigt den realen Ort, nicht den Schaden."
           },
           {
             "title": "2. Den Schweizer Schadenfall hochladen",
-            "detail": "• schadenmeldung-geschaeftsversicherung.pdf (Schadenmeldung auf Deutsch)\n• email-01-schadenmeldung-de.eml oder .pdf (Erstmeldung, Deutsch)\n• email-02-loss-estimate-en.eml oder .pdf (konsolidierte Schätzung, Englisch)\n• 6 Fotos IMG_2026…jpg",
+            "detail": "Empfohlen: schadenmeldung-geschaeftsversicherung.pdf, email-01-schadenmeldung-de.pdf, email-02-loss-estimate-en.pdf und die 6 Fotos IMG_2026…jpg (9 Dateien). Die .eml-Dateien sind alternative Originalpakete mit Anhängen; nicht zusätzlich zu denselben PDFs und Fotos hochladen.",
             "tip": "Die Dateien liegen in assets/demo-prevaiq/property-claims/swiss-chocolate-storm/; manifest.json dokumentiert die synthetischen Daten."
           },
           {
@@ -3037,7 +3071,7 @@
           {
             "title": "4. Betrugsanalyse, Web IQ und Herkunft",
             "detail": "Betrugsanalyse starten:\n• Web IQ sucht auf Deutsch, Region CH („Unwetter Winterthur 28. August 2026 Hagel Sturm“), ohne Cat-Nat-Abfrage\n• Erwartete Punkte: Gebäude auch der GVZ gemeldet, Kühlgut ohne Zusatzdeckung, Foto vom 26.08. (vor dem Unwetter)\n• Jedes Foto zeigt sein Content-Credentials-Badge (C2PA), nur zur Information",
-            "tip": "Die Fotos sind KI-generierte Demobilder; ihre JPEG-Kopien enthalten keine C2PA-Daten."
+            "tip": "Synthetische Bilder; JPEG-Kopien ohne C2PA-Daten. Markise vor dem Unwetter eingefahren; schräger windgetriebener Hagel, gebundene Risse im Sicherheitsglas, keine ausgestanzten Löcher. Hagel auf den exponierten Strassenflächen verteilt, nicht nur an einer Stelle. Lokale Wasserspuren an Rahmenanschlüssen, nicht durch geschlossene Scheiben. Schokolade in geschlossenen Vitrinen, Verpackungen und Küchengeräten mit Deckel geschützt. Der trockene Kühlraum zeigt 23,8 °C nach Stromrückkehr, keinen Verderbnachweis oder Gesamtverlust. Beträge vorläufig; technische Berichte, Inventar- und Temperaturprotokolle nicht beigefügt."
           },
           {
             "title": "5. Ask IQ auf Deutsch",
@@ -3050,28 +3084,64 @@
           }
         ]
       },
+      "habitation-ch-watch": {
+        "label": "Sachschäden (CH · Uhren)",
+        "summary": "Rheinkaliber Uhrenmanufaktur AG (fiktiv) — Sturm in Schaffhausen am 28.08.2026 — Haute-Horlogerie-Atelier, Reinraum und Maschinen beschädigt — CHF 14'968'600 geltend gemacht\nSchadenmeldung und Kostenvoranschlag auf Deutsch, E-Mails auf Deutsch und Englisch, 10 KI-Fotos (MAI-Image-2.6). Ein konsistenter Grossschaden ohne eingebaute Betrugs- oder Deckungsanomalie.",
+        "emptyDemo": "Schweizer Uhrenschaden",
+        "steps": [
+          {
+            "title": "1. „Sachschäden“ auswählen",
+            "detail": "Die Persona für Sachschäden verwenden. Die Dokumente nennen die Schweiz, Schaffhausen und CHF; es geht um Geschäftsinventar und Betriebsunterbruch, nicht um einen französischen Cat-Nat-Fall.",
+            "tip": "Realer Demo-Kartenanker: Mühlentalstrasse 185, 8200 Schaffhausen. Firma, Betriebsräume und Schaden sind erfunden; die KI-Fotos zeigen weder das reale Gebäude noch dessen Nutzer. Street View zeigt den realen Ort, nicht den Schaden. Keine echte Uhrenmarke wird verwendet."
+          },
+          {
+            "title": "2. Den Schadenfall der Manufaktur hochladen",
+            "detail": "Empfohlene Auswahl: schadenmeldung-geschaeftsversicherung.pdf, kostenvoranschlag-schadenbehebung.pdf, email-01-schadenmeldung-de.pdf, email-02-loss-estimate-en.pdf und die 10 Fotos IMG_2026…jpg (14 Dateien). Die beiden .eml-Dateien sind alternative Original-E-Mail-Pakete mit eingebetteten Anhängen, keine zusätzlichen Dateien für diese Auswahl.",
+            "tip": "Dateien: assets/demo-prevaiq/property-claims/swiss-watch-storm/. manifest.json enthält Fotos, Beträge und das erwartete Ergebnis. Ein Werbekonzept einer Uhr am Handgelenk bleibt separat und darf nicht als Schadenbeleg hochgeladen werden."
+          },
+          {
+            "title": "3. Extraktion und Deckungsanalyse verfolgen",
+            "detail": "Die deutschen und englischen Dokumente anhand der Schweizer AVB KMU-Geschäftsversicherung 2026 prüfen. Uhrwerke und fertige Uhren werden zu Herstellungs-, nicht zu Verkaufskosten geltend gemacht. Die Versicherungssumme übersteigt den angegebenen Versicherungswert.",
+            "tip": "Die passende Police ist assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf; vor dem Testen belegter Deckungsantworten indexieren."
+          },
+          {
+            "title": "4. Konsistenz, Web IQ und Herkunft prüfen",
+            "detail": "Betrugsanalyse starten und den Sturm anhand öffentlicher Schweizer Quellen für Schaffhausen am 28. August 2026 prüfen. Alle zehn Szenariozeiten liegen nach dem Sturm; spätere Fotos zeigen Schadenminderung, Inventur und Besichtigung. Gebäudeschäden und Notdach werden von der GVSH bearbeitet und sind nicht Teil dieser Forderung.",
+            "tip": "Erwartet: keine eingebaute Unstimmigkeit. Fotos zeigen Ausschnitte, nicht das vollständige Inventar oder innere Uhrenschäden. Inventurlisten, technische Berichte und Bewertungsbelege anfordern; sie sind nicht beigefügt. Die Bilder sind synthetisch; JPEG-Kopien enthalten keine C2PA-Nachweise. Der Nettobetrag bleibt eine sachverständig zu prüfende Schätzung."
+          },
+          {
+            "title": "5. Ask IQ zum Grossschaden befragen",
+            "detail": "Fragen:\n→ „Warum werden die Uhren zu Herstellungskosten bewertet?“\n→ „Liegt eine Unterversicherung vor?“\n→ „Wer deckt den Gebäudeschaden in Schaffhausen?“\n→ „Wie hoch ist der Nettoschaden nach dem Elementar-Selbstbehalt?“",
+            "tip": "Erwartete Rechnung: CHF 14'968'600 minus CHF 50'000 = CHF 14'918'600. Die zugehörigen AVB-Artikel zitieren lassen."
+          },
+          {
+            "title": "6. Entscheidung der Sachbearbeitung festhalten",
+            "detail": "Erwartete Demoentscheidung, vorbehaltlich der Prüfung durch den Sachverständigen: Inventar, Einrichtungen, Aufräumkosten und Betriebsunterbruch nach Schweizer AVB gedeckt; Gebäude nicht Bestandteil der Forderung und an GVSH verwiesen; Elementar-Selbstbehalt auf CHF 50'000 begrenzt; netto CHF 14'918'600. Ein hoher Betrag allein ist kein Betrugsindikator."
+          }
+        ]
+      },
       "auto": {
-        "label": "Sinistres Auto",
-        "summary": "Parkunfall — eingebeulte Tür — Gegenseitiges Klageformular + Schadensfoto\nDatei-Thread2 — 2 PDFs + 1 Foto",
+        "label": "Kfz-Schäden",
+        "summary": "Gemeldete Kollision — eingebeulte Tür — Kunden-E-Mail, Versichererantwort und Schadensfoto\nDemo parking-impact — 2 PDFs + 1 Foto; unterschriebener Unfallbericht und Fahrzeugdaten fehlen",
         "emptyDemo": "Vorinstallierter Kunde 360",
         "steps": [
           {
-            "title": "1. „Sinistres Auto“ auswählen",
-            "detail": "Oberer Persona-Selektor → Gruppe „Schadenfälle“ → „Sinistres Auto“ (Autosymbol).",
+            "title": "1. „Kfz-Schäden“ auswählen",
+            "detail": "Oberer Persona-Selektor → Gruppe „Schadenfälle“ → „Kfz-Schäden“ (Autosymbol).",
             "tip": "RAG durchsucht die indexierten Auto- und Fleet Auto-Policy-Begriffe."
           },
           {
             "title": "2. Dokumente hochladen",
-            "detail": "• thread2-01-client-accident-auto.pdf (Kundenerklärung)\n• thread2-02-prevaiq-reponse-auto.pdf (Antwort des Versicherers)\n• crash portière enfoncée.png (Schadensfoto)\n\nVerwenden Sie \"Neue Anwendung\" oder Drag & Drop der Dateien. Diese Persona akzeptiert auch Videos.",
+            "detail": "• thread2-01-client-accident-auto.pdf (Kundenerklärung)\n• thread2-02-prevaiq-reponse-auto.pdf (Antwort des Versicherers)\n• crash_portière_enfoncée.png (Schadensfoto)\n\nVerwenden Sie \"Neue Anwendung\" oder Drag & Drop der Dateien. Diese Persona akzeptiert auch Videos.",
             "tip": "Dateien in assets/demo-prevaiq/automotive-claims/parking-impact/."
           },
           {
             "title": "3. Multimodale KI-Verarbeitung",
-            "detail": "1 Extraktionsmaschine → extrahiert die Clientnachricht und Anhänge\n2 Multimodale Analyse → analysiert den Fahrzeugschaden Foto\n3 Dedizierte Autoansicht → Dokumente, Schätzung, Haftung und Betrugsindikatoren auf demselben Bildschirm"
+            "detail": "① Extraktion → liest die beiden E-Mail-PDFs\n② Multimodale Analyse → prüft das separat hochgeladene Schadensfoto\n③ Kfz-Ansicht → Dokumente, vorläufige Schätzung, Haftung und Betrugsindikatoren\n\nDie in den E-Mails erwähnten Anhänge sind nicht in den PDFs eingebettet. Die Anfrage zur Schulversicherung ist vom Kfz-Schaden getrennt."
           },
           {
             "title": "4. Ergebnisse und Haftung",
-            "detail": "• Haftungsanalyse → Fehlerverteilung\n• Reparaturschätzung → Beträge pro Artikel\n• IRSA-Konvention → Automatische Anwendung\n• Betrugsindikatoren → Erklärung vs. Fotokonsistenz"
+            "detail": "• Haftung → anhand des unterschriebenen Unfallberichts und der Umstände zu klären\n• Reparaturen → vorläufige fotospezifische Schätzung, sachverständig zu prüfen\n• IRSA → Anwendbarkeit prüfen; keine automatische Haftungsaufteilung ohne belegte Gegenpartei\n• Betrugsindikatoren → Meldung und Foto vergleichen; fehlende Belege beweisen keinen Betrug"
           },
           {
             "title": "5. Stellen Sie IQ - Auto-Fragen",
@@ -3079,23 +3149,23 @@
           },
           {
             "title": "6. Autoforderungsentscheidung",
-            "detail": "Genehmigen / Anpassen / Ablehnen.\nBeispiel: \"Gedeckt nach Auto-Bedingungen Art. 5.1, 150 € Selbstbehalt, Rückzahlung durch Dritte eingeleitet.\""
+            "detail": "Entscheidung offenlassen, bis unterschriebener Unfallbericht, Fahrzeugdaten, Police und Kostenvoranschlag geprüft sind. Aus dem Foto allein keinen Selbstbehalt, Policenartikel, Reparaturwürdigkeitsentscheid oder Regress erfinden."
           }
         ]
       },
       "sante": {
-        "label": "Souscription",
+        "label": "Risikoprüfung Leben & Gesundheit",
         "summary": "Antoine LEFEVRE, 48 yo, Chef — Complementary Health Equilibre Plus — Kontrollierte Hypertonie, Ex-Raucher, Vater Diabetiker — €127/mo",
         "emptyDemo": "Vorinstallierter Kunde 360",
         "steps": [
           {
-            "title": "1. Wählen Sie \"Life & Health Underwriting\"",
-            "detail": "Top-Persona-Selektor → \"Underwriting\" -Gruppe → \"Life & Health Underwriting\" (Zwischenablage / Listenzeilensymbol).",
+            "title": "1. „Risikoprüfung Leben & Gesundheit“ auswählen",
+            "detail": "Oberer Persona-Selektor → Gruppe „Risikoprüfung“ → „Risikoprüfung Leben & Gesundheit“ (Klemmbrettsymbol).",
             "tip": "RAG sucht Underwriting-Policen + die indexierten Gesundheitsbedingungen."
           },
           {
             "title": "2. Zeichnungsdatei hochladen",
-            "detail": "• souscription-sante-lefevre.pdf (Client-E-Mail + Gesundheitsfragebogen)\n• Medizinische Anhänge im PDF aufgeführt: Bluthochdruck Rezept, Laborergebnisse, Krankenversicherungsbescheinigung, Bankdaten\n\nVerwenden Sie \"Neue Anwendung\" oder Drag & Drop PDF. Aktivieren Sie \"Großes Dokument\" nur für sehr lange Dateien.",
+            "detail": "Nur souscription-sante-lefevre.pdf hochladen: 3 Seiten mit Kundenanfrage, Gesundheitsfragebogen und Blutwerten (Seite 3).\n\nRezept, Ausweisdokument, Krankenversicherungsbescheinigung und Bankdaten werden erwähnt, sind aber nicht als separate Dateien beigefügt. Nicht als geprüfte Belege behandeln.\n\nVerwenden Sie \"Neue Anwendung\" oder Drag & Drop PDF. Aktivieren Sie \"Großes Dokument\" nur für sehr lange Dateien.",
             "tip": "PDF ist in assets/demo-prevaiq/health-underwriting/."
           },
           {
@@ -3118,13 +3188,13 @@
         ]
       },
       "sante-sinistre": {
-        "label": "Sinistres Santé",
+        "label": "Gesundheitsschäden",
         "summary": "Dringende zahnärztliche Anfrage - Beratung, Röntgen, Extraktion + Implantat - 2.800 € Schätzung / 1.900 € geschätzt aus der Tasche",
         "emptyDemo": "Vorinstallierter Kunde 360",
         "steps": [
           {
-            "title": "1. „Sinistres Santé“ auswählen",
-            "detail": "Oberer Persona-Selektor → Gruppe „Schadenfälle“ → „Sinistres Santé“ (Stethoskopsymbol).",
+            "title": "1. „Gesundheitsschäden“ auswählen",
+            "detail": "Oberer Persona-Selektor → Gruppe „Schadenfälle“ → „Gesundheitsschäden“ (Stethoskopsymbol).",
             "tip": "RAG durchsucht die indexierte ergänzende Gesundheitspolitik."
           },
           {
@@ -3151,13 +3221,13 @@
         ]
       },
       "hypothecaire": {
-        "label": "Souscription Hypothécaire",
+        "label": "Hypothekenprüfung",
         "summary": "Erstkäuferdatei — Kreditantrag + Kaufvertrag + Steuerbescheid\nDatei app-mtg-004",
         "emptyDemo": "Vorinstallierter Kunde 360",
         "steps": [
           {
-            "title": "1. „Souscription Hypothécaire“ auswählen",
-            "detail": "Oberer Persona-Selektor → Gruppe „Souscription“ → „Souscription Hypothécaire“ (Haussymbol).",
+            "title": "1. „Hypothekenprüfung“ auswählen",
+            "detail": "Oberer Persona-Selektor → Gruppe „Risikoprüfung“ → „Hypothekenprüfung“ (Haussymbol).",
             "tip": "Dedizierte Schnittstelle mit integriertem Hypotheken-Chat."
           },
           {

@@ -62,6 +62,49 @@ test('English, French and German messages have exact key parity', () => {
   assert.deepEqual(messageKeys(messages('de')).sort(), expected);
 });
 
+test('persona menu names are translated rather than copied from the French registry', () => {
+  const expected = {
+    en: ['Life & Health Underwriting', 'Mortgage Underwriting', 'Health Claims', 'Auto Claims', 'Property Claims'],
+    fr: ['Souscription Vie & Santé', 'Souscription Hypothécaire', 'Sinistres Santé', 'Sinistres Auto', 'Sinistres Habitation'],
+    de: ['Risikoprüfung Leben & Gesundheit', 'Hypothekenprüfung', 'Gesundheitsschäden', 'Kfz-Schäden', 'Sachschäden'],
+  };
+  const ids = ['underwriting', 'mortgage', 'life_health_claims', 'automotive_claims', 'habitation_claims'];
+  for (const locale of ['en', 'fr', 'de']) {
+    const labels = messages(locale).persona.labels;
+    assert.deepEqual(ids.map((id) => labels[id]), expected[locale]);
+    assert.ok(labels.property_casualty_claims);
+    assert.ok(labels.securities_lending);
+  }
+  const selector = fs.readFileSync(path.join(root, 'src', 'components', 'PersonaSelector.tsx'), 'utf8');
+  const provider = fs.readFileSync(path.join(root, 'src', 'lib', 'PersonaContext.tsx'), 'utf8');
+  assert.match(selector, /t\(`labels\.\$\{currentPersona\}`\)/);
+  assert.match(selector, /t\(`labels\.\$\{persona\.id\}`\)/);
+  assert.doesNotMatch(selector, /catch\s*\{|return fallback/);
+  assert.match(provider, /useTranslations\('persona\.labels'\)/);
+  assert.match(provider, /name: t\(currentPersona\)/);
+});
+
+test('demo tabs and selection instructions match the translated persona menu', () => {
+  const scenarios = {
+    habitation: 'habitation_claims',
+    'habitation-ch': 'habitation_claims',
+    'habitation-ch-watch': 'habitation_claims',
+    auto: 'automotive_claims',
+    sante: 'underwriting',
+    'sante-sinistre': 'life_health_claims',
+    hypothecaire: 'mortgage',
+  };
+  for (const locale of ['en', 'fr', 'de']) {
+    const content = messages(locale);
+    for (const [scenario, persona] of Object.entries(scenarios)) {
+      const label = content.persona.labels[persona];
+      const demo = content.demoGuide.scenarios[scenario];
+      assert.ok(demo.label.startsWith(label), `${locale}.${scenario} tab must match the menu`);
+      assert.ok(demo.steps[0].title.includes(label), `${locale}.${scenario} instruction must match the menu`);
+    }
+  }
+});
+
 test('localized messages have valid ICU syntax and matching arguments', () => {
   const source = new Map(messageValues(messages('en')));
 
@@ -81,6 +124,7 @@ test('demo guide content is next-intl backed for all locales', () => {
   const demoPaths = {
     habitation: 'assets/demo-prevaiq/property-claims/wine-cellar/',
     'habitation-ch': 'assets/demo-prevaiq/property-claims/swiss-chocolate-storm/',
+    'habitation-ch-watch': 'assets/demo-prevaiq/property-claims/swiss-watch-storm/',
     auto: 'assets/demo-prevaiq/automotive-claims/parking-impact/',
     sante: 'assets/demo-prevaiq/health-underwriting/',
     'sante-sinistre': 'assets/demo-prevaiq/health-claims/dental/',

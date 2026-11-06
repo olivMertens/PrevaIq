@@ -27,6 +27,30 @@
     "title": "{brand}",
     "description": "Poste de travail intelligent de traitement de documents pour l'assurance"
   },
+  "claimSubjects": {
+    "water": "Dégâts des eaux",
+    "storm": "Tempête",
+    "hail": "Grêle",
+    "structural": "Dommages structurels",
+    "flood": "Inondation",
+    "fire": "Incendie",
+    "theft": "Vol",
+    "vandalism": "Vandalisme",
+    "glass": "Bris de glace",
+    "electrical": "Dommages électriques",
+    "liability": "Responsabilité civile",
+    "natural": "Dommages élémentaires",
+    "naturalDisaster": "Catastrophe naturelle",
+    "collision": "Collision",
+    "sideScrape": "Frottement latéral avec bris de glace",
+    "infiltration": "Infiltration suite à tempête",
+    "dental": "Soins dentaires",
+    "hospitalization": "Hospitalisation",
+    "low": "Faible",
+    "moderate": "Modéré",
+    "high": "Élevé",
+    "severe": "Grave"
+  },
   "nav": {
     "overview": "Aperçu",
     "timeline": "Chronologie",
@@ -160,6 +184,7 @@
   "dashboard": {
     "title": "Tableau de bord",
     "greetingMorning": "Bonjour",
+    "loadError": "Impossible de charger les dossiers. Vérifiez la connexion au serveur et réessayez.",
     "greetingAfternoon": "Bonjour",
     "greetingEvening": "Bonsoir",
     "readyForReview": "Dossiers à vérifier",
@@ -236,6 +261,14 @@
       "habitation_claims": "Sinistres Habitation",
       "mortgage": "Souscription Hypothécaire",
       "securities_lending": "Prêt de titres"
+    },
+    "descriptions": {
+      "underwriting": "Poste de travail de souscription pour le traitement des demandes et documents médicaux",
+      "life_health_claims": "Poste de travail de traitement des sinistres santé : vérification d'éligibilité et adjudication",
+      "automotive_claims": "Poste de travail multimodal d'évaluation des dommages automobiles avec traitement d'images, vidéos et documents",
+      "property_casualty_claims": "Ancien module IARD : utiliser Sinistres Habitation à la place",
+      "habitation_claims": "Poste de travail de traitement des sinistres habitation : dégâts des eaux, tempêtes et catastrophes naturelles, avec photos et documents",
+      "mortgage": "Poste de travail de souscription hypothécaire avec vérifications de conformité HCSF"
     },
     "comingSoon": "Bientôt disponible"
   },
@@ -2125,7 +2158,8 @@
     "resultsCount": "{count} résultats",
     "termsStartingWith": "{count} termes commençant par « {letter} »",
     "showingTerms": "{shown} sur {total} termes affichés",
-    "loadError": "Impossible de charger le glossaire"
+    "loadError": "Impossible de charger le glossaire",
+    "originalLanguage": "Affiché dans sa langue d'origine : la traduction n'est pas disponible pour le moment."
   },
   "claimsModals": {
     "proposeFinalDecision": "Proposer la décision finale",
@@ -3023,11 +3057,11 @@
           {
             "title": "1. Sélectionner \"Sinistres Habitation\"",
             "detail": "Même persona que les sinistres habitation français : la juridiction (Suisse, CHF, sources en allemand) est détectée à partir des documents.",
-            "tip": "Les montants s'affichent en CHF et Web IQ interroge des sources suisses (région CH)."
+            "tip": "Repère cartographique réel de démonstration : Steinberggasse 23, 8400 Winterthur. L'entreprise, les locaux et le sinistre sont fictifs ; les photos IA ne représentent ni le bâtiment réel ni ses occupants. Street View montre le lieu réel, pas les dégâts."
           },
           {
             "title": "2. Déposer le dossier suisse",
-            "detail": "• schadenmeldung-geschaeftsversicherung.pdf (déclaration en allemand)\n• email-01-schadenmeldung-de.eml ou .pdf (première déclaration, en allemand)\n• email-02-loss-estimate-en.eml ou .pdf (estimation consolidée, en anglais)\n• 6 photos IMG_2026…jpg",
+            "detail": "Sélection recommandée : schadenmeldung-geschaeftsversicherung.pdf, email-01-schadenmeldung-de.pdf, email-02-loss-estimate-en.pdf et les 6 photos IMG_2026…jpg (9 fichiers). Les .eml sont une alternative contenant les échanges originaux avec leurs pièces jointes ; ne pas les ajouter aux mêmes PDF et photos.",
             "tip": "Les fichiers sont dans assets/demo-prevaiq/property-claims/swiss-chocolate-storm/ ; manifest.json documente les données synthétiques."
           },
           {
@@ -3037,7 +3071,7 @@
           {
             "title": "4. Fraude, Web IQ et provenance",
             "detail": "Lancer l'analyse fraude :\n• Web IQ cherche en allemand, région CH (« Unwetter Winterthur 28. August 2026 Hagel Sturm »), sans requête Cat-Nat\n• Points attendus : bâtiment aussi déclaré à la GVZ, denrées réfrigérées sans l'extension Kühlgut, photo datée du 26.08 (avant la tempête)\n• Chaque photo affiche son badge Content Credentials (C2PA), à titre d'information",
-            "tip": "Les photos sont des images de démo générées par IA ; leurs copies JPEG ne portent pas de données C2PA."
+            "tip": "Images synthétiques ; copies JPEG sans données C2PA. Store rentré avant l'orage ; grêle oblique poussée par le vent, fissures retenues dans le verre de sécurité, aucun trou découpé. Grêle répartie sur les zones de rue exposées, pas en un seul tas. Traces d'eau locales aux raccords des cadres, pas à travers le verre plein. Chocolat protégé en vitrines fermées, emballages et équipements de cuisine à couvercle. La chambre froide sèche affiche 23,8 °C après le retour du courant, sans prouver le pourrissement ni la perte de tout le stock. Montants provisoires ; rapports techniques, inventaires et relevés de température non joints."
           },
           {
             "title": "5. Ask IQ en allemand",
@@ -3050,9 +3084,45 @@
           }
         ]
       },
+      "habitation-ch-watch": {
+        "label": "Sinistres Habitation (CH · Horlogerie)",
+        "summary": "Rheinkaliber Uhrenmanufaktur AG (fictive) — Tempête à Schaffhouse le 28/08/2026 — Atelier de haute horlogerie, salle blanche et machines sinistrés — 14 968 600 CHF déclarés\nDéclaration et devis en allemand, e-mails en allemand et en anglais, 10 photos IA (MAI-Image-2.6). Un sinistre majeur cohérent, sans anomalie de fraude ou de couverture introduite.",
+        "emptyDemo": "Dossier horloger suisse",
+        "steps": [
+          {
+            "title": "1. Sélectionner « Sinistres Habitation »",
+            "detail": "Utiliser la persona de sinistres habitation. Les documents identifient la Suisse, Schaffhouse et les CHF ; il s'agit d'un sinistre commercial de contenu et de perte d'exploitation, pas d'un dossier Cat-Nat français.",
+            "tip": "Repère cartographique réel de démonstration : Mühlentalstrasse 185, 8200 Schaffhausen. L'entreprise, les locaux et le sinistre sont fictifs ; les photos IA ne représentent ni le bâtiment réel ni ses occupants. Street View montre le lieu réel, pas les dégâts. Aucune marque horlogère réelle n'est utilisée."
+          },
+          {
+            "title": "2. Déposer le dossier de la manufacture",
+            "detail": "Sélection recommandée : schadenmeldung-geschaeftsversicherung.pdf, kostenvoranschlag-schadenbehebung.pdf, email-01-schadenmeldung-de.pdf, email-02-loss-estimate-en.pdf et les 10 photos IMG_2026…jpg (14 fichiers). Les deux .eml sont une alternative contenant les échanges originaux avec leurs pièces jointes, pas des fichiers à ajouter à cette sélection.",
+            "tip": "Fichiers : assets/demo-prevaiq/property-claims/swiss-watch-storm/. manifest.json liste les photos, les montants et le résultat attendu. Tout visuel promotionnel de montre au poignet reste séparé et ne doit pas être déposé comme preuve du sinistre."
+          },
+          {
+            "title": "3. Suivre l'extraction et l'analyse de couverture",
+            "detail": "Vérifier les documents allemands et anglais selon les AVB suisses KMU-Geschäftsversicherung 2026. Mouvements et montres finies sont déclarés au coût de fabrication, pas au prix de vente. La somme assurée dépasse la valeur assurable déclarée.",
+            "tip": "La police correspondante est assets/pdf/prevaiq/prevaiq-ch-avb-kmu-geschaeftsversicherung-2026.pdf ; l'indexer avant de tester les réponses fondées sur les garanties."
+          },
+          {
+            "title": "4. Vérifier la cohérence, Web IQ et la provenance",
+            "detail": "Lancer l'analyse fraude et vérifier la tempête dans les sources publiques suisses pour Schaffhouse le 28 août 2026. Les dix horaires du scénario sont postérieurs à la tempête ; les dernières photos montrent les mesures conservatoires, l'inventaire et l'expertise. Le bâtiment et la couverture provisoire du toit relèvent de la GVSH et ne sont pas inclus dans cette demande.",
+            "tip": "Attendu : aucune incohérence introduite. Les photos montrent des échantillons, pas l'inventaire complet ni les dommages internes des montres. Demander les inventaires, rapports techniques et justificatifs de valorisation, non joints. Les images sont synthétiques ; les JPEG n'ont pas de justificatifs C2PA. Le net reste une estimation soumise à l'expert."
+          },
+          {
+            "title": "5. Interroger Ask IQ sur le sinistre majeur",
+            "detail": "Demander :\n→ « Pourquoi les montres sont-elles valorisées au coût de fabrication ? »\n→ « Y a-t-il sous-assurance ? »\n→ « Qui couvre le bâtiment à Schaffhouse ? »\n→ « Quel est le montant net après la franchise Elementar ? »",
+            "tip": "Calcul attendu : 14 968 600 CHF moins 50 000 CHF = 14 918 600 CHF. Demander les articles AVB correspondants."
+          },
+          {
+            "title": "6. Consigner la décision du gestionnaire",
+            "detail": "Décision de démo attendue, sous réserve de validation par l'expert : contenu, équipements, nettoyage et perte d'exploitation couverts selon les AVB suisses ; bâtiment hors demande et renvoyé à la GVSH ; franchise Elementar plafonnée à 50 000 CHF ; net 14 918 600 CHF. Un montant élevé ne constitue pas à lui seul un indice de fraude."
+          }
+        ]
+      },
       "auto": {
         "label": "Sinistres Auto",
-        "summary": "Accident de stationnement — portière enfoncée — Constat amiable + photo dégât\nDossier thread2 — 2 PDF + 1 photo",
+        "summary": "Collision déclarée — portière enfoncée — email client, réponse assureur et photo du dégât\nDémo parking-impact — 2 PDF + 1 photo ; constat signé et informations véhicule non fournis",
         "emptyDemo": "Client 360 préchargé",
         "steps": [
           {
@@ -3067,11 +3137,11 @@
           },
           {
             "title": "3. Traitement IA multimodal",
-            "detail": "① Extraction → extrait le message client et les pièces jointes\n② Analyse multimodale → analyse la photo de dégât véhicule\n③ Vue Auto dédiée → documents, estimation, responsabilité et indicateurs de fraude dans le même écran"
+            "detail": "① Extraction → lit les deux emails PDF\n② Analyse multimodale → analyse la photo du dégât déposée séparément\n③ Vue Auto dédiée → documents, estimation provisoire, responsabilité et indicateurs de fraude\n\nLes pièces jointes mentionnées dans les emails ne sont pas intégrées aux PDF. La demande d'attestation scolaire est distincte du sinistre auto."
           },
           {
             "title": "4. Résultats & responsabilité",
-            "detail": "• Analyse de responsabilité → répartition des torts\n• Estimation des réparations → montants par poste\n• Convention IRSA → application automatique\n• Indicateurs de fraude → cohérence déclaration vs. photos"
+            "detail": "• Responsabilité → à établir à partir du constat signé et des circonstances\n• Réparations → estimation photographique provisoire, à valider par un expert\n• IRSA → vérifier l'applicabilité ; aucune répartition automatique sans tiers documenté\n• Indicateurs de fraude → comparer déclaration et photo ; une pièce manquante ne prouve pas une fraude"
           },
           {
             "title": "5. Ask IQ — Questions auto",
@@ -3079,7 +3149,7 @@
           },
           {
             "title": "6. Décision sinistre auto",
-            "detail": "Approuver / Ajuster / Refuser.\nEx: \"Couvert CG Auto Art. 5.1, franchise 150€, recours tiers engagé.\""
+            "detail": "Garder la décision en attente jusqu'à vérification du constat signé, des informations véhicule, du contrat et du devis. Ne pas inventer de franchise, d'article de police, de verdict de réparabilité ou de recours tiers à partir de la seule photo."
           }
         ]
       },
@@ -3095,7 +3165,7 @@
           },
           {
             "title": "2. Uploader le dossier de souscription",
-            "detail": "• souscription-sante-lefevre.pdf (email client + questionnaire de santé)\n• Pièces médicales mentionnées dans le PDF : ordonnance HTA, résultats d'analyses, attestation SS, RIB\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer le PDF. Activer \"Document volumineux\" seulement pour les dossiers très longs.",
+            "detail": "Déposer uniquement souscription-sante-lefevre.pdf : 3 pages avec la demande client, le questionnaire de santé et les résultats sanguins (page 3).\n\nL'ordonnance, la pièce d'identité, l'attestation SS et le RIB sont mentionnés mais non fournis comme fichiers distincts. Ne pas les considérer comme des preuves vérifiées.\n\nUtiliser \"Nouveau dossier\" ou glisser-déposer le PDF. Activer \"Document volumineux\" seulement pour les dossiers très longs.",
             "tip": "Le PDF est dans assets/demo-prevaiq/health-underwriting/."
           },
           {

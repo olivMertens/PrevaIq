@@ -1,6 +1,7 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { PersonaId, PersonaConfig, PERSONAS, DEFAULT_PERSONA, PERSONA_STORAGE_KEY } from './personas';
 
 interface PersonaContextType {
@@ -17,6 +18,8 @@ interface PersonaProviderProps {
 }
 
 export function PersonaProvider({ children }: PersonaProviderProps) {
+  const t = useTranslations('persona.labels');
+  const tDescription = useTranslations('persona.descriptions');
   const [currentPersona, setCurrentPersona] = useState<PersonaId>(DEFAULT_PERSONA);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -43,7 +46,11 @@ export function PersonaProvider({ children }: PersonaProviderProps) {
     }
   }, []);
 
-  const personaConfig = PERSONAS[currentPersona];
+  const personaConfig = useMemo(() => ({
+    ...PERSONAS[currentPersona],
+    name: t(currentPersona),
+    description: tDescription(currentPersona),
+  }), [currentPersona, t, tDescription]);
 
   return (
     <PersonaContext.Provider

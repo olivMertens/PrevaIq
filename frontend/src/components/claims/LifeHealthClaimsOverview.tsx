@@ -31,6 +31,7 @@ interface LifeHealthClaimsOverviewProps {
 
 export default function LifeHealthClaimsOverview({ application }: LifeHealthClaimsOverviewProps) {
   const t = useTranslations('lifeHealth');
+  const tPersona = useTranslations('persona.labels');
   const { addToast } = useToast();
   const [checkedTasks, setCheckedTasks] = useState<number[]>([]);
   const [expandedSection, setExpandedSection] = useState<string>('reason');
@@ -94,7 +95,7 @@ export default function LifeHealthClaimsOverview({ application }: LifeHealthClai
             })()}
             claimReference={application?.external_reference || application?.id || ''}
             decisionStatus={finalDecisionStatus === 'approved' ? 'approved' : finalDecisionStatus === 'denied' ? 'denied' : 'pending'}
-            boardLabel="Sinistres Santé"
+            boardLabel={tPersona('life_health_claims')}
             severity={severityFromSentiment((application as any)?.sentiment_analysis)}
           />
         </div>

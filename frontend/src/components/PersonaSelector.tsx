@@ -74,16 +74,7 @@ export default function PersonaSelector() {
     }
   };
 
-  // Translate persona display name; fall back to the persona config name if a key is missing.
-  const personaLabel = (id: PersonaId, fallback: string) => {
-    try {
-      return t(`labels.${id}`);
-    } catch {
-      return fallback;
-    }
-  };
-
-  const currentUILabel = personaLabel(currentPersona, personaConfig.name);
+  const currentUILabel = t(`labels.${currentPersona}`);
   const IconComponent = personaConfig.icon;
 
   // Filter groups to only show those with at least one enabled persona OR placeholders
@@ -131,7 +122,7 @@ export default function PersonaSelector() {
                   {/* Group Items */}
                   {group.personas.map((persona) => {
                     const PersonaIcon = persona.icon;
-                    const uiLabel = personaLabel(persona.id, persona.name);
+                    const uiLabel = t(`labels.${persona.id}`);
                     return (
                       <button
                         key={persona.id}

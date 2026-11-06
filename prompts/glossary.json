@@ -7,6 +7,7 @@
     "underwriting": {
       "name": "Life & Health Underwriting",
       "description": "Medical and insurance terminology for life/health underwriting",
+      "language": "en",
       "categories": [
         {
           "id": "general",
@@ -158,6 +159,7 @@
     "life_health_claims": {
       "name": "Life & Health Claims",
       "description": "Medical and claims terminology for life/health claims processing",
+      "language": "en",
       "categories": [
         {
           "id": "general",
@@ -239,6 +241,7 @@
     "mortgage": {
       "name": "Souscription Hypothécaire",
       "description": "Terminologie financière et réglementaire pour la souscription de crédit immobilier en France",
+      "language": "fr",
       "categories": [
         {
           "id": "regulatory",
@@ -338,6 +341,7 @@
     "automotive_claims": {
       "name": "Automotive Claims",
       "description": "Auto industry and claims terminology for automotive claims processing",
+      "language": "en",
       "categories": [
         {
           "id": "damage",
@@ -455,6 +459,7 @@
     "habitation_claims": {
       "name": "Sinistres Habitation",
       "description": "Terminologie assurance habitation {brand} — sinistres, garanties, conventions",
+      "language": "fr",
       "categories": [
         {
           "id": "garanties",

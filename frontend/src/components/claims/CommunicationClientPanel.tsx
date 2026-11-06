@@ -13,7 +13,7 @@ interface CommunicationClientPanelProps {
   claimReference: string;
   decisionStatus?: 'approved' | 'pending' | 'denied' | 'investigation' | null;
   settlementAmount?: string;
-  /** Board type label shown in the banner, e.g. "Habitation MRH", "Auto", "Santé" */
+  /** Board type label shown in the banner: the translated persona label, e.g. "Auto Claims". */
   boardLabel?: string;
   /**
    * AI-driven client sentiment severity — drives the banner accent color so a

@@ -1300,6 +1300,11 @@ export interface PersonaGlossary {
   description: string;
   categories: GlossaryCategory[];
   total_terms: number;
+  /** Language of the categories, meanings and contexts returned (the glossary's own when untranslated). */
+  language?: string | null;
+  /** Language the glossary is written in. */
+  source_language?: string | null;
+  translated?: boolean;
 }
 
 /**
@@ -1323,8 +1328,9 @@ export async function listGlossaries(): Promise<{ glossaries: GlossarySummary[] 
 /**
  * Get the full glossary for a specific persona
  */
-export async function getGlossary(persona: string): Promise<PersonaGlossary> {
-  return apiFetch<PersonaGlossary>(`/api/glossary/${persona}`);
+export async function getGlossary(persona: string, language?: string): Promise<PersonaGlossary> {
+  const query = language ? `?language=${encodeURIComponent(language)}` : '';
+  return apiFetch<PersonaGlossary>(`/api/glossary/${persona}${query}`);
 }
 
 /**
@@ -1572,7 +1578,7 @@ export interface LiabilityAssessment {
   fault_determination: string;
   fault_percentage: number;
   contributing_factors: string[];
-  liability_notes: string;
+  liability_notes: string | null;
 }
 
 export interface FraudIndicator {
@@ -1585,7 +1591,7 @@ export interface FraudIndicator {
 export interface PolicyCitationClaim {
   policy_id: string;
   policy_name: string;
-  section: string;
+  section: string | null;
   citation_text: string;
   relevance_score: number;
   supports_coverage: boolean;
@@ -1593,8 +1599,8 @@ export interface PolicyCitationClaim {
 
 export interface PayoutRecommendation {
   recommended_amount: number;
-  min_amount: number;
-  max_amount: number;
+  min_amount: number | null;
+  max_amount: number | null;
   breakdown: Record<string, number>;
   adjustments: Array<{
     reason: string;
@@ -1620,7 +1626,7 @@ export interface ClaimAssessmentResponse {
     decided_by?: string;
   };
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
 }
 
 export async function getClaimAssessment(claimId: string): Promise<ClaimAssessmentResponse> {

@@ -3462,12 +3462,23 @@ async def list_all_glossaries():
 
 
 @app.get("/api/glossary/{persona}")
-async def get_persona_glossary(persona: str):
-    """Get the full glossary for a specific persona."""
+async def get_persona_glossary(
+    persona: str,
+    language: Optional[str] = Query(
+        None, description="UI language (en, fr, de): categories, meanings and contexts in it"
+    ),
+):
+    """Get the full glossary for a specific persona, in its own language or in ``language``."""
+    from app.glossary_translation import localized_glossary
+
     try:
         settings = load_settings()
+        if language:
+            return await asyncio.to_thread(localized_glossary, settings, persona, language)
         glossary = get_glossary_for_persona(settings.app.prompts_root, persona)
         return glossary
+    except UnsupportedLanguageError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:

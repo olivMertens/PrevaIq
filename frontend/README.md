@@ -49,6 +49,22 @@ frontend/
 ├── package.json · tailwind.config.js · tsconfig.json · next.config.js
 ```
 
+## Case label localization
+
+Dashboard queues, list/grid descriptions and case navigation translate known claim
+categories using `claimSubjects` in the English, French and German message catalogs.
+Compound categories (for example hail / storm) are translated before title shortening,
+including the full hover title. Search matches both localized labels and original case
+data. Customer names, policy references, unknown free-form descriptions and source
+documents are preserved; switching locale does not rewrite stored case data.
+
+Persona menu labels, the selected persona and dashboard headings use `persona.labels`
+for the active locale; canonical persona IDs and registry names remain unchanged.
+The glossary heading also uses this translated label, never the API's source-language
+glossary name (for example, **Property Claims Glossary** in English).
+Demo-guide scenario tabs and instructions use the same localized persona wording.
+File selections and demo folders are not affected by these display-only translations.
+
 ## Shared brand assets
 
 PrevaIQ uses the **exact official FDR files**, not a redrawn SVG or a CSS-recolored logo.
@@ -161,4 +177,3 @@ Deployment is handled by `infra/deploy.ps1`, which builds in ACR, pushes images,
 - `GET /api/customers/{id}` for Customer 360.
 
 The full list is in the root `README.md` API Reference section.
-
