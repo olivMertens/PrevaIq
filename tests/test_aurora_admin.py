@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from datetime import UTC, datetime
 
 import pytest
@@ -175,7 +176,9 @@ def test_readiness_checks_validate_each_live_dependency(
         "_endpoint_probe",
         lambda settings, token: (observed.append(token) or True, "reachable"),
     )
-    monkeypatch.setattr(admin_api, "_download_initial_condition", lambda settings: b"netcdf")
+    monkeypatch.setattr(
+        admin_api, "_download_initial_condition", lambda settings: nullcontext(b"netcdf")
+    )
     monkeypatch.setattr(
         admin_api,
         "_validate_initial_condition",

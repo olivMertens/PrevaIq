@@ -222,8 +222,8 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
         checks.append({"id": "endpoint", "ok": False, "detail": "authentication_required"})
 
     def validate_initial_conditions() -> str:
-        payload = _download_initial_condition(settings)
-        return _validate_initial_condition(payload).isoformat()
+        with _download_initial_condition(settings) as payload:
+            return _validate_initial_condition(payload).isoformat()
 
     record(
         "initial_conditions",

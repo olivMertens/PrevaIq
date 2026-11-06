@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import io
+from contextlib import nullcontext
 from datetime import UTC, datetime
 
 import numpy as np
@@ -83,6 +85,43 @@ def test_aurora_requires_six_hour_horizon_steps():
                 settings=AuroraSettings(enabled=True),
             )
         )
+
+
+def test_initial_conditions_stream_to_disk_and_close_on_failure(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(aurora, "_credential", lambda: "managed-identity")
+    streams = []
+
+    class Download:
+        def readall(self):
+            pytest.fail("Global initial conditions must never be materialized as bytes")
+
+        def readinto(self, stream):
+            streams.append(stream)
+            for _ in range(320):
+                stream.write(b"x" * 65536)
+
+    class Client:
+        def download_blob(self, *, max_concurrency):
+            assert max_concurrency == 1
+            return Download()
+
+    def from_blob_url(url, *, credential):
+        assert credential == "managed-identity"
+        return Client()
+
+    monkeypatch.setattr(aurora.BlobClient, "from_blob_url", from_blob_url)
+    settings = AuroraSettings(
+        initial_condition_blob_url="https://weather.blob.core.windows.net/inputs/initial.nc"
+    )
+    with pytest.raises(RuntimeError, match="caller failure"):
+        with aurora._download_initial_condition(settings) as payload:
+            assert payload.tell() == 0
+            assert payload.read(4) == b"xxxx"
+            payload.seek(0, io.SEEK_END)
+            assert payload.tell() == 20 * 1024 * 1024
+            raise RuntimeError("caller failure")
+    assert streams[0].closed
 
 
 @pytest.mark.parametrize(
@@ -223,6 +262,15 @@ def test_initial_condition_validation_and_location_summary(tmp_path):
             for name in aurora._REQUIRED_ATMOS_INPUTS
         }
     )
+    variables.update(
+        {
+            f"static_{name}": (
+                ("latitude", "longitude"),
+                np.ones((2, 2), dtype=np.float32),
+            )
+            for name in aurora._REQUIRED_STATIC_INPUTS
+        }
+    )
     initial = xr.Dataset(
         variables,
         coords={
@@ -240,6 +288,18 @@ def test_initial_condition_validation_and_location_summary(tmp_path):
     timestamp = aurora._validate_initial_condition(initial_path.read_bytes())
 
     assert timestamp == datetime(2026, 11, 6, 0, tzinfo=UTC)
+    with initial_path.open("rb") as stream:
+        assert aurora._validate_initial_condition(stream) == timestamp
+        assert not stream.closed
+        stream.seek(0)
+        assert stream.read(8) == initial_path.read_bytes()[:8]
+
+    for missing_static in ({"tvl_9"}, aurora._REQUIRED_STATIC_INPUTS - {"lsm", "z"}):
+        incomplete = initial.drop_vars([f"static_{name}" for name in missing_static])
+        incomplete_path = tmp_path / "incomplete-static.nc"
+        incomplete.to_netcdf(incomplete_path, engine="h5netcdf")
+        with pytest.raises(AuroraConfigurationError, match=f"static_{sorted(missing_static)[0]}"):
+            aurora._validate_initial_condition(incomplete_path.read_bytes())
 
     prediction = xr.Dataset(
         {
@@ -310,7 +370,9 @@ def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
     uploads: list[tuple[str, str, bytes]] = []
     downloads: list[str] = []
 
-    monkeypatch.setattr(aurora, "_download_initial_condition", lambda _: b"netcdf")
+    monkeypatch.setattr(
+        aurora, "_download_initial_condition", lambda _: nullcontext(io.BytesIO(b"netcdf"))
+    )
     monkeypatch.setattr(
         aurora,
         "_validate_initial_condition",
@@ -333,7 +395,7 @@ def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
     monkeypatch.setattr(
         aurora,
         "_upload_channel_file",
-        lambda folder, name, payload: uploads.append((folder, name, payload)),
+        lambda folder, name, payload: uploads.append((folder, name, payload.read())),
     )
 
     def download_prediction(_folder, _task_id, name, _deadline, _poll_interval):
@@ -345,7 +407,7 @@ def test_submit_uses_official_foundry_task_and_blob_channel(monkeypatch):
         aurora,
         "_summarize_predictions",
         lambda predictions, latitude, longitude: {
-            "count": len(predictions),
+            "count": len(list(predictions)),
             "latitude": latitude,
             "longitude": longitude,
         },

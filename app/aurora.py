@@ -14,14 +14,19 @@ import math
 import os
 import time
 import uuid
+from collections.abc import Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from pathlib import Path
+from tempfile import TemporaryFile
+from typing import Any, BinaryIO
 from urllib.parse import parse_qs, urlparse, urlunparse
 
 import numpy as np
 import requests
 import xarray as xr
+from azure.core.exceptions import AzureError
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import (
     BlobClient,
@@ -63,6 +68,44 @@ _REQUIRED_SURFACE_INPUTS = {
     "insolation",
 }
 _REQUIRED_ATMOS_INPUTS = {"z", "u", "v", "t", "q"}
+_REQUIRED_STATIC_INPUTS = {
+    "lsm",
+    "z",
+    "anor",
+    "isor",
+    "cvh",
+    "cl",
+    "dl",
+    "cvl",
+    "slor",
+    "slt_0",
+    "slt_1",
+    "slt_2",
+    "slt_3",
+    "slt_4",
+    "slt_5",
+    "slt_6",
+    "slt_7",
+    "sdfor",
+    "sdor",
+    "tvh_0",
+    "tvh_18",
+    "tvh_19",
+    "tvh_3",
+    "tvh_4",
+    "tvh_5",
+    "tvh_6",
+    "tvl_0",
+    "tvl_1",
+    "tvl_10",
+    "tvl_11",
+    "tvl_13",
+    "tvl_16",
+    "tvl_17",
+    "tvl_2",
+    "tvl_7",
+    "tvl_9",
+}
 _SUMMARY_SURFACE_VARIABLES = (
     "2t",
     "10u",
@@ -140,8 +183,7 @@ class AuroraSettings:
             use_azure_ad=environment.use_azure_ad,
             default_horizon_hours=persisted.default_horizon_hours,
             endpoint_expires_at=(
-                getattr(persisted, "endpoint_expires_at", None)
-                or environment.endpoint_expires_at
+                getattr(persisted, "endpoint_expires_at", None) or environment.endpoint_expires_at
             ),
             configuration_source="admin",
         )
@@ -249,29 +291,52 @@ def _blob_url(folder_sas_url: str, name: str) -> str:
     return urlunparse((parsed.scheme, parsed.netloc, path, "", parsed.query, ""))
 
 
-def _download_initial_condition(settings: AuroraSettings) -> bytes:
+@contextmanager
+def _download_initial_condition(settings: AuroraSettings) -> Iterator[BinaryIO]:
     _validate_https_url(settings.initial_condition_blob_url, "AURORA_INITIAL_CONDITION_BLOB_URL")
     parsed = urlparse(settings.initial_condition_blob_url)
     credential = None if parsed.query else _credential()
+    folder = Path(".tmp") / "aurora"
     try:
-        return (
-            BlobClient.from_blob_url(settings.initial_condition_blob_url, credential=credential)
-            .download_blob()
-            .readall()
-        )
-    except Exception as exc:
-        raise AuroraServiceError(f"Unable to download Aurora initial conditions: {exc}") from exc
+        folder.mkdir(parents=True, exist_ok=True)
+        payload = TemporaryFile(mode="w+b", dir=folder)
+    except OSError as exc:
+        raise AuroraServiceError("Unable to create the Aurora initial-condition workspace") from exc
+    with payload:
+        try:
+            (
+                BlobClient.from_blob_url(settings.initial_condition_blob_url, credential=credential)
+                .download_blob(max_concurrency=1)
+                .readinto(payload)
+            )
+            payload.seek(0)
+        except (AzureError, OSError, ValueError) as exc:
+            raise AuroraServiceError(
+                f"Unable to download Aurora initial conditions: {exc}"
+            ) from exc
+        yield payload
 
 
-def _validate_initial_condition(payload: bytes) -> datetime:
+def _validate_initial_condition(payload: bytes | BinaryIO) -> datetime:
     try:
-        with xr.open_dataset(io.BytesIO(payload), engine="h5netcdf") as dataset:
+        source = io.BytesIO(payload) if isinstance(payload, bytes) else payload
+        with xr.open_dataset(source, engine="h5netcdf") as dataset:
             surface = {name.removeprefix("surf_") for name in dataset if name.startswith("surf_")}
             atmos = {name.removeprefix("atmos_") for name in dataset if name.startswith("atmos_")}
+            static = {
+                name.removeprefix("static_") for name in dataset if name.startswith("static_")
+            }
             missing_surface = sorted(_REQUIRED_SURFACE_INPUTS - surface)
             missing_atmos = sorted(_REQUIRED_ATMOS_INPUTS - atmos)
-            if missing_surface or missing_atmos:
-                missing = ", ".join([*missing_surface, *missing_atmos])
+            missing_static = sorted(_REQUIRED_STATIC_INPUTS - static)
+            if missing_surface or missing_atmos or missing_static:
+                missing = ", ".join(
+                    [
+                        *missing_surface,
+                        *missing_atmos,
+                        *(f"static_{name}" for name in missing_static),
+                    ]
+                )
                 raise AuroraConfigurationError(
                     f"Aurora initial conditions are missing required variables: {missing}."
                 )
@@ -323,10 +388,10 @@ def _foundry_request(
     return data
 
 
-def _upload_channel_file(folder_sas_url: str, name: str, payload: bytes) -> None:
+def _upload_channel_file(folder_sas_url: str, name: str, payload: bytes | BinaryIO) -> None:
     try:
         BlobClient.from_blob_url(_blob_url(folder_sas_url, name)).upload_blob(
-            payload, overwrite=True
+            payload, overwrite=True, max_concurrency=1
         )
         BlobClient.from_blob_url(_blob_url(folder_sas_url, f"{name}.finished")).upload_blob(
             b"File is available", overwrite=True
@@ -371,7 +436,7 @@ def _surface_value(dataset: xr.Dataset, name: str, lat_index: int, lon_index: in
 
 
 def _summarize_predictions(
-    predictions: list[bytes], latitude: float, longitude: float
+    predictions: Iterable[bytes], latitude: float, longitude: float
 ) -> dict[str, Any]:
     series: list[dict[str, Any]] = []
     for payload in predictions:
@@ -551,8 +616,6 @@ def _submit_forecast(
     if settings.timeout_seconds < 30:
         raise AuroraConfigurationError("AURORA_TIMEOUT_SECONDS must be at least 30.")
 
-    initial_condition = _download_initial_condition(settings)
-    initial_condition_at = _validate_initial_condition(initial_condition)
     token = _endpoint_token(settings)
     channel_sas_url = _channel_sas_url(settings)
     model = settings.ensemble_model if ensemble else settings.deterministic_model
@@ -569,12 +632,14 @@ def _submit_forecast(
         "saved_static_vars": [],
         "async_upload_workers": 2,
     }
-    creation = _foundry_request(settings, token, "submission", task)
-    task_id = creation.get("task_id")
-    if not isinstance(task_id, str) or not task_id:
-        raise AuroraServiceError(f"Aurora did not return a task_id: {creation}")
-
-    _upload_channel_file(channel_sas_url, f"{task_id}/input.nc", initial_condition)
+    with _download_initial_condition(settings) as initial_condition:
+        initial_condition_at = _validate_initial_condition(initial_condition)
+        creation = _foundry_request(settings, token, "submission", task)
+        task_id = creation.get("task_id")
+        if not isinstance(task_id, str) or not task_id:
+            raise AuroraServiceError(f"Aurora did not return a task_id: {creation}")
+        initial_condition.seek(0)
+        _upload_channel_file(channel_sas_url, f"{task_id}/input.nc", initial_condition)
     deadline = time.monotonic() + settings.timeout_seconds
     while True:
         progress = _foundry_request(settings, token, "task_info", {"task_id": task_id})
@@ -589,7 +654,7 @@ def _submit_forecast(
         time.sleep(settings.poll_interval_seconds)
 
     prediction_count = num_steps * len(fine_lead_times)
-    predictions = [
+    predictions = (
         _download_prediction(
             channel_sas_url,
             task_id,
@@ -598,7 +663,7 @@ def _submit_forecast(
             settings.poll_interval_seconds,
         )
         for index in range(prediction_count)
-    ]
+    )
     requested_at = datetime.now(UTC).isoformat()
     forecast = _summarize_predictions(predictions, latitude, longitude)
     return {

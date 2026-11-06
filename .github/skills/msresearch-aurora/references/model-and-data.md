@@ -14,6 +14,7 @@ The deployed Aurora-v1p5 serving package used by PrevaIQ expects a NetCDF initia
 - exactly two historical time steps;
 - 19 required surface inputs;
 - atmospheric `z`, `u`, `v`, `t`, and `q`;
+- all 36 Aurora 1.5 static fields (the three legacy terrain fields are not sufficient);
 - latitude, longitude, and time coordinates compatible with the endpoint;
 - no missing required variables.
 
@@ -46,6 +47,16 @@ a separate governed pipeline. Validate:
 - temporal cadence;
 - spatial grid compatibility;
 - missing values.
+
+The official `microsoft/aurora` examples map ERA5 `sd` directly to `scaled_sd` and supply
+the 36 static fields from `aurora-0.25-v1.5-static.pickle`. Pin and verify the official
+artifact before deserializing it. An ERA5-based historical demo is a hindcast, not live
+weather or storm confirmation; Aurora 1.5 is fine-tuned on IFS, so ERA5 accuracy must
+not be assumed. Prepare global inputs in an appropriately sized existing CPU job,
+not inside the serving API's constrained memory.
+The serving adapter streams initial conditions to a managed temporary file and consumes
+predictions one at a time; do not reintroduce a whole-file `readall()` or a list of all
+global prediction payloads in the API process.
 
 Never commit production weather datasets, CDS credentials, account keys, or signed Blob URLs.
 
