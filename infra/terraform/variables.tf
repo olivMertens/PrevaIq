@@ -132,6 +132,12 @@ variable "aurora_endpoint_key_secret_enabled" {
   default     = false
 }
 
+variable "aurora_endpoint_expires_at" {
+  description = "ISO 8601 expiration timestamp for the temporary Aurora endpoint allocation."
+  type        = string
+  default     = ""
+}
+
 variable "pg_admin_login" {
   description = "PostgreSQL administrator login."
   type        = string

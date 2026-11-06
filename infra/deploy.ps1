@@ -65,6 +65,8 @@ param(
     [string]$ApiFqdn = "",
     [hashtable]$FrontendAccessSettings = @{},
     [hashtable]$BackendAccessSettings = @{},
+    [string]$AuroraFoundryEndpoint = $env:AURORA_FOUNDRY_ENDPOINT,
+    [string]$AuroraEndpointExpiresAt = $env:AURORA_ENDPOINT_EXPIRES_AT,
     [switch]$RotateAuthSecret
 )
 
@@ -261,6 +263,21 @@ if (-not $SkipBackend -and -not $BuildOnly) {
         Write-Host "    AURORA: Key authentication enabled (Key Vault reference)" -ForegroundColor Green
     } else {
         Write-Host "    AURORA: endpoint key not configured - Key-authenticated inference is unavailable" -ForegroundColor Yellow
+    }
+    if ($AuroraFoundryEndpoint) {
+        $backendModelEnvVarArgs += "AURORA_FOUNDRY_ENDPOINT=$AuroraFoundryEndpoint"
+    }
+    if ($AuroraEndpointExpiresAt) {
+        if ($AuroraEndpointExpiresAt -notmatch '(Z|[+-]\d{2}:\d{2})$') {
+            throw "AuroraEndpointExpiresAt must include a timezone (Z or an explicit offset)."
+        }
+        try {
+            [DateTimeOffset]::Parse($AuroraEndpointExpiresAt) | Out-Null
+        } catch {
+            throw "AuroraEndpointExpiresAt must be an ISO 8601 timestamp with a timezone."
+        }
+        $backendModelEnvVarArgs += "AURORA_ENDPOINT_EXPIRES_AT=$AuroraEndpointExpiresAt"
+        Write-Host "    AURORA: temporary endpoint expires $AuroraEndpointExpiresAt" -ForegroundColor Yellow
     }
 }
 if ($PreflightOnly) {

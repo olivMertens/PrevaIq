@@ -2172,6 +2172,9 @@ export interface AuroraStatus {
   human_review_required: boolean;
   requires_initial_conditions: boolean;
   default_horizon_hours: number;
+  endpoint_expires_at: string | null;
+  endpoint_expired: boolean;
+  endpoint_seconds_remaining: number | null;
   configuration_source: 'admin' | 'environment';
   missing: string[];
 }

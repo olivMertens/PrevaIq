@@ -16,6 +16,7 @@ param adminIpRanges = []
 // Aurora endpoint uses Key authentication. After running set-aurora-endpoint-secret.ps1,
 // provide the initial-condition Blob URL and enable these parameters for deployment:
 // param auroraFoundryEndpoint = 'https://ol-workspace-aurora-fqedr.swedencentral.inference.ml.azure.com/score'
+param auroraEndpointExpiresAt = '2026-11-13T05:59:39.304Z'
 // param auroraEndpointKeySecretEnabled = true
 // param auroraInitialConditionBlobUrl = 'https://<storage>.blob.core.windows.net/<container>/initial.nc'
 // param auroraEnabled = true

@@ -24,6 +24,9 @@ def test_aurora_status_is_safe_when_disabled():
         "human_review_required": True,
         "requires_initial_conditions": True,
         "default_horizon_hours": 12,
+        "endpoint_expires_at": None,
+        "endpoint_expired": False,
+        "endpoint_seconds_remaining": None,
         "configuration_source": "environment",
         "missing": ["endpoint", "initial_condition", "blob_channel"],
     }
@@ -38,6 +41,25 @@ def test_disabled_aurora_fails_explicitly():
                 settings=AuroraSettings(),
             )
         )
+
+
+def test_expired_endpoint_is_not_configured():
+    settings = AuroraSettings(
+        enabled=True,
+        endpoint="https://aurora.westeurope.inference.ml.azure.com/score",
+        initial_condition_blob_url="https://weather.blob.core.windows.net/input/current.nc",
+        channel_container_url="https://weather.blob.core.windows.net/tasks",
+        endpoint_token="key",
+        use_azure_ad=False,
+        endpoint_expires_at="2020-01-01T00:00:00Z",
+    )
+
+    result = status(settings)
+
+    assert result["configured"] is False
+    assert result["endpoint_expired"] is True
+    assert result["endpoint_seconds_remaining"] == 0
+    assert "endpoint_expired" in result["missing"]
 
 
 def test_aurora_rejects_invalid_coordinates():

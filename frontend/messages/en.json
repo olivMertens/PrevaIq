@@ -1,4 +1,28 @@
 {
+  "auroraExpiry": {
+    "remaining": "{days}d {hours}h {minutes}m {seconds}s",
+    "remainingAccessible": "{days} days, {hours} hours and {minutes} minutes remaining",
+    "expired": "Expired",
+    "expiresAt": "Endpoint expires {value}",
+    "states": {
+      "active": {
+        "title": "Temporary Aurora capacity countdown",
+        "body": "The endpoint is active. Plan the replacement or extension before this allocation expires."
+      },
+      "warning": {
+        "title": "Aurora capacity expires soon",
+        "body": "Less than 48 hours remain. Confirm the replacement endpoint, key and initial-condition feed now."
+      },
+      "urgent": {
+        "title": "Aurora replacement required",
+        "body": "Less than 12 hours remain. Rotate the endpoint configuration before new forecasts are interrupted."
+      },
+      "expired": {
+        "title": "Aurora endpoint allocation expired",
+        "body": "New forecasts are disabled. Configure a replacement endpoint and update its expiration time."
+      }
+    }
+  },
   "app": {
     "title": "{brand}",
     "description": "AI-powered document processing workbench for insurance"
@@ -302,6 +326,10 @@
           },
           "default_horizon_hours": {
             "label": "Default interactive horizon"
+          },
+          "endpoint_expires_at": {
+            "label": "Temporary endpoint expiration",
+            "help": "Absolute local date and time for this allocation. Update it when the endpoint is extended or replaced."
           }
         }
       },

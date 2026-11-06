@@ -78,6 +78,7 @@ locals {
     AURORA_TOKEN_SCOPE                = "https://ml.azure.com/.default"
     AURORA_TIMEOUT_SECONDS            = "900"
     AURORA_USE_AZURE_AD               = tostring(!var.aurora_endpoint_key_secret_enabled)
+    AURORA_ENDPOINT_EXPIRES_AT        = var.aurora_endpoint_expires_at
   }
 
   # Fabric Data Agent IDs (set them after creating the Data Agent in Fabric); omitted while empty.

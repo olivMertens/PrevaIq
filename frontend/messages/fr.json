@@ -1,4 +1,28 @@
 {
+  "auroraExpiry": {
+    "remaining": "{days}j {hours}h {minutes}m {seconds}s",
+    "remainingAccessible": "{days} jours, {hours} heures et {minutes} minutes restantes",
+    "expired": "Expiré",
+    "expiresAt": "Expiration du point de terminaison : {value}",
+    "states": {
+      "active": {
+        "title": "Compte à rebours de la capacité Aurora temporaire",
+        "body": "Le point de terminaison est actif. Planifiez son remplacement ou sa prolongation avant l'expiration."
+      },
+      "warning": {
+        "title": "La capacité Aurora expire bientôt",
+        "body": "Il reste moins de 48 heures. Confirmez dès maintenant le point de terminaison, la clé et le flux de conditions initiales de remplacement."
+      },
+      "urgent": {
+        "title": "Remplacement d'Aurora requis",
+        "body": "Il reste moins de 12 heures. Renouvelez la configuration avant l'interruption des nouvelles prévisions."
+      },
+      "expired": {
+        "title": "Allocation du point de terminaison Aurora expirée",
+        "body": "Les nouvelles prévisions sont désactivées. Configurez un point de terminaison de remplacement et sa date d'expiration."
+      }
+    }
+  },
   "app": {
     "title": "{brand}",
     "description": "Poste de travail intelligent de traitement de documents pour l'assurance"
@@ -302,6 +326,10 @@
           },
           "default_horizon_hours": {
             "label": "Horizon interactif par défaut"
+          },
+          "endpoint_expires_at": {
+            "label": "Expiration du point de terminaison temporaire",
+            "help": "Date et heure locales absolues de cette allocation. Mettez-les à jour lors d'une prolongation ou d'un remplacement."
           }
         }
       },

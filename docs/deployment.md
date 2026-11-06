@@ -218,6 +218,13 @@ variable `aurora_endpoint_key_secret_enabled` control whether
 `AURORA_ENDPOINT_TOKEN` is mapped and `AURORA_USE_AZURE_AD` is set to `false`.
 Blob input and task-channel access continue to use managed identity.
 
+Set `auroraEndpointExpiresAt` (Bicep) or `aurora_endpoint_expires_at`
+(Terraform) to the temporary allocation's absolute ISO 8601 deadline. The
+admin and claim UIs count down to this timestamp, warn below 48 and 12 hours,
+and stop new forecast submissions after expiry while retaining existing
+evidence. When deploying images without reapplying IaC, pass the same value to
+`deploy.ps1 -AuroraEndpointExpiresAt`.
+
 Reapply Bicep to enable the adapter. The Container App identity already has
 Storage Blob Data Contributor and generates a short-lived delegated SAS for the
 `prevaiq-data/aurora` exchange folder:

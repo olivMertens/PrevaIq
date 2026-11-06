@@ -37,6 +37,7 @@
 | `AURORA_TIMEOUT_SECONDS` | No | `900` | End-to-end deadline for task execution and prediction retrieval. |
 | `AURORA_POLL_INTERVAL_SECONDS` | No | `2` | Delay between bounded task and Blob marker checks. |
 | `AURORA_DEFAULT_HORIZON_HOURS` | No | `12` | Default interactive forecast horizon; must be a multiple of six between 6 and 240 hours. |
+| `AURORA_ENDPOINT_EXPIRES_AT` | No | - | ISO 8601 expiration time for a temporary endpoint allocation. The UI displays a persistent countdown and disables new forecasts after expiry. |
 | `AURORA_USE_AZURE_AD` | No | `true` | Use DefaultAzureCredential for the managed Aurora endpoint. Set `false` for a Key-authenticated Azure ML endpoint. |
 | `AURORA_TOKEN_SCOPE` | No | `https://ml.azure.com/.default` | Entra token scope for an Azure ML managed online endpoint. Override only if the provisioned endpoint specifies another audience. |
 | `AURORA_ENDPOINT_TOKEN` | Conditional | - | Endpoint key sent as a bearer token when Entra auth is disabled. Store in Key Vault; never commit it. |

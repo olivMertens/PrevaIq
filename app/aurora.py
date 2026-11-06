@@ -95,6 +95,7 @@ class AuroraSettings:
     poll_interval_seconds: float = 2.0
     use_azure_ad: bool = True
     default_horizon_hours: int = 12
+    endpoint_expires_at: str | None = None
     configuration_source: str = "environment"
 
     @classmethod
@@ -113,6 +114,7 @@ class AuroraSettings:
             poll_interval_seconds=float(os.getenv("AURORA_POLL_INTERVAL_SECONDS", "2")),
             use_azure_ad=os.getenv("AURORA_USE_AZURE_AD", "true").lower() == "true",
             default_horizon_hours=int(os.getenv("AURORA_DEFAULT_HORIZON_HOURS", "12")),
+            endpoint_expires_at=os.getenv("AURORA_ENDPOINT_EXPIRES_AT", "").strip() or None,
         )
 
     @classmethod
@@ -137,6 +139,10 @@ class AuroraSettings:
             poll_interval_seconds=environment.poll_interval_seconds,
             use_azure_ad=environment.use_azure_ad,
             default_horizon_hours=persisted.default_horizon_hours,
+            endpoint_expires_at=(
+                getattr(persisted, "endpoint_expires_at", None)
+                or environment.endpoint_expires_at
+            ),
             configuration_source="admin",
         )
 
@@ -146,11 +152,31 @@ class AuroraSettings:
         has_auth = self.use_azure_ad or bool(self.endpoint_token)
         return (
             self.enabled
+            and not self.endpoint_expired
             and bool(self.endpoint)
             and bool(self.initial_condition_blob_url)
             and has_channel
             and has_auth
         )
+
+    @property
+    def endpoint_expiration(self) -> datetime | None:
+        if not self.endpoint_expires_at:
+            return None
+        try:
+            expiration = datetime.fromisoformat(self.endpoint_expires_at.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise AuroraConfigurationError(
+                "AURORA_ENDPOINT_EXPIRES_AT must be an ISO 8601 timestamp."
+            ) from error
+        if expiration.tzinfo is None:
+            raise AuroraConfigurationError("AURORA_ENDPOINT_EXPIRES_AT must include a timezone.")
+        return expiration.astimezone(UTC)
+
+    @property
+    def endpoint_expired(self) -> bool:
+        expiration = self.endpoint_expiration
+        return expiration is not None and expiration <= datetime.now(UTC)
 
 
 def _credential() -> DefaultAzureCredential:
@@ -640,6 +666,12 @@ def status(settings: AuroraSettings | None = None) -> dict[str, Any]:
         missing.append("blob_channel")
     if not active_settings.use_azure_ad and not active_settings.endpoint_token:
         missing.append("endpoint_token")
+    if active_settings.endpoint_expired:
+        missing.append("endpoint_expired")
+    expiration = active_settings.endpoint_expiration
+    seconds_remaining = (
+        max(0, int((expiration - datetime.now(UTC)).total_seconds())) if expiration else None
+    )
     return {
         "enabled": active_settings.enabled,
         "configured": active_settings.configured,
@@ -650,6 +682,9 @@ def status(settings: AuroraSettings | None = None) -> dict[str, Any]:
         "human_review_required": True,
         "requires_initial_conditions": True,
         "default_horizon_hours": active_settings.default_horizon_hours,
+        "endpoint_expires_at": active_settings.endpoint_expires_at,
+        "endpoint_expired": active_settings.endpoint_expired,
+        "endpoint_seconds_remaining": seconds_remaining,
         "configuration_source": active_settings.configuration_source,
         "missing": missing,
     }

@@ -34,6 +34,7 @@ class AuroraConfigBody(BaseModel):
     initial_condition_blob_url: str = Field(default="", max_length=2048)
     channel_container_url: str = Field(default="", max_length=2048)
     default_horizon_hours: int = Field(default=12, ge=6, le=240)
+    endpoint_expires_at: str | None = Field(default=None, max_length=64)
     admin: str = Field(min_length=1, max_length=120)
 
 
@@ -52,6 +53,7 @@ def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
         poll_interval_seconds=environment.poll_interval_seconds,
         use_azure_ad=environment.use_azure_ad,
         default_horizon_hours=config.default_horizon_hours,
+        endpoint_expires_at=config.endpoint_expires_at or environment.endpoint_expires_at,
         configuration_source="admin",
     )
 
@@ -76,7 +78,10 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
     settings = _settings_from_config(config) if config else AuroraSettings.from_env()
     readiness = status(settings)
     checks = _checklist(settings)
-    configuration = public_dict(config)
+    configuration = {
+        **public_dict(config),
+        "endpoint_expires_at": settings.endpoint_expires_at,
+    }
     if config is None:
         configuration = {
             "enabled": settings.enabled,
@@ -86,6 +91,7 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
             "initial_condition_blob_url": settings.initial_condition_blob_url,
             "channel_container_url": settings.channel_container_url,
             "default_horizon_hours": settings.default_horizon_hours,
+            "endpoint_expires_at": settings.endpoint_expires_at,
             "updated_at": None,
             "updated_by": None,
         }
@@ -137,6 +143,7 @@ def update_aurora_admin_config(body: AuroraConfigBody) -> dict:
                 initial_condition_blob_url=body.initial_condition_blob_url,
                 channel_container_url=body.channel_container_url,
                 default_horizon_hours=body.default_horizon_hours,
+                endpoint_expires_at=body.endpoint_expires_at,
             ),
             body.admin,
         )

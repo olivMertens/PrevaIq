@@ -15,6 +15,7 @@ import {
 import { CockpitCard } from './caseUi';
 import AuroraForecastChart from './AuroraForecastChart';
 import AuroraStormTimeline, { AuroraResolvingState } from './AuroraStormTimeline';
+import AuroraExpiryCountdown from '@/components/aurora/AuroraExpiryCountdown';
 
 export default function AuroraRiskPanel({
   applicationId,
@@ -96,6 +97,7 @@ export default function AuroraRiskPanel({
     <CockpitCard title={t('title')} headingId="cockpit-aurora">
       <div className="space-y-3 px-4 py-3">
         <p className="text-xs text-slate-500">{t('description')}</p>
+        <AuroraExpiryCountdown expiresAt={status?.endpoint_expires_at} compact />
         {status && !status.configured && (
           <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
             {t('notConfigured')}

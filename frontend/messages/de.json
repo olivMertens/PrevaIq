@@ -1,4 +1,28 @@
 {
+  "auroraExpiry": {
+    "remaining": "{days}T {hours}Std {minutes}Min {seconds}Sek",
+    "remainingAccessible": "{days} Tage, {hours} Stunden und {minutes} Minuten verbleibend",
+    "expired": "Abgelaufen",
+    "expiresAt": "Endpunkt läuft ab: {value}",
+    "states": {
+      "active": {
+        "title": "Countdown der temporären Aurora-Kapazität",
+        "body": "Der Endpunkt ist aktiv. Planen Sie Ersatz oder Verlängerung vor Ablauf der Zuweisung."
+      },
+      "warning": {
+        "title": "Aurora-Kapazität läuft bald ab",
+        "body": "Weniger als 48 Stunden verbleiben. Bestätigen Sie jetzt Ersatzendpunkt, Schlüssel und Anfangsbedingungen."
+      },
+      "urgent": {
+        "title": "Aurora-Ersatz erforderlich",
+        "body": "Weniger als 12 Stunden verbleiben. Aktualisieren Sie die Konfiguration, bevor neue Vorhersagen unterbrochen werden."
+      },
+      "expired": {
+        "title": "Aurora-Endpunktzuweisung abgelaufen",
+        "body": "Neue Vorhersagen sind deaktiviert. Konfigurieren Sie einen Ersatzendpunkt und dessen Ablaufzeit."
+      }
+    }
+  },
   "app": {
     "title": "{brand}",
     "description": "KI-gestützte Dokumentenverarbeitung für Versicherungen"
@@ -302,6 +326,10 @@
           },
           "default_horizon_hours": {
             "label": "Interaktiver Standardhorizont"
+          },
+          "endpoint_expires_at": {
+            "label": "Ablauf des temporären Endpunkts",
+            "help": "Absolutes lokales Datum und Uhrzeit dieser Zuweisung. Bei Verlängerung oder Ersatz aktualisieren."
           }
         }
       },

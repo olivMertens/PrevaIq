@@ -20,6 +20,7 @@ import {
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
+import AuroraExpiryCountdown from '@/components/aurora/AuroraExpiryCountdown';
 
 type AuroraConfig = {
   enabled: boolean;
@@ -29,6 +30,7 @@ type AuroraConfig = {
   initial_condition_blob_url: string;
   channel_container_url: string;
   default_horizon_hours: number;
+  endpoint_expires_at: string | null;
   updated_at: string | null;
   updated_by: string | null;
 };
@@ -73,6 +75,7 @@ const EMPTY_CONFIG: AuroraConfig = {
   initial_condition_blob_url: '',
   channel_container_url: '',
   default_horizon_hours: 12,
+  endpoint_expires_at: null,
   updated_at: null,
   updated_by: null,
 };
@@ -80,6 +83,14 @@ const EMPTY_CONFIG: AuroraConfig = {
 async function responseError(response: Response, fallback: string): Promise<string> {
   const body = await response.json().catch(() => ({})) as { detail?: string; error?: string };
   return body.detail || body.error || fallback;
+}
+
+function toLocalDateTime(value: string | null): string {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 19);
 }
 
 export default function AuroraAdminTab() {
@@ -235,6 +246,8 @@ export default function AuroraAdminTab() {
         </div>
       </div>
 
+      <AuroraExpiryCountdown expiresAt={form.endpoint_expires_at} />
+
       {message && (
         <p
           role="alert"
@@ -301,6 +314,24 @@ export default function AuroraAdminTab() {
                   <option key={hours} value={hours}>{t('hours', { count: hours })}</option>
                 ))}
               </select>
+            </label>
+            <label className="grid gap-1.5 text-sm font-medium text-slate-700">
+              {t('configuration.fields.endpoint_expires_at.label')}
+              <input
+                type="datetime-local"
+                step="1"
+                value={toLocalDateTime(form.endpoint_expires_at)}
+                onChange={(event) => setForm({
+                  ...form,
+                  endpoint_expires_at: event.target.value
+                    ? new Date(event.target.value).toISOString()
+                    : null,
+                })}
+                className="rounded-lg border border-slate-300 px-3 py-2.5 text-sm font-normal text-slate-900"
+              />
+              <span className="text-xs font-normal text-slate-500">
+                {t('configuration.fields.endpoint_expires_at.help')}
+              </span>
             </label>
           </div>
 

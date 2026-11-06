@@ -28,6 +28,7 @@ def valid_config(**overrides) -> AuroraAdminConfig:
         ),
         "channel_container_url": "https://weather.blob.core.windows.net/aurora-tasks",
         "default_horizon_hours": 12,
+        "endpoint_expires_at": "2026-11-13T05:59:39.304Z",
     }
     values.update(overrides)
     return AuroraAdminConfig(**values)
@@ -64,12 +65,22 @@ def test_local_configuration_round_trip_is_audited(local_config_store):
     assert loaded is not None
     assert loaded.updated_by == "admin@example.com"
     assert loaded.updated_at is not None
+    assert loaded.endpoint_expires_at == "2026-11-13T05:59:39.304000+00:00"
     assert (
         "secret"
         not in (
             local_config_store / "brands" / "prevaiq" / "configuration" / "aurora.json"
         ).read_text()
     )
+
+
+@pytest.mark.parametrize(
+    "value",
+    ["not-a-timestamp", "2026-11-13T05:59:39"],
+)
+def test_config_rejects_invalid_endpoint_expiration(value):
+    with pytest.raises(ValueError, match="endpoint_expires_at"):
+        aurora_config.validate_config(valid_config(endpoint_expires_at=value))
 
 
 def test_persisted_configuration_takes_precedence(monkeypatch):
@@ -85,6 +96,16 @@ def test_persisted_configuration_takes_precedence(monkeypatch):
     assert settings.configuration_source == "admin"
     assert settings.endpoint_token == ""
     assert settings.channel_sas_url == ""
+    assert settings.endpoint_expires_at == persisted.endpoint_expires_at
+
+
+def test_environment_expiration_is_retained_when_admin_config_omits_it(monkeypatch):
+    monkeypatch.setenv("AURORA_ENDPOINT_EXPIRES_AT", "2026-11-13T05:59:39Z")
+
+    snapshot = admin_api._snapshot(valid_config(endpoint_expires_at=None))
+
+    assert snapshot["configuration"]["endpoint_expires_at"] == "2026-11-13T05:59:39Z"
+    assert snapshot["runtime"]["endpoint_expires_at"] == "2026-11-13T05:59:39Z"
 
 
 def test_admin_snapshot_exposes_non_secret_managed_identity_readiness(monkeypatch):

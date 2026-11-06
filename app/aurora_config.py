@@ -34,6 +34,7 @@ class AuroraAdminConfig:
     initial_condition_blob_url: str = ""
     channel_container_url: str = ""
     default_horizon_hours: int = 12
+    endpoint_expires_at: str | None = None
     updated_at: str | None = None
     updated_by: str | None = None
 
@@ -126,6 +127,15 @@ def validate_config(config: AuroraAdminConfig) -> AuroraAdminConfig:
             raise ValueError(f"{field} contains unsupported characters")
     if not 6 <= config.default_horizon_hours <= 240 or config.default_horizon_hours % 6:
         raise ValueError("default_horizon_hours must be a multiple of 6 between 6 and 240")
+    endpoint_expires_at = config.endpoint_expires_at
+    if endpoint_expires_at:
+        try:
+            expiration = datetime.fromisoformat(endpoint_expires_at.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise ValueError("endpoint_expires_at must be an ISO 8601 timestamp") from error
+        if expiration.tzinfo is None:
+            raise ValueError("endpoint_expires_at must include a timezone")
+        endpoint_expires_at = expiration.astimezone(UTC).isoformat()
     if config.enabled and not (endpoint and initial_condition and channel):
         raise ValueError("endpoint, initial condition, and Blob channel are required when enabled")
     return AuroraAdminConfig(
@@ -136,6 +146,7 @@ def validate_config(config: AuroraAdminConfig) -> AuroraAdminConfig:
         initial_condition_blob_url=initial_condition,
         channel_container_url=channel,
         default_horizon_hours=config.default_horizon_hours,
+        endpoint_expires_at=endpoint_expires_at,
         updated_at=config.updated_at,
         updated_by=config.updated_by,
     )

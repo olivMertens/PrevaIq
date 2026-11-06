@@ -60,6 +60,9 @@ param auroraInitialConditionBlobUrl string = ''
 @description('Wire the Key-authenticated Aurora endpoint key from Key Vault secret aurora-endpoint-key. Enable only after storing the secret out of band.')
 param auroraEndpointKeySecretEnabled bool = false
 
+@description('ISO 8601 expiration timestamp for the temporary Aurora endpoint allocation.')
+param auroraEndpointExpiresAt string = ''
+
 @description('PostgreSQL administrator login')
 param pgAdminLogin string = 'prevaiqadmin'
 
@@ -979,6 +982,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             { name: 'AURORA_TOKEN_SCOPE', value: 'https://ml.azure.com/.default' }
             { name: 'AURORA_TIMEOUT_SECONDS', value: '900' }
             { name: 'AURORA_USE_AZURE_AD', value: string(!auroraEndpointKeySecretEnabled) }
+            { name: 'AURORA_ENDPOINT_EXPIRES_AT', value: auroraEndpointExpiresAt }
           ], webIqEnv, auroraEndpointEnv, accessEmailEnv)
         }
       ]
