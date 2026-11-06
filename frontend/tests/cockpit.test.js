@@ -19,6 +19,7 @@ const display = load('applicationDisplay.ts', libDir);
 const timelineDates = load('timelineDates.ts', libDir);
 const analysisMarkdown = load('analysisMarkdown.ts', propertyDir);
 const coverageView = load('coverageView.ts', propertyDir);
+const propertySignals = load('buildPropertySignals.ts', propertyDir);
 
 test('case categories follow the UI locale before compacting, without changing holder names', () => {
   const { localizeApplicationTitle, compactApplicationTitle, localizeClaimSubject } = display;
@@ -528,6 +529,56 @@ test('recommendation reasons keep CHF and EUR consistent with the amount and exp
         }
         assert.doesNotMatch(result.reason, code === 'CHF' ? /€|EUR/ : /CHF/);
         assert.doesNotMatch(result.reason, /\{(?:amount|threshold)\}/);
+      }
+    }
+  }
+});
+
+test('property amount signals render the claim currency on both sides of the expertise threshold', () => {
+  for (const locale of ['en', 'fr', 'de']) {
+    const messages = JSON.parse(fs.readFileSync(
+      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
+    ));
+    const t = createTranslator({ locale, messages, namespace: 'claims' });
+    const tc = createTranslator({ locale, messages, namespace: 'caseCockpit' });
+    for (const code of ['CHF', 'EUR']) {
+      const money = value => currency.formatAmount(value, code, locale, { maximumFractionDigits: 0 });
+      for (const amount of [4999, 5000, 5001, 1697400]) {
+        const result = propertySignals.buildPropertySignals({
+          fraud: null, amount, amountLabel: money(amount), thresholdLabel: money(5000),
+          overclaim: null, nature: '', thirdParty: '', urgency: '', preexisting: '',
+          description: '', llmOutputs: {}, fileNames: [],
+        }, t, tc).find(signal => signal.theme === 'amount');
+        assert.equal(!!result, amount > 5000);
+        if (result) {
+          assert.ok(result.detail.includes(money(amount)), `${locale}/${code}: amount`);
+          assert.ok(result.detail.includes(money(5000)), `${locale}/${code}: threshold`);
+          assert.doesNotMatch(result.detail, code === 'CHF' ? /€|EUR|euros?/i : /CHF/);
+          assert.doesNotMatch(result.detail, /\{(?:amount|threshold)\}/);
+        }
+      }
+    }
+  }
+});
+
+test('Swiss weather signals refer to AVB rather than the French Cat-Nat order independently of currency', () => {
+  for (const locale of ['en', 'fr', 'de']) {
+    const messages = JSON.parse(fs.readFileSync(
+      path.resolve(__dirname, '..', 'messages', `${locale}.json`), 'utf8',
+    ));
+    const t = createTranslator({ locale, messages, namespace: 'claims' });
+    const tc = createTranslator({ locale, messages, namespace: 'caseCockpit' });
+    for (const country of ['CH', 'ch', 'FR', undefined]) {
+      for (const code of ['CHF', 'EUR']) {
+        const result = propertySignals.buildPropertySignals({
+          fraud: null, amount: 0, amountLabel: code, thresholdLabel: code, country,
+          overclaim: null, nature: 'hail', thirdParty: '', urgency: '', preexisting: '',
+          description: '', llmOutputs: {}, fileNames: [],
+        }, t, tc).find(signal => signal.theme === 'cover');
+        assert.equal(result.detail, messages.claims.signals[
+          country?.toUpperCase() === 'CH' ? 'weatherEventDetailCh' : 'weatherEventDetail'
+        ]);
+        if (country?.toUpperCase() === 'CH') assert.match(result.detail, /AVB/);
       }
     }
   }

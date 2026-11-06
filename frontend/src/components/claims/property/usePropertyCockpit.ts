@@ -69,6 +69,8 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
         fraud,
         amount: hasAmount ? amount : 0,
         amountLabel: hasAmount ? money(amount) : amountRaw,
+        thresholdLabel: money(EXPERT_THRESHOLD),
+        country: application?.jurisdiction?.country,
         overclaim: amountComparison?.hasOverclaim
           ? { claimed: money(amountComparison.claimed), recommended: money(amountComparison.recommended), percent: Math.round(amountComparison.pctDelta) }
           : null,

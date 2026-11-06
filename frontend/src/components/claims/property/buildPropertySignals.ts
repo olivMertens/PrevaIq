@@ -7,6 +7,8 @@ export interface PropertySignalInput {
   fraud: FraudAnalysisResponse | null;
   amount: number;
   amountLabel: string;
+  thresholdLabel: string;
+  country?: string;
   overclaim: { claimed: string; recommended: string; percent: number } | null;
   nature: string;
   thirdParty: string;
@@ -113,13 +115,13 @@ export function buildPropertySignals(input: PropertySignalInput, t: TranslateFn,
   }
 
   if (input.amount > 5000) {
-    raw.push({ theme: 'amount', severity: 'warning', title: t('signals.highAmount'), detail: t('signals.highAmountDetail', { amount: input.amountLabel }), sources: ['rule'], tab: 'cover' });
+    raw.push({ theme: 'amount', severity: 'warning', title: t('signals.highAmount'), detail: t('signals.highAmountDetail', { amount: input.amountLabel, threshold: input.thresholdLabel }), sources: ['rule'], tab: 'cover' });
   }
   if (input.overclaim) {
     raw.push({ theme: 'amount', severity: 'warning', title: tc('signals.overclaim'), detail: tc('signals.overclaimDetail', input.overclaim), sources: ['aiAnalysis'], tab: 'cover' });
   }
   if (WEATHER_CAUSE.test(input.nature) && !web) {
-    raw.push({ theme: 'cover', severity: 'info', title: t('signals.weatherEvent'), detail: t('signals.weatherEventDetail'), sources: ['rule'], tab: 'web' });
+    raw.push({ theme: 'cover', severity: 'info', title: t('signals.weatherEvent'), detail: t(input.country?.toUpperCase() === 'CH' ? 'signals.weatherEventDetailCh' : 'signals.weatherEventDetail'), sources: ['rule'], tab: 'web' });
   }
   if (FIRE_CAUSE.test(input.nature)) {
     raw.push({ theme: 'cover', severity: 'warning', title: t('signals.fire'), detail: t('signals.fireDetail'), sources: ['rule'], tab: 'cover' });
