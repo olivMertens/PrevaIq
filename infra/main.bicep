@@ -42,6 +42,21 @@ param fabricWorkspaceId string = ''
 @description('Fabric Data Agent item ID')
 param fabricDataAgentId string = ''
 
+@description('Enable the managed Foundry Aurora 1.5 forecast adapter after tenant deployment and contract validation.')
+param auroraEnabled bool = false
+
+@description('Tenant-specific managed Foundry Aurora forecast endpoint.')
+param auroraFoundryEndpoint string = ''
+
+@description('Aurora 1.5 model name in Microsoft Foundry.')
+param auroraDeploymentName string = 'aurora-0.25-v1.5'
+
+@description('Aurora 1.5 stochastic ensemble model name in Microsoft Foundry.')
+param auroraEnsembleDeploymentName string = 'aurora-0.25-v1.5-ensemble'
+
+@description('HTTPS Blob URL of the current validated Aurora NetCDF initial condition.')
+param auroraInitialConditionBlobUrl string = ''
+
 @description('PostgreSQL administrator login')
 param pgAdminLogin string = 'prevaiqadmin'
 
@@ -938,6 +953,16 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = if (deployApps) {
             { name: 'AZURE_SEARCH_INDEX_NAME', value: 'corrections' }
             // Foundry project is used by the Fabric Data Agent connection only.
             { name: 'FOUNDRY_PROJECT_ENDPOINT', value: '${foundryAccount.properties.endpoint}/api/projects/${foundryProject.name}' }
+            // Aurora 1.5 is a data-in/data-out deployment, separate from chat deployments.
+            { name: 'AURORA_ENABLED', value: string(auroraEnabled) }
+            { name: 'AURORA_FOUNDRY_ENDPOINT', value: auroraFoundryEndpoint }
+            { name: 'AURORA_DEPLOYMENT_NAME', value: auroraDeploymentName }
+            { name: 'AURORA_ENSEMBLE_DEPLOYMENT_NAME', value: auroraEnsembleDeploymentName }
+            { name: 'AURORA_INITIAL_CONDITION_BLOB_URL', value: auroraInitialConditionBlobUrl }
+            { name: 'AURORA_CHANNEL_CONTAINER_URL', value: '${storageAccount.properties.primaryEndpoints.blob}${dataContainerName}/aurora' }
+            { name: 'AURORA_TOKEN_SCOPE', value: 'https://ml.azure.com/.default' }
+            { name: 'AURORA_TIMEOUT_SECONDS', value: '900' }
+            { name: 'AURORA_USE_AZURE_AD', value: 'true' }
           ], webIqEnv, accessEmailEnv)
         }
       ]

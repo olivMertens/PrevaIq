@@ -96,6 +96,36 @@ variable "fabric_data_agent_id" {
   default     = ""
 }
 
+variable "aurora_enabled" {
+  description = "Enable the managed Foundry Aurora 1.5 forecast adapter after tenant deployment and contract validation."
+  type        = bool
+  default     = false
+}
+
+variable "aurora_foundry_endpoint" {
+  description = "Tenant-specific managed Foundry Aurora forecast endpoint."
+  type        = string
+  default     = ""
+}
+
+variable "aurora_deployment_name" {
+  description = "Aurora 1.5 model name in Microsoft Foundry."
+  type        = string
+  default     = "aurora-0.25-v1.5"
+}
+
+variable "aurora_ensemble_deployment_name" {
+  description = "Aurora 1.5 stochastic ensemble model name in Microsoft Foundry."
+  type        = string
+  default     = "aurora-0.25-v1.5-ensemble"
+}
+
+variable "aurora_initial_condition_blob_url" {
+  description = "HTTPS Blob URL of the current validated Aurora NetCDF initial condition."
+  type        = string
+  default     = ""
+}
+
 variable "pg_admin_login" {
   description = "PostgreSQL administrator login."
   type        = string

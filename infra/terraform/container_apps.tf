@@ -68,6 +68,16 @@ locals {
     AZURE_SEARCH_INDEX_NAME = "corrections"
     # Foundry project is used by the Fabric Data Agent connection only.
     FOUNDRY_PROJECT_ENDPOINT = local.foundry_project_endpoint
+    # Aurora 1.5 is a data-in/data-out deployment, separate from chat deployments.
+    AURORA_ENABLED                    = tostring(var.aurora_enabled)
+    AURORA_FOUNDRY_ENDPOINT           = var.aurora_foundry_endpoint
+    AURORA_DEPLOYMENT_NAME            = var.aurora_deployment_name
+    AURORA_ENSEMBLE_DEPLOYMENT_NAME   = var.aurora_ensemble_deployment_name
+    AURORA_INITIAL_CONDITION_BLOB_URL = var.aurora_initial_condition_blob_url
+    AURORA_CHANNEL_CONTAINER_URL      = "${azurerm_storage_account.this.primary_blob_endpoint}${local.data_container_name}/aurora"
+    AURORA_TOKEN_SCOPE                = "https://ml.azure.com/.default"
+    AURORA_TIMEOUT_SECONDS            = "900"
+    AURORA_USE_AZURE_AD               = "true"
   }
 
   # Fabric Data Agent IDs (set them after creating the Data Agent in Fabric); omitted while empty.

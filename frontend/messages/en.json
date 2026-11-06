@@ -3412,6 +3412,50 @@
       "directions": "Directions",
       "geocoding": "Position from OpenStreetMap (Nominatim)."
     },
+    "aurora": {
+      "title": "Weather risk outlook",
+      "description": "Aurora 1.5 provides an advisory forecast for this location. Results require expert review and do not decide coverage or payment.",
+      "run": "Run Aurora forecast",
+      "running": "Running forecast…",
+      "refresh": "Refresh",
+      "reviewRequired": "Forecast received · human review required",
+      "result": "{model} forecast for the next {hours} hours.",
+      "notConfigured": "Aurora is enabled but its endpoint, initial conditions, or Blob channel still needs administrator configuration.",
+      "statusError": "Aurora availability could not be checked.",
+      "loadError": "The saved Aurora forecast could not be loaded.",
+      "maxGust": "Maximum wind gust",
+      "precipitation": "Total precipitation",
+      "hazardWindow": "Potential hazard window: {start} to {end}.",
+      "recommendedActions": "Recommended case actions",
+      "customerCall": "Customer call guidance",
+      "severity": {
+        "low": "Low weather signal",
+        "moderate": "Moderate weather signal",
+        "high": "High weather signal · priority review",
+        "critical": "Critical weather signal · urgent review"
+      },
+      "actions": {
+        "contact_customer": "Contact the customer proactively.",
+        "confirm_safety": "Confirm people are safe before discussing damage.",
+        "preserve_evidence": "Preserve dated photos and weather-related evidence.",
+        "expedite_adjuster": "Prioritize adjuster triage and site assessment.",
+        "review_policy_terms": "Review storm, water, mitigation, and exclusion terms.",
+        "monitor_conditions": "Monitor conditions and update the case if the forecast changes.",
+        "verify_claim_evidence": "Verify the claimed damage timing against case evidence."
+      },
+      "talkingPoints": {
+        "safety_first": "Put personal safety first and avoid exposed or unstable areas.",
+        "confirm_damage_timing": "Confirm when the damage started and how it evolved.",
+        "emergency_mitigation": "Take safe emergency measures to prevent further damage.",
+        "photos_before_repairs": "Take dated photos before non-emergency repairs.",
+        "keep_receipts": "Keep receipts for emergency protection and mitigation work."
+      },
+      "metersPerSecond": "{value, number} m/s",
+      "millimeters": "{value, number} mm",
+      "notAvailable": "Not available",
+      "provenance": "Source: {provider} · generated {time}.",
+      "error": "Aurora is unavailable or not configured for this environment."
+    },
     "drawer": {
       "label": "Case details",
       "close": "Close details",

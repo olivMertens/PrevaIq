@@ -27,6 +27,18 @@
 | `WEBIQ_MCP_URL` | No | `https://api.microsoft.ai/v3/mcp` | Dedicated Microsoft Web IQ Streamable HTTP MCP endpoint. |
 | `WEBIQ_TIMEOUT_SECONDS` | No | `30` | Timeout for a Web IQ MCP request. |
 | `FOUNDRY_PROJECT_ENDPOINT` | Conditional | - | Microsoft Foundry project endpoint, distinct from `AZURE_OPENAI_ENDPOINT`; used by the Fabric Data Agent connection, not for web grounding. |
+| `AURORA_ENABLED` | No | `false` | Enable the optional managed Foundry Aurora 1.5 weather-risk panel. |
+| `AURORA_FOUNDRY_ENDPOINT` | Conditional | - | Tenant-specific Aurora data endpoint from the Foundry deployment; not an OpenAI chat endpoint. |
+| `AURORA_DEPLOYMENT_NAME` | No | `aurora-0.25-v1.5` | Deterministic Aurora 1.5 model name from the official Foundry client. |
+| `AURORA_ENSEMBLE_DEPLOYMENT_NAME` | No | `aurora-0.25-v1.5-ensemble` | Stochastic Aurora 1.5 model name. One invocation produces one ensemble member. |
+| `AURORA_INITIAL_CONDITION_BLOB_URL` | Conditional | - | HTTPS Blob URL of a current, validated Aurora NetCDF batch produced from an authoritative weather-data feed. |
+| `AURORA_CHANNEL_CONTAINER_URL` | Conditional | - | Blob container/folder used for endpoint exchange. With Entra auth, the app creates a short-lived delegated SAS and does not persist it. |
+| `AURORA_BLOB_CHANNEL_SAS_URL` | Conditional | - | Local-development alternative to `AURORA_CHANNEL_CONTAINER_URL`; SAS must grant read/write/create. Never commit it. |
+| `AURORA_TIMEOUT_SECONDS` | No | `900` | End-to-end deadline for task execution and prediction retrieval. |
+| `AURORA_POLL_INTERVAL_SECONDS` | No | `2` | Delay between bounded task and Blob marker checks. |
+| `AURORA_USE_AZURE_AD` | No | `true` | Use DefaultAzureCredential for the managed Aurora endpoint. |
+| `AURORA_TOKEN_SCOPE` | No | `https://ml.azure.com/.default` | Entra token scope for an Azure ML managed online endpoint. Override only if the provisioned endpoint specifies another audience. |
+| `AURORA_ENDPOINT_TOKEN` | Conditional | - | Endpoint bearer token when Entra auth is disabled. Store in Key Vault; never commit it. |
 | `AGENTS_OPENAI_API` | No | `responses` | API used by Microsoft Agent Framework agents: `responses` or `chat_completions` for rollback |
 | `EXTRACTION_BUDGET_SECONDS` | No | `900` | Wall-clock budget for extraction; remaining files are skipped and the case is flagged for review. Use `0` for no cap. |
 | `ANALYSIS_BUDGET_SECONDS` | No | `900` | Wall-clock budget for analysis; remaining sections are skipped. Use `0` for no cap. |

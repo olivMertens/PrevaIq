@@ -69,6 +69,12 @@ from app.content_understanding_client import (
 from app.config import UNDERWRITING_FIELD_SCHEMA
 from app.personas import list_personas, get_persona_config, get_field_schema
 from app.utils import setup_logging
+from app.aurora import (
+    AuroraConfigurationError,
+    AuroraServiceError,
+    status as aurora_status,
+    submit_forecast,
+)
 
 # Setup logging
 logger = setup_logging()
@@ -302,6 +308,13 @@ class AnalyzeRequest(BaseModel):
     sections: Optional[List[str]] = None
     processing_mode: Optional[str] = None  # 'auto', 'standard', or 'large_document'
     language: Optional[str] = None  # UI locale (en/fr/de) — controls LLM response language
+
+
+class AuroraForecastRequest(BaseModel):
+    latitude: float
+    longitude: float
+    horizon_hours: int = 48
+    ensemble: bool = False
 
 
 class ChatMessage(BaseModel):
@@ -3078,6 +3091,65 @@ async def get_application_risk_analysis(app_id: str, language: str = "en"):
     except Exception as e:
         logger.error("Failed to get risk analysis for %s: %s", app_id, e, exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/aurora/status")
+async def get_aurora_status():
+    """Return Aurora readiness without exposing credentials or endpoint details."""
+    return aurora_status()
+
+
+@app.post("/api/applications/{app_id}/aurora-forecast", status_code=202)
+async def create_aurora_forecast(app_id: str, request: AuroraForecastRequest):
+    """Run a bounded Aurora forecast for a dossier location.
+
+    Aurora output remains advisory and requires human review. The raw response is
+    kept with the dossier so the workbench can show provenance and uncertainty.
+    """
+    settings = load_settings()
+    app_md = load_application(settings.app.storage_root, app_id)
+    if not app_md:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+
+    try:
+        result = await submit_forecast(
+            latitude=request.latitude,
+            longitude=request.longitude,
+            horizon_hours=request.horizon_hours,
+            ensemble=request.ensemble,
+            application_id=app_id,
+        )
+    except AuroraConfigurationError as exc:
+        raise HTTPException(status_code=503, detail={"code": "aurora_not_configured", "message": str(exc)}) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except AuroraServiceError as exc:
+        logger.error("Aurora forecast failed for %s: %s", app_id, exc, exc_info=True)
+        raise HTTPException(status_code=502, detail={"code": "aurora_unavailable", "message": str(exc)}) from exc
+
+    outputs = dict(app_md.llm_outputs or {})
+    outputs["aurora"] = result
+    app_md.llm_outputs = outputs
+    save_application_metadata(settings.app.storage_root, app_md)
+    return {
+        "application_id": app_id,
+        "status": "completed",
+        "human_review_required": True,
+        "result": result,
+    }
+
+
+@app.get("/api/applications/{app_id}/aurora-forecast")
+async def get_aurora_forecast(app_id: str):
+    """Return the latest persisted Aurora result for a dossier."""
+    settings = load_settings()
+    app_md = load_application(settings.app.storage_root, app_id)
+    if not app_md:
+        raise HTTPException(status_code=404, detail="Dossier introuvable")
+    result = (app_md.llm_outputs or {}).get("aurora")
+    if not result:
+        raise HTTPException(status_code=404, detail="No Aurora forecast found.")
+    return {"application_id": app_id, "human_review_required": True, "result": result}
 
 
 @app.get("/api/config/status")

@@ -28,10 +28,73 @@ The tenant and subscription can also be provided with `AZURE_TENANT_ID` and `AZU
 
 ### Bicep
 
+For a new subscription/resource group, the Container Apps cannot be created
+until their `latest` images exist in ACR. Use this bootstrap sequence:
+
 ```powershell
-az deployment group what-if -g rg-prevaiq-demo --template-file infra/main.bicep --parameters infra/main.bicepparam   # optional
-az deployment group create  -g rg-prevaiq-demo --template-file infra/main.bicep --parameters infra/main.bicepparam
+$subscriptionId = "<subscription-id>"
+$tenantId = "<tenant-id>"
+$resourceGroup = "rg-prevaiq-demo"
+$operatorObjectId = az ad signed-in-user show --query id -o tsv
+
+az login --tenant $tenantId
+az account set --subscription $subscriptionId
+az group create -n $resourceGroup -l swedencentral
+$env:AZURE_SUBSCRIPTION_ID = $subscriptionId
+$env:AZURE_TENANT_ID = $tenantId
+$env:PREVAIQ_API_KEY = "<32+ characters>"
+$env:PREVAIQ_PG_PASSWORD = "<strong PostgreSQL password>"
+
+# 1. Shared resources only: ACR, identity, storage, database, Foundry and ACA environment.
+az deployment group create `
+  -g $resourceGroup `
+  --template-file infra/main.bicep `
+  --parameters infra/main.bicepparam `
+  deployApps=false `
+  adminPrincipalIds="['$operatorObjectId']"
+
+# 2. Build the images before the Container Apps reference them.
+$defaultDomain = az containerapp env show `
+  -g $resourceGroup `
+  -n cae-prevaiq-demo `
+  --query properties.defaultDomain -o tsv
+$apiFqdn = "ca-api-demo.$defaultDomain"
+.\infra\deploy.ps1 `
+  -BuildOnly `
+  -ApiFqdn $apiFqdn `
+  -ResourceGroup $resourceGroup `
+  -AcrName acrprevaiqdemo `
+  -SubscriptionId $subscriptionId `
+  -TenantId $tenantId
+
+# 3. Create the Container Apps after both latest images exist. If Aurora access
+#    and current.nc are already ready, add the Aurora parameters shown below to
+#    this deployment so Entra is configured only once afterward.
+az deployment group create `
+  -g $resourceGroup `
+  --template-file infra/main.bicep `
+  --parameters infra/main.bicepparam `
+  deployApps=true `
+  adminPrincipalIds="['$operatorObjectId']"
+
+# 4. Configure hosted Entra sign-in. This stores the client secret in Key Vault
+#    and performs the first normal image rollout through deploy.ps1.
+$adminEmail = "<your-admin-UPN>"
+.\infra\set-entra-auth.ps1 `
+  -CreateRegistration `
+  -SubscriptionId $subscriptionId `
+  -TenantId $tenantId `
+  -ResourceGroup $resourceGroup `
+  -SignInTenant $tenantId `
+  -AllowedTenantIds $tenantId `
+  -AdminEmails $adminEmail
 ```
+
+If app-registration creation is disabled in the directory, ask an Entra
+administrator for a dedicated Web app registration and pass `-ClientId`
+instead of `-CreateRegistration`. Do not run a normal `deploy.ps1` before the
+Entra helper: hosted deployment intentionally fails when `ENTRA_TENANT_ID`,
+`ENTRA_CLIENT_ID`, or `ENTRA_CLIENT_SECRET` is absent.
 
 ### Terraform
 
@@ -68,6 +131,141 @@ Image deployment is identical for Bicep and Terraform.
 - The GitHub Actions workflow `deploy.yml` targets the same resources and requires OIDC secrets `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, and `AZURE_SUBSCRIPTION_ID`, plus the repository variable `AZURE_DEPLOY_ENABLED=true`; without it the deploy job is skipped.
 - RAG policy PDFs are not included. Put insurer policy PDFs in `assets/pdf/` before running `scripts/index_pdf_policies.py`.
 - `assets/video/` contains README demo videos only: they are versioned in Git but excluded from deployment. The root `.dockerignore` excludes this folder, `deploy.ps1` stages only `assets/pdf/` from the assets tree, and the frontend build context is limited to `frontend/`. The in-app demo guide still uses `assets/demo-prevaiq/`; its document selections are unchanged.
+
+## Aurora 1.5 preview deployment and smoke test
+
+Aurora is not one of the Azure OpenAI deployments created by this template.
+The `Aurora-v1p5` custom model asset shown in Foundry can be used directly in
+the subscription that owns the project. Open the asset, select **Use this
+model > Real-time endpoint**, and deploy the published inference environment
+on supported GPU compute. Record the managed online endpoint scoring URI; that
+URI is `AURORA_FOUNDRY_ENDPOINT`.
+
+The PrevaIQ adapter uses the Aurora task/Blob protocol exposed by the real-time
+inference environment. The separate **Batch endpoint** wizard creates an Azure
+ML batch-job contract and is not interchangeable with this adapter. A future
+batch-job integration would submit and poll Azure ML jobs rather than POST
+Aurora task messages to a scoring URI.
+
+Before creating billable compute, confirm the portal shows the expected target:
+
+- tenant and subscription that host PrevaIQ;
+- Foundry project / Azure ML workspace containing `Aurora-v1p5`;
+- endpoint region and GPU family with sufficient quota;
+- Entra authentication for the managed endpoint;
+- minimum instance count appropriate for the demo budget.
+
+If the model asset is only visible through a shared registry reference, the
+deployment wizard copies/registers the selected version into the target
+workspace as part of endpoint deployment. If the wizard reports unavailable
+compute, request quota in the endpoint region before continuing.
+
+Aurora also requires a current NetCDF initial condition; latitude and longitude
+alone are not model input. Follow the [official Aurora 1.5
+example](https://microsoft.github.io/aurora/example_v1p5.html) to construct a
+`Batch`, write it with `Batch.to_netcdf`, and upload it to the PrevaIQ data
+container:
+
+```powershell
+$storageAccount = az storage account list -g $resourceGroup `
+  --query "[?starts_with(name, 'stprevaiq')].name | [0]" -o tsv
+az storage blob upload `
+  --auth-mode login `
+  --account-name $storageAccount `
+  --container-name prevaiq-data `
+  --name aurora/initial/current.nc `
+  --file .tmp/current.nc `
+  --overwrite
+$initialConditionUrl = "https://$storageAccount.blob.core.windows.net/prevaiq-data/aurora/initial/current.nc"
+```
+
+For an Entra-authenticated Azure Machine Learning managed online endpoint, grant
+the PrevaIQ managed identity permission to score that specific endpoint. The
+`AzureML Data Scientist` role includes the required
+`Microsoft.MachineLearningServices/workspaces/onlineEndpoints/score/action`;
+scope the assignment to the endpoint rather than the whole subscription:
+
+```powershell
+$identityPrincipalId = az identity show -g $resourceGroup -n id-prevaiq-demo `
+  --query principalId -o tsv
+$auroraEndpointResourceId = az ml online-endpoint show `
+  -g "<aurora-endpoint-resource-group>" `
+  -w "<aurora-workspace>" `
+  -n "<aurora-endpoint-name>" `
+  --query id -o tsv
+az role assignment create `
+  --assignee-object-id $identityPrincipalId `
+  --assignee-principal-type ServicePrincipal `
+  --role "AzureML Data Scientist" `
+  --scope $auroraEndpointResourceId
+```
+
+Reapply Bicep to enable the adapter. The Container App identity already has
+Storage Blob Data Contributor and generates a short-lived delegated SAS for the
+`prevaiq-data/aurora` exchange folder:
+
+```powershell
+$auroraEndpoint = "https://<tenant-specific-aurora-scoring-endpoint>"
+az deployment group what-if `
+  -g $resourceGroup `
+  --template-file infra/main.bicep `
+  --parameters infra/main.bicepparam `
+  deployApps=true `
+  auroraEnabled=true `
+  auroraFoundryEndpoint=$auroraEndpoint `
+  auroraInitialConditionBlobUrl=$initialConditionUrl `
+  adminPrincipalIds="['$operatorObjectId']"
+
+az deployment group create `
+  -g $resourceGroup `
+  --template-file infra/main.bicep `
+  --parameters infra/main.bicepparam `
+  deployApps=true `
+  auroraEnabled=true `
+  auroraFoundryEndpoint=$auroraEndpoint `
+  auroraInitialConditionBlobUrl=$initialConditionUrl `
+  adminPrincipalIds="['$operatorObjectId']"
+
+# A Bicep reapply owns the complete Container App template, so restore hosted
+# Entra configuration and roll out through the helper rather than calling
+# deploy.ps1 directly. Reusing -CreateRegistration finds the dedicated app and
+# appends a fresh six-month credential.
+.\infra\set-entra-auth.ps1 `
+  -CreateRegistration `
+  -SubscriptionId $subscriptionId `
+  -TenantId $tenantId `
+  -ResourceGroup $resourceGroup `
+  -SignInTenant $tenantId `
+  -AllowedTenantIds $tenantId `
+  -AdminEmails $adminEmail
+```
+
+Run local contract tests, then a real six-hour forecast through the deployed
+API. Restore a property-claims demo case in the UI first if the environment has
+no suitable dossier:
+
+```powershell
+uv run python -m pytest tests/test_aurora.py -q
+
+$apiUrl = az containerapp show -g $resourceGroup -n ca-api-demo `
+  --query "'https://' + properties.configuration.ingress.fqdn" -o tsv
+.\scripts\test_aurora_endpoint.ps1 `
+  -ApiBaseUrl $apiUrl `
+  -Latitude 46.2044 `
+  -Longitude 6.1432 `
+  -HorizonHours 6
+```
+
+The smoke test checks readiness, submits the forecast with `X-API-Key`,
+confirms forecast points and weather metrics, and verifies that the same Aurora
+task was persisted with the dossier. Use `-Ensemble` only after the
+deterministic path succeeds. Aurora remains advisory and requires expert review.
+
+In the customer-facing property-claim workflow, the persisted Aurora result is
+converted into bounded decision support: weather severity, a potential hazard
+window, case-triage actions, and localized customer-call talking points. These
+signals can prioritize outreach and evidence collection, but they never approve,
+deny, price, or pay a claim.
 
 ## Environment-specific script inputs
 

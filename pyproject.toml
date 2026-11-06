@@ -19,6 +19,8 @@ dependencies = [
     "pydantic>=2.9.0",
     "pgvector>=0.2.4",
     "numpy>=1.24.0",
+    "xarray>=2025.1.0",
+    "h5netcdf>=1.4.1",
     "pymupdf>=1.25.0",
     "agent-framework-core>=1.24.0,<2.0",
     "agent-framework-openai>=1.18.0,<2.0",
@@ -35,6 +37,7 @@ dependencies = [
     # Reads C2PA Content Credentials embedded in claim photos (provenance badge).
     # 0.38.0 is the latest release with Linux x86_64 and Windows wheels.
     "c2pa-python==0.38.0",
+    "h5py>=3.12.0",
 ]
 
 [project.optional-dependencies]

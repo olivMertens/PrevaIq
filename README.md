@@ -84,6 +84,57 @@ uv run python -m uvicorn api_server:app --reload --port 8000   # API → http://
 
 Deploy to Azure with Bicep or Terraform, then `infra/deploy.ps1`: see [docs/deployment.md](docs/deployment.md).
 
+### Aurora 1.5 weather-risk demo
+
+Aurora 1.5 is a [Microsoft environmental forecasting model](https://www.microsoft.com/en-us/research/blog/aurora-1-5-extending-open-foundation-models-for-weather-and-earth-system-applications/), not a chat model. It
+extends Aurora with 22 additional weather variables, hourly lead-time support
+and an ensemble mode for probabilistic forecasts. In PrevaIQ it is an optional,
+advisory panel shown beneath a resolved claim location. GPT remains responsible
+for narrative case analysis; Aurora output is stored with provenance and always
+requires human review.
+
+Aurora 1.5 is currently an open model with a Microsoft-published Foundry
+batch-client contract. Preview endpoint access is tenant-specific: it is not an
+Azure OpenAI deployment and it does not appear in the PrevaIQ Sweden Central
+resource's deployable model list. Obtain access and a scoring endpoint from the
+Foundry/Aurora preview owner before enabling it, then set:
+
+```dotenv
+AURORA_ENABLED=true
+AURORA_FOUNDRY_ENDPOINT=https://<tenant-specific-aurora-scoring-endpoint>
+AURORA_DEPLOYMENT_NAME=aurora-0.25-v1.5
+AURORA_ENSEMBLE_DEPLOYMENT_NAME=aurora-0.25-v1.5-ensemble
+AURORA_INITIAL_CONDITION_BLOB_URL=https://<account>.blob.core.windows.net/<container>/initial/current.nc
+AURORA_CHANNEL_CONTAINER_URL=https://<account>.blob.core.windows.net/<container>/aurora
+AURORA_USE_AZURE_AD=true
+```
+
+The adapter implements the [official Aurora Foundry client
+protocol](https://github.com/microsoft/aurora/blob/main/docs/foundry/notes.md):
+it sends task messages to the scoring endpoint and exchanges NetCDF files over
+a read/write Blob channel. A coordinate alone is not a valid input. In Azure,
+the app identity creates a short-lived delegated SAS for the configured channel;
+an explicit `AURORA_BLOB_CHANNEL_SAS_URL` is supported only as a local fallback.
+The initial-condition producer remains a separate meteorological ingestion
+responsibility and must provide the required two time steps, variables, and
+credible source provenance.
+The UI action is available on the property-claims location card. It restores
+the latest persisted forecast, classifies the weather signal with transparent
+thresholds, highlights the potential hazard window, and proposes localized
+case actions and customer-call talking points. If Aurora is disabled, the panel
+is hidden; if it is enabled but incomplete, the panel reports the missing
+administrator configuration without exposing credentials.
+
+For the `Aurora-v1p5` custom model asset in Foundry, choose **Use this model >
+Real-time endpoint**. The current adapter targets that inference environment's
+task/Blob scoring protocol; the portal's separate Azure ML batch-endpoint
+contract requires a different job-submission adapter.
+
+Aurora remains a research model and must be benchmarked against an accepted
+meteorological baseline for the geography and variables used. Do not use the
+demo output for autonomous claim denial, payment, underwriting rejection or
+operational alerts.
+
 ## Documentation
 
 | Document | Content |

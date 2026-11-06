@@ -22,6 +22,7 @@ flowchart TB
         Storage["Storage manager<br/>data/brands/{brand}/..."]
         Claims["Claims engine<br/>policy lookup, NBA, fraud"]
         RAG["RAG repository"]
+        Aurora["Aurora adapter<br/>task/Blob protocol<br/>advisory decision support"]
     end
 
     API --> Azure
@@ -30,9 +31,11 @@ flowchart TB
         CU["Content Understanding GA<br/>2025-11-01<br/>models.completion: gpt-5.4-mini<br/>models.embedding: text-embedding-3-large"]
         MD["MarkItDown<br/>local layout-aware<br/>.doc .xls .eml .msg .csv"]
         OAI["Azure OpenAI<br/>GPT-5.4 mini and GPT-5.4 nano<br/>embeddings"]
+        AUR["Aurora-v1p5 custom model<br/>Foundry real-time endpoint<br/>GPU · optional"]
     end
 
     API --> Data
+    Aurora --> AUR
 
     subgraph Data["Azure Data Services"]
         PG[("Azure PostgreSQL Flexible Server<br/>pgvector HNSW and pg_trgm GIN<br/>policy chunks and few_shot_store")]
@@ -87,6 +90,7 @@ The pipeline is extraction -> targeted bounded re-extraction -> validation -> an
 | Microsoft Agent Framework agents for chat and workflows | Responses through `OpenAIChatClient`, with rollback `AGENTS_OPENAI_API=chat_completions` | `AZURE_OPENAI_ENDPOINT` |
 | Foundry agents for Web Intelligence and Fabric Data Agent | Responses `agent_reference` through `AIProjectClient` | `FOUNDRY_PROJECT_ENDPOINT` (`settings.foundry`) |
 | Document extraction | Content Understanding GA `2025-11-01` | `AZURE_CONTENT_UNDERSTANDING_ENDPOINT` |
+| Aurora weather forecasting for property-claim decision support | Custom task messages plus NetCDF files over Blob Storage; deterministic by default | `AURORA_FOUNDRY_ENDPOINT` and the `prevaiq-data/aurora` Blob channel |
 
 The API/UI contract stays stable during migration: `application_to_dict` keys are pinned by `tests/test_orchestration.py::test_application_contract_keys_are_stable`. Additions are allowed; removals are not.
 

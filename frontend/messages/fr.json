@@ -3412,6 +3412,50 @@
       "directions": "Itinéraire",
       "geocoding": "Position issue d'OpenStreetMap (Nominatim)."
     },
+    "aurora": {
+      "title": "Perspectives de risque météo",
+      "description": "Aurora 1.5 fournit une prévision indicative pour ce lieu. Les résultats nécessitent une revue experte et ne décident ni de la couverture ni du paiement.",
+      "run": "Lancer la prévision Aurora",
+      "running": "Prévision en cours…",
+      "refresh": "Actualiser",
+      "reviewRequired": "Prévision reçue · revue humaine requise",
+      "result": "Prévision {model} pour les {hours} prochaines heures.",
+      "notConfigured": "Aurora est activé, mais son point de terminaison, ses conditions initiales ou son canal Blob doivent encore être configurés par un administrateur.",
+      "statusError": "La disponibilité d'Aurora n'a pas pu être vérifiée.",
+      "loadError": "La prévision Aurora enregistrée n'a pas pu être chargée.",
+      "maxGust": "Rafale maximale",
+      "precipitation": "Précipitations totales",
+      "hazardWindow": "Fenêtre de danger potentielle : du {start} au {end}.",
+      "recommendedActions": "Actions recommandées pour le dossier",
+      "customerCall": "Conseils pour l'appel client",
+      "severity": {
+        "low": "Signal météo faible",
+        "moderate": "Signal météo modéré",
+        "high": "Signal météo élevé · revue prioritaire",
+        "critical": "Signal météo critique · revue urgente"
+      },
+      "actions": {
+        "contact_customer": "Contacter le client de manière proactive.",
+        "confirm_safety": "Confirmer la sécurité des personnes avant d'aborder les dommages.",
+        "preserve_evidence": "Conserver les photos datées et les preuves liées à la météo.",
+        "expedite_adjuster": "Prioriser le triage de l'expert et l'inspection sur site.",
+        "review_policy_terms": "Vérifier les clauses tempête, dégâts des eaux, mesures conservatoires et exclusions.",
+        "monitor_conditions": "Surveiller les conditions et actualiser le dossier si la prévision évolue.",
+        "verify_claim_evidence": "Vérifier la chronologie des dommages déclarés avec les pièces du dossier."
+      },
+      "talkingPoints": {
+        "safety_first": "Privilégier la sécurité des personnes et éviter les zones exposées ou instables.",
+        "confirm_damage_timing": "Confirmer le début des dommages et leur évolution.",
+        "emergency_mitigation": "Prendre des mesures d'urgence sûres pour limiter l'aggravation.",
+        "photos_before_repairs": "Prendre des photos datées avant toute réparation non urgente.",
+        "keep_receipts": "Conserver les justificatifs des mesures d'urgence et de sauvegarde."
+      },
+      "metersPerSecond": "{value, number} m/s",
+      "millimeters": "{value, number} mm",
+      "notAvailable": "Indisponible",
+      "provenance": "Source : {provider} · générée le {time}.",
+      "error": "Aurora est indisponible ou n'est pas configuré dans cet environnement."
+    },
     "drawer": {
       "label": "Détails du dossier",
       "close": "Fermer les détails",

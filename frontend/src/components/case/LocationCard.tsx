@@ -16,6 +16,7 @@ import {
 } from '@/lib/claimMap';
 import { CockpitCard } from './caseUi';
 import { usePersistentChoice } from './usePersistentState';
+import AuroraRiskPanel from './AuroraRiskPanel';
 
 // Zoom on what was found: the building, its street or its town.
 const ZOOM: Record<PlaceLevel, number> = { building: 17, street: 16, town: 13 };
@@ -154,8 +155,11 @@ export default function LocationCard({ applicationId }: { applicationId: string 
   }
 
   return (
-    <CockpitCard title={t('title')} headingId="cockpit-location" aside={basemapSwitch}>
-      <div className="px-4 py-3">{body}</div>
-    </CockpitCard>
+    <div className="space-y-3">
+      <CockpitCard title={t('title')} headingId="cockpit-location" aside={basemapSwitch}>
+        <div className="px-4 py-3">{body}</div>
+      </CockpitCard>
+      {place && <AuroraRiskPanel applicationId={applicationId} latitude={place.lat} longitude={place.lon} />}
+    </div>
   );
 }

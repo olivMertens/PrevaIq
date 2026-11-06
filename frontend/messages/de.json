@@ -3412,6 +3412,50 @@
       "directions": "Route",
       "geocoding": "Position aus OpenStreetMap (Nominatim)."
     },
+    "aurora": {
+      "title": "Wetterrisiko-Ausblick",
+      "description": "Aurora 1.5 liefert eine unverbindliche Vorhersage für diesen Ort. Die Ergebnisse erfordern eine fachliche Prüfung und entscheiden nicht über Deckung oder Zahlung.",
+      "run": "Aurora-Prognose starten",
+      "running": "Prognose läuft…",
+      "refresh": "Aktualisieren",
+      "reviewRequired": "Prognose empfangen · menschliche Prüfung erforderlich",
+      "result": "{model}-Prognose für die nächsten {hours} Stunden.",
+      "notConfigured": "Aurora ist aktiviert, aber Endpunkt, Anfangsbedingungen oder Blob-Kanal müssen noch durch einen Administrator konfiguriert werden.",
+      "statusError": "Die Verfügbarkeit von Aurora konnte nicht geprüft werden.",
+      "loadError": "Die gespeicherte Aurora-Prognose konnte nicht geladen werden.",
+      "maxGust": "Maximale Windböe",
+      "precipitation": "Gesamtniederschlag",
+      "hazardWindow": "Mögliches Gefahrenfenster: {start} bis {end}.",
+      "recommendedActions": "Empfohlene Fallmaßnahmen",
+      "customerCall": "Leitfaden für das Kundengespräch",
+      "severity": {
+        "low": "Geringes Wettersignal",
+        "moderate": "Moderates Wettersignal",
+        "high": "Hohes Wettersignal · vorrangige Prüfung",
+        "critical": "Kritisches Wettersignal · dringende Prüfung"
+      },
+      "actions": {
+        "contact_customer": "Kunden proaktiv kontaktieren.",
+        "confirm_safety": "Vor der Schadenbesprechung die Sicherheit der Personen bestätigen.",
+        "preserve_evidence": "Datierte Fotos und wetterbezogene Nachweise sichern.",
+        "expedite_adjuster": "Triage und Vor-Ort-Begutachtung priorisieren.",
+        "review_policy_terms": "Sturm-, Wasser-, Schadenminderungs- und Ausschlussklauseln prüfen.",
+        "monitor_conditions": "Bedingungen beobachten und den Fall bei Prognoseänderungen aktualisieren.",
+        "verify_claim_evidence": "Zeitpunkt des gemeldeten Schadens anhand der Fallbelege prüfen."
+      },
+      "talkingPoints": {
+        "safety_first": "Personensicherheit hat Vorrang; exponierte oder instabile Bereiche meiden.",
+        "confirm_damage_timing": "Beginn und Entwicklung des Schadens bestätigen.",
+        "emergency_mitigation": "Sichere Sofortmaßnahmen gegen weitere Schäden ergreifen.",
+        "photos_before_repairs": "Vor nicht dringenden Reparaturen datierte Fotos aufnehmen.",
+        "keep_receipts": "Belege für Not- und Schadenminderungsmaßnahmen aufbewahren."
+      },
+      "metersPerSecond": "{value, number} m/s",
+      "millimeters": "{value, number} mm",
+      "notAvailable": "Nicht verfügbar",
+      "provenance": "Quelle: {provider} · erstellt am {time}.",
+      "error": "Aurora ist in dieser Umgebung nicht verfügbar oder konfiguriert."
+    },
     "drawer": {
       "label": "Falldetails",
       "close": "Details schließen",

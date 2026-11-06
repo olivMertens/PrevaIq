@@ -2108,3 +2108,92 @@ export interface ClaimLocation {
 export async function getClaimLocation(applicationId: string): Promise<ClaimLocation> {
   return apiFetch(`/api/applications/${encodeURIComponent(applicationId)}/location`);
 }
+
+export interface AuroraForecast {
+  request_id: string;
+  model: string;
+  requested_at: string;
+  latitude: number;
+  longitude: number;
+  horizon_hours: number;
+  ensemble: boolean;
+  forecast: {
+    series: Array<{
+      valid_at: string;
+      temperature_c: number | null;
+      wind_speed_ms: number | null;
+      wind_gust_ms: number | null;
+      precipitation_mm: number | null;
+      snowfall_mm: number | null;
+      cloud_cover_percent: number | null;
+    }>;
+    max_wind_speed_ms: number | null;
+    max_wind_gust_ms: number | null;
+    total_precipitation_mm: number;
+  };
+  decision_support: {
+    severity: 'low' | 'moderate' | 'high' | 'critical';
+    triage_priority: 'standard' | 'priority' | 'urgent';
+    signals: Array<'strong_wind' | 'heavy_rain' | 'limited_weather_signal'>;
+    recommended_actions: Array<
+      | 'contact_customer'
+      | 'confirm_safety'
+      | 'preserve_evidence'
+      | 'expedite_adjuster'
+      | 'review_policy_terms'
+      | 'monitor_conditions'
+      | 'verify_claim_evidence'
+    >;
+    customer_talking_points: Array<
+      | 'safety_first'
+      | 'confirm_damage_timing'
+      | 'emergency_mitigation'
+      | 'photos_before_repairs'
+      | 'keep_receipts'
+    >;
+    hazard_window: { starts_at: string; ends_at: string } | null;
+    advisory_only: true;
+    human_review_required: true;
+  };
+  provenance: {
+    provider: string;
+    model: string;
+    source: string;
+  };
+}
+
+export interface AuroraStatus {
+  enabled: boolean;
+  configured: boolean;
+  model: string;
+  ensemble_model: string;
+  provider: string;
+  mode: string;
+  human_review_required: boolean;
+  requires_initial_conditions: boolean;
+  missing: string[];
+}
+
+export async function getAuroraStatus(): Promise<AuroraStatus> {
+  return apiFetch('/api/aurora/status');
+}
+
+export interface AuroraForecastResponse {
+  application_id: string;
+  human_review_required: boolean;
+  result: AuroraForecast;
+}
+
+export async function getAuroraForecast(applicationId: string): Promise<AuroraForecastResponse> {
+  return apiFetch(`/api/applications/${encodeURIComponent(applicationId)}/aurora-forecast`);
+}
+
+export async function createAuroraForecast(
+  applicationId: string,
+  request: { latitude: number; longitude: number; horizon_hours?: number; ensemble?: boolean },
+): Promise<AuroraForecastResponse & { status: string }> {
+  return apiFetch(`/api/applications/${encodeURIComponent(applicationId)}/aurora-forecast`, {
+    method: 'POST',
+    body: JSON.stringify(request),
+  });
+}
