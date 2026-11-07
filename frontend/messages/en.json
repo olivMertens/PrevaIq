@@ -3393,7 +3393,7 @@
     },
     "generating": "Generating with AI…",
     "generate": "Generate {type}",
-    "generated": "{type} generated",
+    "generated": "{type} draft",
     "subject": "Subject",
     "regenerate": "Regenerate",
     "templates": {

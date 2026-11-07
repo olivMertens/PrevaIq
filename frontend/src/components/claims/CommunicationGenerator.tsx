@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Mail, MessageSquare, FileText, Copy, Check, X, Loader2, Sparkles, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { useLocale, useTranslations } from 'next-intl';
@@ -44,7 +44,12 @@ const COMM_TYPES: { id: CommType; icon: typeof Mail }[] = [
 
 const TONE_OPTIONS: CommTone[] = ['empathetic', 'standard', 'formal'];
 
-export default function CommunicationGenerator({
+export default function CommunicationGenerator(props: CommunicationGeneratorProps) {
+  const locale = useLocale();
+  return <CommunicationComposer key={`${props.applicationId}-${locale}`} {...props} />;
+}
+
+function CommunicationComposer({
   applicationId,
   insuredName,
   claimReference,
@@ -62,8 +67,19 @@ export default function CommunicationGenerator({
   const [copied, setCopied] = useState(false);
   const [showToneOptions, setShowToneOptions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pending = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      pending.current?.abort();
+      pending.current = null;
+    };
+  }, []);
 
   const handleGenerate = useCallback(async () => {
+    const controller = new AbortController();
+    pending.current?.abort();
+    pending.current = controller;
     setIsGenerating(true);
     setError(null);
     try {
@@ -71,6 +87,7 @@ export default function CommunicationGenerator({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ channel: commType, tone, language: locale }),
+        signal: controller.signal,
       });
       if (!response.ok) throw new Error(`API error: ${response.status}`);
       const result = await response.json();
@@ -84,6 +101,7 @@ export default function CommunicationGenerator({
         timestamp: result.generated_at || new Date().toISOString(),
       });
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error('[CommunicationGenerator] Generation failed:', err);
       setError(t('templateFallback'));
       const status = decisionStatus === 'approved' || decisionStatus === 'denied' ? decisionStatus : 'pending';
@@ -100,7 +118,10 @@ export default function CommunicationGenerator({
         : t(`templates.${status}.${commType}.subject`, values);
       setGenerated({ type: commType, tone, subject, body, timestamp: new Date().toISOString() });
     } finally {
-      setIsGenerating(false);
+      if (pending.current === controller) {
+        pending.current = null;
+        setIsGenerating(false);
+      }
     }
   }, [commType, tone, applicationId, decisionStatus, insuredName, claimReference, settlementAmount, locale, t]);
 
@@ -127,10 +148,11 @@ export default function CommunicationGenerator({
             <button
               key={ct.id}
               type="button"
+              disabled={isGenerating}
               aria-pressed={commType === ct.id}
               onClick={() => { setCommType(ct.id); setGenerated(null); }}
               className={clsx(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all border',
+                'flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-all border disabled:opacity-50',
                 commType === ct.id
                   ? ''
                   : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
@@ -149,8 +171,11 @@ export default function CommunicationGenerator({
         {/* Tone dropdown */}
         <div className="relative ml-auto">
           <button
+            type="button"
+            disabled={isGenerating}
+            aria-expanded={showToneOptions}
             onClick={() => setShowToneOptions(!showToneOptions)}
-            className="flex items-center gap-1 px-2 py-1.5 text-[10px] text-slate-500 hover:text-slate-700 border border-slate-200 rounded-lg bg-white"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-600 hover:text-slate-700 border border-slate-200 rounded-lg bg-white disabled:opacity-50"
           >
             {t('toneLabel')}: {t(`tones.${tone}.label`)}
             <ChevronDown className="w-3 h-3" />
@@ -160,15 +185,17 @@ export default function CommunicationGenerator({
               {TONE_OPTIONS.map((toneOption) => (
                 <button
                   key={toneOption}
+                  type="button"
+                  disabled={isGenerating}
                   onClick={() => { setTone(toneOption); setShowToneOptions(false); setGenerated(null); }}
                   className={clsx(
-                    'w-full text-left px-3 py-2 text-xs hover:bg-slate-50',
+                    'w-full text-left px-3 py-2 text-sm hover:bg-slate-50',
                     tone === toneOption ? '' : 'text-slate-600'
                   )}
                   style={tone === toneOption ? { color: brand.ink, backgroundColor: `${brand.primary}0D` } : undefined}
                 >
                   <div className="font-medium">{t(`tones.${toneOption}.label`)}</div>
-                  <div className="text-[10px] text-slate-400">{t(`tones.${toneOption}.description`)}</div>
+                  <div className="text-xs text-slate-500">{t(`tones.${toneOption}.description`)}</div>
                 </button>
               ))}
             </div>
@@ -195,10 +222,10 @@ export default function CommunicationGenerator({
           {/* Header */}
           <div className="px-3 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5" style={{ color: brand.ink }} />
-            <span className="text-xs font-medium text-slate-700">
-              {t('generated', { type: t(`types.${commType}`) })}
+            <span className="text-sm font-medium text-slate-700">
+              {t('generated', { type: t(`types.${generated.type}`) })}
             </span>
-            <span className="text-[10px] text-slate-400">({t(`tones.${tone}.label`)})</span>
+            <span className="text-xs text-slate-500">({t(`tones.${generated.tone}.label`)})</span>
             <div className="ml-auto flex items-center gap-1">
               <button onClick={handleCopy} title={tComm('copy')}
                 className="p-1 rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors">
@@ -215,27 +242,32 @@ export default function CommunicationGenerator({
             <div className="px-3 py-1.5 border-b border-slate-100 text-xs">
               <label className="block text-slate-500">{t('subject')}
                 <input value={generated.subject} onChange={(event) => setGenerated((current) => current && ({ ...current, subject: event.target.value }))}
-                  className="mt-1 w-full rounded border border-slate-200 p-2 text-sm text-slate-900" />
+                  className="mt-1 w-full rounded border border-slate-200 bg-white p-2 text-sm text-slate-900" />
               </label>
             </div>
           )}
           {/* Body */}
-          <textarea aria-label={t('draftBody')} value={generated.body}
+          <textarea aria-label={t('draftBody')} value={generated.body} lang={locale}
+            rows={generated.type === 'sms' ? 3 : 12}
             onChange={(event) => setGenerated((current) => current && ({ ...current, body: event.target.value }))}
-            className="min-h-64 w-full resize-y p-3 text-sm leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500" />
+            className={clsx(
+              'block w-full resize-y bg-white p-3 text-sm leading-relaxed text-slate-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500',
+              generated.type === 'sms' ? 'min-h-28' : 'min-h-64',
+            )} />
           {/* Footer actions */}
           <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 flex items-center gap-2">
             <button
               onClick={handleGenerate}
               disabled={isGenerating}
-              className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium border rounded transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border rounded transition-colors disabled:opacity-50"
               style={{
                 color: brand.ink,
                 borderColor: `${brand.primary}33`,
                 backgroundColor: `${brand.primary}0D`,
               }}
             >
-              <Sparkles className="w-3 h-3" />{t('regenerate')}
+              {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {isGenerating ? t('generating') : t('regenerate')}
             </button>
           </div>
         </div>

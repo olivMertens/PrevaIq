@@ -284,13 +284,15 @@ test('customer message body and subject are editable drafts, not an automatic se
   const CommunicationGenerator = component(path.join('claims', 'CommunicationGenerator.tsx'), 'en', {
     react: {
       ...React, useCallback: callback => callback,
+      useEffect: () => {}, useRef: () => ({ current: null }),
       useState: () => {
         const key = index++;
         return [state[key], value => { state[key] = typeof value === 'function' ? value(state[key]) : value; }];
       },
     },
   });
-  const tree = CommunicationGenerator({ applicationId: 'case-1', insuredName: 'Demo', claimReference: 'DEMO' });
+  const composer = CommunicationGenerator({ applicationId: 'case-1', insuredName: 'Demo', claimReference: 'DEMO' });
+  const tree = composer.type(composer.props);
   const nodes = elements(tree);
   const body = nodes.find(node => node.type === 'textarea');
   assert.equal(body.props['aria-label'], messages('en').communicationGenerator.draftBody);

@@ -2525,7 +2525,7 @@ async def generate_communication(app_id: str, body: dict):
             if recipient_name:
                 break
         if not recipient_name:
-            recipient_name = get_current_brand_profile().member_term.capitalize()
+            recipient_name = localized_message("communication_recipient", language)
 
         for ek, ev in list(ef.items())[:15]:
             fn = ek.split(":")[-1] if ":" in ek else ek
@@ -2608,6 +2608,15 @@ async def generate_communication(app_id: str, body: dict):
         brand = brand_profile.brand_name
         system_prompt = comm_prompts["system_prompt"].replace("{brand}", brand)
         system_prompt += "\n\n" + language_instruction(language)
+        system_prompt += (
+            "\nThe selected language applies to the entire communication, including SMS, "
+            "subject, greeting, signature, closing and brand-value phrases. The French "
+            "examples above describe tone and structure, not text to copy verbatim. "
+            "Translate those phrases into the selected language. Preserve person and "
+            "company names, addresses, filenames, references, amounts, contact details, "
+            "URLs and source quotations exactly. Use the localized signature supplied "
+            "below, not a French signature from an example."
+        )
         channel_desc = comm_prompts["channels"].get(channel, "").replace("{brand}", brand)
 
         # Brand-specific INSURER contact details — these MUST appear in the
@@ -2615,7 +2624,9 @@ async def generate_communication(app_id: str, body: dict):
         insurer_phone = brand_profile.insurer_phone
         insurer_email = brand_profile.insurer_email
         insurer_portal = f"{brand_profile.portal_base_url}/dossier/{contrat or app_id[:12]}"
-        insurer_signature = brand_profile.signature
+        insurer_signature = localized_message("communication_signature", language).format(
+            brand=brand
+        )
 
         # Build user prompt
         user_prompt = (

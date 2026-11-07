@@ -86,6 +86,16 @@ def language_instruction(language: str | None) -> str:
 
 
 _MESSAGES: Final = {
+    "communication_signature": {
+        "en": "Your adviser at {brand}",
+        "fr": "Votre conseiller {brand}",
+        "de": "Ihre Ansprechperson bei {brand}",
+    },
+    "communication_recipient": {
+        "en": "Customer",
+        "fr": "Client",
+        "de": "Kunde",
+    },
     "application_not_found": {
         "en": "Application not found.",
         "fr": "Dossier introuvable.",

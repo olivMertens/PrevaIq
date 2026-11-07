@@ -110,12 +110,23 @@ def test_swiss_ui_chat_normalizes_language_without_changing_agent_or_corrections
 
 
 @pytest.mark.parametrize("channel", ["email", "sms", "letter"])
-def test_swiss_ui_communications_accept_the_locale_and_preserve_channel(monkeypatch, channel):
+@pytest.mark.parametrize(
+    ("language", "signature"),
+    [
+        ("en", "Your adviser at PrevaIQ"),
+        ("fr", "Votre conseiller PrevaIQ"),
+        ("de", "Ihre Ansprechperson bei PrevaIQ"),
+        ("de-CH", "Ihre Ansprechperson bei PrevaIQ"),
+    ],
+)
+def test_communications_localize_signature_and_preserve_channel(
+    monkeypatch, channel, language, signature
+):
     settings = SimpleNamespace(app=SimpleNamespace(storage_root="unused"), openai=object())
     metadata = SimpleNamespace(
         persona="habitation_claims",
         status="completed",
-        extracted_fields={},
+        extracted_fields={"NomAssure": {"value": "Marie Lefèvre"}},
         llm_outputs={},
         sentiment_analysis=None,
         fraud_analysis=None,
@@ -132,10 +143,16 @@ def test_swiss_ui_communications_accept_the_locale_and_preserve_channel(monkeypa
     monkeypatch.setattr("app.openai_client.chat_completion", fake_completion)
     response = TestClient(api_server.app).post(
         "/api/applications/APP-1/generate-communication",
-        json={"language": "de-CH", "channel": channel, "tone": "formal"},
+        json={"language": language, "channel": channel, "tone": "formal"},
     )
     assert response.status_code == 200
-    assert response.json()["language"] == "de-CH"
+    assert response.json()["language"] == language
     assert response.json()["channel"] == channel
     assert response.json()["tone"] == "formal"
-    assert "Schweizer Hochdeutsch" in captured[0]["content"]
+    if language == "de-CH":
+        assert "Schweizer Hochdeutsch" in captured[0]["content"]
+    assert f"Signature: {signature}" in captured[1]["content"]
+    assert "Recipient name: Marie Lefèvre" in captured[1]["content"]
+    if language != "fr":
+        assert "Signature: Votre conseiller" not in captured[1]["content"]
+    assert "including SMS" in captured[0]["content"]

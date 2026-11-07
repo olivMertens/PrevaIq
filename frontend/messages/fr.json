@@ -3379,21 +3379,21 @@
     "toneLabel": "Tonalité",
     "tones": {
       "empathetic": {
-        "label": "Empathie",
+        "label": "Empathique",
         "description": "Chaleureux, attentif et rassurant"
       },
       "standard": {
-        "label": "Norme",
+        "label": "Standard",
         "description": "Professionnelle et attentionnée"
       },
       "formal": {
-        "label": "Forme",
+        "label": "Formel",
         "description": "Officiel et juridiquement précis"
       }
     },
-    "generating": "Générer avec l'IA...",
+    "generating": "Génération avec l’IA…",
     "generate": "Préparer : {type}",
-    "generated": "{type}généré",
+    "generated": "Brouillon : {type}",
     "subject": "Sujet",
     "regenerate": "Régénérer",
     "templates": {

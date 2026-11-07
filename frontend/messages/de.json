@@ -3379,23 +3379,23 @@
     "toneLabel": "Ton",
     "tones": {
       "empathetic": {
-        "label": "Empathie",
+        "label": "Einfühlsam",
         "description": "Warm, aufmerksam und beruhigend"
       },
       "standard": {
         "label": "Standard",
-        "description": "Professionelle und Pflege"
+        "description": "Professionell und zugewandt"
       },
       "formal": {
         "label": "Formell",
-        "description": "Amtliche und rechtlich genaue"
+        "description": "Offiziell und rechtlich präzise"
       }
     },
-    "generating": "Generieren mit AI...",
+    "generating": "Entwurf wird mit KI erstellt…",
     "generate": "{type} vorbereiten",
-    "generated": "{type}erzeugt",
-    "subject": "Thema",
-    "regenerate": "Regenerat",
+    "generated": "{type}-Entwurf",
+    "subject": "Betreff",
+    "regenerate": "Neu erstellen",
     "templates": {
       "approved": {
         "email": {
