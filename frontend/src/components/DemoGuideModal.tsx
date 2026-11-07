@@ -249,7 +249,10 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
             {scenarioContent.summary}
           </p>
           {['habitation', 'habitation-ch', 'habitation-ch-watch', 'auto'].includes(scenario.id) && (
-            <p className="mt-2 text-sm text-slate-700">{t('claimsNavigation')}</p>
+            <div className="mt-2 space-y-2 text-sm text-slate-700">
+              <p>{t('claimsNavigation')}</p>
+              <p>{t('claimsWorkflow')}</p>
+            </div>
           )}
         </div>
 

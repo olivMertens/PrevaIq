@@ -3082,6 +3082,7 @@
     }
   },
   "demoGuide": {
+    "claimsWorkflow": "In Customer, tone labels and the entire Email, SMS or Letter draft follow the selected language; names and source references stay unchanged. In Ask IQ, run a workflow to see the live execution plan: case reading, parallel agent checks, then synthesis. Role icons identify the agents; unavailable checks require review. The final recommendation appears first, with the execution plan and expandable agent findings below. Nothing is automatically sent or decided.",
     "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.\n\nIn Weather & map, choose Aurora evidence, Loss location or Web IQ sources; only the active panel is shown. In Aurora, choose Hourly chart, Claim timing, Provenance or Case actions. Playback is manual. Overview and Ask IQ read saved evidence only for its displayed window, even while new calculations are unavailable. Selecting a tab does not run Aurora or Web IQ.",
     "openTitle": "Demo guide",
     "openBadge": "Demo",

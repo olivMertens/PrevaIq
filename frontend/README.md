@@ -122,6 +122,22 @@ to fraud analysis. Switching views does not unmount the analysis runner.
 Decision choices use persistent green/amber/grey/red styling and require human
 confirmation. Customer drafts are editable, never automatically sent, and a
 standard-template fallback is explicitly labeled if AI generation fails.
+The composer translates tone labels and the entire generated draft (including
+SMS and adviser signatures) into the selected locale while preserving names,
+filenames, source quotations and contact details. Channel and tone controls use
+consistent readable sizing; SMS drafts have a compact editor. Changing locale
+or case cancels generation and clears the previous draft.
+
+Ask IQ workflows show the final recommendation first, followed by an ordered
+execution plan and expandable agent findings with localized role labels and icons.
+The existing workflow POST accepts `stream: true`: it emits SSE `plan`, context
+`stage`, agent `step`, and terminal `done`/`error` events. Independent agents run
+in parallel; synthesis waits for their terminal states. The Next.js proxy forwards
+the stream without buffering. Statuses reflect actual execution, not elapsed-time
+estimates. Missing case context or a failed branch is shown as unavailable and flags human review; a broken
+stream never becomes a completed result. Changing case/conversation or unmounting
+cancels the request. The client budget covers context reading and both bounded
+agent stages. Existing JSON clients remain supported.
 
 Weather & map always exposes Aurora availability, including a disabled state;
 charts require actual saved forecast data. The UI never fabricates weather or

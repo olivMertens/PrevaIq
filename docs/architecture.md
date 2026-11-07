@@ -105,6 +105,14 @@ The pipeline is extraction -> targeted bounded re-extraction -> validation -> an
 
 ![API decisions](architecture/prevaiq-api-endpoints.png)
 
+Ask IQ keeps the existing workflow POST and JSON result contract. Requests with
+`stream: true` receive SSE plan, context-stage and per-agent lifecycle events,
+followed by a terminal result or explicit error. The Next.js proxy forwards events
+without buffering. Independent checks remain parallel and the synthesizer waits
+for all branches; no timer invents agent progress. Disconnects cancel the producer.
+The UI shows the recommendation first, then the actual execution plan and agent
+findings, with unavailable context or branches flagged for human review.
+
 | Usage | API | Endpoint |
 |-------|-----|----------|
 | JSON analysis prompts and field extraction (`app/openai_client.py`) | Chat Completions, retained | `AZURE_OPENAI_ENDPOINT` |

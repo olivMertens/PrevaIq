@@ -3082,6 +3082,7 @@
     }
   },
   "demoGuide": {
+    "claimsWorkflow": "Dans Client, les libellés de tonalité et le brouillon complet de Courriel, SMS ou Lettre suivent la langue sélectionnée ; les noms et références source restent inchangés. Dans Ask IQ, lancer un workflow pour suivre le plan d’exécution en direct : lecture du dossier, contrôles des agents en parallèle, puis synthèse. Les icônes identifient les rôles ; les contrôles indisponibles exigent une revue. La recommandation finale apparaît en premier, suivie du plan et des résultats détaillés des agents. Aucun envoi ni aucune décision automatique.",
     "claimsNavigation": "Utiliser Aperçu pour les actions directes, Pièces pour les fichiers et la police, Analyse et faits pour la couverture, la fraude et Web IQ, Client pour les brouillons modifiables, et Météo et carte pour la localisation et la disponibilité d'Aurora. La Chronologie du sinistre a un seul onglet principal. Plus contient les données techniques.\n\nDans Météo et carte, choisir Données Aurora, Lieu du sinistre ou Sources Web IQ ; seul le panneau actif s’affiche. Dans Aurora, choisir Graphique horaire, Date du sinistre, Provenance ou Actions dossier. La lecture est manuelle. Aperçu et Ask IQ lisent les données enregistrées uniquement dans leur fenêtre affichée, même si les nouveaux calculs sont indisponibles. Choisir un onglet ne lance ni Aurora ni Web IQ.",
     "openTitle": "Guide de démonstration",
     "openBadge": "Démo",

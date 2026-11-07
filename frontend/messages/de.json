@@ -3082,6 +3082,7 @@
     }
   },
   "demoGuide": {
+    "claimsWorkflow": "Unter Kunde folgen die Tonbezeichnungen und der gesamte E-Mail-, SMS- oder Schreiben-Entwurf der gewählten Sprache; Namen und Quellenverweise bleiben unverändert. Starten Sie in Ask IQ einen Workflow, um den Live-Ausführungsplan zu sehen: Fall lesen, parallele Agentenprüfungen, dann Zusammenfassung. Symbole kennzeichnen die Rollen; nicht verfügbare Prüfungen erfordern eine Überprüfung. Die abschließende Empfehlung erscheint zuerst, darunter der Plan und aufklappbare Agentenergebnisse. Nichts wird automatisch versendet oder entschieden.",
     "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.\n\nUnter Wetter und Karte wählen Sie Aurora-Daten, Schadenort oder Web-IQ-Quellen; nur das aktive Feld wird angezeigt. In Aurora wählen Sie Stundendiagramm, Schadenzeitpunkt, Herkunft oder Fallmaßnahmen. Die Wiedergabe startet manuell. Übersicht und Ask IQ lesen gespeicherte Daten nur für das angezeigte Zeitfenster, auch wenn neue Berechnungen nicht verfügbar sind. Ein Reiterwechsel startet weder Aurora noch Web IQ.",
     "openTitle": "Demoleitfaden",
     "openBadge": "Demo",
