@@ -74,6 +74,7 @@ from app.aurora import (
     AuroraServiceError,
     status as aurora_status,
     submit_forecast,
+    weather_evidence_context,
 )
 
 # Setup logging
@@ -3122,12 +3123,22 @@ async def create_aurora_forecast(app_id: str, request: AuroraForecastRequest):
             application_id=app_id,
         )
     except AuroraConfigurationError as exc:
-        raise HTTPException(status_code=503, detail={"code": "aurora_not_configured", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=503, detail={"code": "aurora_not_configured", "message": str(exc)}
+        ) from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except AuroraServiceError as exc:
-        logger.error("Aurora forecast failed for %s: %s", app_id, exc, exc_info=True)
-        raise HTTPException(status_code=502, detail={"code": "aurora_unavailable", "message": str(exc)}) from exc
+        logger.error(
+            "aurora.forecast.failed application_id=%s error_type=%s", app_id, type(exc).__name__
+        )
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "code": "aurora_unavailable",
+                "message": "Aurora inference failed. Check the administrator readiness diagnostics.",
+            },
+        ) from exc
 
     outputs = dict(app_md.llm_outputs or {})
     outputs["aurora"] = result
@@ -3138,6 +3149,7 @@ async def create_aurora_forecast(app_id: str, request: AuroraForecastRequest):
         "status": "completed",
         "human_review_required": True,
         "result": result,
+        "context": weather_evidence_context(result),
     }
 
 
@@ -3151,7 +3163,19 @@ async def get_aurora_forecast(app_id: str):
     result = (app_md.llm_outputs or {}).get("aurora")
     if not result:
         raise HTTPException(status_code=404, detail="No Aurora forecast found.")
-    return {"application_id": app_id, "human_review_required": True, "result": result}
+    try:
+        context = weather_evidence_context(result)
+    except (ValueError, KeyError, TypeError) as error:
+        logger.warning("Saved Aurora evidence invalid for %s: %s", app_id, type(error).__name__)
+        raise HTTPException(
+            status_code=503, detail="Saved weather evidence could not be validated"
+        ) from error
+    return {
+        "application_id": app_id,
+        "human_review_required": True,
+        "result": result,
+        "context": context,
+    }
 
 
 @app.get("/api/config/status")
@@ -4700,6 +4724,7 @@ async def get_agent_status():
         "capabilities": {
             "fabric_data": fabric_data_configured(),
             "web_iq": bool(settings.webiq.enabled),
+            "weather_evidence": True,
         },
         "agents": [
             {
@@ -4708,6 +4733,7 @@ async def get_agent_status():
                 "tools": [
                     "search_policies",
                     "get_application_summary",
+                    "get_weather_evidence",
                     "get_glossary",
                     "query_fabric_data",
                     "analyze_image_fraud",

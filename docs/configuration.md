@@ -1,5 +1,29 @@
 # Configuration
 
+## Aurora observability and advisory use
+
+Aurora emits correlated `aurora.forecast`, `aurora.authentication`,
+`aurora.blob_delegation`, `aurora.initial_conditions`, `aurora.submission`,
+`aurora.input_upload`, `aurora.task_poll` and `aurora.prediction_read` spans through
+the existing Application Insights exporter. The forecast span records `claim.id`,
+the model horizon, ensemble mode and returned task/request IDs; polling records
+its bounded attempt count and output reading records the expected file count.
+Stage logs include the trace ID, duration and error type. Manual Aurora traces do
+not capture signed URLs, tokens, input documents or raw SDK exception messages.
+Inference errors return a stable API error code and trigger a localized error toast;
+saved evidence is retained rather than replaced by invented weather.
+
+For PrevaIQ, the overview uses saved model signals to prepare expert review and
+customer contact: confirm loss timing, request dated photos and receipts, and
+prioritize relevant evidence. With fresh, validated inputs and operational serving,
+weather hazards can support proactive contact and claim triage within the returned
+window. They do not establish building vulnerability, observed storms, coverage,
+fraud, payment eligibility or calibrated risk probabilities. Historical simulations
+must not trigger present-day prevention advice; current advice requires verified
+weather and official alerts. A weather-independent plumbing leak may have no
+relevant Aurora signal. Portfolio sweeps, long-range forecasts and ensembles require
+separate data, uncertainty design, evaluation and compute approval.
+
 ## UI and AI response locales
 
 The login switcher and account menu offer EN, FR, DE and **DE-CH — Deutsch (Schweiz)**.
@@ -100,6 +124,26 @@ Admin readiness failures expose the originating backend operation, UTC check tim
 HTTP status, Storage error code and request ID, without exception text, URLs, SAS or credentials.
 Correlate these with Storage logs to distinguish backend and worker access failures before changing
 network rules. The endpoint invocation protocol and authentication are unchanged.
+
+### Saved Aurora evidence in Ask IQ
+
+`GET /api/applications/{id}/aurora-forecast` retains the saved result and adds a
+validated `context`: returned valid-time window, point count, temporal classification,
+gust/rain/temperature indicators and usage limits. It remains readable while generation
+is disabled. Missing evidence returns 404; invalid stored evidence returns 503 rather
+than invented weather.
+
+The `get_weather_evidence(application_id, requested_date="")` agent tool only reads
+metadata. It never calls the endpoint or downloads NetCDF. `requested_date` accepts
+`YYYY-MM-DD` (UTC calendar day) or a timezone-qualified ISO instant. A day overlap is not
+full-day coverage or confirmation of the incident hour. Outside-window requests are
+explicitly marked; worsening is discussed only within returned samples. Its generation
+configuration is not a live-readiness test. Member counts alone do not establish
+calibrated uncertainty; the current normalizer provides no validated ensemble distribution.
+
+`get_application_summary` also embeds this bounded context so workflows and Ask IQ can
+use existing evidence without another forecast. Weather may support triage, customer
+contact and expert review, never coverage, fraud, pricing or payment decisions.
 
 PrevaIQ uses managed identity for its own task-channel uploads, markers and prediction
 downloads when `AURORA_CHANNEL_CONTAINER_URL` is configured. The short-lived delegated SAS

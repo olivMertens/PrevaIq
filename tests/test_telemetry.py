@@ -159,6 +159,64 @@ def test_record_span_error_flags_a_handled_failure(spans):
     assert finished.attributes["error.type"] == "timeout"
 
 
+def test_aurora_failure_logs_and_spans_do_not_capture_sdk_credentials(monkeypatch, caplog, spans):
+    from app import aurora
+
+    def fail(*args, **kwargs):
+        raise aurora.AuroraServiceError("https://blob.example/input?sig=PRIVATE_TEST_TOKEN")
+
+    monkeypatch.setattr(aurora, "_submit_forecast", fail)
+    with caplog.at_level(logging.INFO, logger="underwriting_assistant"):
+        with pytest.raises(aurora.AuroraServiceError):
+            asyncio.run(
+                aurora.submit_forecast(
+                    latitude=46.2,
+                    longitude=6.1,
+                    horizon_hours=6,
+                    ensemble=False,
+                    application_id="weather-case",
+                    settings=aurora.AuroraSettings(),
+                )
+            )
+
+    [finished] = spans.get_finished_spans()
+    assert finished.name == "aurora.forecast"
+    assert finished.status.status_code is StatusCode.ERROR
+    assert finished.attributes["claim.id"] == "weather-case"
+    assert finished.attributes["aurora.horizon_hours"] == 6
+    assert finished.attributes["error.type"] == "AuroraServiceError"
+    assert not finished.events
+    assert "PRIVATE_TEST_TOKEN" not in str(finished.status)
+    assert "PRIVATE_TEST_TOKEN" not in caplog.text
+    assert "aurora.stage.failed stage=forecast" in caplog.text
+
+
+def test_aurora_stage_spans_follow_the_forecast_across_the_worker_thread(monkeypatch, spans):
+    from app import aurora
+
+    def complete(*args, **kwargs):
+        with aurora._aurora_stage("submission"):
+            return {"task_id": "task-test", "request_id": "request-test"}
+
+    monkeypatch.setattr(aurora, "_submit_forecast", complete)
+    asyncio.run(
+        aurora.submit_forecast(
+            latitude=46.2,
+            longitude=6.1,
+            horizon_hours=6,
+            ensemble=False,
+            application_id="weather-case",
+            settings=aurora.AuroraSettings(),
+        )
+    )
+    by_name = _by_name(spans)
+    root, child = by_name["aurora.forecast"], by_name["aurora.submission"]
+    assert child.parent.span_id == root.context.span_id
+    assert root.attributes["aurora.task_id"] == "task-test"
+    assert root.attributes["aurora.request_id"] == "request-test"
+    assert root.attributes["aurora.ensemble"] is False
+
+
 def test_spans_degrade_to_a_noop_without_a_tracer(monkeypatch):
     monkeypatch.setattr(telemetry, "get_tracer", lambda name="test": None)
     with telemetry.start_span("step", {"k": "v"}) as span:

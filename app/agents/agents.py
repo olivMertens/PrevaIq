@@ -29,6 +29,7 @@ from .tools import (
     resolve_web_tool,
     search_policies,
     get_application_summary,
+    get_weather_evidence,
     get_glossary,
     query_fabric_data,
     analyze_section,
@@ -49,6 +50,24 @@ from .tools import (
 
 logger = setup_logging()
 
+WEATHER_EVIDENCE_RULES = """
+**Aurora : données météo enregistrées, pas un agent conversationnel ni un certificat observé.**
+- Si disponible, utiliser `get_weather_evidence` pour une période précise, la configuration de
+  nouveaux calculs ou des indicateurs météo manquants. Une configuration activée ne prouve
+  pas que l'inférence fonctionne : ce lecteur ne teste pas le service.
+  Cet outil lit seulement le résultat enregistré ; ne jamais annoncer une nouvelle inférence.
+- Distinguer la date de demande, les conditions initiales et la fenêtre des points retournés.
+  `historical_simulation` ne décrit pas la météo actuelle. Une date sans heure permet seulement
+  un recoupement de journée, jamais la confirmation de l'heure du sinistre ou de la tempête.
+- Si la date demandée est hors fenêtre, dire explicitement que les données ne la couvrent pas.
+  Ne pas extrapoler à aujourd'hui, à plusieurs semaines/mois ou au climat saisonnier.
+- Une évolution de rafales/pluie vaut uniquement dans la fenêtre retournée ; une hausse relative
+  n'implique pas un risque élevé. Sans ensemble validé, ne pas inventer probabilité ou confiance.
+- Pour le passé, rechercher des observations historiques sourcées avec Web IQ si nécessaire.
+  Pour surveiller le futur, il faut des conditions fraîches et une inférence opérationnelle.
+  Aurora peut aider au triage, à l'appel client et à la revue experte ; jamais décider couverture,
+  fraude, tarification, paiement ou refus. Ne pas transmettre de données privées à Web IQ.
+"""
 
 # ---------------------------------------------------------------------------
 # Agent factory — single source of truth for Agent(client=, name=, instructions=, tools=)
@@ -92,7 +111,7 @@ def _create_agent(
     kwargs: dict[str, Any] = {
         "client": client,
         "name": name,
-        "instructions": instructions,
+        "instructions": instructions + "\n" + WEATHER_EVIDENCE_RULES,
         "default_options": default_options,
     }
     if tools:
@@ -505,6 +524,7 @@ async def create_chat_agent(
             get_glossary,
             # Phase 1 — Application context (core + P1 enrichments)
             get_application_summary,
+            get_weather_evidence,
             get_risk_analysis,
             get_customer360_overview,
             get_image_descriptions,
@@ -552,5 +572,6 @@ async def create_analysis_agent(
             get_extracted_fields,
             search_policies,
             get_application_summary,
+            get_weather_evidence,
         ],
     )

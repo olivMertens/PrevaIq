@@ -242,6 +242,7 @@ async def agent_chat(
         resolve_web_tool,
         get_glossary,
         get_application_summary,
+        get_weather_evidence,
         get_risk_analysis,
         get_customer360_overview,
         get_extracted_fields,
@@ -359,6 +360,7 @@ async def agent_chat(
             "get_extracted_fields",
             "search_policies",
             "get_application_summary",
+            "get_weather_evidence",
         ]
         agent = await create_analysis_agent(settings, language=language)
 
@@ -367,6 +369,7 @@ async def agent_chat(
         agent_name = "DashboardAgent"
         tools_available = [
             "get_application_summary",
+            "get_weather_evidence",
             "get_risk_analysis",
             "get_customer360_overview",
             "get_extracted_fields",
@@ -392,6 +395,7 @@ async def agent_chat(
             ),
             tools=[
                 get_application_summary,
+                get_weather_evidence,
                 get_risk_analysis,
                 get_customer360_overview,
                 get_extracted_fields,
@@ -417,6 +421,7 @@ async def agent_chat(
         tools_available = [
             "search_policies",
             "get_application_summary",
+            "get_weather_evidence",
             "get_glossary",
             "query_fabric_data",
             "analyze_image_fraud",

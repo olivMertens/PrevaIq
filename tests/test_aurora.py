@@ -176,6 +176,41 @@ def test_channel_sas_requires_official_read_write_create_permissions():
         )
 
 
+def test_channel_authorization_failure_is_a_service_error_before_task_submission(monkeypatch):
+    from azure.core.exceptions import HttpResponseError
+
+    error = HttpResponseError(message="private storage details")
+    settings = AuroraSettings(
+        enabled=True,
+        endpoint="https://aurora.example.inference.ml.azure.com/score",
+        initial_condition_blob_url="https://weather.blob.core.windows.net/input/initial.nc",
+        channel_container_url="https://weather.blob.core.windows.net/tasks",
+        endpoint_token="endpoint-token",
+        use_azure_ad=False,
+    )
+
+    def denied(_settings):
+        raise error
+
+    monkeypatch.setattr(aurora, "_channel_sas_url", denied)
+    monkeypatch.setattr(
+        aurora,
+        "_foundry_request",
+        lambda *args: pytest.fail("Do not submit a model task without Blob authorization"),
+    )
+    with pytest.raises(aurora.AuroraServiceError, match="Blob channel is unavailable") as raised:
+        aurora._submit_forecast(
+            settings,
+            latitude=47.5,
+            longitude=8.7,
+            horizon_hours=6,
+            ensemble=False,
+            application_id="case",
+        )
+    assert raised.value.__cause__ is error
+    assert "private storage details" not in str(raised.value)
+
+
 @pytest.mark.parametrize("managed_identity", [False, True])
 def test_channel_data_operations_keep_identity_separate_from_model_sas(
     monkeypatch, managed_identity

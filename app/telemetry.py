@@ -312,6 +312,7 @@ def start_span(
     *,
     tracer_name: str = "workbenchiq.agents",
     kind: str = "internal",
+    record_exception: bool = True,
 ) -> Generator[Any, None, None]:
     """Open a span that is current for the duration of the ``with`` block.
 
@@ -329,6 +330,8 @@ def start_span(
         name,
         kind=getattr(trace.SpanKind, kind.upper()),
         attributes={key: value for key, value in (attributes or {}).items() if value is not None},
+        record_exception=record_exception,
+        set_status_on_exception=record_exception,
     ) as span:
         yield span
 

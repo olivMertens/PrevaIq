@@ -12,6 +12,7 @@ import io
 import json
 import math
 import os
+import re
 import time
 import uuid
 from collections.abc import Iterable, Iterator
@@ -35,6 +36,42 @@ from azure.storage.blob import (
     ContainerSasPermissions,
     generate_container_sas,
 )
+
+from app.telemetry import record_span_error, start_span
+from app.utils import setup_logging
+
+logger = setup_logging()
+
+
+@contextmanager
+def _aurora_stage(name: str, **attributes: Any) -> Iterator[Any]:
+    """Trace stage outcomes without recording credentials from SDK exception messages."""
+    started = time.monotonic()
+    with start_span(
+        f"aurora.{name}", attributes, tracer_name="workbenchiq.aurora", record_exception=False
+    ) as span:
+        context = span.get_span_context()
+        trace_id = f"{context.trace_id:032x}" if context is not None else "unrecorded"
+        logger.info("aurora.stage.started stage=%s trace_id=%s", name, trace_id)
+        try:
+            yield span
+        except Exception as error:
+            record_span_error(span, f"Aurora {name} failed", error_type=type(error).__name__)
+            logger.error(
+                "aurora.stage.failed stage=%s trace_id=%s error_type=%s elapsed_ms=%d",
+                name,
+                trace_id,
+                type(error).__name__,
+                (time.monotonic() - started) * 1000,
+            )
+            raise
+        else:
+            logger.info(
+                "aurora.stage.completed stage=%s trace_id=%s elapsed_ms=%d",
+                name,
+                trace_id,
+                (time.monotonic() - started) * 1000,
+            )
 
 
 class AuroraConfigurationError(RuntimeError):
@@ -638,8 +675,15 @@ def _submit_forecast(
     if settings.timeout_seconds < 30:
         raise AuroraConfigurationError("AURORA_TIMEOUT_SECONDS must be at least 30.")
 
-    token = _endpoint_token(settings)
-    channel_sas_url = _channel_sas_url(settings)
+    with _aurora_stage("authentication"):
+        token = _endpoint_token(settings)
+    with _aurora_stage("blob_delegation"):
+        try:
+            channel_sas_url = _channel_sas_url(settings)
+        except AzureError as error:
+            raise AuroraServiceError(
+                "Aurora Blob channel is unavailable. Run the administrator readiness test."
+            ) from error
     channel_credential = None if settings.channel_sas_url else _credential()
     model = settings.ensemble_model if ensemble else settings.deterministic_model
     num_steps = math.ceil(horizon_hours / 6)
@@ -655,31 +699,38 @@ def _submit_forecast(
         "saved_static_vars": [],
         "async_upload_workers": 2,
     }
-    with _download_initial_condition(settings) as initial_condition:
+    with (
+        _aurora_stage("initial_conditions"),
+        _download_initial_condition(settings) as initial_condition,
+    ):
         initial_condition_at = _validate_initial_condition(initial_condition)
-        creation = _foundry_request(settings, token, "submission", task)
+        with _aurora_stage("submission"):
+            creation = _foundry_request(settings, token, "submission", task)
         task_id = creation.get("task_id")
         if not isinstance(task_id, str) or not task_id:
             raise AuroraServiceError(f"Aurora did not return a task_id: {creation}")
         initial_condition.seek(0)
-        _upload_channel_file(
-            channel_sas_url,
-            f"{task_id}/input.nc",
-            initial_condition,
-            credential=channel_credential,
-        )
+        with _aurora_stage("input_upload", **{"aurora.task_id": task_id}):
+            _upload_channel_file(
+                channel_sas_url,
+                f"{task_id}/input.nc",
+                initial_condition,
+                credential=channel_credential,
+            )
     deadline = time.monotonic() + settings.timeout_seconds
-    while True:
-        progress = _foundry_request(settings, token, "task_info", {"task_id": task_id})
-        if progress.get("completed"):
-            if not progress.get("success"):
-                raise AuroraServiceError(
-                    f"Aurora task {task_id} failed: {progress.get('status', 'unknown error')}"
-                )
-            break
-        if time.monotonic() >= deadline:
-            raise AuroraServiceError(f"Aurora task {task_id} timed out.")
-        time.sleep(settings.poll_interval_seconds)
+    with _aurora_stage("task_poll", **{"aurora.task_id": task_id}) as poll_span:
+        polls = 0
+        while True:
+            progress = _foundry_request(settings, token, "task_info", {"task_id": task_id})
+            polls += 1
+            poll_span.set_attribute("aurora.poll_count", polls)
+            if progress.get("completed"):
+                if not progress.get("success"):
+                    raise AuroraServiceError(f"Aurora task {task_id} failed.")
+                break
+            if time.monotonic() >= deadline:
+                raise AuroraServiceError(f"Aurora task {task_id} timed out.")
+            time.sleep(settings.poll_interval_seconds)
 
     prediction_count = num_steps * len(fine_lead_times)
     predictions = (
@@ -694,7 +745,9 @@ def _submit_forecast(
         for index in range(prediction_count)
     )
     requested_at = datetime.now(UTC).isoformat()
-    forecast = _summarize_predictions(predictions, latitude, longitude)
+    with _aurora_stage("prediction_read", **{"aurora.task_id": task_id}) as output_span:
+        forecast = _summarize_predictions(predictions, latitude, longitude)
+        output_span.set_attribute("aurora.output_count", prediction_count)
     return {
         "request_id": str(uuid.uuid4()),
         "task_id": task_id,
@@ -738,15 +791,137 @@ async def submit_forecast(
     if horizon_hours % 6:
         raise ValueError("Horizon must be a multiple of 6 hours.")
     active_settings = settings or AuroraSettings.from_env()
-    return await asyncio.to_thread(
-        _submit_forecast,
-        active_settings,
-        latitude=latitude,
-        longitude=longitude,
-        horizon_hours=horizon_hours,
-        ensemble=ensemble,
-        application_id=application_id,
-    )
+    with _aurora_stage(
+        "forecast",
+        **{
+            "claim.id": application_id,
+            "aurora.horizon_hours": horizon_hours,
+            "aurora.ensemble": ensemble,
+        },
+    ) as span:
+        result = await asyncio.to_thread(
+            _submit_forecast,
+            active_settings,
+            latitude=latitude,
+            longitude=longitude,
+            horizon_hours=horizon_hours,
+            ensemble=ensemble,
+            application_id=application_id,
+        )
+        span.set_attribute("aurora.task_id", result["task_id"])
+        span.set_attribute("aurora.request_id", result["request_id"])
+        return result
+
+
+def weather_evidence_context(
+    result: dict[str, Any], requested_date: str = "", *, now: datetime | None = None
+) -> dict[str, Any]:
+    """Describe saved model evidence without running inference or extending its time window."""
+    if not isinstance(result, dict):
+        raise ValueError("Saved Aurora evidence must be an object")
+    forecast = result.get("forecast")
+    if not isinstance(forecast, dict) or not isinstance(forecast.get("series"), list):
+        raise ValueError("Saved Aurora evidence has no forecast series")
+    series = forecast["series"]
+    if not series:
+        raise ValueError("Saved Aurora evidence has no hourly points")
+
+    def instant(value: str) -> datetime:
+        if not isinstance(value, str):
+            raise ValueError("Weather evidence timestamps must be ISO strings")
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            raise ValueError("Weather evidence timestamps must include a timezone")
+        return parsed.astimezone(UTC)
+
+    def number(value: Any) -> float | None:
+        if value is None:
+            return None
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
+            raise ValueError("Weather evidence metrics must be finite numbers")
+        return float(value)
+
+    for point in series:
+        if not isinstance(point, dict):
+            raise ValueError("Weather evidence points must be objects")
+        for metric in ("temperature_c", "wind_gust_ms", "precipitation_mm"):
+            number(point.get(metric))
+    times = [instant(point["valid_at"]) for point in series]
+    if any(a >= b for a, b in zip(times, times[1:])):
+        raise ValueError("Weather evidence timestamps must be strictly increasing")
+    current = now or datetime.now(UTC)
+    if current.utcoffset() is None:
+        raise ValueError("Weather reference clock must include a timezone")
+    current = current.astimezone(UTC)
+    start, end = times[0], times[-1]
+    scope: dict[str, Any] = {"requested": None, "precision": None, "overlaps": None}
+    if requested_date:
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}", requested_date):
+            target = datetime.fromisoformat(requested_date).replace(tzinfo=UTC)
+            target_end = target + timedelta(days=1)
+            overlaps = target <= end and target_end > start
+            precision = "day"
+        else:
+            target = instant(requested_date)
+            target_end = target
+            overlaps = start <= target <= end
+            precision = "instant"
+        scope = {
+            "requested": requested_date,
+            "precision": precision,
+            "overlaps": overlaps,
+            "fully_covered": start <= target and target_end <= end,
+        }
+    temperatures = [p["temperature_c"] for p in series if p.get("temperature_c") is not None]
+    first_gust, last_gust = series[0].get("wind_gust_ms"), series[-1].get("wind_gust_ms")
+    source = result.get("provenance") or {}
+    if not isinstance(source, dict):
+        raise ValueError("Weather evidence provenance must be an object")
+    source_url = source.get("initial_condition_blob")
+    return {
+        "kind": "historical_simulation" if end < current else "model_forecast",
+        "model": result.get("model"),
+        "task_id": result.get("task_id"),
+        "initial_condition_at": result.get("initial_condition_at"),
+        "requested_at": result.get("requested_at"),
+        "window": {"starts_at": start.isoformat(), "ends_at": end.isoformat()},
+        "point_count": len(series),
+        "horizon_hours": result.get("horizon_hours"),
+        "covers_present": start <= current <= end,
+        "requested_scope": scope,
+        "kpis": {
+            "max_wind_gust_ms": number(forecast.get("max_wind_gust_ms")),
+            "total_precipitation_mm": number(forecast.get("total_precipitation_mm")),
+            "min_temperature_c": min(temperatures) if temperatures else None,
+            "max_temperature_c": max(temperatures) if temperatures else None,
+            "gust_change_ms": last_gust - first_gust
+            if first_gust is not None and last_gust is not None
+            else None,
+        },
+        "source": {
+            "provider": source.get("provider"),
+            "type": source.get("source"),
+            "initial_condition_blob": urlunparse(
+                urlparse(source_url)._replace(query="", fragment="")
+            )
+            if isinstance(source_url, str)
+            else None,
+        },
+        # The normalizer does not persist a validated ensemble distribution.
+        "uncertainty_available": False,
+        "usage_limits": {
+            "advisory_only": True,
+            "human_review_required": True,
+            "observed_weather": False,
+            "worsening_scope": "returned_window_only",
+            "long_range_or_current_extrapolation": False,
+            "coverage_or_payment_decision": False,
+        },
+    }
 
 
 def status(settings: AuroraSettings | None = None) -> dict[str, Any]:

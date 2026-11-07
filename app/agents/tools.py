@@ -463,6 +463,23 @@ def get_application_summary(application_id: str) -> str:
         except Exception as exc:
             logger.warning("get_application_summary: llm_outputs section failed: %s", exc)
 
+    saved_weather = (app_md.llm_outputs or {}).get("aurora")
+    if isinstance(saved_weather, dict):
+        from ..aurora import weather_evidence_context
+
+        try:
+            weather = weather_evidence_context(saved_weather)
+        except (ValueError, KeyError, TypeError) as error:
+            logger.warning(
+                "Saved Aurora context invalid for %s: %s", application_id, type(error).__name__
+            )
+            parts.append(
+                "\n### Saved weather evidence\nUnavailable: stored evidence could not be validated."
+            )
+        else:
+            parts.append("\n### Saved Aurora weather evidence (read-only)")
+            parts.append(json.dumps(weather, ensure_ascii=False))
+
     # ── Fraud analysis ──
     fa = app_md.fraud_analysis
     if fa:
@@ -549,6 +566,54 @@ def get_application_summary(application_id: str) -> str:
             logger.warning("get_application_summary: action_history section failed: %s", exc)
 
     return "\n".join(parts)
+
+
+def get_weather_evidence(application_id: str, requested_date: str = "") -> str:
+    """Read saved Aurora evidence and its exact temporal scope; never run a forecast.
+
+    Use for weather KPIs, reported loss timing, or worsening within the returned window.
+    requested_date may be YYYY-MM-DD or a timezone-qualified ISO timestamp. A day overlap
+    does not establish the event hour. Historical evidence cannot predict today's weather,
+    a distant future date, or seasonal climate. Never use it to decide coverage or payment.
+    """
+    from ..aurora import status, weather_evidence_context
+    from ..config import load_settings
+    from ..storage import load_application
+
+    app = load_application(load_settings().app.storage_root, application_id)
+    availability = status()
+    envelope = {
+        "application_id": application_id,
+        "inference_triggered": False,
+        "generation_configuration": {
+            "enabled": availability["enabled"],
+            "configured": availability["configured"],
+            "disabled_reason": availability.get("disabled_reason"),
+            "live_readiness_verified": False,
+        },
+    }
+    if app is None:
+        logger.warning("Weather evidence requested for missing application %s", application_id)
+        return json.dumps({**envelope, "status": "application_not_found"})
+    result = (app.llm_outputs or {}).get("aurora")
+    if not isinstance(result, dict):
+        return json.dumps({**envelope, "status": "not_recorded"})
+    try:
+        context = weather_evidence_context(result, requested_date)
+    except (ValueError, KeyError, TypeError) as error:
+        logger.warning("Weather evidence validation failed: %s", type(error).__name__)
+        return json.dumps({**envelope, "status": "invalid_evidence_or_date"})
+    return json.dumps(
+        {
+            **envelope,
+            "status": "outside_window"
+            if context["requested_scope"]["overlaps"] is False
+            else "available",
+            "context": context,
+            "series": result["forecast"]["series"],
+        },
+        ensure_ascii=False,
+    )
 
 
 def get_glossary(term: str = "") -> str:
