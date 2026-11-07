@@ -1,0 +1,137 @@
+{
+  "usage": "Microsoft service names stay next to unmodified icons. External providers use icon-free rectangles.",
+  "icons": [
+    {
+      "id": "browser",
+      "product": "Azure Browser",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/browser",
+      "download_url": "https://az-icons.com/export/icons/8b450a5364fe813a4fc3ec6cac87e884.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "3206dbdba3d310f6e39a8256fbc6acce4a7d105d3137413bf48c13ddbf56e0aa",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "apps",
+      "product": "Azure Worker Container App",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/worker-container-app",
+      "download_url": "https://az-icons.com/export/icons/db3e855ca8680eabb5636a6a9140e585.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "9c40fb75b2d8921a86cd74c45ff720594af867e34225048d8fd1d04d84524018",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "models",
+      "product": "Azure Foundry Models",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/foundry-models",
+      "download_url": "https://az-icons.com/export/icons/66f40c4faa3271926a79eb5952ac0961.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "563e89546e66591e59c6a0e8e8c2e48310cb0d831a6af6055ecd5ab009556f40",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "cu",
+      "product": "Azure Cognitive Services",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/cognitive-services",
+      "download_url": "https://az-icons.com/export/icons/5cb0c2e4d8f3ef195b6adca53490de02.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "9442bf49ade4f0770a23c17444c6cf06f8e5d6b3d75e583a5cd42f75ba937ba4",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "ml",
+      "product": "Azure Machine Learning",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/azure-machine-learning",
+      "download_url": "https://az-icons.com/export/icons/6ecf85f183f0b19d8de94a91cc5f82bc.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "f0cf3a3c0317722a2b079668ea7382588741f90f7b0dae0707ca0bef1fbb6be2",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "blob",
+      "product": "Azure Storage Accounts",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/storage-accounts",
+      "download_url": "https://az-icons.com/export/icons/675ad8e4daebee40114a4fe36033257c.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "ffb969b306da45252257ba565ee021d032804dd4154cb1a7b6838ddab0456f9b",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "kv",
+      "product": "Azure Key Vaults",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/key-vaults",
+      "download_url": "https://az-icons.com/export/icons/951234a0ba8dbe62234b12afb5c7a488.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "64ed1185059292e05a56cf15e14b845baebd576739509e090401d4325275bea9",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "pe",
+      "product": "Azure Private Endpoints",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/private-endpoints",
+      "download_url": "https://az-icons.com/export/icons/99ce3dea1f25b5c2a733c5b23147ad7b.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "7872adb3fb1e07fe0602af14fb89b6923bb66c4d1655512bd305aa4e5807c2b5",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "pg",
+      "product": "Azure Database PostgreSQL Server",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/azure-database-postgresql-server",
+      "download_url": "https://az-icons.com/export/icons/747f79d1963ab0eb020650db2f63a3cd.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "e975fb6358d5bd672277326cf41cce76843d2175c5a1137ad1cbb1943649efc0",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "acr",
+      "product": "Azure Container Registries",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/container-registries",
+      "download_url": "https://az-icons.com/export/icons/95282448f460a0912c7f2fb9fcea4521.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "34700e12185b33d6f7eb50146a9bfabd46892e2617cc5185b6fb0bacde580682",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "monitor",
+      "product": "Azure Application Insights",
+      "catalog": "az-icons.com (community catalog, Microsoft-owned artwork)",
+      "source_page": "https://az-icons.com/icon/application-insights",
+      "download_url": "https://az-icons.com/export/icons/b888cbfe0812148dec98d29c2b828988.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "8dfd20d0e8e056a7b9c365177d686501de979593ff8d41d71e85fc98ffa03cf8",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    },
+    {
+      "id": "entra",
+      "product": "Microsoft Entra ID",
+      "catalog": "MsiconsCollections fallback; current Entra ID color icon",
+      "priority_search": "No exact Entra ID/Active Directory match in az-icons.com catalog",
+      "source_page": "https://aka.ms/MsiconsCollections",
+      "resolved_collection": "https://tomkiljo.github.io/ms-icons/",
+      "download_url": "https://tomkiljo.github.io/ms-icons/icons/Microsoft_Entra_architecture_icons/Microsoft%20Entra%20color%20icons%20SVG/Microsoft%20Entra%20ID%20color%20icon.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "efd9f54562bfb78bf3c77aecdd5fc31b61fce8a1cec78c4370b41fc470e54eda",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/entra/architecture/architecture-icons"
+    },
+    {
+      "id": "search",
+      "product": "Azure AI Search (catalog former name: Cognitive Search)",
+      "catalog": "az-icons.com",
+      "source_page": "https://az-icons.com/icon/cognitive-search",
+      "download_url": "https://az-icons.com/export/icons/0d1430225c8904846d5b5c0e5b410823.svg",
+      "retrieved_on": "2026-11-06",
+      "sha256": "15c26e213579f44bd5a2f7a47b1f0f89595dfd95334a79ccc4113ec2d2f13671",
+      "official_origin_and_terms": "https://learn.microsoft.com/en-us/azure/architecture/icons/"
+    }
+  ]
+}

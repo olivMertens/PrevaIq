@@ -2,7 +2,28 @@
 
 ![PrevaIQ Azure overview](architecture/prevaiq-architecture.png)
 
-Editable sources and exports are in [docs/architecture/](architecture/) (`.drawio` is the source of truth, with standalone `.svg` and `.png` exports). The overview separates the Microsoft Foundry project and its Entra ID connections (Blob, Fabric data agent — simulated in the demo — and Azure AI Search) from the dedicated Microsoft Web IQ Streamable HTTP MCP connection. The API reads the Web IQ key from Key Vault and connects directly to `https://api.microsoft.ai/v3/mcp`; Foundry web grounding is not used. The loss location card geocodes the claim address once per case with OpenStreetMap Nominatim (called by `ca-api`, result kept with the case), and the browser loads the OpenStreetMap or Esri World Imagery map tiles. Azure icons come from [az-icons.com](https://az-icons.com/) (Azure Architecture Icons pack) and, where it has no match, from [MsiconsCollections](https://aka.ms/MsiconsCollections) (Container Apps, Microsoft Fabric, Microsoft Entra ID); they are Microsoft property under the [icon terms](https://learn.microsoft.com/en-us/azure/architecture/icons/#icon-terms). Services without a dedicated icon use the closest real one with an explicit label: *AI Services* for Content Understanding, *Foundry Models* for Mistral Document AI and the generic *Globe* for Microsoft Web IQ and for the map services, which are not Microsoft products. Diagrams are maintained with [`.github/skills/architecture-diagram-author`](../.github/skills/architecture-diagram-author/SKILL.md).
+Editable sources and exports are in [docs/architecture/](architecture/) (`.drawio` is the
+source of truth, with standalone `.svg` and `.png` exports). MAF agents run inside the
+API, not as invented hosted Agent Service instances. The overview distinguishes
+public/TLS PostgreSQL, Search and Foundry from private application Blob and Key Vault
+access. The API calls Microsoft Web IQ directly through Streamable HTTP MCP; its
+credential remains in Key Vault. The location service geocodes once with Nominatim,
+while the browser loads map tiles. Fabric is explicitly conditional.
+
+The [Aurora integration contract](architecture/prevaiq-aurora-runtime.png) shows
+required control and file paths, not proof of live serving. In the 2026-11-07
+snapshot, serving is unavailable and prior historical results remain readable.
+The separate model-recovery workflow must revalidate connectivity and inference.
+No current forecast is claimed by an application health check.
+
+Icons preserve their Microsoft service identity and colors; custom/external services
+use labeled rectangles without substitute Microsoft logos. Verified asset URLs and
+hashes are recorded in [icon provenance](architecture/icon-sources.json).
+Regenerate both views with `python scripts/render_architecture_diagrams.py` using
+draw.io and the temporary `@resvg/resvg-js` rasterizer; pass `--resvg-module` if it
+is installed outside the project dependencies. Geometry validation is available
+with `--check-only`. Diagrams follow the
+[architecture authoring skill](../.github/skills/architecture-diagram-author/SKILL.md).
 
 ```mermaid
 flowchart TB
@@ -93,6 +114,14 @@ The pipeline is extraction -> targeted bounded re-extraction -> validation -> an
 | Aurora weather forecasting for property-claim decision support | Custom task messages plus NetCDF files over Blob Storage; deterministic by default | `AURORA_FOUNDRY_ENDPOINT` and the configured private task container; application I/O uses managed identity and Aurora receives a short-lived delegated SAS |
 
 The API/UI contract stays stable during migration: `application_to_dict` keys are pinned by `tests/test_orchestration.py::test_application_contract_keys_are_stable`. Additions are allowed; removals are not.
+
+Saved Aurora evidence follows the existing dossier-metadata path, not a second model
+call. `get_application_summary` embeds a validated temporal/KPI context and the chat,
+analysis and case-metrics agents expose the read-only `get_weather_evidence` tool.
+The dossier GET returns the same context for the overview and weather tabs. This adds
+no service, network path or automatic inference loop: new forecasts remain an explicit
+bounded POST, separately gated by generation availability. Stored historical results
+cannot predict present weather, distant dates or seasonal climate.
 
 ## Evaluation before rollout
 
