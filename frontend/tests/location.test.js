@@ -66,5 +66,5 @@ test('every location card label exists in English, French and German', () => {
     assert.match(labels.approximateTown, /\{place\}/);
   }
   const cockpit = fs.readFileSync(path.join(srcDir, 'components', 'claims', 'PropertyCasualtyClaimsOverview.tsx'), 'utf8');
-  assert.match(cockpit, /<LocationCard applicationId=\{application\.id\} claimDate=\{claimDate\} \/>/);
+  assert.match(cockpit, /<WeatherEvidencePanel applicationId=\{application\.id\} claimDate=\{claimDate\}/);
 });

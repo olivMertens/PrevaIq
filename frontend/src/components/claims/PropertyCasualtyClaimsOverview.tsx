@@ -14,7 +14,8 @@ import ClaimAnalysisSections from '@/components/case/ClaimAnalysisSections';
 import ChronologicalOverview from '@/components/ChronologicalOverview';
 import EvidenceStrip from '@/components/case/EvidenceStrip';
 import LatestUpdates from '@/components/case/LatestUpdates';
-import LocationCard from '@/components/case/LocationCard';
+import WeatherEvidencePanel from '@/components/case/WeatherEvidencePanel';
+import AuroraEvidenceSummary from '@/components/case/AuroraEvidenceSummary';
 import NextSteps from '@/components/case/NextSteps';
 import VerdictBar from '@/components/case/VerdictBar';
 import type { CaseSignal, DeepDiveTab } from '@/components/case/caseSignals';
@@ -237,7 +238,7 @@ function PropertyCockpit({ application, onApplicationUpdate, view = 'overview', 
         {view === 'documents' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('evidence')}</div>}
         {view === 'data' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('data')}</div>}
         {view === 'pipeline' && <div className="rounded-xl border border-slate-200 bg-white p-5">{details('pipeline')}</div>}
-        {view === 'weather' && <LocationCard applicationId={application.id} claimDate={claimDate} />}
+        {view === 'weather' && <WeatherEvidencePanel applicationId={application.id} claimDate={claimDate} webPanel={details('web')} />}
         {view === 'timeline' && <ChronologicalOverview application={application} fullWidth persona={application.persona} />}
 
         {/* Two columns from lg; below lg the cards interleave by importance (attention, steps, evidence…). */}
@@ -276,6 +277,9 @@ function PropertyCockpit({ application, onApplicationUpdate, view = 'overview', 
               />
             </div>
             <div className="order-4">
+              <AuroraEvidenceSummary applicationId={application.id} onOpen={() => onChangeView('weather')} />
+            </div>
+            <div className="order-5">
               <LatestUpdates updates={cockpit.updates} previousVisit={previousVisit} onOpenTimeline={() => openTab('timeline')} />
             </div>
           </div>

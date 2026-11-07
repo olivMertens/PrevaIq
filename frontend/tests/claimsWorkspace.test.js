@@ -142,16 +142,19 @@ test('overview routes coverage to cover, exposes Web IQ, and launches new fraud 
 
 test('Aurora is visible when disabled or without a location, without a fabricated graph or enabled launch action', () => {
   for (const locale of ['en', 'fr', 'de']) {
-    const states = [{ enabled: false, configured: false }, null, null, false, false];
-    let index = 0;
     const AuroraRiskPanel = component(path.join('case', 'AuroraRiskPanel.tsx'), locale, {
-      react: { ...React, useState: () => [states[index++], () => {}] },
+      './useAuroraEvidence': { useAuroraEvidence: () => ({
+        status: {enabled: false, configured: false}, forecast: null, context: null,
+        error: null, initializing: false, setForecast() {},
+      }) },
+      './CaseTabs': empty,
       '@/lib/api': { APIError: Error },
       './caseUi': { CockpitCard: ({ title, children }) => React.createElement('section', null, title, children) },
       './AuroraForecastChart': () => { throw new Error('Disabled Aurora must not render a forecast chart'); },
       './AuroraStormTimeline': { default: () => { throw new Error('Disabled Aurora must not render a weather timeline'); }, AuroraResolvingState: empty, __esModule: true },
       '@/components/aurora/AuroraExpiryCountdown': empty,
     });
+
     const html = renderToStaticMarkup(React.createElement(AuroraRiskPanel, { applicationId: 'case-1' }));
     assert.ok(html.includes(messages(locale).caseCockpit.aurora.disabled));
     assert.ok(html.includes(messages(locale).caseCockpit.aurora.locationRequired));
@@ -170,6 +173,96 @@ test('claims demo guidance mirrors all six navigation labels and keeps Aurora av
     }
     assert.ok(m.demoGuide.scenarios.habitation.steps[3].detail.includes(m.nav.claims.weather));
   }
+});
+
+test('Aurora date alignment distinguishes a calendar day from a timezone-qualified instant', () => {
+  const {parseAuroraClaimTime: parse} = load('auroraClaimTime.ts', libDir);
+  for (const date of ['2026-08-28', '28/08/2026', '28.08.2026']) {
+    const interval = parse(date);
+    assert.equal(interval.precision, 'day');
+    assert.ok(interval.end > interval.start);
+    assert.ok(interval.marker >= interval.start && interval.marker <= interval.end);
+  }
+  assert.equal(parse('2026-08-28T09:00:00+02:00').start, Date.parse('2026-08-28T07:00:00Z'));
+  for (const date of ['31/02/2026', '2026-02-31', '2026-08', '2026', '2026-08-28T07:00:00', 'unknown']) {
+    assert.equal(parse(date), null, date);
+  }
+});
+
+test('case analysis mounts just one section', () => {
+  const CaseTabs = component(path.join('case', 'CaseTabs.tsx'));
+  const Analysis = component(path.join('case', 'ClaimAnalysisSections.tsx'), 'en', {'./CaseTabs': CaseTabs});
+  for (const focus of [undefined, 'cover', 'fraud', 'web']) {
+    const rendered = [];
+    const html = renderToStaticMarkup(React.createElement(Analysis, {
+      focus, renderSection: section => { rendered.push(section); return React.createElement('p', null, section); },
+    }));
+    assert.deepEqual(rendered, [focus ?? 'summary']);
+    assert.equal((html.match(/role="tabpanel"/g) || []).length, 1);
+    assert.equal((html.match(/role="tab"/g) || []).length, 4);
+  }
+});
+
+test('case tabs support arrows, Home, End and roving focus', () => {
+  const Tabs = component(path.join('case', 'CaseTabs.tsx'), 'en', {
+    react: {...React, useRef: () => ({current: {}})},
+  });
+  const changed = [], focused = [];
+  const tree = Tabs({tabs: ['aurora', 'location', 'web'].map(id => ({id, label: id})),
+    active: 'aurora', idPrefix: 'test-tabs', label: 'test', onChange: id => changed.push(id)});
+  const buttons = elements(tree).filter(node => node.type === 'button');
+  buttons.forEach(button => button.props.ref({focus: () => focused.push(button.props.id)}));
+  assert.deepEqual(buttons.map(button => button.props.tabIndex), [0, -1, -1]);
+  for (const key of ['ArrowRight', 'End', 'Home', 'ArrowLeft']) {
+    buttons[0].props.onKeyDown({key, preventDefault() {}});
+  }
+  assert.deepEqual(changed, ['location', 'web', 'aurora', 'web']);
+  assert.deepEqual(focused, changed.map(id => `test-tabs-${id}-tab`));
+});
+
+test('saved summary shows model risks and review preparation even if availability lookup fails', () => {
+  const Summary = component(path.join('case', 'AuroraEvidenceSummary.tsx'), 'en', {
+    './useAuroraEvidence': {useAuroraEvidence: () => ({
+      status: null, error: 'statusError', initializing: false,
+      forecast: {
+        forecast: {max_wind_gust_ms: 9.7, total_precipitation_mm: 3.359},
+        decision_support: {severity: 'low', recommended_actions: ['verify_claim_evidence']},
+      },
+      context: {kind: 'historical_simulation', point_count: 2,
+        window: {starts_at: '2026-08-28T07:00:00Z', ends_at: '2026-08-28T08:00:00Z'}},
+    })},
+  });
+  const html = renderToStaticMarkup(React.createElement(Summary, {applicationId: 'saved-case'}));
+  for (const text of ['role="alert"', 'Historical simulation', '9.7', '2026', 'Model weather signal', 'Prepare customer contact']) {
+    assert.ok(html.includes(text), text);
+  }
+});
+
+test('forecast failures show a localized toast and retain saved evidence', async () => {
+  const toasts = [], writes = [];
+  let requestCount = 0;
+  const Panel = component(path.join('case', 'AuroraRiskPanel.tsx'), 'fr', {
+    react: {...React, useState: initial => [initial, () => {}]},
+    '@/lib/api': {APIError: class APIError extends Error {}, createAuroraForecast: async () => {
+      requestCount++;
+      throw new Error('PRIVATE_SERVER_ERROR_MUST_NOT_BE_SHOWN');
+    }},
+    '@/lib/ToastProvider': {useToast: () => ({addToast: (...args) => toasts.push(args)})},
+    './useAuroraEvidence': {useAuroraEvidence: () => ({
+      status: {enabled: true, configured: true, default_horizon_hours: 6},
+      forecast: null, context: null, error: null, initializing: false, setForecast: value => writes.push(value),
+    })},
+    './caseUi': {CockpitCard: ({children}) => React.createElement('section', null, children)},
+    './CaseTabs': empty, './AuroraForecastChart': empty,
+    './AuroraStormTimeline': {default: empty, AuroraResolvingState: empty, __esModule: true},
+    '@/components/aurora/AuroraExpiryCountdown': empty,
+  });
+  const tree = Panel({applicationId: 'saved-case', latitude: 46.2, longitude: 6.1});
+  assert.equal(requestCount, 0);
+  await elements(tree).find(node => node.type === 'button').props.onClick();
+  assert.equal(requestCount, 1);
+  assert.deepEqual(toasts, [['error', messages('fr').caseCockpit.aurora.error]]);
+  assert.deepEqual(writes, []);
 });
 
 test('Web IQ action explicitly describes the coupled fraud run and surfaces failures', () => {

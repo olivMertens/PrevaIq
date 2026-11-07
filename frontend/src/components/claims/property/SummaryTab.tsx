@@ -2,6 +2,8 @@
 
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import CaseTabs from '@/components/case/CaseTabs';
 import MarkdownText from './MarkdownText';
 import { parseAiSummary } from './propertyClaimHelpers';
 
@@ -22,6 +24,7 @@ interface SummaryTabProps {
 /** Full AI synthesis, split by topic (moved from the former "AI summary" dialog). */
 export default function SummaryTab({ aiSummary, damages, analyzing, onRelaunch }: SummaryTabProps) {
   const t = useTranslations('claims');
+  const [active, setActive] = useState<SummaryTabKey>('overview');
   const parsed = parseAiSummary(aiSummary || '');
   const tabs: Array<{ key: SummaryTabKey; label: string }> = [
     { key: 'overview', label: t('analysis.tabOverview') },
@@ -74,12 +77,13 @@ export default function SummaryTab({ aiSummary, damages, analyzing, onRelaunch }
           {analyzing ? t('analysis.inProgress') : t('analysis.relaunch')}
         </button>
       </div>
-      {tabs.map(({ key, label }) => (
-        <details key={key} open={key === 'overview'} className="rounded-lg border border-slate-200 bg-slate-50">
-          <summary className="cursor-pointer px-4 py-3 text-sm font-medium text-slate-800">{label}</summary>
-          <div className="px-4 pb-4">{content(key)}</div>
-        </details>
-      ))}
+      <CaseTabs idPrefix="ai-summary" label={t('panels.aiSummary')}
+        tabs={tabs.map(tab => ({id: tab.key, label: tab.label}))}
+        active={active} onChange={setActive} />
+      <div role="tabpanel" id={`ai-summary-${active}-panel`} aria-labelledby={`ai-summary-${active}-tab`}
+        tabIndex={0} className="max-h-[32rem] overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-4">
+        {content(active)}
+      </div>
     </div>
   );
 }

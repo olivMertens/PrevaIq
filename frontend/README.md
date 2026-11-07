@@ -112,8 +112,9 @@ The demo guide uses the selected theme without changing file selections or folde
 Auto and property claims share six primary views, in order: Overview, Evidence,
 Analysis & facts, Customer, Weather & map, and Timeline. Technical source pages,
 extracted data and the AI pipeline are available under More. View URLs survive
-reloads and language switches. Analysis sections use in-page anchors, not a second
-tabbed drawer; the claim chronology has one main view.
+reloads and language switches. Analysis uses accessible tabs with one active section;
+the AI synthesis also shows one topic at a time in a bounded reader. The claim chronology
+has one main view.
 
 Overview shortcuts start a new fraud analysis directly or open an existing report.
 Web IQ sources are separately visible, but execution remains explicitly coupled
@@ -126,6 +127,17 @@ Weather & map always exposes Aurora availability, including a disabled state;
 charts require actual saved forecast data. The UI never fabricates weather or
 enables the service by navigating to the view. EN/FR/DE/DE-CH demo-guide navigation is
 synchronized; demo assets and upload sets are unchanged.
+
+The weather workspace separates Aurora, loss location and saved Web IQ findings.
+Aurora shows one chart/timing/provenance/actions view at a time, with manual timeline
+playback. The chart is capped at 768 px wide and the map viewport at 288 px tall;
+its inner tile canvas retains the 2:1 geometry. Switching tabs never submits inference
+or starts the coupled fraud/Web IQ run.
+
+Auto/property Overview and the property AI summary include a compact saved-evidence
+card. Its exact valid-time window is distinct from the request date. Historical
+simulations are not current observations or distant forecasts. Ask IQ's **Case metrics**
+mode reads dossier figures; portfolio queries still require a connected Fabric source.
 
 ## Shared brand assets
 

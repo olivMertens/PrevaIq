@@ -1434,8 +1434,8 @@
     "agentPolicyDesc": "Recherche RAG dans les Conditions Générales — couverture, exclusions, franchises, articles",
     "agentAnalysis": "Analyse",
     "agentAnalysisDesc": "Analyse approfondie du dossier — risques, responsabilité, cohérence déclaration/preuves",
-    "agentDashboard": "KPIs",
-    "agentDashboardDesc": "Indicateurs clés — délais, taux de couverture, tendances par branche",
+    "agentDashboard": "Indicateurs du dossier",
+    "agentDashboardDesc": "Chiffres sourcés dans les données enregistrées du dossier. Les requêtes portefeuille nécessitent une source Fabric connectée.",
     "agentWorkflow": "Workflows",
     "agentWorkflowDesc": "Workflows multi-agents — traitement express, analyse complète ou investigation fraude",
     "workflowsTitle": "Workflows multi-agents disponibles",
@@ -3050,7 +3050,7 @@
     }
   },
   "demoGuide": {
-    "claimsNavigation": "Utiliser Aperçu pour les actions directes, Pièces pour les fichiers et la police, Analyse et faits pour la couverture, la fraude et Web IQ, Client pour les brouillons modifiables, et Météo et carte pour la localisation et la disponibilité d'Aurora. La Chronologie du sinistre a un seul onglet principal. Plus contient les données techniques.",
+    "claimsNavigation": "Utiliser Aperçu pour les actions directes, Pièces pour les fichiers et la police, Analyse et faits pour la couverture, la fraude et Web IQ, Client pour les brouillons modifiables, et Météo et carte pour la localisation et la disponibilité d'Aurora. La Chronologie du sinistre a un seul onglet principal. Plus contient les données techniques.\n\nDans Météo et carte, choisir Données Aurora, Lieu du sinistre ou Sources Web IQ ; seul le panneau actif s’affiche. Dans Aurora, choisir Graphique horaire, Date du sinistre, Provenance ou Actions dossier. La lecture est manuelle. Aperçu et Ask IQ lisent les données enregistrées uniquement dans leur fenêtre affichée, même si les nouveaux calculs sont indisponibles. Choisir un onglet ne lance ni Aurora ni Web IQ.",
     "openTitle": "Guide de démonstration",
     "openBadge": "Démo",
     "title": "Guide de Démonstration",
@@ -3682,6 +3682,35 @@
     },
     "aurora": {
       "title": "Perspectives de risque météo",
+      "summary": {
+        "title": "Données météo Aurora enregistrées",
+        "open": "Ouvrir la météo",
+        "none": "Aucune donnée météo enregistrée. Aucun calcul n’a été lancé.",
+        "saved": "Données de modèle enregistrées",
+        "historical_simulation": "Simulation historique · pas la météo actuelle",
+        "model_forecast": "Prévision modèle · valable uniquement dans la fenêtre indiquée",
+        "window": "{count} points modèle retournés · du {start} au {end}",
+        "boundary": "Ces indicateurs valent uniquement dans la fenêtre retournée. Ils ne prouvent pas la météo observée et ne prédisent pas une date lointaine.",
+        "risk": "Signal météo du modèle : {severity}",
+        "review": "Préparer la revue",
+        "reviewScope": "Comparer l'heure déclarée à cette fenêtre. Rassembler les pièces pertinentes et faire examiner les écarts par un gestionnaire.",
+        "customer": "Préparer le contact client",
+        "customerScope": "Confirmer l'heure du sinistre et conserver les photos datées. Les conseils de prévention nécessitent une météo actuelle vérifiée et les alertes officielles.",
+        "inferenceUnavailable": "Les nouveaux calculs sont indisponibles ; les résultats enregistrés restent consultables."
+      },
+      "workspace": {
+        "title": "Météo, lieu et sources publiques",
+        "aurora": "Données Aurora",
+        "location": "Lieu du sinistre",
+        "web": "Sources Web IQ"
+      },
+      "details": {
+        "title": "Vues des données Aurora",
+        "chart": "Graphique horaire",
+        "timeline": "Date du sinistre",
+        "trace": "Provenance",
+        "actions": "Actions dossier"
+      },
       "unavailable": "Prévision indisponible",
       "blobAccessDenied": "Un accès au canal Blob a été refusé (403). Diagnostic en cours : le composant et la règle responsables ne sont pas encore établis. Le calcul reste désactivé.",
       "loadingStatus": "Vérification de la disponibilité d'Aurora…",
@@ -3696,8 +3725,8 @@
       "notConfigured": "Aurora est activé, mais son point de terminaison, ses conditions initiales ou son canal Blob doivent encore être configurés par un administrateur.",
       "statusError": "La disponibilité d'Aurora n'a pas pu être vérifiée.",
       "loadError": "La prévision Aurora enregistrée n'a pas pu être chargée.",
-      "maxGust": "Rafale maximale",
-      "precipitation": "Précipitations totales",
+      "maxGust": "Rafale maximale modélisée",
+      "precipitation": "Précipitations totales modélisées",
       "hazardWindow": "Fenêtre de danger potentielle : du {start} au {end}.",
       "resolving": {
         "title": "Résolution des preuves météo",
@@ -3711,18 +3740,18 @@
         "bounded": "La requête s'arrête au délai configuré ; aucune météo synthétique n'est affichée en cas d'échec."
       },
       "timeline": {
-        "title": "Vérification du sinistre et de la tempête",
-        "lead": "Rejouez les preuves horaires réelles avant, pendant et après la fenêtre de danger prévue.",
+        "title": "Date du sinistre et fenêtre modèle",
+        "lead": "Explorez manuellement les points retournés autour du risque potentiel ; cela ne confirme pas une tempête.",
         "playing": "Lecture",
         "replay": "Rejouer",
         "pointCount": "{count, plural, one {# point modèle} other {# points modèle}}",
         "phases": {
           "before": {
-            "title": "Avant la tempête",
+            "title": "Avant le risque modélisé",
             "empty": "Aucun point antérieur retourné"
           },
           "during": {
-            "title": "Pendant la tempête",
+            "title": "Fenêtre de risque modélisée",
             "empty": "Aucun point de danger retourné"
           },
           "after": {
@@ -3732,6 +3761,8 @@
         },
         "claimMarker": "Date déclarée du sinistre",
         "claimAligned": "La date déclarée du sinistre, le {date}, se situe dans cette fenêtre modèle.",
+        "claimDayOverlap": "Le jour déclaré, le {date}, recoupe la fenêtre modèle. Sans heure du sinistre, la chronologie et la météo ne sont pas confirmées.",
+        "claimInvalid": "La date déclarée ne peut pas être comparée de manière fiable à la fenêtre modèle.",
         "claimOutside": "La date déclarée du sinistre, le {date}, est hors de cette fenêtre de prévision ; des observations historiques ou une réanalyse restent nécessaires.",
         "gust": "Rafale {value, number} m/s",
         "rain": "Pluie {value, number} mm",

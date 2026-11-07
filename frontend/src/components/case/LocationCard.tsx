@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import clsx from 'clsx';
 import { Car, ExternalLink, MapPin, PersonStanding, TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { getClaimLocation, type ClaimLocation, type PlaceLevel } from '@/lib/api';
+import { type ClaimLocation, type PlaceLevel } from '@/lib/api';
 import {
   BASEMAPS,
   basemapAttribution,
@@ -16,7 +15,6 @@ import {
 } from '@/lib/claimMap';
 import { CockpitCard } from './caseUi';
 import { usePersistentChoice } from './usePersistentState';
-import AuroraRiskPanel from './AuroraRiskPanel';
 
 // Zoom on what was found: the building, its street or its town.
 const ZOOM: Record<PlaceLevel, number> = { building: 17, street: 16, town: 13 };
@@ -24,31 +22,14 @@ const LINK = 'inline-flex items-center gap-1 rounded-lg border border-slate-200 
 
 /** Where the loss happened: a map of the address, and links to Google Maps, Street View and a route. */
 export default function LocationCard({
-  applicationId,
-  claimDate,
+  location,
+  failed,
 }: {
-  applicationId: string;
-  claimDate?: string;
+  location: ClaimLocation | null;
+  failed: boolean;
 }) {
   const t = useTranslations('caseCockpit.location');
-  const [location, setLocation] = useState<ClaimLocation | null>(null);
-  const [failed, setFailed] = useState(false);
   const [basemap, setBasemap] = usePersistentChoice<Basemap>('prevaiq.map.basemap', 'satellite', BASEMAPS);
-
-  useEffect(() => {
-    let active = true;
-    getClaimLocation(applicationId).then(
-      (value) => {
-        if (active) setLocation(value);
-      },
-      () => {
-        if (active) setFailed(true);
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [applicationId]);
 
   const place = location?.place ?? null;
   const address = location?.address ?? null;
@@ -73,7 +54,7 @@ export default function LocationCard({
 
   let body: React.ReactNode;
   if (!location && !failed) {
-    body = <div className="aspect-[2/1] animate-pulse rounded-lg bg-slate-100" role="status" aria-label={t('loading')} />;
+    body = <div className="h-56 animate-pulse rounded-lg bg-slate-100 sm:h-64 lg:h-72" role="status" aria-label={t('loading')} />;
   } else if (failed || location?.status === 'no_address' || !address) {
     body = <p className="text-sm text-slate-500">{failed ? t('unavailable') : t('noAddress')}</p>;
   } else {
@@ -86,8 +67,9 @@ export default function LocationCard({
             rel="noopener noreferrer"
             title={t('openMap')}
             aria-label={t('openMap')}
-            className="relative block aspect-[2/1] overflow-hidden rounded-lg bg-slate-200 ring-1 ring-slate-200"
+            className="relative block h-56 overflow-hidden rounded-lg bg-slate-200 ring-1 ring-slate-200 sm:h-64 lg:h-72"
           >
+            <div className="absolute inset-x-0 top-1/2 aspect-[2/1] -translate-y-1/2">
             {tilesAround(place.lat, place.lon, ZOOM[place.level], basemap).map((tile) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -116,6 +98,7 @@ export default function LocationCard({
                 aria-hidden
               />
             )}
+            </div>
             <span className="absolute bottom-0 right-0 rounded-tl bg-white/80 px-1.5 py-0.5 text-[10px] text-slate-600">
               {basemapAttribution(basemap)}
             </span>
@@ -165,12 +148,6 @@ export default function LocationCard({
       <CockpitCard title={t('title')} headingId="cockpit-location" aside={basemapSwitch}>
         <div className="px-4 py-3">{body}</div>
       </CockpitCard>
-      <AuroraRiskPanel
-          applicationId={applicationId}
-          latitude={place?.lat}
-          longitude={place?.lon}
-          claimDate={claimDate}
-      />
     </div>
   );
 }

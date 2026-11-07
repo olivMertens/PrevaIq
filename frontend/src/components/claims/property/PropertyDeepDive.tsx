@@ -11,6 +11,7 @@ import DataTab from './DataTab';
 import EvidenceTab from './EvidenceTab';
 import FraudTab from './FraudTab';
 import SummaryTab from './SummaryTab';
+import AuroraEvidenceSummary from '@/components/case/AuroraEvidenceSummary';
 import WebCheckTab from './WebCheckTab';
 import { getFieldValue, parseAiSummary } from './propertyClaimHelpers';
 import type { usePropertyClaimData } from './usePropertyClaimData';
@@ -55,6 +56,8 @@ export default function PropertyDeepDive({
   switch (tab) {
     case 'summary':
       return (
+        <div className="space-y-4">
+        <AuroraEvidenceSummary applicationId={application.id} />
         <SummaryTab
           aiSummary={aiSummary}
           damages={[
@@ -64,6 +67,7 @@ export default function PropertyDeepDive({
           analyzing={analyzing}
           onRelaunch={onRelaunch}
         />
+        </div>
       );
     case 'fraud':
       return <FraudTab result={fraud} running={fraudStatus.isLoading} progress={fraudStatus.progress} onOpenReport={onOpenFraudReport} onRun={onRunFraud} />;

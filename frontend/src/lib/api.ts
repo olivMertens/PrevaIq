@@ -2197,6 +2197,29 @@ export interface AuroraForecastResponse {
   application_id: string;
   human_review_required: boolean;
   result: AuroraForecast;
+  context?: AuroraEvidenceContext;
+}
+
+export interface AuroraEvidenceContext {
+  kind: 'historical_simulation' | 'model_forecast';
+  window: { starts_at: string; ends_at: string };
+  point_count: number;
+  horizon_hours: number;
+  covers_present: boolean;
+  uncertainty_available: boolean;
+  requested_scope: {
+    requested: string | null;
+    precision: 'day' | 'instant' | null;
+    overlaps: boolean | null;
+    fully_covered?: boolean;
+  };
+  kpis: {
+    max_wind_gust_ms: number | null;
+    total_precipitation_mm: number | null;
+    min_temperature_c: number | null;
+    max_temperature_c: number | null;
+    gust_change_ms: number | null;
+  };
 }
 
 export async function getAuroraForecast(applicationId: string): Promise<AuroraForecastResponse> {

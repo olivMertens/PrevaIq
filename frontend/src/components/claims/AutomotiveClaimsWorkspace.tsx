@@ -10,7 +10,8 @@ import { claimCommunicationStatus, claimViewForDetail, savedClaimFraud } from '@
 import { useToast } from '@/lib/ToastProvider';
 import type { DeepDiveTab } from '@/components/case/caseSignals';
 import ClaimAnalysisSections from '@/components/case/ClaimAnalysisSections';
-import LocationCard from '@/components/case/LocationCard';
+import WeatherEvidencePanel from '@/components/case/WeatherEvidencePanel';
+import AuroraEvidenceSummary from '@/components/case/AuroraEvidenceSummary';
 import ChronologicalOverview from '@/components/ChronologicalOverview';
 import DocumentsPanel from '@/components/DocumentsPanel';
 import AutomotiveClaimsOverview from './AutomotiveClaimsOverview';
@@ -85,6 +86,7 @@ export default function AutomotiveClaimsWorkspace({
     <div className="flex min-h-0 flex-1 flex-col">
       {status.error && <p role="alert" className="bg-rose-50 p-3 text-sm text-rose-900">{status.error}</p>}
       <div className={view === 'overview' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
+        {view === 'overview' && <div className="px-4 pt-3"><AuroraEvidenceSummary applicationId={application.id} onOpen={() => onChangeView('weather')} /></div>}
         <AutomotiveClaimsOverview key={`${application.id}-${application.analysis_language ?? ''}`} applicationId={application.id} analysisControls={controls} />
       </div>
       {view !== 'overview' && view !== 'source' && (
@@ -94,7 +96,7 @@ export default function AutomotiveClaimsWorkspace({
             {view === 'analysis' && <ClaimAnalysisSections focus={focus} facts={<details className="rounded-xl border bg-white p-4"><summary className="cursor-pointer font-semibold">{t('facts.title')}</summary>{details('data')}</details>} renderSection={details} />}
             {view === 'documents' && <DocumentsPanel files={application.files || []} applicationId={application.id} />}
             {view === 'customer' && <div className="rounded-xl border bg-white p-5">{details('customer')}</div>}
-            {view === 'weather' && <LocationCard applicationId={application.id} claimDate={getFieldValue(data.ef, ['DateSinistre', 'ClaimDate'])} />}
+            {view === 'weather' && <WeatherEvidencePanel applicationId={application.id} claimDate={getFieldValue(data.ef, ['DateSinistre', 'ClaimDate'])} webPanel={details('web')} />}
             {view === 'timeline' && <ChronologicalOverview application={application} persona="automotive_claims" fullWidth />}
             {view === 'data' && details('data')}
             {view === 'pipeline' && details('pipeline')}

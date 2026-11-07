@@ -1434,8 +1434,8 @@
     "agentPolicyDesc": "Coverage, exclusions, policy articles",
     "agentAnalysis": "Analysis",
     "agentAnalysisDesc": "In-depth case analysis",
-    "agentDashboard": "KPIs",
-    "agentDashboardDesc": "Key metrics and trends",
+    "agentDashboard": "Case metrics",
+    "agentDashboardDesc": "Figures grounded in saved case data. Portfolio queries require a connected Fabric data source.",
     "agentWorkflow": "Workflows",
     "agentWorkflowDesc": "Multi-agent workflows — express processing, full analysis, or fraud investigation",
     "workflowsTitle": "Available multi-agent workflows",
@@ -3050,7 +3050,7 @@
     }
   },
   "demoGuide": {
-    "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.",
+    "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.\n\nIn Weather & map, choose Aurora evidence, Loss location or Web IQ sources; only the active panel is shown. In Aurora, choose Hourly chart, Claim timing, Provenance or Case actions. Playback is manual. Overview and Ask IQ read saved evidence only for its displayed window, even while new calculations are unavailable. Selecting a tab does not run Aurora or Web IQ.",
     "openTitle": "Demo guide",
     "openBadge": "Demo",
     "title": "Demo Guide",
@@ -3682,6 +3682,35 @@
     },
     "aurora": {
       "title": "Weather risk outlook",
+      "summary": {
+        "title": "Saved Aurora weather evidence",
+        "open": "Open weather",
+        "none": "No saved weather evidence. No calculation has been started.",
+        "saved": "Saved model evidence",
+        "historical_simulation": "Historical simulation · not current weather",
+        "model_forecast": "Model forecast · valid only for the stated window",
+        "window": "{count} returned model points · {start} to {end}",
+        "boundary": "These indicators apply only to the returned window. They neither establish observed weather nor predict a distant date.",
+        "risk": "Model weather signal: {severity}",
+        "review": "Prepare the review",
+        "reviewScope": "Compare the reported loss time with this window. Collect relevant evidence and ask a human reviewer to assess discrepancies.",
+        "customer": "Prepare customer contact",
+        "customerScope": "Confirm the loss time and preserve dated photos. Prevention advice requires current, verified weather and official alerts.",
+        "inferenceUnavailable": "New calculations are unavailable; saved results remain readable."
+      },
+      "workspace": {
+        "title": "Weather, location and public sources",
+        "aurora": "Aurora evidence",
+        "location": "Loss location",
+        "web": "Web IQ sources"
+      },
+      "details": {
+        "title": "Aurora evidence views",
+        "chart": "Hourly chart",
+        "timeline": "Claim timing",
+        "trace": "Provenance",
+        "actions": "Case actions"
+      },
       "unavailable": "Forecast unavailable",
       "blobAccessDenied": "An access attempt to the Blob channel was refused (403). Diagnostics are ongoing: the responsible component and rule have not yet been established. Calculation remains disabled.",
       "loadingStatus": "Checking Aurora availability…",
@@ -3696,8 +3725,8 @@
       "notConfigured": "Aurora is enabled but its endpoint, initial conditions, or Blob channel still needs administrator configuration.",
       "statusError": "Aurora availability could not be checked.",
       "loadError": "The saved Aurora forecast could not be loaded.",
-      "maxGust": "Maximum wind gust",
-      "precipitation": "Total precipitation",
+      "maxGust": "Modelled maximum gust",
+      "precipitation": "Modelled total precipitation",
       "hazardWindow": "Potential hazard window: {start} to {end}.",
       "resolving": {
         "title": "Resolving the weather evidence",
@@ -3711,18 +3740,18 @@
         "bounded": "The request stops at the configured timeout; no synthetic weather is shown if it fails."
       },
       "timeline": {
-        "title": "Claim and storm verification",
-        "lead": "Replay the actual hourly evidence before, during, and after the predicted hazard window.",
+        "title": "Claim timing and model window",
+        "lead": "Manually explore returned model points around the potential hazard window; this does not confirm a storm.",
         "playing": "Playing",
         "replay": "Replay",
         "pointCount": "{count, plural, one {# model point} other {# model points}}",
         "phases": {
           "before": {
-            "title": "Before the storm",
+            "title": "Before the modelled hazard",
             "empty": "No earlier point returned"
           },
           "during": {
-            "title": "During the storm",
+            "title": "Modelled hazard window",
             "empty": "No hazard point returned"
           },
           "after": {
@@ -3732,6 +3761,8 @@
         },
         "claimMarker": "Declared claim date",
         "claimAligned": "Declared claim date {date} falls inside this model window.",
+        "claimDayOverlap": "The declared day {date} overlaps the model window. Without an event time, timing and weather are not confirmed.",
+        "claimInvalid": "The declared date cannot be compared reliably with the model window.",
         "claimOutside": "Declared claim date {date} is outside this forecast window; historical observation or hindcast evidence is still required.",
         "gust": "Gust {value, number} m/s",
         "rain": "Rain {value, number} mm",

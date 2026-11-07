@@ -5,6 +5,7 @@ import { Check, CloudLightning, MapPin, Play, Radar, TimerReset } from 'lucide-r
 import { useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import type { AuroraForecast } from '@/lib/api';
+import { parseAuroraClaimTime } from '@/lib/auroraClaimTime';
 
 type ForecastPoint = AuroraForecast['forecast']['series'][number];
 type HazardWindow = AuroraForecast['decision_support']['hazard_window'];
@@ -15,19 +16,6 @@ const PHASE_STYLES: Record<Phase, string> = {
   during: 'border-violet-200 bg-violet-50 text-violet-950',
   after: 'border-teal-200 bg-teal-50 text-teal-950',
 };
-
-function parseClaimDate(value?: string): { start: number; end: number; marker: number } | null {
-  if (!value) return null;
-  const localized = value.match(/(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);
-  if (localized) {
-    const year = Number(localized[3].length === 2 ? `20${localized[3]}` : localized[3]);
-    const start = new Date(year, Number(localized[2]) - 1, Number(localized[1])).getTime();
-    const end = start + 24 * 60 * 60 * 1000 - 1;
-    return { start, end, marker: start + 12 * 60 * 60 * 1000 };
-  }
-  const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? null : { start: parsed, end: parsed, marker: parsed };
-}
 
 function phaseFor(timestamp: number, hazardWindow: HazardWindow): Phase {
   if (!hazardWindow) return 'after';
@@ -98,7 +86,7 @@ export default function AuroraStormTimeline({
 }) {
   const t = useTranslations('caseCockpit.aurora.timeline');
   const [activeIndex, setActiveIndex] = useState(0);
-  const [playing, setPlaying] = useState(series.length > 1);
+  const [playing, setPlaying] = useState(false);
 
   useEffect(() => {
     if (!playing || series.length < 2) return;
@@ -134,7 +122,7 @@ export default function AuroraStormTimeline({
   const duration = Math.max(end - start, 1);
   const current = series[Math.min(activeIndex, series.length - 1)];
   const currentPhase = phaseFor(Date.parse(current.valid_at), hazardWindow);
-  const claimInterval = parseClaimDate(claimDate);
+  const claimInterval = parseAuroraClaimTime(claimDate);
   const claimInRange =
     claimInterval != null && claimInterval.end >= start && claimInterval.start <= end;
   const claimPosition = claimInRange && claimInterval
@@ -229,7 +217,9 @@ export default function AuroraStormTimeline({
       {claimDate && (
         <p className={clsx('mt-2 flex items-center gap-1.5 text-[11px]', claimInRange ? 'text-emerald-800' : 'text-amber-800')}>
           {claimInRange ? <Check className="h-3.5 w-3.5" aria-hidden /> : <TimerReset className="h-3.5 w-3.5" aria-hidden />}
-          {claimInRange ? t('claimAligned', { date: claimDate }) : t('claimOutside', { date: claimDate })}
+          {!claimInterval ? t('claimInvalid') : claimInRange
+            ? t(claimInterval.precision === 'day' ? 'claimDayOverlap' : 'claimAligned', {date: claimDate})
+            : t('claimOutside', {date: claimDate})}
         </p>
       )}
       <p className="mt-2 text-[10px] opacity-65">{t('advisory')}</p>

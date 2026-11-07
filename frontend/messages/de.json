@@ -1434,8 +1434,8 @@
     "agentPolicyDesc": "Deckung, Ausschlüsse und Bedingungsartikel",
     "agentAnalysis": "Analyse",
     "agentAnalysisDesc": "Vertiefte Fallanalyse",
-    "agentDashboard": "KPIs",
-    "agentDashboardDesc": "Kennzahlen und Trends",
+    "agentDashboard": "Fallkennzahlen",
+    "agentDashboardDesc": "Kennzahlen aus gespeicherten Falldaten. Portfolioabfragen erfordern eine verbundene Fabric-Datenquelle.",
     "agentWorkflow": "Workflows",
     "agentWorkflowDesc": "Multi-Agent-Workflows – Express-Bearbeitung, vollständige Analyse oder Betrugsermittlung",
     "workflowsTitle": "Verfügbare Multi-Agent-Workflows",
@@ -3050,7 +3050,7 @@
     }
   },
   "demoGuide": {
-    "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.",
+    "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.\n\nUnter Wetter und Karte wählen Sie Aurora-Daten, Schadenort oder Web-IQ-Quellen; nur das aktive Feld wird angezeigt. In Aurora wählen Sie Stundendiagramm, Schadenzeitpunkt, Herkunft oder Fallmaßnahmen. Die Wiedergabe startet manuell. Übersicht und Ask IQ lesen gespeicherte Daten nur für das angezeigte Zeitfenster, auch wenn neue Berechnungen nicht verfügbar sind. Ein Reiterwechsel startet weder Aurora noch Web IQ.",
     "openTitle": "Demoleitfaden",
     "openBadge": "Demo",
     "title": "Demoleitfaden",
@@ -3682,6 +3682,35 @@
     },
     "aurora": {
       "title": "Wetterrisiko-Ausblick",
+      "summary": {
+        "title": "Gespeicherte Aurora-Wetterdaten",
+        "open": "Wetter öffnen",
+        "none": "Keine gespeicherten Wetterdaten. Es wurde keine Berechnung gestartet.",
+        "saved": "Gespeicherte Modelldaten",
+        "historical_simulation": "Historische Simulation · kein aktuelles Wetter",
+        "model_forecast": "Modellprognose · nur im angegebenen Zeitfenster gültig",
+        "window": "{count} zurückgegebene Modellpunkte · {start} bis {end}",
+        "boundary": "Diese Kennzahlen gelten nur für das zurückgegebene Zeitfenster. Sie belegen weder beobachtetes Wetter noch sagen sie ein fernes Datum voraus.",
+        "risk": "Wetterhinweis des Modells: {severity}",
+        "review": "Prüfung vorbereiten",
+        "reviewScope": "Gemeldeten Schadenzeitpunkt mit diesem Fenster vergleichen. Relevante Belege sammeln und Abweichungen menschlich prüfen lassen.",
+        "customer": "Kundenkontakt vorbereiten",
+        "customerScope": "Schadenzeit bestätigen und datierte Fotos sichern. Präventionshinweise erfordern aktuelles, geprüftes Wetter und amtliche Warnungen.",
+        "inferenceUnavailable": "Neue Berechnungen sind nicht verfügbar; gespeicherte Ergebnisse bleiben lesbar."
+      },
+      "workspace": {
+        "title": "Wetter, Schadenort und öffentliche Quellen",
+        "aurora": "Aurora-Daten",
+        "location": "Schadenort",
+        "web": "Web-IQ-Quellen"
+      },
+      "details": {
+        "title": "Aurora-Datenansichten",
+        "chart": "Stundendiagramm",
+        "timeline": "Schadenzeitpunkt",
+        "trace": "Herkunft",
+        "actions": "Fallmaßnahmen"
+      },
       "unavailable": "Vorhersage nicht verfügbar",
       "blobAccessDenied": "Ein Zugriff auf den Blob-Kanal wurde verweigert (403). Die Diagnose läuft: Die verantwortliche Komponente und Regel sind noch nicht ermittelt. Die Berechnung bleibt deaktiviert.",
       "loadingStatus": "Aurora-Verfügbarkeit wird geprüft…",
@@ -3696,8 +3725,8 @@
       "notConfigured": "Aurora ist aktiviert, aber Endpunkt, Anfangsbedingungen oder Blob-Kanal müssen noch durch einen Administrator konfiguriert werden.",
       "statusError": "Die Verfügbarkeit von Aurora konnte nicht geprüft werden.",
       "loadError": "Die gespeicherte Aurora-Prognose konnte nicht geladen werden.",
-      "maxGust": "Maximale Windböe",
-      "precipitation": "Gesamtniederschlag",
+      "maxGust": "Modellierte maximale Böe",
+      "precipitation": "Modellierter Gesamtniederschlag",
       "hazardWindow": "Mögliches Gefahrenfenster: {start} bis {end}.",
       "resolving": {
         "title": "Wetterbelege werden aufgelöst",
@@ -3711,18 +3740,18 @@
         "bounded": "Die Anfrage endet beim konfigurierten Zeitlimit; bei einem Fehler werden keine synthetischen Wetterdaten angezeigt."
       },
       "timeline": {
-        "title": "Prüfung von Schaden und Sturm",
-        "lead": "Spielen Sie die tatsächlichen stündlichen Belege vor, während und nach dem vorhergesagten Gefahrenfenster ab.",
+        "title": "Schadenzeitpunkt und Modellfenster",
+        "lead": "Erkunden Sie die zurückgegebenen Modellpunkte im möglichen Gefahrenfenster manuell; dies bestätigt keinen Sturm.",
         "playing": "Wiedergabe",
         "replay": "Erneut abspielen",
         "pointCount": "{count, plural, one {# Modellpunkt} other {# Modellpunkte}}",
         "phases": {
           "before": {
-            "title": "Vor dem Sturm",
+            "title": "Vor der modellierten Gefahr",
             "empty": "Kein früherer Punkt zurückgegeben"
           },
           "during": {
-            "title": "Während des Sturms",
+            "title": "Modelliertes Gefahrenfenster",
             "empty": "Kein Gefahrenpunkt zurückgegeben"
           },
           "after": {
@@ -3732,6 +3761,8 @@
         },
         "claimMarker": "Gemeldetes Schadendatum",
         "claimAligned": "Das gemeldete Schadendatum {date} liegt innerhalb dieses Modellfensters.",
+        "claimDayOverlap": "Der gemeldete Tag {date} überschneidet sich mit dem Modellfenster. Ohne Schadenzeit sind Zeitpunkt und Wetter nicht bestätigt.",
+        "claimInvalid": "Das gemeldete Datum lässt sich nicht zuverlässig mit dem Modellfenster vergleichen.",
         "claimOutside": "Das gemeldete Schadendatum {date} liegt außerhalb dieses Prognosefensters; historische Beobachtungen oder eine Rückschauanalyse sind weiterhin erforderlich.",
         "gust": "Böe {value, number} m/s",
         "rain": "Regen {value, number} mm",

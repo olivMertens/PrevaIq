@@ -80,6 +80,7 @@ export default function AuroraForecastChart({
     dateStyle: 'short',
     timeStyle: 'short',
   });
+  const numberFormatter = new Intl.NumberFormat(locale, {minimumFractionDigits: 1, maximumFractionDigits: 1});
   const labelIndexes = Array.from(new Set([0, Math.floor((series.length - 1) / 2), series.length - 1]));
 
   return (
@@ -93,7 +94,7 @@ export default function AuroraForecastChart({
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
           aria-label={t('ariaLabel')}
-          className="min-w-[34rem]"
+          className="mx-auto block w-full min-w-[34rem] max-w-3xl"
         >
           {rows.map((row) => {
             const values = extent(series, row.value);
@@ -117,7 +118,8 @@ export default function AuroraForecastChart({
                       const max = values.max || 1;
                       const barWidth = Math.max(2, PLOT_WIDTH / Math.max(series.length, 1) - 2);
                       const barHeight = (value / max) * (rowHeight - 4);
-                      const x = LEFT + (index / Math.max(series.length - 1, 1)) * PLOT_WIDTH - barWidth / 2;
+                      const center = LEFT + (index / Math.max(series.length - 1, 1)) * PLOT_WIDTH;
+                      const x = Math.min(WIDTH - RIGHT - barWidth, Math.max(LEFT, center - barWidth / 2));
                       return (
                         <rect
                           key={point.valid_at}
@@ -129,7 +131,7 @@ export default function AuroraForecastChart({
                           fill={row.color}
                           opacity="0.75"
                         >
-                          <title>{`${detailFormatter.format(new Date(point.valid_at))}: ${value.toFixed(1)} ${row.unit}`}</title>
+                          <title>{`${detailFormatter.format(new Date(point.valid_at))}: ${numberFormatter.format(value)} ${row.unit}`}</title>
                         </rect>
                       );
                     })
@@ -151,13 +153,13 @@ export default function AuroraForecastChart({
                   const y = row.top + rowHeight - ((value - values.min) / range) * (rowHeight - 8) - 4;
                   return (
                     <circle key={point.valid_at} cx={x} cy={y} r="2.5" fill={row.color}>
-                      <title>{`${detailFormatter.format(new Date(point.valid_at))}: ${value.toFixed(1)} ${row.unit}`}</title>
+                      <title>{`${detailFormatter.format(new Date(point.valid_at))}: ${numberFormatter.format(value)} ${row.unit}`}</title>
                     </circle>
                   );
                 })}
                 {values && (
                   <text x={WIDTH - RIGHT} y={row.top + 10} textAnchor="end" className="fill-slate-500 text-[9px]">
-                    {`${values.min.toFixed(1)}–${values.max.toFixed(1)} ${row.unit}`}
+                    {`${numberFormatter.format(values.min)}–${numberFormatter.format(values.max)} ${row.unit}`}
                   </text>
                 )}
               </g>
@@ -168,7 +170,7 @@ export default function AuroraForecastChart({
             return (
               <g key={series[index].valid_at}>
                 <line x1={x} x2={x} y1="8" y2="188" stroke="#e2e8f0" strokeDasharray="2 3" />
-                <text x={x} y="204" textAnchor="middle" className="fill-slate-500 text-[9px]">
+                <text x={x} y="204" textAnchor={index === 0 ? 'start' : index === series.length - 1 ? 'end' : 'middle'} className="fill-slate-500 text-[9px]">
                   {dateFormatter.format(new Date(series[index].valid_at))}
                 </text>
               </g>

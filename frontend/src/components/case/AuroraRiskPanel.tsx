@@ -1,21 +1,22 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { CloudSun, LoaderCircle, PhoneCall, RefreshCw, ShieldAlert } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import {
   APIError,
   createAuroraForecast,
-  getAuroraForecast,
-  getAuroraStatus,
-  type AuroraForecast,
-  type AuroraStatus,
 } from '@/lib/api';
 import { CockpitCard } from './caseUi';
 import AuroraForecastChart from './AuroraForecastChart';
 import AuroraStormTimeline, { AuroraResolvingState } from './AuroraStormTimeline';
 import AuroraExpiryCountdown from '@/components/aurora/AuroraExpiryCountdown';
+import CaseTabs from './CaseTabs';
+import { useAuroraEvidence } from './useAuroraEvidence';
+import { useToast } from '@/lib/ToastProvider';
+
+type DetailTab = 'chart' | 'timeline' | 'trace' | 'actions';
 
 export default function AuroraRiskPanel({
   applicationId,
@@ -30,46 +31,26 @@ export default function AuroraRiskPanel({
 }) {
   const t = useTranslations('caseCockpit.aurora');
   const locale = useLocale();
-  const [status, setStatus] = useState<AuroraStatus | null>(null);
-  const [forecast, setForecast] = useState<AuroraForecast | null>(null);
+  const {addToast} = useToast();
+  const {status, forecast, context, error: savedError, initializing, setForecast} = useAuroraEvidence(applicationId);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [initializing, setInitializing] = useState(true);
+  const [detail, setDetail] = useState<DetailTab>('chart');
   const hasLocation = typeof latitude === 'number' && Number.isFinite(latitude) &&
     typeof longitude === 'number' && Number.isFinite(longitude);
   const canRunForecast = !initializing && status?.enabled === true &&
     status.configured && hasLocation && !loading;
-
-  useEffect(() => {
-    let active = true;
-    Promise.allSettled([getAuroraStatus(), getAuroraForecast(applicationId)]).then(
-      ([statusResult, forecastResult]) => {
-        if (!active) return;
-        if (statusResult.status === 'fulfilled') {
-          setStatus(statusResult.value);
-        } else {
-          setError(t('statusError'));
-        }
-        if (forecastResult.status === 'fulfilled') {
-          setForecast(forecastResult.value.result);
-        } else if (!(forecastResult.reason instanceof APIError && forecastResult.reason.status === 404)) {
-          setError(t('loadError'));
-        }
-        setInitializing(false);
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, [applicationId, t]);
+  const displayedError = error || (savedError ? t(savedError) : null);
 
   async function runForecast() {
     if (!canRunForecast) {
       setError(t('unavailable'));
+      addToast('error', t('unavailable'));
       return;
     }
     if (!hasLocation) {
       setError(t('locationRequired'));
+      addToast('error', t('locationRequired'));
       return;
     }
     setLoading(true);
@@ -81,10 +62,12 @@ export default function AuroraRiskPanel({
         horizon_hours: status?.default_horizon_hours ?? 12,
         ensemble: false,
       });
-      setForecast(response.result);
+      setForecast(response.result, response.context);
     } catch (cause) {
-      setError(cause instanceof APIError && cause.code === 'aurora_not_configured'
-        ? t('notConfigured') : t('error'));
+      const message = cause instanceof APIError && cause.code === 'aurora_not_configured'
+        ? t('notConfigured') : t('error');
+      setError(message);
+      addToast('error', message);
     } finally {
       setLoading(false);
     }
@@ -140,7 +123,7 @@ export default function AuroraRiskPanel({
         {loading && (
           <AuroraResolvingState horizonHours={status?.default_horizon_hours ?? 12} />
         )}
-        {error && <p className="text-xs text-amber-800">{error}</p>}
+        {displayedError && <p role="alert" className="text-xs text-amber-800">{displayedError}</p>}
         {forecast && severity && (
           <div className={clsx('rounded-lg border p-3 text-xs', severityClass)}>
             <div className="flex items-start justify-between gap-3">
@@ -152,6 +135,7 @@ export default function AuroraRiskPanel({
                 <p className="mt-1">
                   {t('result', { model: forecast.model, hours: forecast.horizon_hours })}
                 </p>
+                <p className="mt-1 font-medium">{t(context ? `summary.${context.kind}` : 'summary.saved')}</p>
               </div>
               <button
                 type="button"
@@ -179,6 +163,11 @@ export default function AuroraRiskPanel({
                 </dd>
               </div>
             </dl>
+            {context && <p className="mt-2 text-xs">{t('summary.window', {
+              start: formatDateTime(context.window.starts_at), end: formatDateTime(context.window.ends_at),
+              count: context.point_count,
+            })}</p>}
+            <p className="mt-2 text-[11px]">{t('summary.boundary')}</p>
             {forecast.decision_support.hazard_window && (
               <p className="mt-2 font-medium">
                 {t('hazardWindow', {
@@ -187,7 +176,12 @@ export default function AuroraRiskPanel({
                 })}
               </p>
             )}
-            <div className="mt-3">
+            <div className="mt-3"><CaseTabs<DetailTab> idPrefix="aurora-detail" label={t('details.title')}
+              tabs={(['chart', 'timeline', 'trace', 'actions'] as const).map(id => ({id, label: t(`details.${id}`)}))}
+              active={detail} onChange={setDetail} /></div>
+            <div role="tabpanel" id={`aurora-detail-${detail}-panel`}
+              aria-labelledby={`aurora-detail-${detail}-tab`} tabIndex={0} className="mt-3">
+            {detail === 'timeline' && <div>
               <AuroraStormTimeline
                 key={forecast.request_id}
                 series={forecast.forecast.series}
@@ -195,11 +189,11 @@ export default function AuroraRiskPanel({
                 claimDate={claimDate}
                 locale={locale}
               />
-            </div>
-            <div className="mt-3">
+            </div>}
+            {detail === 'chart' && <div>
               <AuroraForecastChart series={forecast.forecast.series} locale={locale} />
-            </div>
-            <div className="mt-3 rounded-md border border-current/10 bg-white/70 p-2">
+            </div>}
+            {detail === 'trace' && <div className="rounded-md border border-current/10 bg-white/70 p-2">
               <p className="font-semibold">{t('evidence.title')}</p>
               <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
                 <dt className="opacity-70">{t('evidence.location')}</dt>
@@ -217,8 +211,8 @@ export default function AuroraRiskPanel({
                   {forecast.provenance.initial_condition_blob ?? forecast.provenance.source}
                 </dd>
               </dl>
-            </div>
-            <div className="mt-3 rounded-md bg-white/70 p-2">
+            </div>}
+            {detail === 'actions' && <><div className="rounded-md bg-white/70 p-2">
               <p className="font-semibold">{t('recommendedActions')}</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-4">
                 {forecast.decision_support.recommended_actions.map((action) => (
@@ -231,11 +225,14 @@ export default function AuroraRiskPanel({
                 <PhoneCall className="h-3.5 w-3.5" aria-hidden />
                 {t('customerCall')}
               </p>
+              <p className="mt-1">{t('summary.customerScope')}</p>
               <ul className="mt-1 list-disc space-y-0.5 pl-4">
                 {forecast.decision_support.customer_talking_points.map((point) => (
                   <li key={point}>{t(`talkingPoints.${point}`)}</li>
                 ))}
               </ul>
+            </div>
+            </>}
             </div>
             <p className="mt-2 text-[11px] opacity-80">
               {t('provenance', {
