@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import re
 import time
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from ..config import Settings
@@ -32,6 +33,7 @@ logger = setup_logging()
 AGENT_TIMEOUT_SECONDS = 150
 CONTEXT_TIMEOUT_SECONDS = 30
 _MAX_CONTEXT_CHARS = 12000
+WorkflowEventCallback = Callable[[dict[str, Any]], Awaitable[None]]
 
 # Shared framing prepended to every workflow agent's instructions.
 # Goal: defuse LLM self-refusals on synthetic insurance scenarios by making
@@ -164,9 +166,25 @@ async def _run_step(
     *,
     agent_name: str,
     language: str = "en",
+    on_event: WorkflowEventCallback | None = None,
 ) -> str:
     """Run one agent with a timeout; a failure becomes a flagged step, not a workflow error."""
     started = time.perf_counter()
+    if on_event:
+        await on_event({"type": "step", "agent": agent_name, "status": "running"})
+
+    async def finish(text: str, status: str) -> str:
+        if on_event:
+            await on_event(
+                {
+                    "type": "step",
+                    "agent": agent_name,
+                    "status": status,
+                    "duration_ms": round((time.perf_counter() - started) * 1000),
+                }
+            )
+        return text
+
     logger.debug("Workflow step %s started (prompt_chars=%d)", agent_name, len(prompt))
     with start_span(
         f"workflow.step {agent_name}",
@@ -182,6 +200,8 @@ async def _run_step(
                 ),
                 timeout=AGENT_TIMEOUT_SECONDS,
             )
+            if not text.strip():
+                raise ValueError(f"Empty response from workflow step {agent_name}")
         except asyncio.TimeoutError:
             logger.warning(
                 "Workflow step %s timed out after %ss", agent_name, AGENT_TIMEOUT_SECONDS
@@ -195,7 +215,9 @@ async def _run_step(
                 "fr": "délai dépassé",
                 "de": "Zeitüberschreitung",
             }[base_language(language)]
-            return f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`."
+            return await finish(
+                f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`.", "failed"
+            )
         except Exception as exc:
             logger.exception("Workflow step %s failed", agent_name)
             record_span_error(span, exc)
@@ -205,7 +227,9 @@ async def _run_step(
                 "fr": "étape indisponible",
                 "de": "Schritt nicht verfügbar",
             }[base_language(language)]
-            return f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`."
+            return await finish(
+                f"> ⚠️ {agent_name}: {message} — `requires_human_review: true`.", "failed"
+            )
         span.set_attribute("workbenchiq.response_chars", len(text))
         span.set_attribute(
             "workbenchiq.requires_human_review",
@@ -217,7 +241,7 @@ async def _run_step(
             (time.perf_counter() - started) * 1000,
             len(text),
         )
-        return text
+        return await finish(text, "needs_review" if _requires_human_review(text) else "completed")
 
 
 async def _read_context(app_id: str, *, customer_history: bool = False) -> str:
@@ -266,6 +290,39 @@ async def _read_context(app_id: str, *, customer_history: bool = False) -> str:
 
 def _with_context(task: str, context: str) -> str:
     return f"{task}\n\n--- CONTEXTE DU DOSSIER ---\n{context or '(indisponible)'}\n--- FIN ---"
+
+
+def workflow_plan(workflow_id: str) -> list[dict[str, Any]]:
+    agents = WORKFLOWS[workflow_id]["agents"]
+    return [
+        {"id": "context", "agents": []},
+        {"id": "parallel", "agents": agents[:-1]},
+        {"id": "synthesis", "agents": agents[-1:]},
+    ]
+
+
+async def _prepare_context(
+    app_id: str,
+    workflow_id: str,
+    on_event: WorkflowEventCallback | None,
+    *,
+    customer_history: bool = False,
+) -> str:
+    if on_event:
+        await on_event({"type": "plan", "plan": workflow_plan(workflow_id)})
+        await on_event({"type": "stage", "id": "context", "status": "running"})
+    context = await _read_context(app_id, customer_history=customer_history)
+    if not context:
+        logger.warning("Workflow %s has no readable context for %s", workflow_id, app_id)
+    if on_event:
+        await on_event(
+            {
+                "type": "stage",
+                "id": "context",
+                "status": "completed" if context else "failed",
+            }
+        )
+    return context
 
 
 # Agents are stateless config holders: cache them on everything that defines them
@@ -320,7 +377,11 @@ _OUTPUT_FORMAT = (
     "one-sentence conclusion, then short sections with bullet points; bold the key figures "
     "and cite policy articles inline. No JSON, no YAML, no code blocks, no internal "
     "identifiers other than the claim and policy numbers. When human review is needed, end "
-    "with the line `requires_human_review: true`. "
+    "with the line `requires_human_review: true`. Use readable section headings in the "
+    "selected language, never machine keys such as conditions_or_franchise or next_steps. "
+    "Order the content by importance: recommendation and review warnings, next actions, "
+    "then reasoning, coverage conditions and supporting sources. Preserve names, filenames "
+    "and source quotations verbatim. "
 )
 
 
@@ -328,13 +389,16 @@ def _role(text: str, lang: str) -> str:
     return f"{_DEMO_CONTEXT_PREFIX}{text} {_OUTPUT_FORMAT}{lang}"
 
 
-def _result(workflow: str, steps: list[tuple[str, str]]) -> dict[str, Any]:
-    needs_review = any(_requires_human_review(text) for _, text in steps)
+def _result(
+    workflow: str, steps: list[tuple[str, str]], *, context_available: bool = True
+) -> dict[str, Any]:
+    needs_review = not context_available or any(_requires_human_review(text) for _, text in steps)
     return {
         "workflow": workflow,
         "status": "needs_review" if needs_review else "completed",
         "steps": [{"agent": agent, "text": text} for agent, text in steps],
         "summary": steps[-1][1] or "No output",
+        "plan": workflow_plan(workflow),
     }
 
 
@@ -346,12 +410,13 @@ async def create_express_workflow(
     app_id: str,
     persona: str = "habitation_claims",
     language: str = "en",
+    on_event: WorkflowEventCallback | None = None,
 ) -> dict[str, Any]:
     """Express: [Extract ∥ Policy] → Decision, for routine claims."""
     from .tools import search_policies
 
     lang = language_instruction(require_language(language))
-    context = await _read_context(app_id)
+    context = await _prepare_context(app_id, "express", on_event)
 
     extract_agent = _cached_agent(
         settings,
@@ -397,6 +462,7 @@ async def create_express_workflow(
             _with_context(f"Summarize application {app_id}.", context),
             agent_name="ExtractAgent",
             language=language,
+            on_event=on_event,
         ),
         _run_step(
             policy_agent,
@@ -407,6 +473,7 @@ async def create_express_workflow(
             ),
             agent_name="PolicyAgent",
             language=language,
+            on_event=on_event,
         ),
     )
     decision_text = await _run_step(
@@ -418,6 +485,7 @@ async def create_express_workflow(
         ),
         agent_name="DecisionAgent",
         language=language,
+        on_event=on_event,
     )
     return _result(
         "express",
@@ -426,6 +494,7 @@ async def create_express_workflow(
             ("PolicyAgent", policy_text),
             ("DecisionAgent", decision_text),
         ],
+        context_available=bool(context),
     )
 
 
@@ -434,12 +503,13 @@ async def create_complet_workflow(
     app_id: str,
     persona: str = "habitation_claims",
     language: str = "en",
+    on_event: WorkflowEventCallback | None = None,
 ) -> dict[str, Any]:
     """Complet: [Extract ∥ Analysis ∥ Fraud ∥ Policy] → Risk, for complex claims."""
     from .tools import analyze_image_fraud, search_policies
 
     lang = language_instruction(require_language(language))
-    context = await _read_context(app_id, customer_history=True)
+    context = await _prepare_context(app_id, "complet", on_event, customer_history=True)
 
     extract_agent = _cached_agent(
         settings,
@@ -519,6 +589,7 @@ async def create_complet_workflow(
                 _with_context(task, context),
                 agent_name=name,
                 language=language,
+                on_event=on_event,
             )
             for name, (agent, task) in branches.items()
         )
@@ -531,8 +602,9 @@ async def create_complet_workflow(
         f"\n\n{merged}",
         agent_name="RiskAgent",
         language=language,
+        on_event=on_event,
     )
-    return _result("complet", [*steps, ("RiskAgent", risk_text)])
+    return _result("complet", [*steps, ("RiskAgent", risk_text)], context_available=bool(context))
 
 
 async def create_fraud_workflow(
@@ -540,12 +612,13 @@ async def create_fraud_workflow(
     app_id: str,
     persona: str = "habitation_claims",
     language: str = "en",
+    on_event: WorkflowEventCallback | None = None,
 ) -> dict[str, Any]:
     """Fraude: [FraudDetector ∥ WebIntelligence] → CrossChecker, for SIU investigations."""
     from .tools import analyze_image_fraud, resolve_web_tool, search_policies
 
     lang = language_instruction(require_language(language))
-    context = await _read_context(app_id, customer_history=True)
+    context = await _prepare_context(app_id, "fraude", on_event, customer_history=True)
 
     fraud_agent = _cached_agent(
         settings,
@@ -598,6 +671,7 @@ async def create_fraud_workflow(
             _with_context(f"Analyze the images of application {app_id}.", context),
             agent_name="FraudDetector",
             language=language,
+            on_event=on_event,
         ),
         _run_step(
             webintel_agent,
@@ -607,6 +681,7 @@ async def create_fraud_workflow(
             ),
             agent_name="WebIntelligence",
             language=language,
+            on_event=on_event,
         ),
     )
 
@@ -619,6 +694,7 @@ async def create_fraud_workflow(
         ),
         agent_name="CrossChecker",
         language=language,
+        on_event=on_event,
     )
     return _result(
         "fraude",
@@ -627,6 +703,7 @@ async def create_fraud_workflow(
             ("WebIntelligence", webintel_text),
             ("CrossChecker", crosscheck_text),
         ],
+        context_available=bool(context),
     )
 
 

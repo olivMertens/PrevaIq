@@ -1516,6 +1516,34 @@
     "runWorkflow": "Starten",
     "workflowRequest": "Workflow {name} starten",
     "workflowMeta": "{agents} Agenten · {seconds} s",
+    "workflowConnecting": "Verbindung zum Workflow wird hergestellt…",
+    "workflowPlanTitle": "Ausführungsplan",
+    "workflowPlanHelp": "Zuerst den Fall lesen, unabhängige Prüfungen parallel ausführen und dann die Ergebnisse zusammenführen. Die Statusmeldungen kommen von den Agenten, nicht von einem Timer. Die Entscheidung bleibt beim Menschen.",
+    "workflowContributions": "Agentenergebnisse — Details öffnen",
+    "workflowStreamError": "Der Workflow konnte nicht abgeschlossen werden oder die Live-Verbindung wurde unterbrochen. Starten Sie ihn erneut; es liegt kein fertiges Ergebnis vor.",
+    "workflowTimeout": "Der Workflow hat sein Zeitbudget überschritten. Starten Sie ihn erneut oder prüfen Sie den Fall manuell.",
+    "workflowStages": {
+      "context": "Fall lesen",
+      "parallel": "Unabhängige Prüfungen — parallel",
+      "synthesis": "Ergebnisse zusammenführen und nächste Schritte empfehlen"
+    },
+    "workflowRoles": {
+      "extraction": "Dokumentenextraktion",
+      "policy": "Versicherungsdeckung",
+      "analysis": "Haftung und Schäden",
+      "fraud": "Betrugsindikatoren",
+      "web": "Öffentliche Quellen · Web IQ",
+      "decision": "Empfehlung",
+      "risk": "Risikobewertung",
+      "crossCheck": "Belegabgleich"
+    },
+    "workflowStepStatus": {
+      "waiting": "Wartet",
+      "running": "Läuft",
+      "completed": "Abgeschlossen",
+      "needs_review": "Prüfung erforderlich",
+      "failed": "Nicht verfügbar"
+    },
     "toolBadges": {
       "policies": "RAG-Politik",
       "data": "Daten",
@@ -1554,6 +1582,10 @@
       "humanReview": "Menschliche Überprüfung erforderlich",
       "confidence": "Vertrauen",
       "riskLevel": "Risikograd",
+      "riskScore": "Risikowert",
+      "siuRecommendation": "SIU-Empfehlung",
+      "confidenceScore": "Konfidenzwert",
+      "evidenceSummary": "Belegübersicht",
       "citations": "Zitate",
       "sources": "Quellen"
     },

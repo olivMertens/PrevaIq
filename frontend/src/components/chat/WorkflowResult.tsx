@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { StructuredContentRenderer } from './ChatCards';
 import { agentDisplayText } from './agentText';
 import type { WorkflowRunResult } from './types';
+import WorkflowPlan, { WorkflowAgentLabel } from './WorkflowPlan';
 
 interface WorkflowResultProps {
   result: WorkflowRunResult;
@@ -42,18 +43,23 @@ export default function WorkflowResult({ result, onPolicyClick }: WorkflowResult
 
       <div>
         {synthesizer && (
-          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{synthesizer}</p>
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-600">
+            <span className="font-semibold text-slate-800">{t('workflowSummary')}</span>
+            <WorkflowAgentLabel agent={synthesizer} />
+          </div>
         )}
         <StructuredContentRenderer content={agentDisplayText(result.summary, t)} onPolicyClick={onPolicyClick} />
       </div>
 
+      {result.execution && <WorkflowPlan execution={result.execution} />}
       {contributors.length > 0 && (
         <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+          <p className="px-3 py-2 text-xs font-semibold text-slate-700">{t('workflowContributions')}</p>
           {contributors.map((step, index) => (
             <details key={`${step.agent}-${index}`} className="group">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 [&::-webkit-details-marker]:hidden">
                 <ChevronRight className="h-3.5 w-3.5 text-slate-400 transition-transform group-open:rotate-90" aria-hidden />
-                {step.agent}
+                <WorkflowAgentLabel agent={step.agent} />
               </summary>
               <div className="px-3 pb-2 pt-1">
                 <StructuredContentRenderer content={agentDisplayText(step.text, t)} onPolicyClick={onPolicyClick} />

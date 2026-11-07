@@ -19,6 +19,10 @@ const DECISION_LABELS: Record<string, string> = {
   requires_human_review: 'humanReview',
   confidence: 'confidence',
   risk_level: 'riskLevel',
+  documented_risk_score: 'riskScore',
+  documented_siu_recommendation: 'siuRecommendation',
+  confidence_score: 'confidenceScore',
+  evidence_summary: 'evidenceSummary',
   citations: 'citations',
   sources: 'sources',
 };
@@ -88,11 +92,12 @@ function formatAgentObject(obj: Record<string, unknown>, t: Translate): string |
   }
 
   const order = [
+    'documented_siu_recommendation', 'risk_level', 'documented_risk_score',
+    'next_steps', 'actions',
+    'missing_items', 'missing_documents',
     'rationale', 'reasoning',
     'conditions_or_franchise', 'conditions',
-    'missing_items', 'missing_documents',
-    'next_steps', 'actions',
-    'risk_level', 'confidence',
+    'evidence_summary', 'confidence', 'confidence_score',
     'citations', 'sources',
   ];
   const skip = new Set(['documented_recommendation', 'recommendation', 'decision']);
@@ -130,7 +135,22 @@ export function stripReviewMarker(text: string): string {
 /** Markdown to display for an agent output (prose as is, JSON objects as fields). */
 export function agentDisplayText(text: string, t: Translate): string {
   const parsed = tryParseAgentJson(text);
-  if (!parsed) return stripReviewMarker(text || '');
+  if (!parsed) {
+    let fence: string | null = null;
+    return stripReviewMarker(text || '').split('\n').map(line => {
+      const delimiter = line.trimStart().match(/^(`{3,}|~{3,})/);
+      if (delimiter) {
+        if (!fence) fence = delimiter[1][0];
+        else if (fence === delimiter[1][0]) fence = null;
+        return line;
+      }
+      if (fence) return line;
+      // Only standalone machine-key headings, never source quotations or names in prose.
+      const heading = line.match(/^\s*(?:#{1,6}\s+)?(?:\*\*|__)?([A-Za-z_]+)(?::)?(?:\*\*|__)?\s*:?\s*$/);
+      const key = heading?.[1].toLowerCase();
+      return key && DECISION_LABELS[key] ? `**${humanizeKey(key, t)}**` : line;
+    }).join('\n');
+  }
   const fields = { ...parsed };
   delete fields.requires_human_review;
   return formatAgentObject(fields, t) ?? renderAgentValue(fields, t);

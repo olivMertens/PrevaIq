@@ -105,6 +105,7 @@ async function proxyRequest(
       method: method || request.method,
       headers,
       cache: 'no-store',
+      signal: request.signal,
     };
 
     // Forward body for non-GET requests
@@ -136,7 +137,16 @@ async function proxyRequest(
 
     // Handle non-JSON responses
     const contentType = response.headers.get('content-type') || '';
-    if (contentType.includes('application/json')) {
+    if (contentType.includes('text/event-stream')) {
+      return new NextResponse(response.body, {
+        status: response.status,
+        headers: {
+          'Content-Type': contentType,
+          'Cache-Control': 'no-cache, no-transform',
+          'X-Accel-Buffering': 'no',
+        },
+      });
+    } else if (contentType.includes('application/json')) {
       const data = await response.json();
       return NextResponse.json(data, { status: response.status });
     } else {

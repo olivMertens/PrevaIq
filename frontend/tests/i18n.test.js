@@ -338,6 +338,7 @@ test('Ask IQ agent and workflow buttons preserve their API contracts', () => {
   const modeBar = read('chat', 'ChatModeBar.tsx');
   const picker = read('chat', 'WorkflowPicker.tsx');
   const workflowResult = read('chat', 'WorkflowResult.tsx');
+  const workflowRequest = read('chat', 'useWorkflowRequest.ts');
   const api = fs.readFileSync(path.join(root, 'src', 'lib', 'api.ts'), 'utf8');
 
   for (const agent of ['auto', 'data', 'policy', 'analysis', 'dashboard', 'workflow']) {
@@ -348,10 +349,12 @@ test('Ask IQ agent and workflow buttons preserve their API contracts', () => {
   }
 
   assert.match(
-    drawer,
-    /\/api\/applications\/\$\{applicationId\}\/workflow\/\$\{workflowId\}/
+    workflowRequest,
+    /\/api\/applications\/\$\{encodeURIComponent\(applicationId\)\}\/workflow\/\$\{encodeURIComponent\(workflowId\)\}/
   );
-  assert.match(drawer, /body: JSON\.stringify\(\{ language: locale \}\)/);
+  assert.match(drawer, /runWorkflowRequest\(workflowId, locale/);
+  assert.match(drawer, /if \(!inputValue\.trim\(\) \|\| isLoading \|\| workflowRunning\) return/);
+  assert.match(workflowRequest, /body: JSON\.stringify\(\{ language, stream: true \}\)/);
   assert.match(drawer, /result\.status === 'needs_review'/);
   assert.match(workflowResult, /workflowNeedsReviewStatus/);
   assert.match(

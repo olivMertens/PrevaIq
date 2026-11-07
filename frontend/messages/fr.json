@@ -1516,6 +1516,34 @@
     "runWorkflow": "Lancer",
     "workflowRequest": "Lancer le workflow {name}",
     "workflowMeta": "{agents} agents · {seconds} s",
+    "workflowConnecting": "Connexion au workflow…",
+    "workflowPlanTitle": "Plan d’exécution",
+    "workflowPlanHelp": "Lire le dossier, effectuer les contrôles indépendants en parallèle, puis réunir les résultats. Les statuts proviennent des agents, pas d’un minuteur. La décision reste humaine.",
+    "workflowContributions": "Résultats des agents — ouvrir les détails",
+    "workflowStreamError": "Le workflow n’a pas pu aboutir ou sa connexion en direct a été interrompue. Relancez-le ; aucun résultat final n’est disponible.",
+    "workflowTimeout": "Le workflow a dépassé son budget de temps. Relancez-le ou examinez le dossier manuellement.",
+    "workflowStages": {
+      "context": "Lire le dossier",
+      "parallel": "Contrôles indépendants — en parallèle",
+      "synthesis": "Réunir les résultats et recommander les prochaines étapes"
+    },
+    "workflowRoles": {
+      "extraction": "Extraction documentaire",
+      "policy": "Couverture de la police",
+      "analysis": "Responsabilité et dommages",
+      "fraud": "Indicateurs de fraude",
+      "web": "Sources publiques · Web IQ",
+      "decision": "Recommandation",
+      "risk": "Évaluation du risque",
+      "crossCheck": "Vérification croisée des preuves"
+    },
+    "workflowStepStatus": {
+      "waiting": "En attente",
+      "running": "En cours",
+      "completed": "Terminé",
+      "needs_review": "Revue requise",
+      "failed": "Indisponible"
+    },
     "toolBadges": {
       "policies": "Politiques des GAR",
       "data": "Données",
@@ -1545,7 +1573,7 @@
       "recommendation": "Recommandation",
       "decision": "Décision",
       "rationale": "Justification",
-      "conditionsOrDeductible": "Conditions/déductibles",
+      "conditionsOrDeductible": "Conditions / Franchise",
       "conditions": "Conditions",
       "nextSteps": "Prochaines étapes",
       "actions": "Actions",
@@ -1554,6 +1582,10 @@
       "humanReview": "Examen humain nécessaire",
       "confidence": "Confiance",
       "riskLevel": "Niveau de risque",
+      "riskScore": "Score de risque",
+      "siuRecommendation": "Recommandation SIU",
+      "confidenceScore": "Score de confiance",
+      "evidenceSummary": "Synthèse des preuves",
       "citations": "Citations",
       "sources": "Sources"
     },

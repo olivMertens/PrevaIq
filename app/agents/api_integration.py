@@ -570,6 +570,7 @@ async def agent_workflow(
     workflow_id: str,
     persona: str = "habitation_claims",
     language: str = "en",
+    on_event: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> Dict[str, Any]:
     """Execute a named workflow on an application.
 
@@ -611,12 +612,19 @@ async def agent_workflow(
             language,
         )
         try:
+            event_options = {"on_event": on_event} if on_event is not None else {}
             if workflow_id == "express":
-                result = await create_express_workflow(settings, app_id, persona, language=language)
+                result = await create_express_workflow(
+                    settings, app_id, persona, language=language, **event_options
+                )
             elif workflow_id == "complet":
-                result = await create_complet_workflow(settings, app_id, persona, language=language)
+                result = await create_complet_workflow(
+                    settings, app_id, persona, language=language, **event_options
+                )
             elif workflow_id == "fraude":
-                result = await create_fraud_workflow(settings, app_id, persona, language=language)
+                result = await create_fraud_workflow(
+                    settings, app_id, persona, language=language, **event_options
+                )
             else:
                 result = {"error": f"Workflow {workflow_id} not implemented"}
         except Exception as exc:

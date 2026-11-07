@@ -1516,6 +1516,34 @@
     "runWorkflow": "Run",
     "workflowRequest": "Run the {name} workflow",
     "workflowMeta": "{agents} agents · {seconds} s",
+    "workflowConnecting": "Connecting to the workflow…",
+    "workflowPlanTitle": "Execution plan",
+    "workflowPlanHelp": "Read the case first, run independent checks in parallel, then combine their findings. Statuses come from the agents, not a timer. Recommendations still require a human decision.",
+    "workflowContributions": "Agent findings — open for details",
+    "workflowStreamError": "The workflow could not be completed or its live connection was interrupted. Retry the workflow; no completed result is available.",
+    "workflowTimeout": "The workflow exceeded its time budget. Retry or review the case manually.",
+    "workflowStages": {
+      "context": "Read the case",
+      "parallel": "Independent checks — in parallel",
+      "synthesis": "Combine findings and recommend next steps"
+    },
+    "workflowRoles": {
+      "extraction": "Document extraction",
+      "policy": "Policy coverage",
+      "analysis": "Liability and damage",
+      "fraud": "Fraud indicators",
+      "web": "Public sources · Web IQ",
+      "decision": "Recommendation",
+      "risk": "Risk assessment",
+      "crossCheck": "Evidence cross-check"
+    },
+    "workflowStepStatus": {
+      "waiting": "Waiting",
+      "running": "Running",
+      "completed": "Completed",
+      "needs_review": "Review required",
+      "failed": "Unavailable"
+    },
     "toolBadges": {
       "policies": "RAG policies",
       "data": "Data",
@@ -1554,6 +1582,10 @@
       "humanReview": "Human review required",
       "confidence": "Confidence",
       "riskLevel": "Risk level",
+      "riskScore": "Risk score",
+      "siuRecommendation": "SIU recommendation",
+      "confidenceScore": "Confidence score",
+      "evidenceSummary": "Evidence summary",
       "citations": "Citations",
       "sources": "Sources"
     },

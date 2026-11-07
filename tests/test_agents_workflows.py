@@ -710,6 +710,88 @@ def test_complet_runs_four_branches_concurrently_and_degrades(monkeypatch):
     assert result["summary"] == "[RiskAgent] ok"
 
 
+def test_missing_workflow_context_is_not_reported_as_success(monkeypatch):
+    events = []
+
+    async def run(*args, **kwargs):
+        return "Analysis"
+
+    async def empty_context(*args, **kwargs):
+        return ""
+
+    async def emit(event):
+        events.append(event)
+
+    _stub_workflow(monkeypatch, run)
+    monkeypatch.setattr(wf, "_read_context", empty_context)
+    result = asyncio.run(wf.create_express_workflow(object(), "APP-1", on_event=emit))
+    assert result["status"] == "needs_review"
+    assert {"type": "stage", "id": "context", "status": "failed"} in events
+
+
+@pytest.mark.parametrize(
+    ("workflow_id", "factory", "agents"),
+    [
+        ("express", wf.create_express_workflow, ["ExtractAgent", "PolicyAgent", "DecisionAgent"]),
+        (
+            "complet",
+            wf.create_complet_workflow,
+            ["ExtractAgent", "AnalysisAgent", "FraudAgent", "PolicyAgent", "RiskAgent"],
+        ),
+        ("fraude", wf.create_fraud_workflow, ["FraudDetector", "WebIntelligence", "CrossChecker"]),
+    ],
+)
+def test_live_events_report_parallel_agents_before_synthesis(
+    monkeypatch, workflow_id, factory, agents
+):
+    events = []
+
+    async def emit(event):
+        events.append(event)
+
+    async def run(agent, prompt, *, agent_name, **kwargs):
+        await asyncio.sleep(0.01)
+        if agent_name == "FraudAgent":
+            raise RuntimeError("vision unavailable")
+        return f"{agent_name} analysis"
+
+    _stub_workflow(monkeypatch, run)
+    monkeypatch.delenv("WEBIQ_API_KEY", raising=False)
+    result = asyncio.run(
+        factory(SimpleNamespace(webiq=SimpleNamespace(enabled=False)), "APP-1", on_event=emit)
+    )
+    assert events[0]["type"] == "plan"
+    assert [stage["id"] for stage in events[0]["plan"]] == ["context", "parallel", "synthesis"]
+    assert events[0]["plan"][1]["agents"] == agents[:-1]
+    starts = [
+        event["agent"] for event in events if event.get("status") == "running" and "agent" in event
+    ]
+    assert starts == agents
+    synthesis_index = next(
+        i
+        for i, event in enumerate(events)
+        if event.get("agent") == agents[-1] and event["status"] == "running"
+    )
+    for agent in starts[:-1]:
+        terminal = next(
+            i
+            for i, event in enumerate(events)
+            if event.get("agent") == agent and event["status"] != "running"
+        )
+        assert terminal < synthesis_index
+    if workflow_id == "complet":
+        assert (
+            next(
+                event
+                for event in events
+                if event.get("agent") == "FraudAgent" and event["status"] != "running"
+            )["status"]
+            == "failed"
+        )
+    assert result["status"] == ("needs_review" if workflow_id == "complet" else "completed")
+    assert result["plan"] == events[0]["plan"]
+
+
 @pytest.mark.parametrize(
     ("text", "expected"),
     [

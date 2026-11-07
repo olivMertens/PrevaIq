@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import pytest
@@ -156,3 +157,83 @@ def test_communications_localize_signature_and_preserve_channel(
     if language != "fr":
         assert "Signature: Votre conseiller" not in captured[1]["content"]
     assert "including SMS" in captured[0]["content"]
+
+
+def test_workflow_stream_emits_lifecycle_events_and_final_result(monkeypatch):
+    settings = SimpleNamespace(app=SimpleNamespace(storage_root="unused"))
+    monkeypatch.setattr(api_server, "load_settings", lambda: settings)
+    monkeypatch.setattr(
+        api_server, "load_application", lambda *_: SimpleNamespace(persona="habitation_claims")
+    )
+
+    async def fake_workflow(*args, on_event=None, **kwargs):
+        assert kwargs["language"] == "de-CH"
+        await on_event({"type": "step", "agent": "ExtractAgent", "status": "running"})
+        await on_event({"type": "step", "agent": "ExtractAgent", "status": "completed"})
+        return {
+            "workflow": "express",
+            "status": "completed",
+            "steps": [{"agent": "ExtractAgent", "text": "Geprüft"}],
+            "summary": "Geprüft",
+        }
+
+    monkeypatch.setattr(api_integration, "agent_workflow", fake_workflow)
+    response = TestClient(api_server.app).post(
+        "/api/applications/APP-1/workflow/express", json={"language": "de-CH", "stream": True}
+    )
+    events = [
+        json.loads(line.removeprefix("data: "))
+        for line in response.text.splitlines()
+        if line.startswith("data: ")
+    ]
+    assert response.headers["content-type"].startswith("text/event-stream")
+    assert [event["type"] for event in events] == ["step", "step", "done"]
+    assert events[-1]["result"]["summary"] == "Geprüft"
+
+
+def test_workflow_stream_surfaces_failure_without_a_success_event(monkeypatch):
+    monkeypatch.setattr(
+        api_server,
+        "load_settings",
+        lambda: SimpleNamespace(app=SimpleNamespace(storage_root="unused")),
+    )
+    monkeypatch.setattr(
+        api_server, "load_application", lambda *_: SimpleNamespace(persona="habitation_claims")
+    )
+
+    async def failing(*args, **kwargs):
+        raise RuntimeError("private diagnostic")
+
+    monkeypatch.setattr(api_integration, "agent_workflow", failing)
+    response = TestClient(api_server.app).post(
+        "/api/applications/APP-1/workflow/express", json={"stream": True}
+    )
+    assert '"type": "error"' in response.text
+    assert '"type": "done"' not in response.text
+    assert "private diagnostic" not in response.text
+
+
+def test_workflow_stream_disconnect_cancels_producer(monkeypatch):
+    import asyncio
+
+    cancelled = False
+
+    async def workflow(*args, on_event=None, **kwargs):
+        nonlocal cancelled
+        try:
+            await on_event({"type": "step", "agent": "ExtractAgent", "status": "running"})
+            await asyncio.sleep(60)
+        finally:
+            cancelled = True
+
+    monkeypatch.setattr(api_integration, "agent_workflow", workflow)
+
+    async def disconnect():
+        stream = api_server._stream_workflow(None, "APP-1", "express", "habitation_claims", "en")
+        iterator = stream.body_iterator
+        assert "connected" in await anext(iterator)
+        assert '"running"' in await anext(iterator)
+        await iterator.aclose()
+
+    asyncio.run(disconnect())
+    assert cancelled

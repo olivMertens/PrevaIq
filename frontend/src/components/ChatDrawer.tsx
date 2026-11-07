@@ -12,8 +12,10 @@ import MessageBubble from './chat/MessageBubble';
 import ChatModeBar from './chat/ChatModeBar';
 import WorkflowPicker, { RecommendedWorkflow } from './chat/WorkflowPicker';
 import WorkflowProgress from './chat/WorkflowProgress';
+import { useWorkflowRequest } from './chat/useWorkflowRequest';
+import { updateWorkflowExecution } from '@/lib/workflowStream';
 import { useAgentCapabilities } from './chat/useAgentCapabilities';
-import type { ChatMessage, ChatMode, ChatRecommendation } from './chat/types';
+import type { ChatMessage, ChatMode, ChatRecommendation, WorkflowExecution } from './chat/types';
 import CaseTitle from './case/CaseTitle';
 import { useToast } from '@/lib/ToastProvider';
 import { APIError, submitFeedback } from '@/lib/api';
@@ -64,12 +66,14 @@ export default function ChatDrawer({
   const [isLoading, setIsLoading] = useState(false);
   const requestGenerationRef = useRef(0);
   const { send: sendChatRequest, cancel: cancelChatRequest } = useConversationRequest(applicationId);
+  const { run: runWorkflowRequest, cancel: cancelWorkflowRequest } = useWorkflowRequest(applicationId);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationTitle, setConversationTitle] = useState<string>(t('newChat'));
   const [historyCollapsed, setHistoryCollapsed] = useState(true);
   const [useCorrections, setUseCorrections] = useState(true);
   const [isLoadingConversation, setIsLoadingConversation] = useState(false);
   const [workflowRunning, setWorkflowRunning] = useState<string | null>(null);
+  const [workflowExecution, setWorkflowExecution] = useState<WorkflowExecution>({ plan: [], context: 'waiting', agents: {} });
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
   // Free questions go to the Auto agent by default; workflows are one click away.
   const [activeAgent, setActiveAgent] = useState<ChatMode>('auto');
@@ -365,11 +369,13 @@ export default function ChatDrawer({
   useEffect(() => {
     requestGenerationRef.current += 1;
     cancelChatRequest();
+    cancelWorkflowRequest();
+    setWorkflowRunning(null);
     setMessages([]);
     setConversationId(null);
     setConversationTitle(t('newChat'));
     setIsLoading(false);
-  }, [applicationId, t, cancelChatRequest]);
+  }, [applicationId, t, cancelChatRequest, cancelWorkflowRequest]);
 
   // Ignore late answers after unmount
   useEffect(() => {
@@ -382,6 +388,8 @@ export default function ChatDrawer({
   const loadConversation = useCallback(async (convId: string | null) => {
     const generation = ++requestGenerationRef.current;
     cancelChatRequest();
+    cancelWorkflowRequest();
+    setWorkflowRunning(null);
     setIsLoading(false);
     if (!convId) {
       // Start new conversation
@@ -419,7 +427,7 @@ export default function ChatDrawer({
     } finally {
       if (generation === requestGenerationRef.current) setIsLoadingConversation(false);
     }
-  }, [applicationId, addToast, t, cancelChatRequest]);
+  }, [applicationId, addToast, t, cancelChatRequest, cancelWorkflowRequest]);
 
   // Conversation opened from another case's history (?conversation= link)
   const openedConversationRef = useRef<string | null>(null);
@@ -458,7 +466,10 @@ export default function ChatDrawer({
   // ── Workflow execution handler ──
   const handleWorkflow = useCallback(async (workflowId: string, workflowName: string) => {
     if (isLoading || workflowRunning) return;
+    const generation = ++requestGenerationRef.current;
     setWorkflowRunning(workflowId);
+    let execution: WorkflowExecution = { plan: [], context: 'waiting', agents: {} };
+    setWorkflowExecution(execution);
     const started = Date.now();
     setMessages(prev => [...prev, {
       role: 'user',
@@ -467,23 +478,21 @@ export default function ChatDrawer({
     }]);
 
     try {
-      const response = await fetch(
-        `/api/applications/${applicationId}/workflow/${workflowId}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ language: locale }),
-        },
-      );
-
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({ detail: response.statusText }));
-        throw new Error(err.detail || `Workflow failed: ${response.status}`);
+      const result = await runWorkflowRequest(workflowId, locale, event => {
+        if (generation !== requestGenerationRef.current) return;
+        execution = updateWorkflowExecution(execution, event);
+        setWorkflowExecution(execution);
+      });
+      if (!result || generation !== requestGenerationRef.current) return;
+      const { steps, summary } = result;
+      if (!execution.plan.length && result.plan) {
+        execution = {
+          plan: result.plan, context: 'completed',
+          agents: Object.fromEntries(steps.map(step => [step.agent, {
+            status: /requires_human_review['"`*]*\s*:\s*true/i.test(step.text) ? 'needs_review' : 'completed',
+          }])),
+        };
       }
-
-      const result = await response.json();
-      const steps = Array.isArray(result.steps) ? result.steps : [];
-      const summary = String(result.summary || steps[steps.length - 1]?.text || '');
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: summary,
@@ -495,21 +504,24 @@ export default function ChatDrawer({
           steps,
           summary,
           durationMs: Date.now() - started,
+          execution: execution.plan.length ? execution : undefined,
         },
       }]);
     } catch (err) {
+      if (generation !== requestGenerationRef.current) return;
+      console.error('Workflow request failed:', err);
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `**${t('workflowErrorTitle')}** — ${err instanceof Error ? err.message : t('unknownError')}`,
+        content: `**${t('workflowErrorTitle')}** — ${t(err instanceof APIError && err.status === 504 ? 'workflowTimeout' : 'workflowStreamError')}`,
         timestamp: new Date(),
       }]);
     } finally {
-      setWorkflowRunning(null);
+      if (generation === requestGenerationRef.current) setWorkflowRunning(null);
     }
-  }, [applicationId, isLoading, locale, t, workflowRunning]);
+  }, [isLoading, locale, runWorkflowRequest, t, workflowRunning]);
 
   const handleSend = useCallback(async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || workflowRunning) return;
     const generation = ++requestGenerationRef.current;
 
     const userMessage: ChatMessage = {
@@ -586,6 +598,7 @@ export default function ChatDrawer({
   }, [
     inputValue,
     isLoading,
+    workflowRunning,
     conversationId,
     persona,
     activeAgent,
@@ -607,6 +620,8 @@ export default function ChatDrawer({
   const handleNewConversation = () => {
     requestGenerationRef.current += 1;
     cancelChatRequest();
+    cancelWorkflowRequest();
+    setWorkflowRunning(null);
     setIsLoading(false);
     setIsLoadingConversation(false);
     setMessages([]);
@@ -743,7 +758,7 @@ export default function ChatDrawer({
             
             {isLoading && <ChatMessageSkeleton />}
 
-            {workflowRunning && <WorkflowProgress workflowId={workflowRunning} />}
+            {workflowRunning && <WorkflowProgress execution={workflowExecution} />}
             
             <div ref={messagesEndRef} />
           </div>

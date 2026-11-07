@@ -4689,6 +4689,12 @@ async def run_workflow(app_id: str, workflow_id: str, body: dict | None = None):
         language = require_language(_body.get("language"))
 
         from app.agents.api_integration import agent_workflow
+        from app.agents.workflows import WORKFLOWS
+
+        if workflow_id not in WORKFLOWS:
+            raise HTTPException(status_code=400, detail=f"Unknown workflow: {workflow_id}")
+        if _body.get("stream") is True:
+            return _stream_workflow(settings, app_id, workflow_id, effective_persona, language)
 
         result = await agent_workflow(
             settings, app_id, workflow_id, effective_persona, language=language
@@ -4708,6 +4714,56 @@ async def run_workflow(app_id: str, workflow_id: str, body: dict | None = None):
         if isinstance(e, AgentServiceError):
             raise HTTPException(status_code=e.status_code, detail=e.public_detail()) from e
         raise HTTPException(status_code=500, detail="Workflow could not be completed") from e
+
+
+def _stream_workflow(settings, app_id: str, workflow_id: str, persona: str, language: str):
+    from app.agents.api_integration import agent_workflow
+
+    async def events():
+        queue: asyncio.Queue[dict] = asyncio.Queue(maxsize=32)
+
+        async def produce():
+            try:
+                result = await agent_workflow(
+                    settings,
+                    app_id,
+                    workflow_id,
+                    persona,
+                    language=language,
+                    on_event=queue.put,
+                )
+                await queue.put({"type": "done", "result": result})
+            except Exception as exc:
+                logger.exception("Workflow stream %s failed for %s", workflow_id, app_id)
+                detail = (
+                    exc.public_detail()
+                    if isinstance(exc, AgentServiceError)
+                    else "Workflow could not be completed"
+                )
+                status = exc.status_code if isinstance(exc, AgentServiceError) else 500
+                await queue.put({"type": "error", "status": status, "detail": detail})
+
+        task = asyncio.create_task(produce())
+        try:
+            yield ": connected\n\n"
+            while True:
+                try:
+                    event = await asyncio.wait_for(queue.get(), timeout=15)
+                except asyncio.TimeoutError:
+                    yield ": keepalive\n\n"
+                    continue
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+                if event["type"] in {"done", "error"}:
+                    break
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"},
+    )
 
 
 # =============================================================================

@@ -25,6 +25,32 @@ export interface AgentMetadata {
   framework?: string;
 }
 
+export type WorkflowStepStatus = 'waiting' | 'running' | 'completed' | 'needs_review' | 'failed';
+
+export interface WorkflowStage {
+  id: 'context' | 'parallel' | 'synthesis';
+  agents: string[];
+}
+
+export interface WorkflowExecution {
+  plan: WorkflowStage[];
+  context: WorkflowStepStatus;
+  agents: Record<string, { status: WorkflowStepStatus; duration_ms?: number }>;
+}
+
+export type WorkflowEvent =
+  | { type: 'plan'; plan: WorkflowStage[] }
+  | { type: 'stage'; id: 'context'; status: WorkflowStepStatus }
+  | { type: 'step'; agent: string; status: WorkflowStepStatus; duration_ms?: number };
+
+export interface WorkflowResponse {
+  workflow: string;
+  status: 'completed' | 'needs_review';
+  steps: { agent: string; text: string }[];
+  summary: string;
+  plan?: WorkflowStage[];
+}
+
 export interface WorkflowRunResult {
   /** express | complet | fraude */
   id: string;
@@ -36,6 +62,7 @@ export interface WorkflowRunResult {
   /** Output of the synthesizing agent (the last step) */
   summary: string;
   durationMs: number;
+  execution?: WorkflowExecution;
 }
 
 export interface ChatMessage {
