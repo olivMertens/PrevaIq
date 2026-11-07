@@ -6,7 +6,7 @@
 locals {
   # Private Link target => private DNS zones (Foundry needs three).
   private_endpoints = {
-    for name, endpoint in {
+    for name, endpoint in merge({
       storage = {
         resource_id = azurerm_storage_account.this.id
         subresource = "blob"
@@ -27,7 +27,19 @@ locals {
         subresource = "account"
         zones       = ["privatelink.cognitiveservices.azure.com", "privatelink.openai.azure.com", "privatelink.services.ai.azure.com"]
       }
-    } : name => endpoint if local.private
+      }, var.aurora_channel_storage_account_name == "" ? {} : {
+      aurora-channel = {
+        resource_id = data.azurerm_storage_account.aurora_channel[0].id
+        subresource = "blob"
+        zones       = ["privatelink.blob.core.windows.net"]
+      }
+      }, var.aurora_workspace_name == "" ? {} : {
+      aurora-workspace = {
+        resource_id = data.azurerm_machine_learning_workspace.aurora[0].id
+        subresource = "amlworkspace"
+        zones       = ["privatelink.api.azureml.ms", "privatelink.notebooks.azure.net"]
+      }
+    }) : name => endpoint if local.private
   }
 
   private_dns_zones = toset(flatten([for endpoint in local.private_endpoints : endpoint.zones]))

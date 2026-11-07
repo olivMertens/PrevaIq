@@ -63,6 +63,9 @@ param auroraChannelStorageAccountName string = ''
 @description('Private task container on the optional existing Aurora channel storage account.')
 param auroraChannelContainerName string = 'aurora-tasks'
 
+@description('Optional existing system-assigned-identity AML workspace in this resource group. Private networking adds its client Private Endpoint and scoped channel connection approver role; no workspace or GPU is created.')
+param auroraWorkspaceName string = ''
+
 @description('Wire the Key-authenticated Aurora endpoint key from Key Vault secret aurora-endpoint-key. Enable only after storing the secret out of band.')
 param auroraEndpointKeySecretEnabled bool = false
 
@@ -325,6 +328,20 @@ resource auroraChannelDelegatorRole 'Microsoft.Authorization/roleAssignments@202
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db58b8e5-c6ad-4a2a-8342-4190687cbf4a')
     principalId: managedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource auroraWorkspace 'Microsoft.MachineLearningServices/workspaces@2024-10-01' existing = if (!empty(auroraWorkspaceName)) {
+  name: auroraWorkspaceName
+}
+
+resource auroraChannelNetworkApprover 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (privateNetworkingEnabled && !empty(auroraChannelStorageAccountName) && !empty(auroraWorkspaceName)) {
+  name: guid(auroraChannelStorage.id, auroraWorkspace.id, 'aurora-network-approver')
+  scope: auroraChannelStorage
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b556d68e-0be0-4f35-a333-ad7ee1ce17ea')
+    principalId: auroraWorkspace!.identity!.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -630,14 +647,17 @@ resource adminStorageRole 'Microsoft.Authorization/roleAssignments@2022-04-01' =
 // Foundry through private endpoints; PostgreSQL uses private access. ACR stays public (RBAC-protected,
 // ACR Tasks builds need it).
 // =============================================================================
-var privateDnsZoneNames = [
+var privateDnsZoneNames = concat([
   'privatelink.blob.core.windows.net'
   'privatelink.vaultcore.azure.net'
   'privatelink.search.windows.net'
   'privatelink.cognitiveservices.azure.com'
   'privatelink.openai.azure.com'
   'privatelink.services.ai.azure.com'
-]
+], empty(auroraWorkspaceName) ? [] : [
+  'privatelink.api.azureml.ms'
+  'privatelink.notebooks.azure.net'
+])
 var postgresPrivateDnsZoneName = '${prefix}.private.postgres.database.azure.com'
 
 resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = if (privateNetworkingEnabled) {
@@ -737,6 +757,53 @@ resource peStorageDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2
   properties: {
     privateDnsZoneConfigs: [
       { name: 'blob', properties: { privateDnsZoneId: resourceId('Microsoft.Network/privateDnsZones', 'privatelink.blob.core.windows.net') } }
+    ]
+  }
+}
+
+resource peAuroraChannel 'Microsoft.Network/privateEndpoints@2024-05-01' = if (privateNetworkingEnabled && !empty(auroraChannelStorageAccountName)) {
+  name: 'pe-aurora-channel-${prefix}'
+  location: location
+  tags: tags
+  properties: {
+    subnet: { id: '${vnet!.id}/subnets/snet-private-endpoints' }
+    privateLinkServiceConnections: [
+      { name: 'psc-aurora-channel', properties: { privateLinkServiceId: auroraChannelStorage.id, groupIds: ['blob'] } }
+    ]
+  }
+}
+
+resource peAuroraChannelDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (privateNetworkingEnabled && !empty(auroraChannelStorageAccountName)) {
+  parent: peAuroraChannel
+  name: 'default'
+  dependsOn: [privateDnsZoneLinks]
+  properties: {
+    privateDnsZoneConfigs: [
+      { name: 'blob', properties: { privateDnsZoneId: resourceId('Microsoft.Network/privateDnsZones', 'privatelink.blob.core.windows.net') } }
+    ]
+  }
+}
+
+resource peAuroraWorkspace 'Microsoft.Network/privateEndpoints@2024-05-01' = if (privateNetworkingEnabled && !empty(auroraWorkspaceName)) {
+  name: 'pe-aurora-workspace-${prefix}'
+  location: location
+  tags: tags
+  properties: {
+    subnet: { id: '${vnet!.id}/subnets/snet-private-endpoints' }
+    privateLinkServiceConnections: [
+      { name: 'psc-aurora-workspace', properties: { privateLinkServiceId: auroraWorkspace.id, groupIds: ['amlworkspace'] } }
+    ]
+  }
+}
+
+resource peAuroraWorkspaceDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2024-05-01' = if (privateNetworkingEnabled && !empty(auroraWorkspaceName)) {
+  parent: peAuroraWorkspace
+  name: 'default'
+  dependsOn: [privateDnsZoneLinks]
+  properties: {
+    privateDnsZoneConfigs: [
+      { name: 'api', properties: { privateDnsZoneId: resourceId('Microsoft.Network/privateDnsZones', 'privatelink.api.azureml.ms') } }
+      { name: 'notebooks', properties: { privateDnsZoneId: resourceId('Microsoft.Network/privateDnsZones', 'privatelink.notebooks.azure.net') } }
     ]
   }
 }

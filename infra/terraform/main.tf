@@ -127,6 +127,24 @@ data "azurerm_storage_account" "aurora_channel" {
   resource_group_name = local.resource_group_name
 }
 
+data "azurerm_machine_learning_workspace" "aurora" {
+  count = var.aurora_workspace_name == "" ? 0 : 1
+
+  name                = var.aurora_workspace_name
+  resource_group_name = local.resource_group_name
+}
+
+resource "azurerm_role_assignment" "aurora_channel_network_approver" {
+  count = local.private && var.aurora_channel_storage_account_name != "" && var.aurora_workspace_name != "" ? 1 : 0
+
+  name                             = uuidv5("11fb06fb-712d-4ddd-98c7-e71bbd588830", "${data.azurerm_storage_account.aurora_channel[0].id}-${data.azurerm_machine_learning_workspace.aurora[0].id}-aurora-network-approver")
+  scope                            = data.azurerm_storage_account.aurora_channel[0].id
+  role_definition_name             = "Azure AI Enterprise Network Connection Approver"
+  principal_id                     = data.azurerm_machine_learning_workspace.aurora[0].identity[0].principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
 resource "azurerm_storage_container" "aurora_channel" {
   count = var.aurora_channel_storage_account_name == "" ? 0 : 1
 

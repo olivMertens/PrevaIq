@@ -144,6 +144,12 @@ variable "aurora_channel_container_name" {
   default     = "aurora-tasks"
 }
 
+variable "aurora_workspace_name" {
+  description = "Optional existing system-assigned-identity AML workspace in this resource group. Private networking adds its client Private Endpoint and scoped channel connection approver role; no workspace or GPU is created."
+  type        = string
+  default     = ""
+}
+
 variable "aurora_endpoint_expires_at" {
   description = "ISO 8601 expiration timestamp for the temporary Aurora endpoint allocation."
   type        = string
