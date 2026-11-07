@@ -7,6 +7,7 @@ import type { ApplicationDecision, WebIntelligenceResult } from '@/lib/api';
 import { DECISION_STYLES } from './decisionStyles';
 import type { DeepDiveTab } from './caseSignals';
 import type { Recommendation } from './recommendation';
+import { severityFromSentiment } from '../claims/sentimentTone';
 
 export interface AmountKpi {
   label: string | null;
@@ -77,15 +78,37 @@ const FRAUD_COLOR: Record<string, string> = { HIGH: 'text-rose-700', MODERATE: '
 const FRAUD_BAR: Record<string, string> = { HIGH: 'bg-rose-600', MODERATE: 'bg-amber-500', LOW: 'bg-emerald-600' };
 const CUSTOMER_COLOR = { critical: 'text-rose-700', stressed: 'text-amber-800', moderate: 'text-slate-800', calm: 'text-emerald-800' } as const;
 
-function Tile({ label, Icon, onClick, children }: { label: string; Icon: typeof Gauge; onClick: () => void; children: React.ReactNode }) {
+const TILE_STYLE = {
+  critical: { surface: `${TONE.critical.frame} hover:bg-rose-100/70`, label: TONE.critical.label },
+  warning: { surface: `${TONE.warning.frame} hover:bg-amber-100/70`, label: TONE.warning.label },
+  success: { surface: `${TONE.success.frame} hover:bg-emerald-100/70`, label: TONE.success.label },
+  info: { surface: 'border-sky-300 bg-sky-50/70 hover:bg-sky-100/70', label: 'text-sky-800' },
+  running: { surface: 'border-violet-300 bg-violet-50/70 hover:bg-violet-100/70', label: 'text-violet-800' },
+  neutral: { surface: 'border-slate-200 bg-slate-50/40 hover:bg-slate-100/60', label: 'text-slate-600' },
+} as const;
+type TileTone = keyof typeof TILE_STYLE;
+const FRAUD_TILE_TONE: Record<string, TileTone> = { HIGH: 'critical', MODERATE: 'warning', LOW: 'success' };
+const CUSTOMER_TILE_TONE = { critical: 'critical', warning: 'warning', normal: 'neutral', serene: 'success' } as const;
+
+function Tile({ label, Icon, tone, onClick, children }: {
+  label: string;
+  Icon: typeof Gauge;
+  tone: TileTone;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const style = TILE_STYLE[tone];
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-w-0 flex-col items-start rounded-lg border border-slate-200 p-3 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      className={clsx(
+        'flex min-w-0 flex-col items-start rounded-lg border border-l-4 p-3 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
+        style.surface,
+      )}
     >
-      <span className="inline-flex items-center gap-1 text-xs text-slate-500">
-        <Icon className="h-3.5 w-3.5" aria-hidden />
+      <span className={clsx('inline-flex items-center gap-2 text-xs font-medium', style.label)}>
+        <Icon className="h-4 w-4 flex-shrink-0" aria-hidden />
         {label}
       </span>
       {children}
@@ -115,6 +138,16 @@ export default function VerdictBar({
   const t = useTranslations('caseCockpit');
   const tDecisions = useTranslations('decisions');
   const tone = recommendation ? TONE[recommendation.tone] : null;
+  const amountTone: TileTone = amount.overclaimPercent !== undefined ? 'critical'
+    : amount.expertRequired ? 'warning' : amount.label ? 'info' : 'neutral';
+  const fraudTone: TileTone = fraud.state === 'running' ? 'running'
+    : fraud.state !== 'done' ? 'neutral' : fraud.siu ? 'critical'
+    : FRAUD_TILE_TONE[fraud.band ?? ''] ?? 'neutral';
+  const coverTone: TileTone = cover.some(item => item.status === 'critical') ? 'critical'
+    : cover.some(item => item.status === 'warning') ? 'warning' : cover.length ? 'info' : 'neutral';
+  const webTone: TileTone = web?.error ? 'warning' : web?.source_urls?.length ? 'info' : 'neutral';
+  const customerTone: TileTone = customer.level
+    ? CUSTOMER_TILE_TONE[severityFromSentiment({ level: customer.level, score: customer.score })] : 'neutral';
 
   const recommendationBlock = recordedDecision ? (
     <div className={clsx('flex h-full flex-col justify-between rounded-lg border-l-4 p-3', DECISION_STYLES[recordedDecision].surface)}>
@@ -174,7 +207,7 @@ export default function VerdictBar({
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12">{recommendationBlock}</div>
         <div className="col-span-12 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <Tile label={t('kpi.claimed')} Icon={Banknote} onClick={() => onOpenTab('cover')}>
+          <Tile label={t('kpi.claimed')} Icon={Banknote} tone={amountTone} onClick={() => onOpenTab('cover')}>
             <span className="mt-1 text-2xl font-semibold text-slate-900">{amount.label ?? '—'}</span>
             {amount.expertRequired && (
               <span className="mt-1 inline-flex items-center gap-1 text-sm text-amber-800">
@@ -186,7 +219,7 @@ export default function VerdictBar({
               <span className="mt-0.5 text-sm text-rose-700">{t('kpi.overclaim', { percent: amount.overclaimPercent })}</span>
             )}
           </Tile>
-          <Tile label={t('kpi.fraudRisk')} Icon={Gauge} onClick={() => fraud.state === 'none' ? onRunFraud() : onOpenTab('fraud')}>
+          <Tile label={t('kpi.fraudRisk')} Icon={Gauge} tone={fraudTone} onClick={() => fraud.state === 'none' ? onRunFraud() : onOpenTab('fraud')}>
             {fraud.state === 'done' && fraud.band ? (
               <>
                 <span className={clsx('mt-1 text-2xl font-semibold', FRAUD_COLOR[fraud.band] ?? 'text-slate-900')}>
@@ -209,7 +242,7 @@ export default function VerdictBar({
             )}
             <span className="mt-2 text-xs font-semibold text-indigo-800">{fraud.state === 'none' ? t('fraudTab.run') : t('fraudTab.openReport')}</span>
           </Tile>
-          <Tile label={t('kpi.cover')} Icon={Umbrella} onClick={() => onOpenTab('cover')}>
+          <Tile label={t('kpi.cover')} Icon={Umbrella} tone={coverTone} onClick={() => onOpenTab('cover')}>
             {cover.length === 0 ? (
               <span className="mt-1 text-sm text-slate-600">{t('kpi.coverUnknown')}</span>
             ) : (
@@ -226,11 +259,11 @@ export default function VerdictBar({
               </ul>
             )}
           </Tile>
-          <Tile label={t('drawer.tabs.web')} Icon={Globe} onClick={() => onOpenTab('web')}>
+          <Tile label={t('drawer.tabs.web')} Icon={Globe} tone={webTone} onClick={() => onOpenTab('web')}>
             <span className="mt-1 text-sm text-slate-700">{web?.error ? t('webTab.error') : web ? t('webTab.sources', { count: new Set(web.source_urls || []).size }) : t('webTab.none')}</span>
             <span className="mt-2 text-xs font-semibold text-indigo-800">{t('workspace.viewSources')}</span>
           </Tile>
-          <Tile label={t('kpi.customer')} Icon={HeartPulse} onClick={() => onOpenTab('customer')}>
+          <Tile label={t('kpi.customer')} Icon={HeartPulse} tone={customerTone} onClick={() => onOpenTab('customer')}>
             {customer.level ? (
               <>
                 <span className={clsx('mt-1 text-base font-semibold', CUSTOMER_COLOR[customer.level])}>

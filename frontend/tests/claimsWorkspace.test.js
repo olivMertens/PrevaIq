@@ -8,6 +8,7 @@ const React = require('react');
 const { renderToStaticMarkup } = require('react-dom/server');
 const { createTranslator } = require('use-intl/core');
 const { load, srcDir } = require('./loadTs');
+const { neutral, palettes, contrast } = require('../theme.cjs');
 
 const libDir = path.join(srcDir, 'lib');
 const workspace = load('claimsWorkspace.ts', libDir);
@@ -31,6 +32,7 @@ function component(relativePath, locale = 'en', stubs = {}) {
     };
     if (name === '@/lib/ToastProvider') return { useToast: () => ({ addToast() {} }) };
     if (name === './decisionStyles') return decisions;
+    if (name === '../claims/sentimentTone') return load('sentimentTone.ts', path.join(srcDir, 'components', 'claims'));
     if (name === '@/lib/brand') return { brand: { primary: '#17395C' } };
     if (name.startsWith('@/lib/')) return load(`${name.slice('@/lib/'.length)}.ts`, libDir);
     return require(name);
@@ -138,6 +140,81 @@ test('overview routes coverage to cover, exposes Web IQ, and launches new fraud 
   assert.equal(target, 'web');
   tiles.find(node => node.props.label === 'Fraud risk').props.onClick();
   assert.equal(runs, 1);
+});
+
+test('overview KPI backgrounds and icons follow urgency without treating source counts as coverage', () => {
+  const VerdictBar = component(path.join('case', 'VerdictBar.tsx'));
+  const defaults = {
+    identity: [], recommendation: null, criticalCount: 0, analysisRunning: false,
+    amount: { label: null, expertRequired: false, thresholdLabel: 'CHF 5’000' },
+    fraud: { state: 'none' }, cover: [], customer: { level: null },
+    onOpenTab() {}, onRunFraud() {}, onValidate() {}, onOtherDecision() {}, onWhy() {}, onRunAnalysis() {},
+  };
+  const scenarios = [
+    [{}, ['neutral', 'neutral', 'neutral', 'neutral', 'neutral']],
+    [{
+      amount: { label: 'CHF 14’968’600', expertRequired: true, thresholdLabel: 'CHF 5’000' },
+      fraud: { state: 'done', score: 76, band: 'HIGH', siu: true },
+      cover: [{ label: 'Event confirmed', status: 'ok' }, { label: 'DDE', status: 'neutral' }],
+      web: { source_urls: ['https://example.test/evidence'] },
+      customer: { level: 'critical', score: 92 },
+    }, ['warning', 'critical', 'info', 'info', 'critical']],
+    [{
+      amount: { label: 'CHF 100', expertRequired: false },
+      fraud: { state: 'done', score: 12, band: 'LOW' },
+      cover: [{ label: 'Event confirmed', status: 'ok' }],
+      customer: { level: 'calm', score: 10 },
+    }, ['info', 'success', 'info', 'neutral', 'success']],
+    [{
+      amount: { label: 'CHF 10’000', expertRequired: true, overclaimPercent: 20, thresholdLabel: 'CHF 5’000' },
+      fraud: { state: 'done', score: 40, band: 'MODERATE' },
+      cover: [{ label: 'Review needed', status: 'warning' }],
+      web: { error: 'unavailable', source_urls: ['https://example.test/evidence'] },
+      customer: { level: 'stressed', score: 55 },
+    }, ['critical', 'warning', 'warning', 'warning', 'warning']],
+    [{
+      fraud: { state: 'running', progress: 30, band: 'HIGH' },
+      cover: [{ label: 'Confirmed', status: 'ok' }, { label: 'Excluded', status: 'critical' }],
+      customer: { level: 'moderate', score: 80 },
+    }, ['neutral', 'running', 'critical', 'neutral', 'critical']],
+    [{ fraud: { state: 'done', band: 'LOW', score: 10, siu: true } }, ['neutral', 'critical', 'neutral', 'neutral', 'neutral']],
+    [{ customer: { level: null, score: 99 } }, ['neutral', 'neutral', 'neutral', 'neutral', 'neutral']],
+  ];
+  const colors = { critical: 'rose', warning: 'amber', success: 'emerald', info: 'sky', running: 'violet', neutral: 'slate' };
+  for (const [overrides, expected] of scenarios) {
+    const tree = VerdictBar({ ...defaults, ...overrides });
+    const tiles = elements(tree).filter(node => typeof node.type === 'function' && node.type.name === 'Tile');
+    assert.deepEqual(tiles.map(tile => tile.props.tone), expected);
+    tiles.forEach((tile, index) => {
+      const rendered = tile.type(tile.props);
+      assert.match(rendered.props.className, new RegExp(`bg-${colors[expected[index]]}-50/`));
+      assert.match(rendered.props.className, new RegExp(`border-${colors[expected[index]]}-`));
+      const header = elements(rendered).find(node => node.type === 'span');
+      assert.match(header.props.className, new RegExp(`text-${colors[expected[index]]}-`));
+      assert.ok(renderToStaticMarkup(rendered).includes('<svg'), 'context icon must remain visible');
+      const background = rendered.props.className.match(/\bbg-(\w+)-(\d+)\/(\d+)/);
+      const hover = rendered.props.className.match(/\bhover:bg-(\w+)-(\d+)\/(\d+)/);
+      const composite = (foreground, parent, opacity) => {
+        const rgb = color => color.match(/[a-f\d]{2}/gi).map(channel => parseInt(channel, 16));
+        const base = rgb(parent);
+        return '#' + rgb(foreground).map((value, channel) =>
+          Math.round(value * opacity + base[channel] * (1 - opacity)).toString(16).padStart(2, '0')
+        ).join('');
+      };
+      for (const theme of ['light', 'dark']) {
+        for (const match of [background, hover]) {
+          const color = palettes[match[1]][match[2]];
+          const surface = composite(theme === 'light' ? color.lightBackground : color.background, theme === 'light' ? '#ffffff' : neutral.surface, Number(match[3]) / 100);
+          for (const node of elements(rendered)) {
+            for (const text of (node.props.className || '').matchAll(/\btext-(slate|rose|amber|emerald|sky|violet|indigo|purple)-(\d+)\b/g)) {
+              const textColor = palettes[text[1]][text[2]];
+              assert.ok(contrast(theme === 'light' ? textColor.lightText : textColor.text, surface) >= 4.5, `${tile.props.label}: ${theme} ${text[0]} reading contrast`);
+            }
+          }
+        }
+      }
+    });
+  }
 });
 
 test('Aurora is visible when disabled or without a location, without a fabricated graph or enabled launch action', () => {
