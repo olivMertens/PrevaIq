@@ -119,6 +119,14 @@ has one main view.
 Overview shortcuts start a new fraud analysis directly or open an existing report.
 Web IQ sources are separately visible, but execution remains explicitly coupled
 to fraud analysis. Switching views does not unmount the analysis runner.
+Property Overview KPI cards use the existing recommendation/sentiment palette:
+rose for priority review, amber for required checks, green for low-risk/calm
+indicators, blue for context, violet for running analysis and grey for unknowns.
+Backgrounds, borders and icons retain their tone on hover and adapt to both themes.
+Coverage and Web IQ context are not colored green merely because an event was
+confirmed or sources were found. Labels and evidence remain the source of meaning;
+no risk threshold, decision, navigation action or demo file selection changes.
+The property demo guide explains these colors in EN/FR/DE/DE-CH.
 Decision choices use persistent green/amber/grey/red styling and require human
 confirmation. Customer drafts are editable, never automatically sent, and a
 standard-template fallback is explicitly labeled if AI generation fails.
