@@ -13,6 +13,9 @@ const frontend = path.resolve(__dirname, '..');
 const messages = Object.fromEntries(['en', 'fr', 'de'].map(locale => [locale, require(`../messages/${locale}.json`).auth]));
 const { swissGermanMessages } = load('locales.ts', path.join(srcDir, 'i18n'));
 messages['de-CH'] = swissGermanMessages(messages.de);
+const catalogs = Object.fromEntries(['en', 'fr', 'de'].map(locale => [locale, require(`../messages/${locale}.json`)]));
+catalogs['de-CH'] = swissGermanMessages(catalogs.de);
+const currencyHelpers = load('currency.ts', path.join(srcDir, 'lib'));
 const css = new Proxy({}, { get: (_, name) => name });
 
 // Same TS/VM strategy as the existing branding/auth suites; no added dependency.
@@ -26,10 +29,14 @@ function loadUI({ locale = 'en', providers = {}, react = React, globals = {}, ov
     const requireSource = name => {
       if (Object.hasOwn(overrides, name)) return overrides[name];
       if (name === 'react') return react;
-      if (name === 'next-intl') return { useLocale: () => locale, useTranslations: () => key => {
-        assert.equal(typeof messages[locale][key], 'string', `${locale}: ${key}`);
-        return messages[locale][key];
+      if (name === 'next-intl') return { useLocale: () => locale, useTranslations: (namespace = 'auth') => key => {
+        const label = catalogs[locale][namespace][key];
+        assert.equal(typeof label, 'string', `${locale}.${namespace}: ${key}`);
+        return label;
       } };
+      if (name === '@/lib/CurrencyProvider') return {
+        useReferenceCurrency: () => ({ currency: 'EUR', setCurrency: () => {} }),
+      };
       if (name === '@/components/auth/useAuthProviders') return {
         useAuthProviders: () => ({ loaded: true, entraEnabled: false, localAuthEnabled: false, requestEmail: 'demo@example.test', ...providers }),
         mailtoHref: (email, subject, body) => `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
@@ -67,11 +74,13 @@ function hooks(initial = []) {
   let index = 0;
   return {
     state, effects,
+    render: fn => { index = 0; return fn(); },
     react: { ...React, useContext: () => 'light', useTransition: () => [false, fn => fn()],
+      useRef: () => ({ current: null }), useId: () => 'test-menu',
       useEffect: fn => effects.push(fn),
       useState: fallback => {
         const i = index++;
-        state[i] = i < initial.length ? initial[i] : fallback;
+        if (!(i in state)) state[i] = i < initial.length ? initial[i] : typeof fallback === 'function' ? fallback() : fallback;
         return [state[i], value => { state[i] = typeof value === 'function' ? value(state[i]) : value; }];
       },
     },
@@ -146,7 +155,7 @@ for (const locale of ['en', 'fr', 'de', 'de-CH']) {
   test(`language segments ${locale} preserve the locale cookie and reload behavior`, () => {
     const h = hooks(); const document = {}; let reloads = 0;
     const load = loadUI({ locale, react: h.react, globals: { document, window: { location: { reload: () => reloads++ } } } });
-    const tree = load('components/LanguageSwitcher.tsx').default({ variant: 'login' });
+    const tree = load('components/LanguageSwitcher.tsx').LanguageOptions({ variant: 'login' });
     const selected = find(tree, node => node.type === 'button' && node.props['aria-pressed']);
     selected.props.onClick(); assert.equal(reloads, 0);
     const other = find(tree, node => node.type === 'button' && !node.props['aria-pressed']);
@@ -157,15 +166,83 @@ for (const locale of ['en', 'fr', 'de', 'de-CH']) {
 
 test('selecting DE-CH persists the complete regional locale and reloads only when it changes', () => {
   for (const locale of ['en', 'fr', 'de', 'de-CH']) {
-    const h = hooks(); const document = {}; let reloads = 0;
+    const h = hooks([true]); const document = {}; let reloads = 0;
     const load = loadUI({ locale, react: h.react, globals: { document, window: { location: { reload: () => reloads++ } } } });
-    const tree = load('components/LanguageSwitcher.tsx').default({ variant: 'login' });
-    const swiss = find(tree, node => node.type === 'button' && node.props.title === messages[locale].languageGermanSwiss);
+    const tree = load('components/LanguageSwitcher.tsx').LanguageOptions({ variant: 'login' });
+    const swiss = find(tree, node => node.type === 'button' && node.props.role === 'menuitemradio' && node.props.title === messages[locale].languageGermanSwiss);
     assert.ok(swiss);
-    assert.equal(swiss.props['aria-pressed'], locale === 'de-CH');
+    assert.equal(swiss.props['aria-checked'], locale === 'de-CH');
     swiss.props.onClick();
     assert.equal(reloads, locale === 'de-CH' ? 0 : 1);
     assert.equal(document.cookie, locale === 'de-CH' ? undefined : 'locale=de-CH;path=/;max-age=31536000;samesite=lax');
+  }
+});
+
+for (const variant of ['default', 'login']) {
+  test(`${variant}: Swiss German is nested under DE and Escape closes only that submenu`, () => {
+    const h = hooks();
+    const Options = loadUI({ locale: 'de-CH', react: h.react, globals: { document: { activeElement: null } } })('components/LanguageSwitcher.tsx').LanguageOptions;
+    const render = () => h.render(() => Options({ variant }));
+    const tree = render();
+    assert.equal(find(tree, node => node.props.role === 'menu'), undefined);
+    const trigger = find(tree, node => node.props['aria-haspopup'] === 'menu');
+    assert.equal(trigger.props['aria-pressed'], true);
+    assert.equal(trigger.props['aria-expanded'], false);
+    trigger.props.onClick();
+    const opened = render();
+    const submenu = find(opened, node => node.props.role === 'menu');
+    assert.ok(submenu);
+    assert.equal(find(submenu, node => node.props.title === messages['de-CH'].languageGermanSwiss).props['aria-checked'], true);
+    const event = { key: 'Escape', preventDefault() {}, stopPropagation() { this.stopped = true; } };
+    submenu.props.onKeyDown(event);
+    assert.equal(event.stopped, true);
+    assert.equal(find(render(), node => node.props['aria-haspopup'] === 'menu').props['aria-expanded'], false);
+  });
+}
+
+test('reference currency options update only the selected currency and expose all three choices', () => {
+  for (const locale of ['en', 'fr', 'de', 'de-CH']) {
+    let selected = 'EUR';
+    const load = loadUI({ locale, overrides: {
+      '@/lib/CurrencyProvider': { useReferenceCurrency: () => ({ currency: selected, setCurrency: next => { selected = next; } }) },
+    } });
+    const Options = load('components/CurrencySwitcher.tsx').CurrencyOptions;
+    const options = Options().props.children[0];
+    assert.deepEqual(Array.from(options, option => option.key), ['USD', 'EUR', 'CHF']);
+    for (const code of currencyHelpers.CURRENCIES) {
+      const button = Options().props.children[0].find(node => node.key === code);
+      button.props.onClick();
+      assert.equal(selected, code);
+      assert.equal(Options().props.children[0].find(node => node.key === code).props['aria-checked'], true);
+      assert.match(renderToStaticMarkup(React.createElement(Options)), new RegExp(catalogs[locale].currency[code]));
+    }
+    const Switcher = load('components/CurrencySwitcher.tsx').default;
+    Switcher({}).props.onChange({ target: { value: 'USD' } });
+    assert.equal(selected, 'USD');
+    assert.throws(() => Switcher({}).props.onChange({ target: { value: 'invalid' } }), /Unsupported reference currency/);
+  }
+});
+
+test('a single theme action offers the opposite theme in compact controls and the account menu', () => {
+  for (const locale of ['en', 'fr', 'de', 'de-CH']) {
+    for (const initial of ['light', 'dark']) {
+      let theme = initial;
+      const load = loadUI({ locale, overrides: {
+        '@/lib/ThemeProvider': { useAppTheme: () => ({ theme, setTheme: next => { theme = next; } }) },
+      } });
+      const Toggle = load('components/AppearanceSwitcher.tsx').ThemeToggle;
+      for (const menu of [true, false]) {
+        theme = initial;
+        const button = Toggle({ menu });
+        assert.equal(button.type, 'button');
+        const next = initial === 'dark' ? 'light' : 'dark';
+        assert.equal(button.props['aria-label'], messages[locale][next === 'light' ? 'useLightTheme' : 'useDarkTheme']);
+        assert.equal(button.props.role, menu ? 'menuitem' : undefined);
+        assert.equal(button.props['aria-checked'], undefined);
+        button.props.onClick();
+        assert.equal(theme, next);
+      }
+    }
   }
 });
 

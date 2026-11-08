@@ -16,6 +16,7 @@ import type { CustomerProfile } from '@/lib/customer360-types';
 import CustomerListView from '@/components/customer360/CustomerListView';
 import PersonaSelector from '@/components/PersonaSelector';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import CurrencySwitcher from '@/components/CurrencySwitcher';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import BrandMark from '@/components/BrandMark';
@@ -111,6 +112,7 @@ export default function CustomersPage() {
             </Link>
 
             <LanguageSwitcher />
+            <CurrencySwitcher />
             <AppearanceSwitcher />
 
             {authEnabled && (

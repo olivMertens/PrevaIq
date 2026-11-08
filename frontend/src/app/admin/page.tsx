@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import PersonaSelector from '@/components/PersonaSelector';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import CurrencySwitcher from '@/components/CurrencySwitcher';
 import GlossaryManager from '@/components/GlossaryManager';
 import { useToast } from '@/lib/ToastProvider';
 import { usePersona } from '@/lib/PersonaContext';
@@ -68,6 +69,7 @@ export default function AdminPage() {
           </div>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
+            <CurrencySwitcher />
             <AppearanceSwitcher />
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: brand.dotColor }}></div>

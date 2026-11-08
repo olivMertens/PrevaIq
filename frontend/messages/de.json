@@ -86,6 +86,13 @@
     "light": "Helles Design",
     "dark": "Dunkles Design"
   },
+  "currency": {
+    "title": "Referenzwährung",
+    "USD": "US-Dollar",
+    "EUR": "Euro",
+    "CHF": "Schweizer Franken",
+    "referenceHint": "Nur für Fälle ohne angegebene Währung. Keine Wechselkursumrechnung."
+  },
   "auth": {
     "splashEyebrow": "KI-Arbeitsbereich für Versicherungen",
     "languageLabel": "Sprache",
@@ -3155,7 +3162,7 @@
           },
           {
             "title": "5. DE-CH auswählen und Ask IQ befragen",
-            "detail": "Die Oberfläche auf DE-CH (Deutsch, Schweiz) umschalten. Ask IQ antwortet auf Schweizer Hochdeutsch, nicht im Dialekt; Quellenzitate bleiben unverändert. Fragen:\n→ „Ist das Kühlgut versichert?“\n→ „Welcher Selbstbehalt gilt für Elementarschäden?“\n→ „Wer deckt den Gebäudeschaden im Kanton Zürich?“",
+            "detail": "Das Untermenü DE öffnen und DE-CH (Deutsch, Schweiz) auswählen. Ask IQ antwortet auf Schweizer Hochdeutsch, nicht im Dialekt; Quellenzitate und Fallbeträge in CHF bleiben unabhängig von der Referenzwährung unverändert. Fragen:\n→ „Ist das Kühlgut versichert?“\n→ „Welcher Selbstbehalt gilt für Elementarschäden?“\n→ „Wer deckt den Gebäudeschaden im Kanton Zürich?“",
             "tip": "Die Antworten zitieren die Artikel der Schweizer AVB (CH-AVB-…)."
           },
           {

@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Check, ChevronDown, CircleHelp, LogOut, Settings, User } from 'lucide-react';
+import { ChevronDown, CircleHelp, LogOut, Settings, User } from 'lucide-react';
 import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import DemoGuideModal from './DemoGuideModal';
-import { LOCALES, useLocaleSwitch } from './LanguageSwitcher';
-import { AppearanceOptions } from './AppearanceSwitcher';
+import { LanguageOptions, useLocaleSwitch } from './LanguageSwitcher';
+import { ThemeToggle } from './AppearanceSwitcher';
+import { CurrencyOptions } from './CurrencySwitcher';
 
 const ITEM_CLASS =
   'flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 focus:bg-slate-100 focus:outline-none disabled:opacity-50';
@@ -28,7 +29,8 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
   const tAuth = useTranslations('auth');
   const tDemo = useTranslations('demoGuide');
   const tAppearance = useTranslations('appearance');
-  const { locale, isPending, switchLocale } = useLocaleSwitch();
+  const tCurrency = useTranslations('currency');
+  const { locale } = useLocaleSwitch();
   const [open, setOpen] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,7 +45,8 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
 
   useEffect(() => {
     if (!open) return;
-    menuRef.current?.querySelector<HTMLElement>('[aria-checked="true"], [role^="menuitem"]')?.focus();
+    (menuRef.current?.querySelector<HTMLElement>('[aria-checked="true"]')
+      ?? menuRef.current?.querySelector<HTMLElement>('[role^="menuitem"]:not(:disabled)'))?.focus();
     const onPointerDown = (event: MouseEvent) => {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -52,7 +55,7 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
   }, [open]);
 
   const onMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? []);
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLElement>('[role^="menuitem"]:not(:disabled)') ?? []);
     const index = items.indexOf(document.activeElement as HTMLElement);
     const focusAt = (next: number) => items[(next + items.length) % items.length]?.focus();
     if (event.key === 'Escape') {
@@ -111,28 +114,17 @@ export default function UserMenu({ user, userLabel, canAdmin, onSignOut }: UserM
           <p id={`${menuId}-language`} className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             {tAuth('languageLabel')}
           </p>
-          <div role="group" aria-labelledby={`${menuId}-language`}>
-            {LOCALES.map((option) => (
-              <button
-                key={option.code}
-                type="button"
-                role="menuitemradio"
-                aria-checked={locale === option.code}
-                disabled={isPending}
-                onClick={() => (option.code === locale ? close() : switchLocale(option.code))}
-                className={ITEM_CLASS}
-              >
-                <span className="w-12 flex-shrink-0 text-xs font-semibold text-slate-500">{option.label}</span>
-                <span className="flex-1">{tAuth(option.translationKey)}</span>
-                {locale === option.code && <Check className="h-4 w-4 text-indigo-600" aria-hidden />}
-              </button>
-            ))}
-          </div>
+          <LanguageOptions menu onSelected={close} />
+          <div role="separator" className="my-1 border-t border-slate-100" />
+          <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            {tCurrency('title')}
+          </p>
+          <CurrencyOptions />
           <div role="separator" className="my-1 border-t border-slate-100" />
           <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             {tAppearance('title')}
           </p>
-          <AppearanceOptions menu />
+          <ThemeToggle menu />
           <div role="separator" className="my-1 border-t border-slate-100" />
           <button
             type="button"

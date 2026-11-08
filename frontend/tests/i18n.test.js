@@ -82,6 +82,15 @@ test('Swiss German inherits German messages without eszett, including nested dem
   assert.match(swiss.demoGuide.scenarios['habitation-ch'].steps[4].detail, /DE-CH/);
 });
 
+test('the Swiss demo explains the DE submenu and preserves explicit CHF amounts in every locale', () => {
+  for (const locale of locales) {
+    const detail = messages(locale).demoGuide.scenarios['habitation-ch'].steps[4].detail;
+    assert.match(detail, /DE-CH/);
+    assert.match(detail, /CHF/);
+    assert.match(detail, locale === 'fr' ? /sous-menu DE/ : locale === 'en' ? /DE submenu/ : /Untermenü DE/);
+  }
+});
+
 test('the request config restores the regional cookie and preserves existing locale defaults', async () => {
   const filename = path.join(root, 'src', 'i18n', 'request.ts');
   const { outputText } = ts.transpileModule(fs.readFileSync(filename, 'utf8'), {

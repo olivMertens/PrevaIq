@@ -21,6 +21,7 @@ import SouscriaAcquisitionCard from '@/components/customer360/SouscriaAcquisitio
 import CustomerJourneyMetrics from '@/components/customer360/CustomerJourneyMetrics';
 import PersonaSelector from '@/components/PersonaSelector';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import CurrencySwitcher from '@/components/CurrencySwitcher';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import BrandMark from '@/components/BrandMark';
@@ -110,6 +111,7 @@ export default function CustomerDetailPage() {
             </Link>
 
             <LanguageSwitcher />
+            <CurrencySwitcher />
             <AppearanceSwitcher />
 
             {authEnabled && (

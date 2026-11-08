@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import CurrencySwitcher from '@/components/CurrencySwitcher';
+import { Moon, Sun } from 'lucide-react';
 import styles from './login.module.css';
 
 type LoginTheme = 'light' | 'dark';
@@ -14,6 +16,7 @@ export default function LoginShell({ initialTheme, children }: { initialTheme: L
   const [theme, setTheme] = useState(initialTheme);
   const t = useTranslations('auth');
   const toggleLabel = t(theme === 'dark' ? 'useLightTheme' : 'useDarkTheme');
+  const ThemeIcon = theme === 'dark' ? Sun : Moon;
 
   function toggleTheme() {
     const next = theme === 'dark' ? 'light' : 'dark';
@@ -26,8 +29,9 @@ export default function LoginShell({ initialTheme, children }: { initialTheme: L
       <main className={styles.login} data-theme={theme} data-theme-static>
         <div className={styles.top}>
           <LanguageSwitcher variant="login" />
+          <CurrencySwitcher variant="login" />
           <button type="button" className={styles.themeButton} onClick={toggleTheme} aria-label={toggleLabel} title={toggleLabel}>
-            <span aria-hidden>{theme === 'dark' ? '☀️' : '🌙'}</span>
+            <ThemeIcon className="h-4 w-4" aria-hidden />
           </button>
         </div>
         {children}

@@ -232,7 +232,14 @@ All user-facing strings must use `useTranslations()`; do not hardcode UI text.
 
 - Add keys to `messages/fr.json`, then mirror them in `messages/en.json`.
 - Use interpolation such as `t('claim.status', { name })`.
-- Use locale-aware helpers in `src/lib/format.ts` for dates, numbers, and currency.
+- Use `src/lib/currency.ts` for locale-aware currency formatting. `useApplicationCurrency`
+  preserves an explicit case currency; otherwise it uses the selected reference currency
+  (USD, EUR or CHF; EUR by default). This is not foreign-exchange conversion.
+- The reference currency is stored in the `reference-currency` cookie and restored
+  by `CurrencyProvider` before rendering, independently of language and theme.
+- EN and FR are direct choices; the DE submenu offers German (DE) and Swiss German
+  (DE-CH) in the account menu and compact language controls.
+- A single sun/moon button switches to the other theme.
 
 ## Component design
 
@@ -245,16 +252,19 @@ Follow the repository's SOLID, DRY, and YAGNI rules.
 
 ## Login appearance
 
-`/login` follows Nemo's centered hero/card layout, with the existing EN/FR locale
-cookie and segmented language/theme controls together at the top right. Its CSS
+`/login` follows Nemo's centered hero/card layout, with the EN/FR/DE locale
+controls, DE-CH nested under DE, reference currency and one theme icon at the top right. Its CSS
 tokens and `login-theme` cookie (path `/login`) are isolated from the rest of the
 app; the server restores the theme before rendering. Official logos still use
 `BrandMark`, selected for the actual surface. Authentication and access links are
-unchanged. No demo-guide content or demo-file references are affected.
+unchanged. The Swiss demo guide explains the DE submenu and preservation of CHF
+case amounts; demo-file references are unchanged.
 
 Run the focused presentation, branding and authentication checks together:
 `node --test tests/login.test.js tests/branding.test.js tests/auth.test.js`.
 The login-only suite is also available as `npm run test:login`.
+Preference and formatting regressions:
+`node --test tests/login.test.js tests/currency.test.js tests/theme.test.js tests/i18n.test.js`.
 
 ## Build and deploy
 

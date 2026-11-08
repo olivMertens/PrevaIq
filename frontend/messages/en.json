@@ -86,6 +86,13 @@
     "light": "Light template",
     "dark": "Dark template"
   },
+  "currency": {
+    "title": "Reference currency",
+    "USD": "US dollar",
+    "EUR": "Euro",
+    "CHF": "Swiss franc",
+    "referenceHint": "Used only when no case currency is specified. No exchange-rate conversion."
+  },
   "auth": {
     "splashEyebrow": "Insurance AI workbench",
     "languageLabel": "Language",
@@ -3155,7 +3162,7 @@
           },
           {
             "title": "5. Select DE-CH and ask IQ",
-            "detail": "Switch the interface to DE-CH (German, Switzerland). Ask IQ answers in Swiss Standard German, not dialect; source quotations remain unchanged. Ask:\n→ \"Ist das Kühlgut versichert?\"\n→ \"Welcher Selbstbehalt gilt für Elementarschäden?\"\n→ \"Wer deckt den Gebäudeschaden im Kanton Zürich?\"",
+            "detail": "Open the DE submenu and select DE-CH (German, Switzerland). Ask IQ answers in Swiss Standard German, not dialect; source quotations and CHF case amounts remain unchanged regardless of the reference currency. Ask:\n→ \"Ist das Kühlgut versichert?\"\n→ \"Welcher Selbstbehalt gilt für Elementarschäden?\"\n→ \"Wer deckt den Gebäudeschaden im Kanton Zürich?\"",
             "tip": "Answers cite the Swiss AVB articles (CH-AVB-…)."
           },
           {

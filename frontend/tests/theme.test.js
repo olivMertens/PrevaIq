@@ -103,5 +103,5 @@ test('every account appearance label exists in all locales and deployment copies
   assert.match(layout, /cookies\(\)/);
   assert.match(layout, /data-app-theme=\{theme\}/);
   assert.match(layout, /<ThemeProvider initialTheme=\{theme\}>/);
-  assert.match(read('src\\components\\UserMenu.tsx'), /<AppearanceOptions menu/);
+  assert.match(read('src\\components\\UserMenu.tsx'), /<ThemeToggle menu/);
 });
