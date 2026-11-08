@@ -1,10 +1,24 @@
-/** Amount display in the currency of a claim (EUR in France, CHF in Switzerland). */
+/** Amount display without foreign-exchange conversion. */
 
-export type CurrencyCode = 'EUR' | 'CHF';
+export const CURRENCIES = ['USD', 'EUR', 'CHF'] as const;
+export type CurrencyCode = typeof CURRENCIES[number];
+export const CURRENCY_COOKIE = 'reference-currency';
 
-/** Currency of an application, as detected by the backend; EUR when unknown. */
-export function applicationCurrency(application?: { jurisdiction?: { currency?: string } } | null): CurrencyCode {
-  return application?.jurisdiction?.currency === 'CHF' ? 'CHF' : 'EUR';
+export function isCurrencyCode(value: string | undefined): value is CurrencyCode {
+  return CURRENCIES.some(code => code === value);
+}
+
+export function resolveReferenceCurrency(value: string | undefined): CurrencyCode {
+  return isCurrencyCode(value) ? value : 'EUR';
+}
+
+/** An explicit case currency always takes precedence over the user's reference currency. */
+export function applicationCurrency(
+  application?: { jurisdiction?: { currency?: string } } | null,
+  referenceCurrency: CurrencyCode = 'EUR',
+): CurrencyCode {
+  const currency = application?.jurisdiction?.currency;
+  return isCurrencyCode(currency) ? currency : referenceCurrency;
 }
 
 /**

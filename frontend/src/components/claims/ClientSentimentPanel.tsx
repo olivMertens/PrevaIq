@@ -5,6 +5,7 @@ import { Heart, Phone, Clock, MessageCircle, TrendingUp, UserCheck, Handshake, C
 import { useLocale, useTranslations } from 'next-intl';
 import clsx from 'clsx';
 import { formatAmount, type CurrencyCode } from '@/lib/currency';
+import { useReferenceCurrency } from '@/lib/CurrencyProvider';
 
 interface BackendSentiment {
   score: number;
@@ -24,7 +25,7 @@ interface ClientSentimentPanelProps {
   claimNature: string;
   /** Estimated amount */
   estimatedAmount: number;
-  /** Currency of the estimated amount (default EUR) */
+  /** Explicit currency of the estimated amount, otherwise the user's reference currency. */
   currency?: CurrencyCode;
   /** Number of days since claim was filed */
   daysSinceClaim: number;
@@ -65,7 +66,7 @@ export default function ClientSentimentPanel({
   customerData,
   claimNature,
   estimatedAmount,
-  currency = 'EUR',
+  currency,
   daysSinceClaim,
   backendSentiment,
   mode = 'compact',
@@ -74,7 +75,8 @@ export default function ClientSentimentPanel({
   const t = useTranslations('claimsModals');
   const tSentiment = useTranslations('clientSentiment');
   const locale = useLocale();
-  const formattedAmount = formatAmount(estimatedAmount, currency, locale, { maximumFractionDigits: 0 });
+  const { currency: referenceCurrency } = useReferenceCurrency();
+  const formattedAmount = formatAmount(estimatedAmount, currency ?? referenceCurrency, locale, { maximumFractionDigits: 0 });
   const sentiment = useMemo<SentimentResult>(() => {
     // ── Prefer backend Sentiment Agent result ──
     if (backendSentiment && typeof backendSentiment.score === 'number') {

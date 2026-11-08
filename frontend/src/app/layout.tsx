@@ -9,6 +9,8 @@ import { brand } from '@/lib/brand';
 import { cookies } from 'next/headers';
 import { ThemeProvider } from '@/lib/ThemeProvider';
 import { resolveAppTheme, APP_THEME_COOKIE } from '@/lib/theme';
+import { CurrencyProvider } from '@/lib/CurrencyProvider';
+import { CURRENCY_COOKIE, resolveReferenceCurrency } from '@/lib/currency';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -29,18 +31,22 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
-  const theme = resolveAppTheme((await cookies()).get(APP_THEME_COOKIE)?.value);
+  const cookieStore = await cookies();
+  const theme = resolveAppTheme(cookieStore.get(APP_THEME_COOKIE)?.value);
+  const currency = resolveReferenceCurrency(cookieStore.get(CURRENCY_COOKIE)?.value);
 
   return (
     <html lang={locale} data-app-theme={theme} style={{ colorScheme: theme }}>
       <body className={inter.className}>
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ThemeProvider initialTheme={theme}>
-            <PersonaProvider>
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </PersonaProvider>
+            <CurrencyProvider initialCurrency={currency}>
+              <PersonaProvider>
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </PersonaProvider>
+            </CurrencyProvider>
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

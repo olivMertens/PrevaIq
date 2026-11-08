@@ -13,8 +13,10 @@ import { getPropertyDeepDive, runPropertyDeepDive } from '@/lib/api';
 import { brand } from '@/lib/brand';
 import { previewUrl } from '@/lib/media';
 import { useTranslations, useLocale } from 'next-intl';
+import type { CurrencyCode } from '@/lib/currency';
 
 interface PropertyDeepDiveModalProps {
+  currency: CurrencyCode;
   isOpen: boolean;
   onClose: () => void;
   applicationId: string;
@@ -31,11 +33,12 @@ export default function PropertyDeepDiveModal({
   onClose,
   applicationId,
   propertyAddress,
+  currency,
 }: PropertyDeepDiveModalProps) {
   const t = useTranslations('mortgageLabels');
   const tReport = useTranslations('mortgageLabels.report');
   const locale = useLocale();
-  const fmtEUR = (value: number | null | undefined) => formatCurrency(value, locale);
+  const fmtEUR = (value: number | null | undefined) => formatCurrency(value, locale, currency);
   const fmtNum = (value: number | null | undefined, decimals = 0) => formatNumber(value, decimals, locale);
   const fmtPct = (value: number | null | undefined) => formatSignedPercent(value, 1, locale);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -232,7 +235,7 @@ ${sections.join('\n')}
       win.document.close();
       setTimeout(() => win.print(), 400);
     }
-  }, [data, applicationId, tReport, locale]);
+  }, [data, applicationId, tReport, locale, currency]);
 
   if (!isOpen) return null;
 

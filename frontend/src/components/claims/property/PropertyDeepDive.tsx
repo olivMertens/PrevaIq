@@ -1,7 +1,6 @@
 'use client';
 
 import type { FraudAnalysisResponse } from '@/lib/api';
-import { applicationCurrency } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import type { DeepDiveTab } from '@/components/case/caseSignals';
 import { PipelineDetails } from '@/components/case/PipelineStatusPill';
@@ -78,7 +77,7 @@ export default function PropertyDeepDive({
         <CoverTab
           labels={application.context_labels ?? []}
           llmOutputs={data.llmOutputs}
-          currency={applicationCurrency(application)}
+          currency={data.currency}
           claimedText={field('MontantEstime', 'TotalIncurred', 'MontantTotal')}
           deductibleText={field('FranchiseApplicable', 'Franchise') || undefined}
           coverageText={parseAiSummary(aiSummary || '').decision}

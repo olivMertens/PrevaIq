@@ -37,8 +37,10 @@ import type {
 } from './MortgageWorkbench';
 import ConfidenceIndicator from '../ConfidenceIndicator';
 import CitableValue from '../CitableValue';
+import type { CurrencyCode } from '@/lib/currency';
 
 interface DataWorksheetProps {
+  currency: CurrencyCode;
   borrower: MortgageBorrower;
   coBorrower?: MortgageBorrower;
   income: MortgageIncome;
@@ -63,6 +65,7 @@ interface DataSection {
 }
 
 export default function DataWorksheet({
+  currency,
   borrower,
   coBorrower,
   income,
@@ -74,7 +77,7 @@ export default function DataWorksheet({
   const t = useTranslations('mortgageLabels');
   const locale = useLocale();
   const formatCurrency = (value: number | null | undefined) =>
-    formatCurrencyForLocale(value, locale);
+    formatCurrencyForLocale(value, locale, currency);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set(['borrower', 'income', 'property', 'loan', 'liabilities'])
   );

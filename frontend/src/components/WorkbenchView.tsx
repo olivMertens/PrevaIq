@@ -36,6 +36,7 @@ import { getApplication, runRiskAnalysis } from '@/lib/api';
 import { getApplicationDisplayTitle } from '@/lib/applicationDisplay';
 import { writeCaseParams, type CaseView } from '@/lib/caseUrl';
 import type { ApplicationMetadata, ApplicationListItem } from '@/lib/types';
+import { useApplicationCurrency } from '@/lib/CurrencyProvider';
 
 type ViewType = CaseView;
 
@@ -61,6 +62,7 @@ export default function WorkbenchView({
   initialPage,
 }: WorkbenchViewProps) {
   const [selectedApp, setSelectedApp] = useState<ApplicationMetadata | null>(null);
+  const currency = useApplicationCurrency(selectedApp);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<ViewType>('overview');
@@ -216,7 +218,7 @@ export default function WorkbenchView({
           return <LifeHealthClaimsOverview application={selectedApp} />;
         }
         if (currentPersona === 'mortgage') {
-          return <MortgageWorkbench applicationId={selectedApp.id} />;
+          return <MortgageWorkbench applicationId={selectedApp.id} currency={currency} />;
         }
         // Default: Underwriting overview
         return renderUnderwritingOverview();

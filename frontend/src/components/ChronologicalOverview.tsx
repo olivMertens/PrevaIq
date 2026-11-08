@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import type { ApplicationMetadata } from '@/lib/types';
 import { brand, isWorkbenchSystem } from '@/lib/brand';
-import { applicationCurrency, formatAmount } from '@/lib/currency';
+import { formatAmount, type CurrencyCode } from '@/lib/currency';
+import { useApplicationCurrency } from '@/lib/CurrencyProvider';
 import { formatTimelineDate, parseTimelineDate } from '@/lib/timelineDates';
 import { humanizeFieldKey, markdownPreview } from './claims/property/analysisMarkdown';
 import MarkdownText from './claims/property/MarkdownText';
@@ -261,7 +262,7 @@ function mergeActionHistory(entries: TimelineEntry[], application: ApplicationMe
  * Build timeline entries from LLM outputs generically — works for any persona.
  * Falls back to extracted fields timeline events if no LLM outputs.
  */
-function buildGenericTimeline(application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string): TimelineEntry[] {
+function buildGenericTimeline(application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string, currency: CurrencyCode): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const llm = application.llm_outputs || {};
   const fields = application.extracted_fields || {};
@@ -269,7 +270,7 @@ function buildGenericTimeline(application: ApplicationMetadata, locale: string, 
 
   // For habitation/claims personas, build a coherent claims narrative
   if (persona.includes('habitation') || persona.includes('property')) {
-    return buildHabitationTimeline(application, locale, t);
+    return buildHabitationTimeline(application, locale, t, currency);
   }
 
   // 1. Extract events from LLM outputs (any persona)
@@ -353,7 +354,7 @@ function buildGenericTimeline(application: ApplicationMetadata, locale: string, 
  * Build a coherent claims timeline for habitation persona.
  * Creates narrative events from extracted fields with proper dates.
  */
-function buildHabitationTimeline(application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string): TimelineEntry[] {
+function buildHabitationTimeline(application: ApplicationMetadata, locale: string, t: (key: string, values?: Record<string, string | number | Date>) => string, currency: CurrencyCode): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   const fields = application.extracted_fields || {};
   const llm = application.llm_outputs || {};
@@ -454,7 +455,7 @@ function buildHabitationTimeline(application: ApplicationMetadata, locale: strin
     const numMontant = Number(String(montant).replace(/[^\d.,]/g, '').replace(',', '.'));
     const montantDisplay = isNaN(numMontant)
       ? montant
-      : formatAmount(numMontant, applicationCurrency(application), locale);
+      : formatAmount(numMontant, currency, locale);
     entries.push({
       date: d.date, year: d.year,
       title: t('damageEstimate', { amount: montantDisplay }),
@@ -563,6 +564,7 @@ export default function ChronologicalOverview({ application, fullWidth, persona 
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const t = useTranslations('chronological');
   const locale = useLocale();
+  const currency = useApplicationCurrency(application);
 
   const labels = getPersonaLabels(persona || application.persona, t);
   const isMedicalPersona = !persona?.includes('habitation') && !persona?.includes('property') && !persona?.includes('mortgage') &&
@@ -571,7 +573,7 @@ export default function ChronologicalOverview({ application, fullWidth, persona 
   // Use medical-specific builder for underwriting, generic for everything else
   const timelineItems = isMedicalPersona
     ? buildTimelineFromData(application, locale, t)
-    : buildGenericTimeline(application, locale, t);
+    : buildGenericTimeline(application, locale, t, currency);
   const documents = buildDocumentsFromData(application);
 
   const colorClasses: Record<string, string> = {

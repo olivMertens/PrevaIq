@@ -18,8 +18,10 @@ import {
 import type { MortgageDocument, MortgageBorrower, MortgageProperty } from './MortgageWorkbench';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatCurrency as formatCurrencyForLocale } from './format';
+import type { CurrencyCode } from '@/lib/currency';
 
 interface EvidencePanelProps {
+  currency: CurrencyCode;
   documents: MortgageDocument[];
   borrower: MortgageBorrower;
   property: MortgageProperty;
@@ -40,11 +42,11 @@ const DOCUMENT_GROUPS: DocumentGroup[] = [
   { id: 'other', icon: FileText, types: ['other', 'application', 'mortgage_application', 'demande_pret'] },
 ];
 
-export default function EvidencePanel({ documents, borrower, property, onViewDocument }: EvidencePanelProps) {
+export default function EvidencePanel({ documents, borrower, property, onViewDocument, currency }: EvidencePanelProps) {
   const t = useTranslations('mortgageLabels');
   const locale = useLocale();
   const formatCurrency = (value: number | null | undefined) =>
-    formatCurrencyForLocale(value, locale);
+    formatCurrencyForLocale(value, locale, currency);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['income', 'property']));
 
   const toggleGroup = (groupId: string) => {

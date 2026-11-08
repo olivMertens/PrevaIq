@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { applicationCurrency } from '@/lib/currency';
+import { useApplicationCurrency } from '@/lib/CurrencyProvider';
 import type { ApplicationMetadata } from '@/lib/types';
 import ClientSentimentPanel from '../ClientSentimentPanel';
 import CommunicationGenerator from '../CommunicationGenerator';
@@ -42,6 +42,7 @@ export default function CustomerTab({
   onAffiliated,
 }: CustomerTabProps) {
   const t = useTranslations('caseCockpit.customerTab');
+  const currency = useApplicationCurrency(application);
   const severity = severityFromSentiment(application.sentiment_analysis);
   const [openedAt] = useState(() => Date.now());
   const daysSinceClaim = application.created_at
@@ -57,7 +58,7 @@ export default function CustomerTab({
           customerData={customerData}
           claimNature={claimNature}
           estimatedAmount={estimatedAmount}
-          currency={applicationCurrency(application)}
+          currency={currency}
           daysSinceClaim={daysSinceClaim}
           backendSentiment={application.sentiment_analysis ?? null}
           mode="full"

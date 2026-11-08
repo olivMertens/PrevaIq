@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { formatCurrency as formatCurrencyForLocale, formatPercent as formatPercentForLocale, getStatusColor } from './format';
+import type { CurrencyCode } from '@/lib/currency';
 import type {
   MortgageRatios,
   MortgageStressRatios,
@@ -25,6 +26,7 @@ import type {
 } from './MortgageWorkbench';
 
 interface CalculationsPanelProps {
+  currency: CurrencyCode;
   ratios: MortgageRatios;
   stressRatios: MortgageStressRatios;
   loan: MortgageLoan;
@@ -43,6 +45,7 @@ const OSFI_LIMITS = {
 };
 
 export default function CalculationsPanel({
+  currency,
   ratios,
   stressRatios,
   loan,
@@ -52,7 +55,7 @@ export default function CalculationsPanel({
   const t = useTranslations('mortgageLabels');
   const locale = useLocale();
   const formatCurrency = (value: number | null | undefined) =>
-    formatCurrencyForLocale(value, locale);
+    formatCurrencyForLocale(value, locale, currency);
   const formatPercent = (value: number) => formatPercentForLocale(value, 2, locale);
 
   const getRatioStatus = (value: number, limit: number): 'pass' | 'warning' | 'fail' => {

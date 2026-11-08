@@ -26,6 +26,8 @@ import { previewUrl } from '@/lib/media';
 import { getApplicationDisplayTitle, textValue } from '@/lib/applicationDisplay';
 import useAutomotiveClaimData from './useAutomotiveClaimData';
 import { useTranslations, useLocale } from 'next-intl';
+import { formatAmount } from '@/lib/currency';
+import { useApplicationCurrency } from '@/lib/CurrencyProvider';
 
 interface AutomotiveClaimsOverviewProps {
   applicationId: string;
@@ -101,12 +103,9 @@ export function AutomotiveClaimsOverview({
   const t = useTranslations('claimsModals');
   const tPersona = useTranslations('persona.labels');
   const locale = useLocale();
+  const currency = useApplicationCurrency(d.application);
   const formatCurrency = (value: number) =>
-    new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(value);
+    formatAmount(value, currency, locale, { maximumFractionDigits: 0 });
 
   const [selectedPDF, setSelectedPDF] = useState<MediaItem | null>(null);
   const [selectedImage, setSelectedImage] = useState<MediaItem | null>(null);
@@ -409,7 +408,7 @@ export function AutomotiveClaimsOverview({
             </div>
             <div className="flex-1 overflow-auto p-3">
               {d.assessment?.damage_areas && d.assessment.damage_areas.length > 0 ? (
-                <DamageViewer damageAreas={d.assessment.damage_areas} totalEstimate={d.assessment.total_estimated_damage || 0} />
+                <DamageViewer damageAreas={d.assessment.damage_areas} totalEstimate={d.assessment.total_estimated_damage || 0} currency={currency} />
               ) : (
                 <p className="text-xs text-slate-500 italic text-center py-4">{t('automotive.noDamage')}</p>
               )}

@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ApplicationDecision, FraudAnalysisResponse } from '@/lib/api';
-import { applicationCurrency, formatAmount } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
 import type { ApplicationMetadata } from '@/lib/types';
 import { mergeSignals } from '@/components/case/caseSignals';
 import { collectCaseUpdates, type CaseUpdateSource } from '@/components/case/caseUpdates';
@@ -53,13 +53,12 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
   const tc = useTranslations('caseCockpit');
   const tNext = useTranslations('nextAction');
   const locale = useLocale();
-  const { ef, llmOutputs, files, aiSummary, amountComparison, galleryItems, steps } = data;
+  const { currency, ef, llmOutputs, files, aiSummary, amountComparison, galleryItems, steps } = data;
 
   return useMemo(() => {
     const field = (...keys: string[]) => getFieldValue(ef, keys, '');
     const amountRaw = field('MontantEstime', 'TotalIncurred', 'MontantTotal');
     const amount = parseAmount(amountRaw);
-    const currency = applicationCurrency(application);
     const money = (value: number) => formatAmount(value, currency, locale, { maximumFractionDigits: 0 });
     const hasAmount = Number.isFinite(amount) && amount > 0;
     const overclaimPercent = amountComparison?.hasOverclaim ? Math.round(amountComparison.pctDelta) : undefined;
@@ -200,5 +199,5 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
       settlement,
       amount: hasAmount ? amount : 0,
     };
-  }, [application, aiSummary, amountComparison, analyzing, checkedCount, ef, files, fraud, fraudStatus, galleryItems, llmOutputs, locale, steps, t, tc, tNext]);
+  }, [currency, application, aiSummary, amountComparison, analyzing, checkedCount, ef, files, fraud, fraudStatus, galleryItems, llmOutputs, locale, steps, t, tc, tNext]);
 }

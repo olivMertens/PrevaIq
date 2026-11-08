@@ -1,13 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertTriangle, Euro, Car, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Banknote, Car, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
 import { DamageArea } from '@/lib/api';
 import { useLocale, useTranslations } from 'next-intl';
+import { formatAmount, type CurrencyCode } from '@/lib/currency';
+import { useReferenceCurrency } from '@/lib/CurrencyProvider';
 
 interface DamageViewerProps {
   damageAreas: DamageArea[];
   totalEstimate: number;
+  currency?: CurrencyCode;
   onDamageSelect?: (damage: DamageArea) => void;
   selectedDamageId?: string;
 }
@@ -40,6 +43,7 @@ const severityConfig = {
 };
 
 interface DamageCardProps {
+  currency: CurrencyCode;
   damage: DamageArea;
   isSelected: boolean;
   onClick: () => void;
@@ -49,6 +53,7 @@ interface DamageCardProps {
 }
 
 const DamageCard: React.FC<DamageCardProps> = ({
+  currency,
   damage,
   isSelected,
   onClick,
@@ -58,11 +63,7 @@ const DamageCard: React.FC<DamageCardProps> = ({
 }) => {
   const config = severityConfig[damage.severity];
   const locale = useLocale();
-  const cost = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(damage.estimated_cost);
+  const cost = formatAmount(damage.estimated_cost, currency, locale, { maximumFractionDigits: 0 });
 
   return (
     <div
@@ -147,6 +148,7 @@ const DamageCard: React.FC<DamageCardProps> = ({
 
 // Vehicle damage diagram component
 interface VehicleDiagramProps {
+  currency: CurrencyCode;
   damageAreas: DamageArea[];
   onAreaClick?: (damage: DamageArea) => void;
   selectedDamageId?: string;
@@ -154,6 +156,7 @@ interface VehicleDiagramProps {
 }
 
 const VehicleDiagram: React.FC<VehicleDiagramProps> = ({
+  currency,
   damageAreas,
   onAreaClick,
   selectedDamageId,
@@ -231,11 +234,7 @@ const VehicleDiagram: React.FC<VehicleDiagramProps> = ({
           const position = getDamagePosition(damage);
           const config = severityConfig[damage.severity];
           const isSelected = damage.area_id === selectedDamageId;
-          const cost = new Intl.NumberFormat(locale, {
-            style: 'currency',
-            currency: 'EUR',
-            maximumFractionDigits: 0,
-          }).format(damage.estimated_cost);
+          const cost = formatAmount(damage.estimated_cost, currency, locale, { maximumFractionDigits: 0 });
 
           return (
             <button
@@ -275,16 +274,15 @@ const VehicleDiagram: React.FC<VehicleDiagramProps> = ({
 const DamageViewer: React.FC<DamageViewerProps> = ({
   damageAreas,
   totalEstimate,
+  currency: explicitCurrency,
   onDamageSelect,
   selectedDamageId,
 }) => {
   const t = useTranslations('damage');
   const locale = useLocale();
-  const formattedTotal = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(totalEstimate);
+  const { currency: referenceCurrency } = useReferenceCurrency();
+  const currency = explicitCurrency ?? referenceCurrency;
+  const formattedTotal = formatAmount(totalEstimate, currency, locale, { maximumFractionDigits: 0 });
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'severity' | 'cost'>('severity');
 
@@ -310,6 +308,7 @@ const DamageViewer: React.FC<DamageViewerProps> = ({
       {/* Vehicle Diagram */}
       <div className="lg:col-span-1">
         <VehicleDiagram
+          currency={currency}
           damageAreas={damageAreas}
           onAreaClick={onDamageSelect}
           selectedDamageId={selectedDamageId}
@@ -329,7 +328,7 @@ const DamageViewer: React.FC<DamageViewerProps> = ({
           </div>
           <div className="bg-red-50 rounded-lg p-4">
             <div className="flex items-center gap-2 text-red-600 text-sm">
-              <Euro className="w-4 h-4" />
+              <Banknote className="w-4 h-4" />
               {t('totalEstimate')}
             </div>
             <div className="text-2xl font-bold text-red-700 mt-1">
@@ -390,6 +389,7 @@ const DamageViewer: React.FC<DamageViewerProps> = ({
           <div className="space-y-3">
             {sortedDamageAreas.map((damage) => (
               <DamageCard
+                currency={currency}
                 key={damage.area_id}
                 damage={damage}
                 isSelected={damage.area_id === selectedDamageId}

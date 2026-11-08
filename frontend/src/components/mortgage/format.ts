@@ -1,18 +1,16 @@
+import { formatAmount, type CurrencyCode } from '@/lib/currency';
+
 /**
  * Shared formatting utilities for mortgage components.
  */
 
 /**
- * Format a number as EUR currency (e.g. "125 000 €").
+ * Format a number in its case currency (EUR by default).
  * Returns "—" for null/undefined values.
  */
-export function formatCurrency(amount: number | null | undefined, locale = 'en'): string {
+export function formatCurrency(amount: number | null | undefined, locale = 'en', currency: CurrencyCode = 'EUR'): string {
   if (amount == null) return '—';
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'EUR',
-    maximumFractionDigits: 0,
-  }).format(amount);
+  return formatAmount(amount, currency, locale, { maximumFractionDigits: 0 });
 }
 
 /**

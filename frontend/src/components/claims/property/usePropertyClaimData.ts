@@ -5,7 +5,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import type { ApplicationMetadata, ContextTask } from '@/lib/types';
 import { getMediaUrl } from '@/lib/api';
 import { brand, isWorkbenchSystem } from '@/lib/brand';
-import { applicationCurrency, formatAmount } from '@/lib/currency';
+import { formatAmount } from '@/lib/currency';
+import { useApplicationCurrency } from '@/lib/CurrencyProvider';
 import type { GalleryItem } from '../../GalleryLightbox';
 import type { StepItem } from '@/components/case/NextSteps';
 import {
@@ -25,7 +26,7 @@ import { ANALYSIS_SEPARATOR } from './analysisMarkdown';
 export function usePropertyClaimData(application: ApplicationMetadata | null) {
   const t = useTranslations('claims');
   const locale = useLocale();
-  const currency = applicationCurrency(application);
+  const currency = useApplicationCurrency(application);
   const country = application?.jurisdiction?.country;
   // Stable references: the Client 360 lookup effect and every derived memo depend on them.
   const ef = useMemo(() => application?.extracted_fields || {}, [application?.extracted_fields]);
@@ -520,6 +521,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
   }, [application?.context_tasks, t]);
 
   return {
+    currency,
     ef,
     llmOutputs,
     files,

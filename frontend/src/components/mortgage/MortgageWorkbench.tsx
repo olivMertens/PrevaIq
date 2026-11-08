@@ -28,6 +28,8 @@ import PropertyDeepDiveModal from './PropertyDeepDiveModal';
 import PDFViewer from '../claims/PDFViewer';
 import { useToast } from '@/lib/ToastProvider';
 import { useTranslations } from 'next-intl';
+import type { CurrencyCode } from '@/lib/currency';
+import { useReferenceCurrency } from '@/lib/CurrencyProvider';
 import type {
   MortgageApplication, MortgageDocument, MortgageFinding,
   MortgageBorrower, MortgageIncome, MortgageProperty,
@@ -45,6 +47,7 @@ export type {
 
 interface MortgageWorkbenchProps {
   applicationId: string;
+  currency?: CurrencyCode;
   isLoading?: boolean;
 }
 
@@ -55,9 +58,12 @@ type CenterTab = 'data' | 'calculations' | 'policy' | 'conditions';
  */
 export default function MortgageWorkbench({
   applicationId,
+  currency: explicitCurrency,
   isLoading = false,
 }: MortgageWorkbenchProps) {
   const t = useTranslations('mortgageLabels');
+  const { currency: referenceCurrency } = useReferenceCurrency();
+  const currency = explicitCurrency ?? referenceCurrency;
   const [application, setApplication] = useState<MortgageApplication | null>(null);
   const [activeTab, setActiveTab] = useState<CenterTab>('data');
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -242,6 +248,7 @@ export default function MortgageWorkbench({
         {/* Left Column - Evidence Panel */}
         <div className="w-80 border-r border-slate-200 bg-white overflow-y-auto">
           <EvidencePanel
+            currency={currency}
             documents={application.documents || []}
             borrower={application.borrower}
             property={application.property}
@@ -275,6 +282,7 @@ export default function MortgageWorkbench({
           <div className="flex-1 overflow-y-auto p-6">
             {activeTab === 'data' && (
               <DataWorksheet
+                currency={currency}
                 borrower={application.borrower}
                 coBorrower={application.co_borrower}
                 income={application.income}
@@ -286,6 +294,7 @@ export default function MortgageWorkbench({
             )}
             {activeTab === 'calculations' && (
               <CalculationsPanel
+                currency={currency}
                 ratios={application.ratios}
                 stressRatios={application.stress_ratios}
                 loan={application.loan}
@@ -330,6 +339,7 @@ export default function MortgageWorkbench({
       {/* Property Deep Dive Modal */}
       {isPropertyDeepDiveOpen && (
         <PropertyDeepDiveModal
+          currency={currency}
           isOpen={isPropertyDeepDiveOpen}
           onClose={() => setIsPropertyDeepDiveOpen(false)}
           applicationId={applicationId}
