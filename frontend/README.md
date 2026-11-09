@@ -49,6 +49,29 @@ frontend/
 ├── package.json · tailwind.config.js · tsconfig.json · next.config.js
 ```
 
+## Conversation history
+
+Ask IQ history is loaded through the Next.js proxy from
+`GET /api/applications/{id}/conversations` and `GET /api/conversations?limit=50`.
+The backend stores `.conversation-{id}.json` files with each application; the
+demo PDF/photo manifests do not seed chat history. A case with no saved chats
+returns **200** with `{"conversations":[]}`. A **404** from the list endpoint is
+not an empty history: check the backend URL and whether a local fixture exposes
+the real history routes before changing data.
+
+The history panel validates the list response, retains HTTP diagnostics and
+offers **Retry** for failed loads, refreshes or deletes. Failed deletion does not
+remove a conversation from the UI. Switching case/tab cancels the previous
+request and prevents late results from appearing in another case. Handled
+failures are logged as warnings and shown in the panel, not as generic Next.js
+console-error overlays. The claims demo guide explains empty history and retry;
+sample files, manifests and upload selections remain unchanged.
+
+Focused checks: `node --test tests/chatHistory.test.js` from this folder, and
+`uv run --no-sync python -m pytest tests/test_conversation_storage.py` from the
+repository root. UI fixtures must expose the actual conversation routes, not
+only the weather endpoints.
+
 ## Case label localization
 
 The login language switcher and account menu offer EN, FR, DE and **DE-CH**
