@@ -72,6 +72,7 @@ from app.utils import setup_logging
 from app.aurora import (
     AuroraConfigurationError,
     AuroraServiceError,
+    saved_weather_result,
     status as aurora_status,
     submit_forecast,
     weather_evidence_context,
@@ -3152,7 +3153,10 @@ async def create_aurora_forecast(app_id: str, request: AuroraForecastRequest):
         ) from exc
 
     outputs = dict(app_md.llm_outputs or {})
-    outputs["aurora"] = result
+    output_key = (
+        "aurora_demo" if result.get("provenance", {}).get("source") == "demo_simulation" else "aurora"
+    )
+    outputs[output_key] = result
     app_md.llm_outputs = outputs
     save_application_metadata(settings.app.storage_root, app_md)
     return {
@@ -3171,7 +3175,7 @@ async def get_aurora_forecast(app_id: str):
     app_md = load_application(settings.app.storage_root, app_id)
     if not app_md:
         raise HTTPException(status_code=404, detail="Dossier introuvable")
-    result = (app_md.llm_outputs or {}).get("aurora")
+    result = saved_weather_result(app_md.llm_outputs)
     if not result:
         raise HTTPException(status_code=404, detail="No Aurora forecast found.")
     try:

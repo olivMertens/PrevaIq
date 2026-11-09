@@ -135,6 +135,8 @@ def test_saved_api_returns_the_same_read_only_context(monkeypatch, weather):
     import asyncio
     import api_server
 
+    monkeypatch.setattr(aurora, "status", lambda: {"mode": "managed_foundry"})
+
     monkeypatch.setattr(
         api_server,
         "load_settings",

@@ -57,6 +57,9 @@ WEATHER_EVIDENCE_RULES = """
   pas que l'inférence fonctionne : ce lecteur ne teste pas le service.
   Cet outil lit seulement le résultat enregistré ; ne jamais annoncer une nouvelle inférence.
 - Distinguer la date de demande, les conditions initiales et la fenêtre des points retournés.
+  `demo_simulation` contient uniquement des données synthétiques de démonstration :
+  l'annoncer explicitement, ne jamais les présenter comme une inférence Aurora ou une preuve
+  réelle de météo, de dommage ou de fraude. Les conseils restent hypothétiques et humains.
   `historical_simulation` ne décrit pas la météo actuelle. Une date sans heure permet seulement
   un recoupement de journée, jamais la confirmation de l'heure du sinistre ou de la tempête.
 - Si la date demandée est hors fenêtre, dire explicitement que les données ne la couvrent pas.

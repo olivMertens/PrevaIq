@@ -17,7 +17,7 @@ import time
 import uuid
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryFile
@@ -38,6 +38,7 @@ from azure.storage.blob import (
 )
 
 from app.telemetry import record_span_error, start_span
+from app.aurora_demo import DemoScenario
 from app.utils import setup_logging
 
 logger = setup_logging()
@@ -164,6 +165,10 @@ _RAIN_CRITICAL_MM = 50.0
 @dataclass(frozen=True)
 class AuroraSettings:
     enabled: bool = False
+    demo_enabled: bool = False
+    demo_scenario: DemoScenario = "swiss-chocolate-storm"
+    demo_validated_at: str | None = None
+    demo_validated_by: str | None = None
     disabled_reason: str | None = None
     endpoint: str = ""
     deterministic_model: str = _DETERMINISTIC_MODEL
@@ -209,6 +214,10 @@ class AuroraSettings:
             return environment
         return cls(
             enabled=persisted.enabled,
+            demo_enabled=getattr(persisted, "demo_enabled", False),
+            demo_scenario=getattr(persisted, "demo_scenario", "swiss-chocolate-storm"),
+            demo_validated_at=getattr(persisted, "demo_validated_at", None),
+            demo_validated_by=getattr(persisted, "demo_validated_by", None),
             disabled_reason=persisted.disabled_reason,
             endpoint=persisted.endpoint,
             deterministic_model=persisted.deterministic_model,
@@ -230,6 +239,8 @@ class AuroraSettings:
 
     @property
     def configured(self) -> bool:
+        if self.demo_enabled:
+            return bool(self.demo_validated_at and self.demo_validated_by)
         has_channel = bool(self.channel_sas_url or self.channel_container_url)
         has_auth = self.use_azure_ad or bool(self.endpoint_token)
         return (
@@ -541,6 +552,10 @@ def _summarize_predictions(
                     ),
                 }
             )
+    return _summarize_series(series)
+
+
+def _summarize_series(series: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "series": series,
         "max_wind_speed_ms": max(
@@ -791,6 +806,23 @@ async def submit_forecast(
     if horizon_hours % 6:
         raise ValueError("Horizon must be a multiple of 6 hours.")
     active_settings = settings or AuroraSettings.from_env()
+    if active_settings.demo_enabled:
+        from app.aurora_demo import DEMO_SCENARIOS, generate_demo_forecast
+
+        if not active_settings.configured:
+            raise AuroraConfigurationError("Synthetic demo mode requires administrator validation.")
+        if active_settings.demo_scenario not in DEMO_SCENARIOS:
+            raise AuroraConfigurationError("Unknown synthetic weather scenario.")
+        if ensemble:
+            raise ValueError("Synthetic demo mode does not support ensemble inference.")
+        with _aurora_stage("simulation", **{"claim.id": application_id, "aurora.synthetic": True}):
+            return generate_demo_forecast(
+                active_settings.demo_scenario,
+                horizon_hours=horizon_hours,
+                latitude=latitude,
+                longitude=longitude,
+                application_id=application_id,
+            )
     with _aurora_stage(
         "forecast",
         **{
@@ -883,7 +915,13 @@ def weather_evidence_context(
         raise ValueError("Weather evidence provenance must be an object")
     source_url = source.get("initial_condition_blob")
     return {
-        "kind": "historical_simulation" if end < current else "model_forecast",
+        "kind": (
+            "demo_simulation"
+            if source.get("source") == "demo_simulation"
+            else "historical_simulation"
+            if end < current
+            else "model_forecast"
+        ),
         "model": result.get("model"),
         "task_id": result.get("task_id"),
         "initial_condition_at": result.get("initial_condition_at"),
@@ -905,6 +943,8 @@ def weather_evidence_context(
         "source": {
             "provider": source.get("provider"),
             "type": source.get("source"),
+            "synthetic": source.get("source") == "demo_simulation",
+            "scenario_id": source.get("scenario_id"),
             "initial_condition_blob": urlunparse(
                 urlparse(source_url)._replace(query="", fragment="")
             )
@@ -914,6 +954,7 @@ def weather_evidence_context(
         # The normalizer does not persist a validated ensemble distribution.
         "uncertainty_available": False,
         "usage_limits": {
+            "synthetic_data": source.get("source") == "demo_simulation",
             "advisory_only": True,
             "human_review_required": True,
             "observed_weather": False,
@@ -926,6 +967,30 @@ def weather_evidence_context(
 
 def status(settings: AuroraSettings | None = None) -> dict[str, Any]:
     active_settings = settings or AuroraSettings.from_env()
+    if active_settings.demo_enabled:
+        from app.aurora_demo import DEMO_MODEL, PROFILES
+
+        return {
+            **status(replace(active_settings, demo_enabled=False)),
+            "enabled": True,
+            "disabled_reason": None,
+            "configured": active_settings.configured,
+            "model": DEMO_MODEL,
+            "ensemble_model": "",
+            "provider": "PrevaIQ demo",
+            "mode": "demo_simulation",
+            "demo_scenario": active_settings.demo_scenario,
+            "demo_location": {
+                "latitude": PROFILES[active_settings.demo_scenario].latitude,
+                "longitude": PROFILES[active_settings.demo_scenario].longitude,
+            },
+            "requires_initial_conditions": False,
+            "default_horizon_hours": min(active_settings.default_horizon_hours, 12),
+            "endpoint_expires_at": None,
+            "endpoint_expired": False,
+            "endpoint_seconds_remaining": None,
+            "missing": [] if active_settings.configured else ["demo_validation"],
+        }
     missing: list[str] = []
     if not active_settings.endpoint:
         missing.append("endpoint")
@@ -960,3 +1025,9 @@ def status(settings: AuroraSettings | None = None) -> dict[str, Any]:
         "configuration_source": active_settings.configuration_source,
         "missing": missing,
     }
+
+
+def saved_weather_result(outputs: dict[str, Any] | None, *, mode: str | None = None) -> Any:
+    active_mode = mode if mode is not None else status().get("mode", "managed_foundry")
+    key = "aurora_demo" if active_mode == "demo_simulation" else "aurora"
+    return (outputs or {}).get(key)

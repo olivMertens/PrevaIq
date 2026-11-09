@@ -18,6 +18,7 @@ from azure.core.exceptions import HttpResponseError, ResourceExistsError, Resour
 from filelock import FileLock
 
 from app.brands import current_brand_key
+from app.aurora_demo import DEMO_SCENARIOS, DemoScenario
 from app.storage_providers import get_storage_provider
 from app.storage_providers.azure_blob import AzureBlobStorageProvider
 
@@ -28,6 +29,10 @@ _lock = threading.Lock()
 @dataclass(frozen=True)
 class AuroraAdminConfig:
     enabled: bool = False
+    demo_enabled: bool = False
+    demo_scenario: DemoScenario = "swiss-chocolate-storm"
+    demo_validated_at: str | None = None
+    demo_validated_by: str | None = None
     disabled_reason: Literal["blob_access_denied"] | None = None
     endpoint: str = ""
     deterministic_model: str = "aurora-0.25-v1.5"
@@ -105,6 +110,14 @@ def _validate_url(value: str, field: str, allowed_suffixes: tuple[str, ...]) -> 
 
 
 def validate_config(config: AuroraAdminConfig) -> AuroraAdminConfig:
+    if config.demo_scenario not in DEMO_SCENARIOS:
+        raise ValueError("Unknown synthetic weather scenario")
+    if config.demo_enabled:
+        if not config.demo_validated_at or not config.demo_validated_by:
+            raise ValueError("Demo mode must be validated by an administrator")
+        validated_at = datetime.fromisoformat(config.demo_validated_at.replace("Z", "+00:00"))
+        if validated_at.tzinfo is None:
+            raise ValueError("Demo validation timestamp must include a timezone")
     if config.disabled_reason not in (None, "blob_access_denied"):
         raise ValueError("disabled_reason must be blob_access_denied or null")
     endpoint = _validate_url(
@@ -143,6 +156,10 @@ def validate_config(config: AuroraAdminConfig) -> AuroraAdminConfig:
         raise ValueError("endpoint, initial condition, and Blob channel are required when enabled")
     return AuroraAdminConfig(
         enabled=config.enabled,
+        demo_enabled=config.demo_enabled,
+        demo_scenario=config.demo_scenario,
+        demo_validated_at=config.demo_validated_at if config.demo_enabled else None,
+        demo_validated_by=config.demo_validated_by if config.demo_enabled else None,
         disabled_reason=None if config.enabled else config.disabled_reason,
         endpoint=endpoint,
         deterministic_model=config.deterministic_model.strip(),

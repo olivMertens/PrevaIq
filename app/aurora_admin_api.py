@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from dataclasses import replace
 from datetime import UTC, datetime
 from typing import Literal
 
@@ -23,6 +24,12 @@ from app.aurora import (
     status,
 )
 from app.aurora_config import AuroraAdminConfig, load_config, public_dict, save_config
+from app.aurora_demo import (
+    DEMO_SCENARIOS,
+    DemoScenario,
+    generate_demo_forecast,
+    validate_demo_scenario,
+)
 from app.utils import setup_logging
 
 logger = setup_logging()
@@ -31,6 +38,8 @@ router = APIRouter(prefix="/api/internal/aurora", tags=["aurora-admin"])
 
 class AuroraConfigBody(BaseModel):
     enabled: bool = False
+    demo_enabled: bool = False
+    demo_scenario: DemoScenario = "swiss-chocolate-storm"
     disabled_reason: Literal["blob_access_denied"] | None = None
     endpoint: str = Field(default="", max_length=2048)
     deterministic_model: str = Field(default="aurora-0.25-v1.5", max_length=128)
@@ -46,6 +55,10 @@ def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
     environment = AuroraSettings.from_environment()
     return AuroraSettings(
         enabled=config.enabled,
+        demo_enabled=config.demo_enabled,
+        demo_scenario=config.demo_scenario,
+        demo_validated_at=config.demo_validated_at,
+        demo_validated_by=config.demo_validated_by,
         disabled_reason=config.disabled_reason,
         endpoint=config.endpoint,
         deterministic_model=config.deterministic_model,
@@ -64,6 +77,12 @@ def _settings_from_config(config: AuroraAdminConfig) -> AuroraSettings:
 
 
 def _checklist(settings: AuroraSettings) -> list[dict[str, object]]:
+    if settings.demo_enabled:
+        return [
+            {"id": "demo_scenario", "ready": settings.demo_scenario in DEMO_SCENARIOS},
+            {"id": "demo_contract", "ready": bool(settings.demo_validated_at)},
+            {"id": "demo_audit", "ready": bool(settings.demo_validated_by)},
+        ]
     return [
         {"id": "enabled", "ready": settings.enabled},
         {
@@ -89,6 +108,7 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
     }
     if config is None:
         configuration = {
+            **public_dict(None),
             "enabled": settings.enabled,
             "disabled_reason": settings.disabled_reason,
             "endpoint": settings.endpoint,
@@ -105,6 +125,7 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
         "configuration": configuration,
         "source": "admin" if config else "environment",
         "runtime": readiness,
+        "live_runtime": status(replace(settings, demo_enabled=False)),
         "checklist": checks,
         "ready_count": sum(bool(item["ready"]) for item in checks),
         "total_count": len(checks),
@@ -117,7 +138,11 @@ def _snapshot(config: AuroraAdminConfig | None) -> dict:
         },
         "security": {
             "endpoint_authentication": (
-                "managed_identity" if settings.use_azure_ad else "key_vault_secret"
+                "not_used"
+                if settings.demo_enabled
+                else "managed_identity"
+                if settings.use_azure_ad
+                else "key_vault_secret"
             ),
             "storage_authentication": "managed_identity",
             "secrets_persisted": False,
@@ -140,9 +165,15 @@ def get_aurora_admin_config() -> dict:
 @router.put("")
 def update_aurora_admin_config(body: AuroraConfigBody) -> dict:
     try:
+        if body.demo_enabled:
+            validate_demo_scenario(body.demo_scenario)
         saved = save_config(
             AuroraAdminConfig(
                 enabled=body.enabled,
+                demo_enabled=body.demo_enabled,
+                demo_scenario=body.demo_scenario,
+                demo_validated_at=datetime.now(UTC).isoformat() if body.demo_enabled else None,
+                demo_validated_by=body.admin if body.demo_enabled else None,
                 disabled_reason=body.disabled_reason,
                 endpoint=body.endpoint,
                 deterministic_model=body.deterministic_model,
@@ -288,13 +319,27 @@ def _run_readiness_checks(config: AuroraAdminConfig) -> dict:
 
 
 @router.post("/test")
-async def test_aurora_admin_config() -> dict:
+async def test_aurora_admin_config(mode: Literal["active", "live"] = "active") -> dict:
     config = load_config()
     if config is None:
         raise HTTPException(status_code=409, detail="Save Aurora configuration before testing")
     try:
+        if config.demo_enabled and mode != "live":
+            validate_demo_scenario(config.demo_scenario)
+            preview = generate_demo_forecast(config.demo_scenario)
+            return {
+                "ok": True,
+                "mode": "demo_simulation",
+                "checks": [
+                    {"id": item["id"], "ok": item["ready"], "detail": "synthetic_demo_only"}
+                    for item in _checklist(_settings_from_config(config))
+                ],
+                "preview": preview,
+                "configuration": public_dict(config),
+            }
+        config = replace(config, demo_enabled=False)
         result = await asyncio.to_thread(_run_readiness_checks, config)
-        return {**result, "configuration": public_dict(config)}
+        return {**result, "mode": "managed_foundry", "configuration": public_dict(config)}
     except (AzureError, OSError, TimeoutError, ValueError) as error:
         logger.error("Aurora readiness test failed: %s", type(error).__name__)
         raise HTTPException(status_code=503, detail="Aurora readiness test unavailable") from error
