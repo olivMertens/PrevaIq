@@ -16,6 +16,11 @@
   --app-chart-blue: #2563eb;
   --app-chart-orange: #c2410c;
   --app-chart-label: #475569;
+  --app-select-surface: #ffffff;
+  --app-select-border: #cbd5e1;
+  --app-select-hover: #f1f5f9;
+  --app-select-selected: #e7f5f3;
+  --app-select-muted: #526479;
 }
 
 @media screen {
@@ -33,6 +38,11 @@
     --app-chart-blue: #93c5fd;
     --app-chart-orange: #fdba74;
     --app-chart-label: #b8c7d9;
+    --app-select-surface: #14243a;
+    --app-select-border: #627a95;
+    --app-select-hover: #192c43;
+    --app-select-selected: #203e4b;
+    --app-select-muted: #b8c7d9;
   }
 }
 
@@ -52,6 +62,151 @@ body {
 
 input, textarea, select {
   accent-color: var(--app-focus);
+}
+
+:where(select:not([multiple], [size])) {
+  min-height: 36px;
+  padding: 8px 36px 8px 12px;
+  appearance: none;
+  border: 1px solid var(--app-select-border);
+  border-radius: 8px;
+  color: var(--app-text);
+  background-color: var(--app-select-surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='1.5' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+
+select:where(:not([multiple], [size])) {
+  padding-inline-end: 36px;
+}
+
+select:where(:not([multiple], [size])):not(:disabled):hover {
+  border-color: var(--app-focus);
+}
+
+select:where(:not([multiple], [size])):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Keep native selection, validation and keyboard behavior; enhance the picker where supported. */
+@supports (appearance: base-select) {
+  select:where(:not([multiple], [size])),
+  select:where(:not([multiple], [size]))::picker(select) {
+    appearance: base-select;
+  }
+
+  select:where(:not([multiple], [size])) {
+    align-items: center;
+    gap: 8px;
+    padding-inline: 12px;
+    background-image: none;
+  }
+
+  select:where(:not([multiple], [size]))::picker-icon {
+    content: "";
+    width: 7px;
+    height: 7px;
+    margin-inline-start: auto;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    color: var(--app-select-muted);
+    transform: rotate(45deg);
+    transition: transform 150ms ease;
+  }
+
+  select:where(:not([multiple], [size])):open {
+    border-color: var(--app-focus);
+  }
+
+  select:where(:not([multiple], [size])):open::picker-icon {
+    transform: rotate(225deg);
+  }
+
+  select:where(:not([multiple], [size]))::picker(select) {
+    max-inline-size: calc(100vw - 24px);
+    max-block-size: min(320px, 60dvh);
+    margin-block: 6px;
+    padding: 4px;
+    overflow: auto;
+    border: 1px solid var(--app-select-border);
+    border-radius: 12px;
+    color: var(--app-text);
+    background: var(--app-select-surface);
+    box-shadow: 0 12px 32px rgb(15 32 54 / 18%);
+  }
+
+  select:where(:not([multiple], [size])) option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: var(--app-text);
+    font-size: 14px;
+    font-weight: 400;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+  }
+
+  select:where(:not([multiple], [size])) option:where(:not(:disabled)):is(:hover, :focus-visible) {
+    background: var(--app-select-hover);
+  }
+
+  select:where(:not([multiple], [size])) option:checked {
+    background: var(--app-select-selected);
+    font-weight: 600;
+  }
+
+  select:where(:not([multiple], [size])) option:focus-visible {
+    outline: 2px solid var(--app-focus);
+    outline-offset: -2px;
+  }
+
+  select:where(:not([multiple], [size])) option:disabled {
+    color: var(--app-select-muted);
+    cursor: not-allowed;
+  }
+
+  select:where(:not([multiple], [size])) option::checkmark {
+    order: 2;
+    margin-inline-start: auto;
+    color: var(--app-focus);
+  }
+
+  select[data-currency]::picker(select) {
+    right: anchor(right);
+    left: auto;
+    min-inline-size: min(260px, calc(100vw - 24px));
+  }
+
+  select[data-currency] option::after {
+    content: attr(data-description);
+    flex: 1;
+    color: var(--app-select-muted);
+    font-size: 13px;
+    font-weight: 400;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  select:where(:not([multiple], [size])),
+  select:where(:not([multiple], [size]))::picker-icon {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  select:where(:not([multiple], [size])),
+  select:where(:not([multiple], [size]))::picker(select) {
+    appearance: auto;
+    background-image: none;
+  }
 }
 
 @media print {

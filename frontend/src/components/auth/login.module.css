@@ -26,6 +26,13 @@
   --pq-warning: #9a3412;
   --pq-warning-bg: #fff7ed;
   --pq-warning-border: #fed7aa;
+  --app-text: var(--pq-text);
+  --app-focus: #0f766e;
+  --app-select-surface: var(--pq-surface);
+  --app-select-border: var(--pq-border);
+  --app-select-hover: var(--pq-surface-2);
+  --app-select-selected: #e7f5f3;
+  --app-select-muted: var(--pq-muted);
   color-scheme: light;
   position: relative;
   min-height: 100vh;
@@ -58,6 +65,8 @@
   --pq-warning: #fbbf24;
   --pq-warning-bg: #352e25;
   --pq-warning-border: #745a35;
+  --app-focus: var(--pq-accent);
+  --app-select-selected: #203e4b;
   color-scheme: dark;
 }
 
@@ -235,7 +244,7 @@
 .languageMenuOption { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px; border: 0; border-radius: 6px; background: transparent; color: var(--pq-text); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
 .languageMenuOption:hover,
 .languageMenuOption:focus { background: var(--pq-surface-2); }
-.currencySelect { height: 34px; padding: 0 6px; border: 1px solid var(--pq-border); border-radius: 8px; background: var(--pq-surface-2); color: var(--pq-text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.currencySelect { min-width: 76px; height: 36px; padding-block: 0; border: 1px solid var(--pq-border); border-radius: 8px; background-color: var(--pq-surface-2); color: var(--pq-text); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
 .themeButton { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: 1px solid var(--pq-border); border-radius: 8px; background: var(--pq-surface-2); color: var(--pq-text); cursor: pointer; font-size: 16px; line-height: 1; }
 .themeButton:hover { border-color: var(--pq-action); color: var(--pq-action); }
 .login :is(button, a, input):focus-visible { outline: 2px solid var(--pq-accent); outline-offset: 3px; }
