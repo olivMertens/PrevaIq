@@ -403,7 +403,7 @@ export default function ChatDrawer({
     try {
       // Use relative path to go through Next.js proxy
       const response = await fetch(
-        `/api/applications/${applicationId}/conversations/${convId}`
+        `/api/applications/${encodeURIComponent(applicationId)}/conversations/${encodeURIComponent(convId)}`
       );
       
       if (response.ok) {
@@ -554,9 +554,7 @@ export default function ChatDrawer({
         setConversationId(data.conversation_id);
         setConversationTitle(data.title || t('newChat'));
         // Refresh the history panel
-        if ((window as any).__refreshChatHistory) {
-          (window as any).__refreshChatHistory();
-        }
+        void window.__refreshChatHistory?.();
       }
 
       const assistantMessage: ChatMessage = {

@@ -1962,6 +1962,12 @@
     "fraudAnalysisTitle": "Photo fraud analysis"
   },
   "chatHistory": {
+    "unavailable": "Unavailable",
+    "retry": "Retry",
+    "httpStatus": "HTTP {status}",
+    "connectionError": "Check the connection to the history service",
+    "invalidResponse": "Invalid history response",
+    "deleteError": "Conversation could not be deleted",
     "history": "History",
     "expandHistory": "Expand history",
     "newConversation": "New conversation",
@@ -3104,6 +3110,7 @@
     }
   },
   "demoGuide": {
+    "chatHistoryHelp": "Ask IQ history can be empty for a case with no saved chats. If loading fails, use Retry in History; the HTTP status helps distinguish a service or access error from an empty history. Do not replace claim documents or invent conversations to clear an error.",
     "claimsKpiColors": "Property Overview cards use rose for high-priority review, amber for required checks, green for low-risk or calm indicators, blue for context, violet for running analysis and grey when no assessment is available. Color does not establish coverage or fraud; read the labels and evidence.",
     "claimsWorkflow": "In Customer, tone labels and the entire Email, SMS or Letter draft follow the selected language; names and source references stay unchanged. In Ask IQ, run a workflow to see the live execution plan: case reading, parallel agent checks, then synthesis. Role icons identify the agents; unavailable checks require review. The final recommendation appears first, with the execution plan and expandable agent findings below. Nothing is automatically sent or decided.",
     "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.\n\nIn Weather & map, choose Aurora evidence, Loss location or Web IQ sources; only the active panel is shown. In Aurora, choose Hourly chart, Claim timing, Provenance or Case actions. Playback is manual. Overview and Ask IQ read saved evidence only for its displayed window, even while new calculations are unavailable. Selecting a tab does not run Aurora or Web IQ.\n\nUse Review weather in Overview to open Weather & map. The compact card keeps one Check weather or Refresh action at the top. Read the maximum gust in km/h, total precipitation and loss-date comparison first; expand Explore chart, timing and sources for Hourly chart, Claim timing, Provenance or Case actions. Same day does not confirm the event hour, and an outside-window warning means these data cannot support that loss date. Technical mode setup remains in administration.",

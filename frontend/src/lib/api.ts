@@ -177,6 +177,62 @@ export interface ConversationResponse {
   };
 }
 
+export interface ConversationSummary {
+  id: string;
+  application_id: string;
+  persona?: string | null;
+  title: string;
+  created_at: string;
+  updated_at: string;
+  message_count: number;
+  preview?: string | null;
+}
+
+function isConversationSummary(value: unknown): value is ConversationSummary {
+  return value !== null && typeof value === 'object'
+    && 'id' in value && typeof value.id === 'string' && value.id.length > 0
+    && 'application_id' in value && typeof value.application_id === 'string' && value.application_id.length > 0
+    && 'title' in value && typeof value.title === 'string'
+    && 'created_at' in value && typeof value.created_at === 'string'
+    && 'updated_at' in value && typeof value.updated_at === 'string'
+    && 'message_count' in value && typeof value.message_count === 'number'
+    && Number.isInteger(value.message_count) && value.message_count >= 0
+    && (!('persona' in value) || value.persona == null || typeof value.persona === 'string')
+    && (!('preview' in value) || value.preview == null || typeof value.preview === 'string');
+}
+
+export async function listConversations(
+  applicationId: string | undefined,
+  signal: AbortSignal,
+): Promise<ConversationSummary[]> {
+  const endpoint = applicationId === undefined
+    ? '/api/conversations?limit=50'
+    : `/api/applications/${encodeURIComponent(applicationId)}/conversations`;
+  const result = await apiFetch<unknown>(endpoint, {signal, cache: 'no-store'});
+  if (!result || typeof result !== 'object' || !('conversations' in result)
+    || !Array.isArray(result.conversations) || !result.conversations.every(isConversationSummary)) {
+    throw new APIError(502, 'Invalid conversation history response', {
+      detail: {code: 'invalid_conversation_history'},
+    });
+  }
+  return result.conversations;
+}
+
+export async function deleteConversation(
+  applicationId: string,
+  conversationId: string,
+): Promise<void> {
+  const result = await apiFetch<unknown>(
+    `/api/applications/${encodeURIComponent(applicationId)}/conversations/${encodeURIComponent(conversationId)}`,
+    {method: 'DELETE'},
+  );
+  if (!result || typeof result !== 'object' || !('success' in result) || result.success !== true) {
+    throw new APIError(502, 'Invalid conversation deletion response', {
+      detail: {code: 'invalid_conversation_history'},
+    });
+  }
+}
+
 export async function sendConversation(
   appId: string,
   body: ConversationRequest,

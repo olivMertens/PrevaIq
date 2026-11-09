@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { 
   MessageSquare, 
@@ -11,22 +11,27 @@ import {
   ChevronRight,
   Loader2,
   AlertCircle,
+  RefreshCw,
   Globe,
   FileText
 } from 'lucide-react';
+import { APIError, deleteConversation, listConversations, type ConversationSummary } from '@/lib/api';
 
-export interface ConversationSummary {
-  id: string;
-  application_id: string;
-  persona?: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-  message_count: number;
-  preview?: string;
+export type { ConversationSummary } from '@/lib/api';
+
+declare global {
+  interface Window {
+    __refreshChatHistory?: () => Promise<void>;
+  }
 }
 
 type HistoryTab = 'app' | 'all';
+type HistoryState = {
+  scope: string;
+  conversations: ConversationSummary[];
+  isLoading: boolean;
+  error: string | null;
+};
 
 interface ChatHistoryPanelProps {
   applicationId: string;
@@ -46,93 +51,81 @@ export default function ChatHistoryPanel({
   onToggleCollapse,
 }: ChatHistoryPanelProps) {
   const [activeTab, setActiveTab] = useState<HistoryTab>('app');
-  const [appConversations, setAppConversations] = useState<ConversationSummary[]>([]);
-  const [allConversations, setAllConversations] = useState<ConversationSummary[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryState>({
+    scope: '', conversations: [], isLoading: true, error: null,
+  });
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const request = useRef<AbortController | null>(null);
+  const selection = useRef({applicationId, currentConversationId});
   const t = useTranslations('chatHistory');
   const locale = useLocale();
+  const scope = activeTab === 'app' ? `app:${applicationId}` : 'all';
+  const current = activeTab === 'app' && !applicationId
+    ? {scope, conversations: [], isLoading: false, error: null}
+    : history.scope === scope ? history : {scope, conversations: [], isLoading: true, error: null};
+  const {conversations, isLoading, error} = current;
 
-  const conversations = activeTab === 'app' ? appConversations : allConversations;
-
-  // Load app-specific conversations
   useEffect(() => {
-    if (!applicationId) return;
-    
-    const loadAppConversations = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Use relative path to go through Next.js proxy
-        const response = await fetch(`/api/applications/${applicationId}/conversations`);
-        if (!response.ok) throw new Error('Failed to load conversations');
-        const data = await response.json();
-        setAppConversations(data.conversations || []);
-      } catch (e) {
-        console.error('Failed to load conversations:', e);
-        setError(t('loadError'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadAppConversations();
-  }, [applicationId]);
+    selection.current = {applicationId, currentConversationId};
+  }, [applicationId, currentConversationId]);
 
-  // Load all conversations when switching to 'all' tab
+  const reportFailure = useCallback((failure: unknown, operation: 'load' | 'delete') => {
+    const status = failure instanceof APIError ? failure.status : null;
+    const code = failure instanceof APIError ? failure.code : undefined;
+    const detail = code === 'invalid_conversation_history'
+      ? t('invalidResponse')
+      : status ? t('httpStatus', {status}) : t('connectionError');
+    const message = `${t(operation === 'load' ? 'loadError' : 'deleteError')} · ${detail}`;
+    console.warn('chat.history.request_failed', {operation, status, code});
+    return message;
+  }, [t]);
+
+  const loadHistory = useCallback((controller: AbortController) => (
+    listConversations(activeTab === 'app' ? applicationId : undefined, controller.signal)
+    .then(loaded => {
+      if (controller.signal.aborted) return;
+      setHistory({scope, conversations: loaded, isLoading: false, error: null});
+    })
+    .catch((failure: unknown) => {
+      if (controller.signal.aborted) return;
+      const message = reportFailure(failure, 'load');
+      setHistory(previous => ({
+        scope,
+        conversations: previous.scope === scope ? previous.conversations : [],
+        isLoading: false,
+        error: message,
+      }));
+    })
+  ), [activeTab, applicationId, scope, reportFailure]);
+
+  const refreshConversations = useCallback(async () => {
+    request.current?.abort();
+    if (activeTab === 'app' && !applicationId) return;
+    const controller = new AbortController();
+    request.current = controller;
+    setHistory(previous => ({
+      scope,
+      conversations: previous.scope === scope ? previous.conversations : [],
+      isLoading: true,
+      error: null,
+    }));
+    await loadHistory(controller);
+  }, [scope, activeTab, applicationId, loadHistory]);
+
   useEffect(() => {
-    if (activeTab !== 'all') return;
-    
-    const loadAllConversations = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Use relative path to go through Next.js proxy
-        const response = await fetch(`/api/conversations?limit=50`);
-        if (!response.ok) throw new Error('Failed to load all conversations');
-        const data = await response.json();
-        setAllConversations(data.conversations || []);
-      } catch (e) {
-        console.error('Failed to load all conversations:', e);
-        setError(t('loadError'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadAllConversations();
-  }, [activeTab]);
+    if (activeTab === 'app' && !applicationId) return;
+    const controller = new AbortController();
+    request.current = controller;
+    void loadHistory(controller);
+    return () => request.current?.abort();
+  }, [scope, activeTab, applicationId, loadHistory]);
 
-  // Refresh conversations when a new one might be created
-  const refreshConversations = async () => {
-    try {
-      // Use relative path to go through Next.js proxy
-      const response = await fetch(`/api/applications/${applicationId}/conversations`);
-      if (response.ok) {
-        const data = await response.json();
-        setAppConversations(data.conversations || []);
-      }
-      // Also refresh all conversations if on that tab
-      if (activeTab === 'all') {
-        const allResponse = await fetch(`/api/conversations?limit=50`);
-        if (allResponse.ok) {
-          const allData = await allResponse.json();
-          setAllConversations(allData.conversations || []);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to refresh conversations:', e);
-    }
-  };
-
-  // Expose refresh function
   useEffect(() => {
-    (window as any).__refreshChatHistory = refreshConversations;
+    window.__refreshChatHistory = refreshConversations;
     return () => {
-      delete (window as any).__refreshChatHistory;
+      if (window.__refreshChatHistory === refreshConversations) delete window.__refreshChatHistory;
     };
-  }, [applicationId, activeTab]);
+  }, [refreshConversations]);
 
   const handleDelete = async (e: React.MouseEvent, conversationId: string, convAppId?: string) => {
     e.stopPropagation();
@@ -142,22 +135,19 @@ export default function ChatHistoryPanel({
     
     setDeletingId(conversationId);
     try {
-      // Use relative path to go through Next.js proxy
-      const response = await fetch(
-        `/api/applications/${targetAppId}/conversations/${conversationId}`,
-        { method: 'DELETE' }
-      );
-      
-      if (response.ok) {
-        // Remove from both lists
-        setAppConversations(prev => prev.filter(c => c.id !== conversationId));
-        setAllConversations(prev => prev.filter(c => c.id !== conversationId));
-        if (currentConversationId === conversationId) {
-          onSelectConversation(null);
-        }
+      await deleteConversation(targetAppId, conversationId);
+      setHistory(previous => ({
+        ...previous,
+        conversations: previous.conversations.filter(c =>
+          c.id !== conversationId || c.application_id !== targetAppId),
+      }));
+      if (selection.current.applicationId === targetAppId
+        && selection.current.currentConversationId === conversationId) {
+        onSelectConversation(null);
       }
-    } catch (e) {
-      console.error('Failed to delete conversation:', e);
+    } catch (failure) {
+      const message = reportFailure(failure, 'delete');
+      setHistory(previous => previous.scope === scope ? {...previous, error: message} : previous);
     } finally {
       setDeletingId(null);
     }
@@ -181,7 +171,7 @@ export default function ChatHistoryPanel({
   // Collapsed state
   if (isCollapsed) {
     return (
-      <div className="w-12 bg-slate-100 border-r border-slate-200 flex flex-col items-center py-3 gap-2">
+      <aside aria-label={t('history')} className="w-12 bg-slate-100 border-r border-slate-200 flex flex-col items-center py-3 gap-2">
         <button
           onClick={onToggleCollapse}
           className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
@@ -197,15 +187,20 @@ export default function ChatHistoryPanel({
           <Plus className="w-4 h-4 text-indigo-600" />
         </button>
         <div className="flex-1" />
+        {error && <button type="button" onClick={() => void refreshConversations()}
+          title={`${error} · ${t('retry')}`} aria-label={t('retry')}
+          className="rounded-lg p-2 text-amber-700 hover:bg-amber-100">
+          <AlertCircle className="h-4 w-4" aria-hidden />
+        </button>}
         <div className="text-xs text-slate-400 transform -rotate-90 whitespace-nowrap">
-          {t('chatCount', { count: conversations.length })}
+          {error ? t('unavailable') : t('chatCount', { count: conversations.length })}
         </div>
-      </div>
+      </aside>
     );
   }
 
   return (
-    <div className="w-56 bg-slate-50 border-r border-slate-200 flex flex-col">
+    <aside aria-label={t('history')} className="w-56 bg-slate-50 border-r border-slate-200 flex flex-col">
       {/* Header */}
       <div className="p-3 border-b border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -267,9 +262,13 @@ export default function ChatHistoryPanel({
             <Loader2 className="w-5 h-5 text-slate-400 animate-spin" />
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div role="alert" className="flex flex-col items-center justify-center gap-2 py-8 text-center">
             <AlertCircle className="w-5 h-5 text-slate-400 mb-2" />
             <p className="text-xs text-slate-500">{error}</p>
+            <button type="button" onClick={() => void refreshConversations()} aria-label={t('retry')}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium hover:bg-slate-100">
+              <RefreshCw className="h-3.5 w-3.5" aria-hidden />{t('retry')}
+            </button>
           </div>
         ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
@@ -285,9 +284,8 @@ export default function ChatHistoryPanel({
           conversations.map((conv) => {
             const isFromDifferentApp = activeTab === 'all' && conv.application_id !== applicationId;
             return (
-              <button
+              <div
                 key={`${conv.application_id}-${conv.id}`}
-                onClick={() => onSelectConversation(conv.id, conv.application_id, conv.persona)}
                 className={`w-full text-left p-2 rounded-lg transition-colors group ${
                   currentConversationId === conv.id && conv.application_id === applicationId
                     ? 'bg-indigo-100 border border-indigo-200'
@@ -297,7 +295,8 @@ export default function ChatHistoryPanel({
                 }`}
               >
                 <div className="flex items-start justify-between gap-1">
-                  <div className="flex-1 min-w-0">
+                  <button type="button" className="min-w-0 flex-1 text-left"
+                    onClick={() => onSelectConversation(conv.id, conv.application_id, conv.persona ?? undefined)}>
                     {/* Show app ID badge for global view */}
                     {activeTab === 'all' && (
                       <div className={`inline-block text-[10px] font-mono px-1.5 py-0.5 rounded mb-1 ${
@@ -328,10 +327,11 @@ export default function ChatHistoryPanel({
                         {conv.message_count} {t('msgs')}
                       </span>
                     </div>
-                  </div>
+                  </button>
                   <button
+                    type="button" disabled={Boolean(deletingId)}
                     onClick={(e) => handleDelete(e, conv.id, conv.application_id)}
-                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${
+                    className={`p-1 rounded opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity ${
                       deletingId === conv.id ? 'opacity-100' : ''
                     } hover:bg-rose-100`}
                     title={t('delete')}
@@ -343,11 +343,11 @@ export default function ChatHistoryPanel({
                     )}
                   </button>
                 </div>
-              </button>
+              </div>
             );
           })
         )}
       </div>
-    </div>
+    </aside>
   );
 }

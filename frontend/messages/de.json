@@ -1962,6 +1962,12 @@
     "fraudAnalysisTitle": "Analyse auf Fotobetrug"
   },
   "chatHistory": {
+    "unavailable": "Nicht verfügbar",
+    "retry": "Erneut versuchen",
+    "httpStatus": "HTTP {status}",
+    "connectionError": "Verbindung zum Verlaufsdienst prüfen",
+    "invalidResponse": "Ungültige Verlaufsantwort",
+    "deleteError": "Gespräch konnte nicht gelöscht werden",
     "history": "Geschichte",
     "expandHistory": "Geschichte erweitern",
     "newConversation": "Neues Gespräch",
@@ -3104,6 +3110,7 @@
     }
   },
   "demoGuide": {
+    "chatHistoryHelp": "Der Ask-IQ-Verlauf kann bei einem Fall ohne gespeicherte Chats leer sein. Bei Ladefehlern im Verlauf Erneut versuchen wählen; der HTTP-Status unterscheidet Dienst- oder Zugriffsfehler von einem leeren Verlauf. Keine Schadendokumente ersetzen oder Gespräche erfinden, um einen Fehler zu beseitigen.",
     "claimsKpiColors": "Die Karten unter Übersicht für Sachschäden sind rosa bei vorrangigem Prüfbedarf, gelb bei erforderlichen Prüfungen, grün bei niedrigem Risiko oder ruhigen Kundenindikatoren, blau für Kontext, violett während der Analyse und grau ohne verfügbare Bewertung. Die Farbe bestätigt weder Deckung noch Betrug; lesen Sie die Bezeichnungen und Belege.",
     "claimsWorkflow": "Unter Kunde folgen die Tonbezeichnungen und der gesamte E-Mail-, SMS- oder Schreiben-Entwurf der gewählten Sprache; Namen und Quellenverweise bleiben unverändert. Starten Sie in Ask IQ einen Workflow, um den Live-Ausführungsplan zu sehen: Fall lesen, parallele Agentenprüfungen, dann Zusammenfassung. Symbole kennzeichnen die Rollen; nicht verfügbare Prüfungen erfordern eine Überprüfung. Die abschließende Empfehlung erscheint zuerst, darunter der Plan und aufklappbare Agentenergebnisse. Nichts wird automatisch versendet oder entschieden.",
     "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.\n\nUnter Wetter und Karte wählen Sie Aurora-Daten, Schadenort oder Web-IQ-Quellen; nur das aktive Feld wird angezeigt. In Aurora wählen Sie Stundendiagramm, Schadenzeitpunkt, Herkunft oder Fallmaßnahmen. Die Wiedergabe startet manuell. Übersicht und Ask IQ lesen gespeicherte Daten nur für das angezeigte Zeitfenster, auch wenn neue Berechnungen nicht verfügbar sind. Ein Reiterwechsel startet weder Aurora noch Web IQ.\n\nIn Übersicht mit Wetter prüfen die Ansicht Wetter und Karte öffnen. Die kompakte Karte zeigt oben eine einzige Aktion Wetter prüfen oder Aktualisieren. Zuerst maximale Böe in km/h, Gesamtniederschlag und Schadendatum vergleichen; danach Kurve, Zeitachse und Quellen öffnen aufklappen, um Stundenkurve, Schadenzeit, Herkunft oder Fallaktionen aufzurufen. Gleicher Tag bestätigt nicht die Ereignisstunde. Eine Warnung Ausserhalb des Fensters schliesst die Verwendung dieser Daten für dieses Datum aus. Technische Moduseinstellungen bleiben in der Administration.",
