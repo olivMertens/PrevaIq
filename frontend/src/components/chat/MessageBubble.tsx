@@ -135,7 +135,8 @@ function PolicyCitations({
                     </div>
                     <div className="flex gap-2">
                       <span className="text-slate-500">{t('chunkType')}</span>
-                      <span className="capitalize">{citation.chunk_type}</span>
+                      <span className="capitalize">{citation.chunk_type === 'catalog_reference'
+                        ? t('catalogReference') : citation.chunk_type}</span>
                     </div>
                     {citation.criteria_id && (
                       <div className="flex gap-2">
@@ -257,6 +258,7 @@ export default function MessageBubble({
   const t = useTranslations('chat');
   const locale = useLocale();
   const agentBadges = msg.role === 'assistant' ? detectAgentBadges(msg, t) : [];
+  const citations = [...(msg.rag?.citations || []), ...(msg.policy_citations || [])];
 
   return (
     <div className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -295,7 +297,7 @@ export default function MessageBubble({
             msg.workflow ? (
               <WorkflowResult result={msg.workflow} onPolicyClick={onPolicyClick} />
             ) : (
-              <StructuredContentRenderer content={msg.content} citations={msg.rag?.citations} onPolicyClick={onPolicyClick} />
+              <StructuredContentRenderer content={msg.content} citations={citations} onPolicyClick={onPolicyClick} />
             )
           ) : (
             <span className="whitespace-pre-wrap">{msg.content}</span>
@@ -303,13 +305,13 @@ export default function MessageBubble({
         </div>
         
         {/* Citations for assistant messages with RAG */}
-        {msg.role === 'assistant' && msg.rag?.citations && (
-          <PolicyCitations citations={msg.rag.citations} onPolicyClick={onPolicyClick} />
+        {msg.role === 'assistant' && citations.length > 0 && (
+          <PolicyCitations citations={citations} onPolicyClick={onPolicyClick} />
         )}
 
         {/* Policy PDF toolbox — quick links to referenced CG documents */}
         {msg.role === 'assistant' && (
-          <PolicyToolbox content={msg.content} citations={msg.rag?.citations} t={t} />
+          <PolicyToolbox content={msg.content} citations={citations} t={t} />
         )}
         
         <div className={`flex items-center gap-1 text-xs mt-1 ${

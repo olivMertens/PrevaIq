@@ -70,6 +70,7 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   rag?: RAGMetadata;
+  policy_citations?: RAGCitation[];
   agent?: AgentMetadata;
   workflow?: WorkflowRunResult;
   feedbackGiven?: 'positive' | 'negative' | null;

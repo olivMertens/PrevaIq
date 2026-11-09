@@ -114,6 +114,32 @@ const citations = [
   {policy_id: 'PC-001', policy_name: 'Policy one', chunk_type: 'condition', criteria_id: 'shared-rule'},
 ];
 
+test('live and restored messages pass verified catalog references to inline and footer viewers', () => {
+  const messages = messagesFor('en');
+  let received;
+  const MessageBubble = moduleFrom('components/chat/MessageBubble.tsx', {
+    'next-intl': {
+      useLocale: () => 'en',
+      useTranslations: namespace => createTranslator({locale: 'en', messages, namespace}),
+    },
+    './ChatCards': {StructuredContentRenderer: props => {
+      received = props;
+      return React.createElement('span', null, props.content);
+    }},
+    './WorkflowResult': {__esModule: true, default: () => null},
+  }).default;
+  const onPolicyClick = () => {};
+  const msg = {
+    role: 'assistant', content: 'PC-001', timestamp: new Date(),
+    policy_citations: citations.slice(0, 1),
+  };
+  const html = renderToStaticMarkup(React.createElement(MessageBubble, {msg, onPolicyClick}));
+  assert.deepEqual(received.citations, msg.policy_citations);
+  assert.equal(received.onPolicyClick, onPolicyClick);
+  assert.match(html, /1 policy referenced/);
+  assert.doesNotMatch(html, /RAG policies/);
+});
+
 test('policy references link only verified unambiguous ids, not code, existing links or guesses', () => {
   const tree = {type: 'root', children: [
     {type: 'paragraph', children: [{type: 'text', value: 'PC-001 and PC-001-C1, not PC-0010 or PC-999 or shared-rule.'}]},

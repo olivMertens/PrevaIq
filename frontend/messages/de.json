@@ -1444,6 +1444,7 @@
     "policiesReferenced": "{count} {count, plural, =1 {zitierte Bedingung} other {zitierte Bedingungen}}",
     "policyId": "Bedingungs-ID:",
     "chunkType": "Auszugstyp:",
+    "catalogReference": "Policenkatalog",
     "criteriaId": "Kriterien-ID:",
     "clickToViewPolicy": "Klicken, um die vollständige Bedingung anzuzeigen",
     "responsePending": "Antwort wird vorbereitet…",

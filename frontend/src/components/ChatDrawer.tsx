@@ -563,6 +563,7 @@ export default function ChatDrawer({
         content: data.response,
         timestamp: new Date(),
         rag: data.rag, // Capture RAG metadata from response
+        policy_citations: data.policy_citations,
         agent: data.agent, // Capture agent metadata
         userQuery: userMessage.content, // Track which question this answers
       };

@@ -170,6 +170,7 @@ export interface ConversationResponse {
   conversation_id: string;
   title: string;
   response: string;
+  policy_citations?: { policy_id: string; policy_name: string; chunk_type: string; criteria_id?: string }[];
   agent?: { name: string; tools_available?: string[]; tools_called?: string[]; framework?: string };
   rag?: {
     enabled: boolean;

@@ -1444,6 +1444,7 @@
     "policiesReferenced": "{count} {count, plural, =1 {police référencée} other {polices référencées}}",
     "policyId": "ID police :",
     "chunkType": "Type d'extrait :",
+    "catalogReference": "Catalogue des polices",
     "criteriaId": "ID critère :",
     "clickToViewPolicy": "Cliquez pour voir les détails de la police",
     "responsePending": "Réponse en cours...",

@@ -1444,6 +1444,7 @@
     "policiesReferenced": "{count} {count, plural, =1 {policy referenced} other {policies referenced}}",
     "policyId": "Policy ID:",
     "chunkType": "Chunk type:",
+    "catalogReference": "Policy catalog",
     "criteriaId": "Criteria ID:",
     "clickToViewPolicy": "Click to view full policy details",
     "responsePending": "Preparing response...",
