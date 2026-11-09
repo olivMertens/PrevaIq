@@ -5,6 +5,7 @@ import clsx from 'clsx';
 import { Copy, Check, ChevronDown, ChevronUp, FileText, Layers } from 'lucide-react';
 import type { MarkdownPage, BatchSummary } from '@/lib/types';
 import type { CaseDocument } from '@/lib/documentFiles';
+import { localizeGeneratedPhotoHeading } from '@/lib/documentFiles';
 import type { TranslationState } from '@/lib/useContentTranslation';
 import { useTranslations } from 'next-intl';
 import ContentLanguageBar, { type ContentView } from './ContentLanguageBar';
@@ -210,7 +211,12 @@ export default function ExtractedTextPane({
 
   const pages = document?.pages ?? [];
   const states = pages.map((page) => pageTranslation(page));
-  const texts = pages.map((page, index) => shownText(page.markdown, contentView, states[index]));
+  const texts = pages.map((page, index) => {
+    const text = shownText(page.markdown, contentView, states[index]);
+    return contentView === 'translated'
+      ? localizeGeneratedPhotoHeading(text, page.file, filename => tv('photoAnalysisHeading', {filename}))
+      : text;
+  });
   const foreign = states.filter((state): state is TranslationState => state !== null);
   const translation = documentTranslation(foreign);
   const sourceLanguage = pages.find((_, index) => states[index] !== null)?.language ?? null;
@@ -295,6 +301,15 @@ export default function ExtractedTextPane({
           state={translation}
           onViewChange={onContentViewChange}
         />
+      )}
+      {contentView === 'original' && !translation && onContentViewChange && (
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-1.5 text-xs text-slate-700">
+          <p role="status">{t('contentLanguage.originalView')}</p>
+          <button type="button" onClick={() => onContentViewChange('translated')}
+            className="font-medium text-indigo-700 underline-offset-2 hover:underline">
+            {t('contentLanguage.showTranslatedView')}
+          </button>
+        </div>
       )}
 
       {/* Content: every page of the document, one after the other */}

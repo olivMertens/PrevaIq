@@ -253,6 +253,11 @@ export default function DemoGuideModal({ open, onOpenChange }: DemoGuideModalPro
               <p>{t('claimsNavigation')}</p>
               <p>{t('claimsWorkflow')}</p>
               <p>{t('chatHistoryHelp')}</p>
+              <details className="text-sm">
+                <summary className="cursor-pointer font-medium">{t('displayHelpTitle')}</summary>
+                <p className="mt-2">{t('displayHelp')}</p>
+                <p className="mt-2">{t('photoTextHelp')}</p>
+              </details>
               {['habitation', 'habitation-ch', 'habitation-ch-watch'].includes(scenario.id) && (
                 <p>{t('claimsKpiColors')}</p>
               )}

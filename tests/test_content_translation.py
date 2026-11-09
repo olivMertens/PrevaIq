@@ -21,6 +21,10 @@ FRENCH = (
 )
 ENGLISH = "The policyholder reports water damage in the cellar and the walls are wet with mould."
 GERMAN = "Der Versicherte meldet einen Wasserschaden im Keller und die Wände sind nicht trocken."
+GERMAN_PHOTO_WITH_LEGACY_HEADING = (
+    "# Analyse des Photos: IMG_20260828_104355.jpg\n\n"
+    "Der Schaden ist auf dem Foto sichtbar. Die Uhr und die Werkzeuge sind nicht trocken."
+)
 
 
 def _settings() -> SimpleNamespace:
@@ -47,6 +51,20 @@ def test_detect_language_recognizes_supported_languages() -> None:
     assert detect_language(ENGLISH) == "en"
     assert detect_language(GERMAN) == "de"
     assert detect_language("SIRET 123 456 789 00012 — 6 560,00 EUR") is None
+
+
+def test_german_photo_body_with_legacy_heading_stays_original_in_the_content_store(
+    monkeypatch: pytest.MonkeyPatch, storage: dict[str, bytes]
+) -> None:
+    def unexpected_model_call(*args, **kwargs):
+        raise AssertionError("UI heading correction must not retranslate German source evidence")
+
+    monkeypatch.setattr(content_translation, "chat_completion", unexpected_model_call)
+    assert detect_language(GERMAN_PHOTO_WITH_LEGACY_HEADING) == "de"
+    result = translate_text_cached(_settings(), "APP-CH", GERMAN_PHOTO_WITH_LEGACY_HEADING, "de-CH")
+    assert result["text"] == GERMAN_PHOTO_WITH_LEGACY_HEADING
+    assert result["translated"] is False
+    assert storage == {}
 
 
 def test_text_in_the_target_language_is_not_sent_to_the_model(

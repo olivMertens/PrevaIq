@@ -34,6 +34,22 @@ export function documentName(file: string): string {
   return file.split(/[\\/]/).pop() || file;
 }
 
+/** Localize a generated photo wrapper only when it names this exact image. */
+export function localizeGeneratedPhotoHeading(
+  markdown: string,
+  file: string,
+  title: (filename: string) => string,
+): string {
+  if (documentKind(file) !== 'image') return markdown;
+  const heading = markdown.match(
+    /^(\uFEFF?(?:[ \t]*\r?\n)*[ \t]*#{1,6}[ \t]+)(?:Analyse[ \t]+(?:des?[ \t]+)?photos?|Photo[ \t]+analysis|Image[ \t]+analysis|Fotoanalyse|Bildanalyse)[ \t]*:[ \t]*([^\r\n]+)(\r?\n|$)/i,
+  );
+  if (!heading) return markdown;
+  const filename = heading[2].trim();
+  if (filename !== file && filename !== documentName(file)) return markdown;
+  return `${heading[1]}${title(filename)}${heading[3]}${markdown.slice(heading[0].length)}`;
+}
+
 function mainLanguage(pages: DocumentPage[]): string | null {
   const counts = new Map<string, number>();
   for (const page of pages) {
