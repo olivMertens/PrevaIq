@@ -108,6 +108,11 @@ could incorrectly fall back to underwriting.
 The viewer validates the requested ID and detail structure, cancels stale requests,
 and provides localized HTTP/connection errors with a Retry action. It never displays
 an incomplete response or a different policy as a successful lookup.
+Live, streamed and restored conversations also expose `policy_citations` resolved
+from exact policy/unique criteria IDs in the selected persona catalog. These are
+catalog references, not claimed vector-retrieval results. Unknown IDs and ambiguous
+criteria are not linked. Reading older conversations enriches only the response
+metadata; stored messages and source documents are not rewritten.
 
 A successful Aurora refresh clears a previous saved-result load error but does
 not clear an unresolved service-status error. The admin scenario remains an
