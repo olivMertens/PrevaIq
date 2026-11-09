@@ -155,3 +155,76 @@ def test_conversation_is_stored_under_the_canonical_application_id(monkeypatch):
 
     assert saved.call_args.args[1] == "e98d6523"
     assert saved.call_args.args[2]["application_id"] == "e98d6523"
+
+
+@pytest.fixture
+def history_client(storage_root, monkeypatch):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    monkeypatch.setattr(
+        api_server,
+        "load_settings",
+        lambda: SimpleNamespace(app=SimpleNamespace(storage_root=storage_root)),
+    )
+    application = FastAPI()
+    paths = {"/api/applications/{app_id}/conversations", "/api/conversations"}
+    routes = [
+        route
+        for route in api_server.app.routes
+        if getattr(route, "path", "") in paths and "GET" in getattr(route, "methods", set())
+    ]
+    assert len(routes) == 2, "Both real history routes must be registered"
+    application.router.routes.extend(routes)
+    return TestClient(application)
+
+
+@pytest.mark.parametrize(
+    "app_id",
+    ["swiss-chocolate-storm", "swiss-watch-storm", "wine-cellar"],
+)
+def test_demo_case_without_saved_chats_has_a_successful_empty_history(history_client, app_id):
+    response = history_client.get(f"/api/applications/{app_id}/conversations")
+    assert response.status_code == 200
+    assert response.json() == {"conversations": []}
+
+
+def test_missing_local_fixture_route_is_not_missing_conversation_data(history_client):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+
+    path = "/api/applications/swiss-chocolate-storm/conversations"
+    incomplete_fixture = TestClient(FastAPI())
+    assert incomplete_fixture.get(path).status_code == 404
+    assert history_client.get(path).status_code == 200
+    assert history_client.get("/api/conversations?limit=50").json() == {"conversations": []}
+
+
+def test_history_http_routes_return_the_same_saved_conversation(history_client, storage_root):
+    conversation = _conversation(
+        "saved-chat",
+        "swiss-chocolate-storm",
+        "2026-11-09T08:00:00Z",
+        "Quelle franchise ?",
+    )
+    api_server.save_conversation(storage_root, "swiss-chocolate-storm", conversation)
+    current = history_client.get("/api/applications/swiss-chocolate-storm/conversations")
+    every = history_client.get("/api/conversations?limit=50")
+    assert current.status_code == every.status_code == 200
+    assert current.json() == every.json()
+    assert current.json()["conversations"][0]["id"] == "saved-chat"
+    assert (
+        api_server.load_conversation(storage_root, "swiss-chocolate-storm", "saved-chat")
+        == conversation
+    )
+
+
+def test_history_storage_failure_is_not_reported_as_empty_success(history_client, monkeypatch):
+    def unavailable(*args, **kwargs):
+        raise OSError("test storage unavailable")
+
+    monkeypatch.setattr(api_server, "list_conversations", unavailable)
+    for path in ("/api/applications/wine-cellar/conversations", "/api/conversations"):
+        response = history_client.get(path)
+        assert response.status_code == 500
+        assert "conversations" not in response.json()
