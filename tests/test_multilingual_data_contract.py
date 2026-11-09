@@ -8,8 +8,10 @@ from types import SimpleNamespace
 import pytest
 
 import api_server
+from app import processing
 from app.languages import UnsupportedLanguageError, require_language
 from app.processing import (
+    ANALYSIS_LABELS_KEY,
     cached_localized_analysis_payload,
     localized_analysis_payload,
     translate_analysis_payload,
@@ -22,6 +24,14 @@ from app.storage import (
     save_application_metadata,
     save_localized_analysis_cache,
 )
+
+_REAL_TRANSLATE_ANALYSIS_LABELS = processing.translate_analysis_labels
+
+
+@pytest.fixture(autouse=True)
+def _no_label_model_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Analysis labels have their own tests; elsewhere a projection must not call a model."""
+    monkeypatch.setattr("app.processing.translate_analysis_labels", lambda *args, **kwargs: {})
 
 
 def _metadata() -> ApplicationMetadata:
@@ -481,3 +491,226 @@ def test_localization_contract_bump_invalidates_cached_translations(
     assert cached_localized_analysis_payload(settings, metadata, "en") == cached
     monkeypatch.setattr("app.storage._LOCALIZATION_CONTRACT_VERSION", 999)
     assert cached_localized_analysis_payload(settings, metadata, "en") is None
+
+
+_FRENCH_DECISION = (
+    "Le sinistre est en principe couvert pour la Fahrhabe, sous réserve de la vérification "
+    "des quantités et de la preuve de causalité."
+)
+_GERMAN_DECISION = (
+    "Der Schaden ist grundsätzlich für die Fahrhabe gedeckt, vorbehaltlich der Prüfung "
+    "der Mengen und des Kausalitätsnachweises."
+)
+
+
+def _swiss_case_outputs() -> dict:
+    """A French analysis of a Swiss case: values quote German terms from the documents."""
+    return {
+        "llm_outputs": {
+            "damage_assessment": {
+                "system": {
+                    "parsed": {
+                        "dossier": {"nature_evenement": "Sturm mit Orkanböen und Starkregen"},
+                        "decision": {
+                            "statut": "Partiellement acceptable",
+                            "conclusion": _FRENCH_DECISION,
+                        },
+                        "status": "review_needed",
+                    }
+                }
+            }
+        }
+    }
+
+
+def test_prose_nested_under_an_enum_key_is_translated(monkeypatch: pytest.MonkeyPatch) -> None:
+    sent: list[dict] = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        chunk = json.loads(messages[1]["content"])
+        sent.append(chunk)
+        return {"content": json.dumps({key: f"DE {text}" for key, text in chunk.items()})}
+
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+
+    translated = translate_analysis_payload(
+        SimpleNamespace(openai=object()),
+        _swiss_case_outputs(),
+        source_language="fr",
+        target_language="de-CH",
+    )
+
+    parsed = translated["llm_outputs"]["damage_assessment"]["system"]["parsed"]
+    assert parsed["decision"]["statut"] == "DE Partiellement acceptable"
+    assert parsed["decision"]["conclusion"] == f"DE {_FRENCH_DECISION}"
+    assert parsed["status"] == "review_needed"
+    assert "review_needed" not in sent[0].values()
+
+
+def test_values_echoed_in_the_source_language_are_retried_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[str, dict]] = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        chunk = json.loads(messages[1]["content"])
+        calls.append((messages[0]["content"], chunk))
+        if len(calls) == 1:
+            return {"content": json.dumps(chunk)}  # the whole chunk comes back unchanged
+        return {"content": json.dumps({key: _GERMAN_DECISION for key in chunk})}
+
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+
+    translated = translate_analysis_payload(
+        SimpleNamespace(openai=object()),
+        _swiss_case_outputs(),
+        source_language="fr",
+        target_language="de-CH",
+    )
+
+    parsed = translated["llm_outputs"]["damage_assessment"]["system"]["parsed"]
+    assert len(calls) == 2
+    assert list(calls[1][1].values()) == [_FRENCH_DECISION]
+    assert parsed["decision"]["conclusion"] == _GERMAN_DECISION
+    assert "from French into Swiss Standard German" in calls[0][0]
+    assert "mixed sentences included" in calls[0][0]
+
+
+def test_retry_of_untranslated_values_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict] = []
+
+    def echo(_settings, messages, **_kwargs):
+        calls.append(json.loads(messages[1]["content"]))
+        return {"content": messages[1]["content"]}
+
+    monkeypatch.setattr("app.processing.chat_completion", echo)
+
+    translated = translate_analysis_payload(
+        SimpleNamespace(openai=object()),
+        _swiss_case_outputs(),
+        source_language="fr",
+        target_language="en",
+    )
+
+    parsed = translated["llm_outputs"]["damage_assessment"]["system"]["parsed"]
+    assert len(calls) == 2
+    assert parsed["decision"]["conclusion"] == _FRENCH_DECISION
+
+
+def test_same_language_family_adaptation_is_not_retried(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = 0
+
+    def echo(_settings, messages, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return {"content": messages[1]["content"]}
+
+    monkeypatch.setattr("app.processing.chat_completion", echo)
+    payload = {"summary": {"parsed": {"summary": _GERMAN_DECISION}}}
+
+    translate_analysis_payload(
+        SimpleNamespace(openai=object()), payload, source_language="de", target_language="de-CH"
+    )
+
+    assert calls == 1
+
+
+def _label_case() -> ApplicationMetadata:
+    metadata = _metadata()
+    metadata.llm_outputs = {
+        "damage_assessment": {
+            "system": {
+                "parsed": {
+                    "langue": "fr",
+                    "decision": {"statut": "partiellement_acceptable", "_debug": "x"},
+                    "montant_total_reclame": 14968600,
+                    "policy_citations": [{"policy_id": "CH-AVB-ELE-001"}],
+                },
+                "raw": "{}",
+            }
+        }
+    }
+    return metadata
+
+
+def _localize_with_labels(
+    monkeypatch: pytest.MonkeyPatch,
+    metadata: ApplicationMetadata,
+    language: str,
+    fake_completion,
+) -> dict:
+    monkeypatch.setattr(
+        "app.processing.translate_analysis_labels", _REAL_TRANSLATE_ANALYSIS_LABELS
+    )
+    monkeypatch.setattr(
+        "app.processing.translate_analysis_payload", lambda settings, payload, **kwargs: payload
+    )
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+    monkeypatch.setattr("app.processing.load_application", lambda *args: metadata)
+    monkeypatch.setattr("app.processing.load_localized_analysis_cache", lambda *args: None)
+    monkeypatch.setattr("app.processing.save_localized_analysis_cache", lambda *args: "cache")
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+    return localized_analysis_payload(settings, metadata, language)
+
+
+def test_translated_analysis_carries_labels_for_field_names_and_codes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    german = {
+        "langue": "Sprache",
+        "decision": "Entscheid",
+        "statut": "Status",
+        "partiellement_acceptable": "Teilweise annehmbar",
+        "montant_total_reclame": "Geforderter Gesamtbetrag:",
+        "policy_citations": "Zitierte Bedingungen",
+        "policy_id": "policy_id",  # returned unchanged: shown as written
+    }
+    sent: list[dict] = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        chunk = json.loads(messages[1]["content"])
+        sent.append(chunk)
+        return {"content": json.dumps({key: german[name] for key, name in chunk.items()})}
+
+    metadata = _label_case()
+    localized = _localize_with_labels(monkeypatch, metadata, "de-CH", fake_completion)
+
+    # Field names and coded values only: not the language code, identifiers or amounts.
+    assert list(sent[0].values()) == list(german)
+    assert localized[ANALYSIS_LABELS_KEY] == {
+        "langue": "Sprache",
+        "decision": "Entscheid",
+        "statut": "Status",
+        "partiellement_acceptable": "Teilweise annehmbar",
+        "montant_total_reclame": "Geforderter Gesamtbetrag",
+        "policy_citations": "Zitierte Bedingungen",
+    }
+    parsed = localized["llm_outputs"]["damage_assessment"]["system"]["parsed"]
+    assert parsed["decision"]["statut"] == "partiellement_acceptable"  # data never changes
+
+
+def test_label_failure_keeps_the_translated_analysis(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def failing_completion(*_args, **_kwargs):
+        raise RuntimeError("model unavailable")
+
+    localized = _localize_with_labels(monkeypatch, _label_case(), "en", failing_completion)
+
+    assert ANALYSIS_LABELS_KEY not in localized
+    assert localized["llm_outputs"]["damage_assessment"]["system"]["parsed"]["decision"]
+
+
+def test_labels_are_not_requested_in_the_analysis_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_completion(*_args, **_kwargs):
+        raise AssertionError("no model call expected")
+
+    metadata = _label_case()
+    metadata.context_labels = []
+    metadata.context_tasks = []
+
+    localized = _localize_with_labels(monkeypatch, metadata, "fr", unexpected_completion)
+
+    assert ANALYSIS_LABELS_KEY not in localized

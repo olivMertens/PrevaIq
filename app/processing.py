@@ -4,6 +4,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -23,7 +24,14 @@ from .large_document_processor import (
     build_condensed_context,
     get_document_stats,
 )
-from .languages import language_instruction, normalize_language, require_language
+from .languages import (
+    base_language,
+    language_instruction,
+    language_name,
+    normalize_language,
+    require_language,
+)
+from .content_translation import detect_language
 from .jurisdiction import application_jurisdiction, format_amount, parse_amount
 from .file_capabilities import detect_media_type
 from .markitdown_service import (
@@ -121,7 +129,8 @@ def _localizable_strings(
     if key:
         if key in _LOCALIZATION_PROTECTED_KEYS or key.lower() in _LOCALIZATION_PROTECTED_KEYS:
             return []
-        if key in _NON_HUMAN_VALUE_KEYS:
+        # Only the value itself is an enum: a "decision" object or list holds prose.
+        if key in _NON_HUMAN_VALUE_KEYS and not isinstance(value, (dict, list)):
             return []
     if isinstance(value, dict):
         items: list[tuple[tuple[str | int, ...], str]] = []
@@ -174,25 +183,35 @@ def _translation_chunks(strings: List[str]) -> List[Dict[str, str]]:
     return chunks
 
 
-def _translate_json_chunk(
-    settings: Settings,
-    chunk: Dict[str, str],
-    source: str,
-    target: str,
-) -> Dict[str, str]:
-    prompt = (
-        f"Translate each JSON string value from {source} to {target}. "
-        "Return exactly the same object keys and string values only. "
+def _translation_prompt(source: str, target: str) -> str:
+    source_name, target_name = language_name(source), language_name(target)
+    # Codes such as "fr"/"de-CH" and a chunk opening with values already in the target
+    # language made the model return whole chunks unchanged: name both languages and say
+    # how mixed-language values are handled.
+    return (
+        f"Translate the JSON string values below from {source_name} into {target_name}. "
+        f"Values can mix languages, for example {source_name} sentences that quote terms from "
+        "documents written in another language: rewrite every value that is not already "
+        f"entirely in {target_name} completely in {target_name}, mixed sentences included. "
+        "Return a JSON object with exactly the same keys and one translated string per key. "
         "Translate every label, title and sentence, including insurance cover and guarantee "
         "names; keep acronyms such as DDE, IRSI, Cat-Nat, AVB or SIU unchanged inside the "
         "translated text. Leave unchanged only verbatim quotations, legal article references, "
         "personal and company names, identifiers, codes, dates, numbers, amounts, URLs and "
         "enum tokens. Do not add commentary. " + language_instruction(target)
     )
+
+
+def _request_chunk_translation(
+    settings: Settings,
+    chunk: Dict[str, str],
+    system_prompt: str,
+) -> Dict[str, str]:
+    """One bounded model call; raises unless every key comes back as a string."""
     result = chat_completion(
         settings.openai,
         [
-            {"role": "system", "content": prompt},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": json.dumps(chunk, ensure_ascii=False)},
         ],
         max_tokens=max(800, min(16000, len(json.dumps(chunk)) // 2)),
@@ -211,6 +230,65 @@ def _translate_json_chunk(
     if not all(isinstance(replacements[key], str) for key in chunk):
         raise RuntimeError("Analysis translation returned non-string values.")
     return replacements
+
+
+def _untranslated_keys(
+    chunk: Dict[str, str],
+    replacements: Dict[str, str],
+    source: str,
+    target: str,
+) -> List[str]:
+    """Keys whose prose came back still written in the source language."""
+    source_family = base_language(source)
+    if source_family == base_language(target):
+        return []
+    return [
+        key
+        for key, text in chunk.items()
+        if detect_language(text) == source_family
+        and detect_language(replacements[key]) == source_family
+    ]
+
+
+def _translate_json_chunk(
+    settings: Settings,
+    chunk: Dict[str, str],
+    source: str,
+    target: str,
+) -> Dict[str, str]:
+    prompt = _translation_prompt(source, target)
+    replacements = _request_chunk_translation(settings, chunk, prompt)
+    untranslated = _untranslated_keys(chunk, replacements, source, target)
+    if untranslated:
+        # Retry only the values still in the source language, once and on their own.
+        logger.warning(
+            "Analysis translation %s->%s left %d of %d values untranslated; retrying them",
+            source,
+            target,
+            len(untranslated),
+            len(chunk),
+        )
+        retried = _request_chunk_translation(
+            settings, {key: chunk[key] for key in untranslated}, prompt
+        )
+        replacements.update(retried)
+        remaining = _untranslated_keys(chunk, replacements, source, target)
+        if remaining:
+            # Verbatim quotations legitimately stay in their own language.
+            logger.warning(
+                "Analysis translation %s->%s kept %d values in the source language",
+                source,
+                target,
+                len(remaining),
+            )
+    return replacements
+
+
+def _map_chunks(function: Any, chunks: List[Dict[str, str]]) -> List[Dict[str, str]]:
+    if len(chunks) == 1:
+        return [function(chunks[0])]
+    with ThreadPoolExecutor(max_workers=min(_TRANSLATION_MAX_WORKERS, len(chunks))) as pool:
+        return list(pool.map(function, chunks))
 
 
 def translate_analysis_payload(
@@ -233,22 +311,91 @@ def translate_analysis_payload(
     if not strings:
         return translated
     chunks = _translation_chunks([text for _, text in strings])
-    if len(chunks) == 1:
-        results = [_translate_json_chunk(settings, chunks[0], source, target)]
-    else:
-        workers = min(_TRANSLATION_MAX_WORKERS, len(chunks))
-        with ThreadPoolExecutor(max_workers=workers) as pool:
-            results = list(
-                pool.map(
-                    lambda chunk: _translate_json_chunk(settings, chunk, source, target), chunks
-                )
-            )
+    results = _map_chunks(
+        lambda chunk: _translate_json_chunk(settings, chunk, source, target), chunks
+    )
     replacements: Dict[str, str] = {}
     for result in results:
         replacements.update(result)
     for index, (path, _) in enumerate(strings):
         _set_json_path(translated, path, replacements[str(index)])
     return translated
+
+
+# Localized display labels of the analysis field names and coded values ("statut",
+# "partiellement_acceptable"), keyed by name. The data never changes: the cockpit reads
+# specific field names and codes (e.g. "statut_couverture").
+ANALYSIS_LABELS_KEY = "analysis_labels"
+# Coded values the cockpit shows humanized (same pattern as ENUM_TOKEN in analysisMarkdown.ts).
+_CODED_VALUE = re.compile(r"^[a-z]+(?:_[a-z]+)+$")
+
+
+def _analysis_label_names(llm_outputs: Any) -> List[str]:
+    """Distinct field names and coded values of the structured analysis outputs, in order."""
+    names: Dict[str, None] = {}
+
+    def collect(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if not isinstance(key, str) or key.startswith("_"):
+                    continue  # hidden by the cockpit
+                if key.strip():
+                    names.setdefault(key, None)
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+        elif isinstance(value, str) and _CODED_VALUE.match(value.strip()):
+            names.setdefault(value.strip(), None)
+
+    if isinstance(llm_outputs, dict):
+        for subsections in llm_outputs.values():
+            if isinstance(subsections, dict):
+                for output in subsections.values():
+                    if isinstance(output, dict):
+                        collect(output.get("parsed"))
+    return list(names)
+
+
+def translate_analysis_labels(
+    settings: Settings,
+    names: List[str],
+    *,
+    source_language: str,
+    target_language: str,
+) -> Dict[str, str]:
+    """Labels in the target language for field names and coded values of an analysis.
+
+    Best effort: names whose labels could not be translated are shown as written.
+    """
+    source = require_language(source_language)
+    target = require_language(target_language)
+    if not names or base_language(source) == base_language(target):
+        return {}
+    prompt = (
+        "Each JSON string value below is a field name or a coded value from a structured "
+        f"insurance claim analysis written in {language_name(source)} (snake_case or "
+        "camelCase, accents may be missing). Return a JSON object with exactly the same keys "
+        f"and, for each one, a short display label in {language_name(target)}: sentence case, "
+        "correct accents, no trailing colon, no commentary. Keep acronyms such as AVB, IRSI, "
+        "Cat-Nat, SIU or DDE unchanged. " + language_instruction(target)
+    )
+
+    def translate(chunk: Dict[str, str]) -> Dict[str, str]:
+        try:
+            return _request_chunk_translation(settings, chunk, prompt)
+        except Exception as exc:  # noqa: BLE001 - labels must not block the translated analysis
+            logger.warning("Analysis labels %s->%s failed: %s", source, target, exc)
+            return {}
+
+    labels: Dict[str, str] = {}
+    for result in _map_chunks(translate, _translation_chunks(names)):
+        for index, label in result.items():
+            name = names[int(index)]
+            label = label.strip().rstrip(":").strip()
+            if label and label != name:
+                labels[name] = label
+    return labels
 
 
 def analysis_source_locale(app_md: ApplicationMetadata) -> str:
@@ -308,6 +455,17 @@ def _translate_canonical_payload(
                 settings, part, source_language=source, target_language=target_language
             )
         )
+    # The cockpit shows field names and codes as labels: they follow the analysis language.
+    llm_source = sources.get("llm_outputs")
+    if llm_source and llm_source != target_language:
+        labels = translate_analysis_labels(
+            settings,
+            _analysis_label_names(canonical.get("llm_outputs")),
+            source_language=llm_source,
+            target_language=target_language,
+        )
+        if labels:
+            translated[ANALYSIS_LABELS_KEY] = labels
     return translated
 
 

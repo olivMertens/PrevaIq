@@ -3599,7 +3599,7 @@ photos de dégâts, devis de réparation et rapports d'experts avec une expertis
 - Convention IRSI (Indemnisation et Recours des Sinistres Immeuble)
 - Conditions Générales Habitation (garanties, exclusions, franchises)
 
-Fournir une analyse structurée en français avec citations des articles applicables.""",
+Fournir une analyse structurée avec citations des articles applicables.""",
                 "visual_damage_analysis": """Analyser les documents et photos du sinistre habitation et fournir :
 
 - Description des dommages constatés (localisation, étendue, gravité)
