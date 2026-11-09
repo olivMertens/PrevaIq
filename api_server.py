@@ -4967,7 +4967,26 @@ async def get_conversation(app_id: str, conversation_id: str):
         )
         if not conversation:
             raise HTTPException(status_code=404, detail="Conversation introuvable")
-        return conversation
+        from app.underwriting_policies import collect_policy_citations
+
+        persona = conversation.get("persona")
+        if not persona:
+            application = await asyncio.to_thread(
+                load_application, settings.app.storage_root, app_id
+            )
+            persona = getattr(application, "persona", None) or "underwriting"
+        messages = []
+        for message in conversation.get("messages", []):
+            if message.get("role") == "assistant":
+                citations = await asyncio.to_thread(
+                    collect_policy_citations,
+                    settings.app.prompts_root,
+                    persona,
+                    message["content"],
+                )
+                message = {**message, "policy_citations": citations}
+            messages.append(message)
+        return {**conversation, "messages": messages}
     except HTTPException:
         raise
     except Exception as e:
@@ -5111,11 +5130,18 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
             **({"on_delta": on_delta} if on_delta is not None else {}),
         )
 
+        from app.underwriting_policies import collect_policy_citations
+
+        policy_citations = await asyncio.to_thread(
+            collect_policy_citations, settings.app.prompts_root, persona, result["response"]
+        )
+
         # Save agent response into conversation
         assistant_message = {
             "role": "assistant",
             "content": result["response"],
             "timestamp": datetime.utcnow().isoformat() + "Z",
+            "policy_citations": policy_citations,
         }
         conversation["messages"].append(assistant_message)
         conversation["updated_at"] = assistant_message["timestamp"]
@@ -5133,6 +5159,7 @@ async def _complete_conversation(app_id: str, request: ChatRequest, on_delta=Non
             "usage": result.get("usage", {}),
             "title": conversation["title"],
             "agent": result.get("agent"),
+            "policy_citations": policy_citations,
         }
 
     except HTTPException:

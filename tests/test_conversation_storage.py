@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -132,7 +133,11 @@ def test_conversation_is_stored_under_the_canonical_application_id(monkeypatch):
 
     from app.agents import api_integration
 
-    settings = SimpleNamespace(app=SimpleNamespace(storage_root="unused"))
+    settings = SimpleNamespace(
+        app=SimpleNamespace(
+            storage_root="unused", prompts_root=str(Path(__file__).resolve().parents[1] / "prompts")
+        )
+    )
     monkeypatch.setattr(api_server, "load_settings", lambda: settings)
     monkeypatch.setattr(
         api_server,

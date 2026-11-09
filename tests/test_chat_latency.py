@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import threading
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
@@ -102,7 +103,11 @@ def test_missing_correction_store_is_not_eligible(monkeypatch):
 def test_conversation_reports_load_and_save_timings(monkeypatch):
     from app.agents import api_integration
 
-    settings = SimpleNamespace(app=SimpleNamespace(storage_root="unused"))
+    settings = SimpleNamespace(
+        app=SimpleNamespace(
+            storage_root="unused", prompts_root=str(Path(__file__).resolve().parents[1] / "prompts")
+        )
+    )
     monkeypatch.setattr(api_server, "load_settings", lambda: settings)
     monkeypatch.setattr(
         api_server, "load_application", lambda *args: SimpleNamespace(persona="automotive_claims")
@@ -185,7 +190,11 @@ def test_stream_delivers_text_before_saved_final_result(monkeypatch):
 
     from app.agents import api_integration
 
-    settings = SimpleNamespace(app=SimpleNamespace(storage_root="unused"))
+    settings = SimpleNamespace(
+        app=SimpleNamespace(
+            storage_root="unused", prompts_root=str(Path(__file__).resolve().parents[1] / "prompts")
+        )
+    )
     monkeypatch.setattr(api_server, "load_settings", lambda: settings)
     monkeypatch.setattr(
         api_server, "load_application", lambda *args: SimpleNamespace(persona="automotive_claims")

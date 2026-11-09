@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
@@ -625,16 +626,50 @@ PERSONA_POLICY_FILES = {
 def get_policy_file_for_persona(storage_root: str, persona: str) -> str:
     """
     Get the path to the policy file for a specific persona.
-    
+
     Args:
         storage_root: Path to the data storage directory
         persona: Persona type (underwriting, life_health_claims, etc.)
-        
+
     Returns:
         Path to the persona's policy JSON file
     """
     policy_file = PERSONA_POLICY_FILES.get(persona, PERSONA_POLICY_FILES["underwriting"])
     return os.path.join(storage_root, policy_file)
+
+
+def collect_policy_citations(prompts_root: str, persona: str, text: str) -> list[dict[str, str]]:
+    """Resolve explicit answer IDs against the actual persona catalog, not inferred prose."""
+    catalog = load_policies_for_persona(prompts_root, persona.lower())
+    references: dict[str, dict[str, str] | None] = {}
+    for policy in catalog.get("policies", []):
+        policy_id = policy["id"]
+        citation = {
+            "policy_id": policy_id,
+            "policy_name": policy["name"],
+            "chunk_type": "catalog_reference",
+        }
+        for label, criteria_id in [
+            (policy_id, None),
+            *((criterion["id"], criterion["id"]) for criterion in policy.get("criteria", [])),
+        ]:
+            if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", label):
+                continue
+            candidate = {**citation, **({"criteria_id": criteria_id} if criteria_id else {})}
+            if label in references and references[label] != candidate:
+                references[label] = None
+            else:
+                references[label] = candidate
+    labels = sorted((label for label, value in references.items() if value), key=len, reverse=True)
+    if not labels:
+        return []
+    pattern = r"(?<![A-Za-z0-9_-])(?:" + "|".join(map(re.escape, labels)) + r")(?![A-Za-z0-9_-])"
+    found: dict[str, dict[str, str]] = {}
+    for match in re.finditer(pattern, text):
+        citation = references[match.group()]
+        if citation is not None:
+            found[match.group()] = citation
+    return list(found.values())
 
 
 def load_policies_for_persona(
