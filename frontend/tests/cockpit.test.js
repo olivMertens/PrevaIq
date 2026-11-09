@@ -181,6 +181,23 @@ test('coverage view reads a Swiss analysis: verdict, items, guarantees, rules an
   assert.deepEqual(view.articles.map((item) => item.reference), ['AVB Ziff. B2.1', 'AVB Ziff. B1.3']);
 });
 
+test('a deductible amount is read even when a yes/no flag comes first', () => {
+  const { buildCoverageView } = coverageView;
+  const stated = buildCoverageView({
+    franchise: {
+      franchise_applicable: true,
+      type: 'franchise_elementaire_contractuelle',
+      montant: "CHF 50'000.00",
+      commentaire: 'Elemental deductible, capped.',
+    },
+  });
+  assert.deepEqual(stated.rules.deductible, {
+    applies: true, amount: 50000, detail: undefined, reason: 'Elemental deductible, capped.',
+  });
+  const none = buildCoverageView({ franchise: { franchise_applicable: false, commentaire: 'No deductible.' } });
+  assert.deepEqual(none.rules.deductible, { applies: false, amount: undefined, detail: undefined, reason: 'No deductible.' });
+});
+
 test('coverage view reads French analyses written as maps and nested objects', () => {
   const { buildCoverageView, amountBreakdown } = coverageView;
   const mapForm = buildCoverageView(

@@ -396,8 +396,11 @@ function deductibleRule(value: unknown): CoverageRule | undefined {
   const direct = amount(value);
   if (direct !== undefined) return { applies: true, amount: direct };
   if (!isRecord(value)) return undefined;
-  const ruleAmount = amount(pick(value, DEDUCTIBLE_AMOUNT_KEYS));
-  const applies = pick(value, ['applies', 'applicable', 'applique']);
+  // First key that holds an amount: "franchise_applicable" can be the amount or only a yes/no.
+  const ruleAmount = DEDUCTIBLE_AMOUNT_KEYS.map((key) => amount(pick(value, [key]))).find((found) => found !== undefined);
+  const stated = pick(value, ['applies', 'applicable', 'applique']);
+  const statedFlag = [pick(value, ['franchise_applicable', 'deductible_applicable'])].find((found) => typeof found === 'boolean');
+  const applies = stated ?? statedFlag;
   return {
     applies: applies === undefined ? (ruleAmount !== undefined ? true : null) : flag(applies),
     amount: ruleAmount,
