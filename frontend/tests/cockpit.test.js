@@ -181,6 +181,25 @@ test('coverage view reads a Swiss analysis: verdict, items, guarantees, rules an
   assert.deepEqual(view.articles.map((item) => item.reference), ['AVB Ziff. B2.1', 'AVB Ziff. B1.3']);
 });
 
+test('French regimes are shown only for French claims that may fall under them', () => {
+  const { buildCoverageView, relevantRules } = coverageView;
+  const swiss = buildCoverageView(swissCoverage, swissSettlement);
+  const swissRules = relevantRules(swiss.rules, 'CH');
+  assert.equal(swissRules.catNat, undefined);
+  assert.equal(swissRules.irsi, undefined);
+  assert.deepEqual(swissRules.deductible, swiss.rules.deductible);
+  assert.deepEqual(swissRules.expertise, swiss.rules.expertise);
+  assert.deepEqual(swissRules.recourse, swiss.rules.recourse);
+  // Even an analysis that wrongly applies a French regime to a Swiss claim does not show it.
+  const wrong = relevantRules({ catNat: { applies: true }, irsi: { applies: null } }, 'CH');
+  assert.deepEqual([wrong.catNat, wrong.irsi], [undefined, undefined]);
+
+  const french = { catNat: { applies: false, reason: 'No decree.' }, irsi: { applies: true }, expertise: { applies: false } };
+  assert.deepEqual(relevantRules(french, 'FR'), { catNat: undefined, irsi: { applies: true }, expertise: { applies: false } });
+  // A regime still to determine has to be checked; a case without jurisdiction is French.
+  assert.deepEqual(relevantRules({ catNat: { applies: null } }).catNat, { applies: null });
+});
+
 test('a deductible amount is read even when a yes/no flag comes first', () => {
   const { buildCoverageView } = coverageView;
   const stated = buildCoverageView({

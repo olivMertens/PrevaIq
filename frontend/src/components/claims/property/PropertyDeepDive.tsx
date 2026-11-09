@@ -78,6 +78,7 @@ export default function PropertyDeepDive({
           labels={application.context_labels ?? []}
           llmOutputs={data.llmOutputs}
           analysisLabels={data.analysisLabels}
+          country={application.jurisdiction?.country}
           currency={data.currency}
           claimedText={field('MontantEstime', 'TotalIncurred', 'MontantTotal')}
           deductibleText={field('FranchiseApplicable', 'Franchise') || undefined}

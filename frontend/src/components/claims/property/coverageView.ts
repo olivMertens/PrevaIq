@@ -429,6 +429,17 @@ function recourseRule(value: unknown, against: string[]): (CoverageRule & { agai
   };
 }
 
+/**
+ * Rules worth showing for a claim. Cat-Nat and IRSI are French regimes: shown for a French
+ * claim when they apply or still have to be determined, never for a claim in another country.
+ * The deductible, expert appraisal and recourse are decisions, shown whatever the answer.
+ */
+export function relevantRules(rules: CoverageView['rules'], country?: string): CoverageView['rules'] {
+  const french = !country || country === 'FR';
+  const regime = (rule?: CoverageRule) => (french && rule && rule.applies !== false ? rule : undefined);
+  return { ...rules, catNat: regime(rules.catNat), irsi: regime(rules.irsi) };
+}
+
 // ── Settlement amounts ───────────────────────────────────────────────────────
 
 const AMOUNT_CONTAINERS = ['montants', 'amounts', 'totals', 'totaux', 'calcul', 'calculation', 'decision_recommandee', 'recommended_decision', 'recommendation', 'recommandation'];

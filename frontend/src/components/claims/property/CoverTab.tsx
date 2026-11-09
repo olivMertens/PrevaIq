@@ -9,7 +9,7 @@ import MarkdownText from './MarkdownText';
 import { ANALYSIS_SEPARATOR } from './analysisMarkdown';
 import { CoverageAmounts, CoverageVerdict, SECTION_TITLE } from './CoverageSummary';
 import { CoverageList, CoverageRules, GuaranteeList, PolicyArticles, TextList } from './CoverageSections';
-import { buildCoverageView, coverageOutputs, sortByTone } from './coverageView';
+import { buildCoverageView, coverageOutputs, relevantRules, sortByTone } from './coverageView';
 import { formatParsedFields } from './propertyClaimHelpers';
 
 interface CoverTabProps {
@@ -17,6 +17,8 @@ interface CoverTabProps {
   llmOutputs: Record<string, unknown>;
   /** Labels of field names and coded values translated with the analysis. */
   analysisLabels?: Record<string, string>;
+  /** Country of the claim: French regimes (Cat-Nat, IRSI) only concern French claims. */
+  country?: 'FR' | 'CH';
   currency: CurrencyCode;
   /** Claimed amount as written in the claim. */
   claimedText: string;
@@ -69,7 +71,7 @@ function LabelSection({ title, labels }: { title: string; labels: ContextLabel[]
  * Cover & amounts: the coverage verdict and the indemnity first, then the claim items,
  * guarantees, exclusions and rules applied; policy articles and the full analysis on demand.
  */
-export default function CoverTab({ labels, llmOutputs, analysisLabels, currency, claimedText, deductibleText, coverageText }: CoverTabProps) {
+export default function CoverTab({ labels, llmOutputs, analysisLabels, country, currency, claimedText, deductibleText, coverageText }: CoverTabProps) {
   const t = useTranslations('caseCockpit.coverTab');
   const tClaims = useTranslations('claims');
   const locale = useLocale();
@@ -111,7 +113,7 @@ export default function CoverTab({ labels, llmOutputs, analysisLabels, currency,
         ? <GuaranteeList guarantees={view.guarantees} />
         : <LabelSection title={t('guarantees')} labels={guaranteeLabels} />}
       <CoverageList title={t('exclusions')} intro={view.exclusionsSummary} entries={view.exclusions} attention={view.attention} />
-      <CoverageRules rules={view.rules} money={money} />
+      <CoverageRules rules={relevantRules(view.rules, country)} money={money} />
       <LabelSection title={t('checks')} labels={checks} />
       <TextList title={t('basis')} items={view.basis} />
       <TextList title={t('conditions')} items={view.conditions} />
