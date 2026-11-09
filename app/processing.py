@@ -3573,8 +3573,9 @@ def run_underwriting_prompts(
     if swiss_claim:
         policy_context += (
             "\n\n---\n\nJURISDICTION: Switzerland. Apply the Swiss policy conditions (AVB) above. "
-            "The French Cat-Nat regime, the IRSI convention and EUR deductibles do not apply; "
-            "amounts are in CHF.\n"
+            "French rules do not exist here: leave the Cat-Nat regime, the IRSI convention and "
+            "the French water-damage (DDE) deductible out of the answer, with no field or comment "
+            "about them. Report the deductible set by the AVB; amounts are in CHF.\n"
         )
 
     # Load glossary for the current persona to help LLM understand domain terminology

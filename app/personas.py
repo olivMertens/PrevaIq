@@ -3615,9 +3615,11 @@ Retourner un JSON structuré avec les zones de dommages, les estimations et les 
 
 - Le sinistre est-il couvert par la garantie ? (DDE, tempête, incendie, RC, vol)
 - Y a-t-il des exclusions applicables ?
-- Quelle franchise s'applique ? (franchise contractuelle, franchise DDE 250€)
-- La convention IRSI s'applique-t-elle ? (dégâts des eaux inter-immeubles)
-- Le sinistre relève-t-il du régime Cat-Nat ?
+- Quelle franchise s'applique ? (franchise contractuelle ; en France, franchise DDE 250€)
+- Sinistre en France uniquement : la convention IRSI s'applique-t-elle ? (dégâts des eaux inter-immeubles)
+- Sinistre en France uniquement : le sinistre relève-t-il du régime Cat-Nat ?
+
+Hors de France, ne pas traiter la convention IRSI ni le régime Cat-Nat : les omettre de la réponse.
 
 Retourner un JSON avec le statut de couverture, les articles applicables et la franchise.""",
             },
@@ -3627,8 +3629,8 @@ Retourner un JSON avec le statut de couverture, les articles applicables et la f
 - Montant estimé des réparations (basé sur les devis et l'évaluation)
 - Franchise applicable à déduire
 - Montant d'indemnisation recommandé
-- Nécessité d'une expertise complémentaire (si montant > 5 000€)
-- Recours possible contre un tiers (convention IRSI, responsabilité tiers)
+- Nécessité d'une expertise complémentaire (si montant > 5 000 dans la devise du dossier)
+- Recours possible contre un tiers (responsabilité d'un tiers ; en France, convention IRSI)
 
 Retourner un JSON avec le montant recommandé, la franchise et les conditions.""",
             },
