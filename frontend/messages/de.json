@@ -369,9 +369,9 @@
       "reload": "Neu laden",
       "hours": "{count} Stunden",
       "configuration": {
-        "title": "Konfiguration des verwalteten Endpunkts",
+        "title": "Konfiguration des echten Modells",
         "lead": "Konfigurieren Sie nur nicht geheime Ressourcenbezeichner. Der Blob-Zugriff nutzt die verwaltete Identität; die Endpunktauthentifizierung wird sicher durch die Bereitstellung bereitgestellt.",
-        "enabled": "Aurora aktivieren",
+        "enabled": "Echtes Modell aktivieren",
         "disabledReason": {
           "label": "In Fällen angezeigter Aussetzungsgrund",
           "unspecified": "Ohne angegebenen Grund ausgesetzt",
@@ -423,7 +423,10 @@
           "endpoint_authentication": "Verwaltete Identität oder das Key-Vault-Endpunktgeheimnis kann sich authentifizieren",
           "endpoint": "Verwalteter Endpunkt ist erreichbar",
           "initial_conditions": "Anfangsbedingungen erfüllen den Aurora-Vertrag",
-          "blob_channel": "Aufgabenkanal unterstützt delegierten Blob-Zugriff"
+          "blob_channel": "Aufgabenkanal unterstützt delegierten Blob-Zugriff",
+          "demo_scenario": "Bekanntes synthetisches Szenario",
+          "demo_contract": "6/12-Stunden-Ausgabevertrag geprüft",
+          "demo_audit": "Admin-Validierung gespeichert"
         }
       },
       "inputContract": {
@@ -460,6 +463,18 @@
           }
         },
         "measurement": "Demo-Kennzahlen: Vergleichen Sie Triagezeit, vermeidbare Informationsanfragen, Vorbereitungszeit und Eskalationsgenauigkeit. Stellen Sie prognostizierte Einsparungen nicht als erzielten ROI dar."
+      },
+      "demo": {
+        "activated": "Synthetische Demo aktiviert und validiert. Es wurde keine Aurora-Inferenz oder Azure-Verbindung bestätigt.",
+        "testPassed": "Simulationsvertrag geprüft — kein Aufruf des Modells oder Wetter-Blobs.",
+        "lead": "Von einem Admin genehmigte synthetische Wetterszenarien halten die Demo ohne Aurora-Modell nutzbar. Echte Konfiguration und Belege bleiben separat erhalten.",
+        "readiness": "Simulationsbereitschaft",
+        "save": "Simulation speichern und validieren",
+        "test": "Simulation testen",
+        "testLive": "Echte Azure-Verbindung testen",
+        "checklist": "Nur lokale Demo-Prüfung",
+        "inputTitle": "Vertrag des synthetischen Szenarios",
+        "noNetcdf": "6 oder 12 Stundenpunkte, deterministische Demo-Kennzahlen und explizite synthetische Herkunft. Keine ERA5-Eingabe, NetCDF-Ausgabe oder Azure-Aufgabe wird erstellt."
       }
     },
     "accessRequests": {
@@ -3091,7 +3106,7 @@
   "demoGuide": {
     "claimsKpiColors": "Die Karten unter Übersicht für Sachschäden sind rosa bei vorrangigem Prüfbedarf, gelb bei erforderlichen Prüfungen, grün bei niedrigem Risiko oder ruhigen Kundenindikatoren, blau für Kontext, violett während der Analyse und grau ohne verfügbare Bewertung. Die Farbe bestätigt weder Deckung noch Betrug; lesen Sie die Bezeichnungen und Belege.",
     "claimsWorkflow": "Unter Kunde folgen die Tonbezeichnungen und der gesamte E-Mail-, SMS- oder Schreiben-Entwurf der gewählten Sprache; Namen und Quellenverweise bleiben unverändert. Starten Sie in Ask IQ einen Workflow, um den Live-Ausführungsplan zu sehen: Fall lesen, parallele Agentenprüfungen, dann Zusammenfassung. Symbole kennzeichnen die Rollen; nicht verfügbare Prüfungen erfordern eine Überprüfung. Die abschließende Empfehlung erscheint zuerst, darunter der Plan und aufklappbare Agentenergebnisse. Nichts wird automatisch versendet oder entschieden.",
-    "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.\n\nUnter Wetter und Karte wählen Sie Aurora-Daten, Schadenort oder Web-IQ-Quellen; nur das aktive Feld wird angezeigt. In Aurora wählen Sie Stundendiagramm, Schadenzeitpunkt, Herkunft oder Fallmaßnahmen. Die Wiedergabe startet manuell. Übersicht und Ask IQ lesen gespeicherte Daten nur für das angezeigte Zeitfenster, auch wenn neue Berechnungen nicht verfügbar sind. Ein Reiterwechsel startet weder Aurora noch Web IQ.",
+    "claimsNavigation": "Übersicht bietet direkte Aktionen, Belege die Dateien und Police, Analyse und Fakten Deckung, Betrugsanalyse und Web IQ, Kunde bearbeitbare Entwürfe und Wetter und Karte Standort und Aurora-Verfügbarkeit. Die Zeitachse hat nur einen Hauptreiter. Mehr enthält technische Daten.\n\nUnter Wetter und Karte wählen Sie Aurora-Daten, Schadenort oder Web-IQ-Quellen; nur das aktive Feld wird angezeigt. In Aurora wählen Sie Stundendiagramm, Schadenzeitpunkt, Herkunft oder Fallmaßnahmen. Die Wiedergabe startet manuell. Übersicht und Ask IQ lesen gespeicherte Daten nur für das angezeigte Zeitfenster, auch wenn neue Berechnungen nicht verfügbar sind. Ein Reiterwechsel startet weder Aurora noch Web IQ.\n\nIn Übersicht mit Wetter prüfen die Ansicht Wetter und Karte öffnen. Die kompakte Karte zeigt oben eine einzige Aktion Wetter prüfen oder Aktualisieren. Zuerst maximale Böe in km/h, Gesamtniederschlag und Schadendatum vergleichen; danach Kurve, Zeitachse und Quellen öffnen aufklappen, um Stundenkurve, Schadenzeit, Herkunft oder Fallaktionen aufzurufen. Gleicher Tag bestätigt nicht die Ereignisstunde. Eine Warnung Ausserhalb des Fensters schliesst die Verwendung dieser Daten für dieses Datum aus. Technische Moduseinstellungen bleiben in der Administration.",
     "openTitle": "Demoleitfaden",
     "openBadge": "Demo",
     "title": "Demoleitfaden",
@@ -3122,7 +3137,7 @@
           },
           {
             "title": "4. Wetter-, Betrugs- und Cat-Nat-Analyse",
-            "detail": "Öffnen Sie Wetter und Karte für Standort und Aurora-Verfügbarkeit. Starten Sie Aurora nur bei verfügbarem Dienst; ohne abgeschlossene Vorhersage wird kein Wetterdiagramm angezeigt. Historische Anfangsdaten sind keine Live-Beobachtungen.\n\nBetrugsanalyse starten in Übersicht beginnt die Prüfung direkt. Vorhandene Berichte stehen unter Analyse und Fakten; eine Wiederholung ist eine eigene Aktion. Web IQ läuft mit der Betrugsanalyse und prüft öffentliche Quellen und gegebenenfalls französische Cat-Nat-Informationen. Jeder Hinweis erscheint nur einmal.",
+            "detail": "In Übersicht mit Wetter prüfen die Ansicht Wetter und Karte öffnen. Maximale Böe, Gesamtniederschlag und Überschneidung des Schadendatums mit dem Zeitfenster prüfen. Die einzige obere Aktion erstellt oder aktualisiert die Aussichten. Bei gleichem Tag muss die Ereignisstunde bestätigt werden; Daten ausserhalb des Fensters nicht für dieses Datum verwenden. Stundenkurve, Zeitachse, Herkunft oder Fallaktionen bieten Details. Quellenprüfung und fachliche Prüfung bleiben vom indikativen Wetterkontext getrennt.\n\nBetrugsanalyse starten in Übersicht beginnt die Prüfung direkt. Vorhandene Berichte stehen unter Analyse und Fakten; eine Wiederholung ist eine eigene Aktion. Web IQ läuft mit der Betrugsanalyse und prüft öffentliche Quellen und gegebenenfalls französische Cat-Nat-Informationen. Jeder Hinweis erscheint nur einmal.",
             "tip": "Aurora-Belege sind prognostisch und beratend; Web-IQ-Quellen bleiben anklickbare historische Belege."
           },
           {
@@ -3157,7 +3172,7 @@
           },
           {
             "title": "4. Betrugsanalyse, Web IQ und Herkunft",
-            "detail": "Betrugsanalyse starten:\n• Web IQ sucht auf Deutsch, Region CH („Unwetter Winterthur 28. August 2026 Hagel Sturm“), ohne Cat-Nat-Abfrage\n• Erwartete Punkte: Gebäude auch der GVZ gemeldet, Kühlgut ohne Zusatzdeckung, Foto vom 26.08. (vor dem Unwetter)\n• Jedes Foto zeigt sein Content-Credentials-Badge (C2PA), nur zur Information",
+            "detail": "In Übersicht mit Wetter prüfen die Ansicht Wetter und Karte öffnen. Maximale Böe, Gesamtniederschlag und Überschneidung des Schadendatums mit dem Zeitfenster prüfen. Die einzige obere Aktion erstellt oder aktualisiert die Aussichten. Bei gleichem Tag muss die Ereignisstunde bestätigt werden; Daten ausserhalb des Fensters nicht für dieses Datum verwenden. Stundenkurve, Zeitachse, Herkunft oder Fallaktionen bieten Details. Quellenprüfung und fachliche Prüfung bleiben vom indikativen Wetterkontext getrennt.\n\nBetrugsanalyse starten:\n• Web IQ sucht auf Deutsch, Region CH („Unwetter Winterthur 28. August 2026 Hagel Sturm“), ohne Cat-Nat-Abfrage\n• Erwartete Punkte: Gebäude auch der GVZ gemeldet, Kühlgut ohne Zusatzdeckung, Foto vom 26.08. (vor dem Unwetter)\n• Jedes Foto zeigt sein Content-Credentials-Badge (C2PA), nur zur Information",
             "tip": "Synthetische Bilder; JPEG-Kopien ohne C2PA-Daten. Markise vor dem Unwetter eingefahren; schräger windgetriebener Hagel, gebundene Risse im Sicherheitsglas, keine ausgestanzten Löcher. Hagel auf den exponierten Strassenflächen verteilt, nicht nur an einer Stelle. Lokale Wasserspuren an Rahmenanschlüssen, nicht durch geschlossene Scheiben. Schokolade in geschlossenen Vitrinen, Verpackungen und Küchengeräten mit Deckel geschützt. Der trockene Kühlraum zeigt 23,8 °C nach Stromrückkehr, keinen Verderbnachweis oder Gesamtverlust. Beträge vorläufig; technische Berichte, Inventar- und Temperaturprotokolle nicht beigefügt."
           },
           {
@@ -3193,7 +3208,7 @@
           },
           {
             "title": "4. Konsistenz, Web IQ und Herkunft prüfen",
-            "detail": "Betrugsanalyse starten und den Sturm anhand öffentlicher Schweizer Quellen für Schaffhausen am 28. August 2026 prüfen. Alle zehn Szenariozeiten liegen nach dem Sturm; spätere Fotos zeigen Schadenminderung, Inventur und Besichtigung. Gebäudeschäden und Notdach werden von der GVSH bearbeitet und sind nicht Teil dieser Forderung.",
+            "detail": "In Übersicht mit Wetter prüfen die Ansicht Wetter und Karte öffnen. Maximale Böe, Gesamtniederschlag und Überschneidung des Schadendatums mit dem Zeitfenster prüfen. Die einzige obere Aktion erstellt oder aktualisiert die Aussichten. Bei gleichem Tag muss die Ereignisstunde bestätigt werden; Daten ausserhalb des Fensters nicht für dieses Datum verwenden. Stundenkurve, Zeitachse, Herkunft oder Fallaktionen bieten Details. Quellenprüfung und fachliche Prüfung bleiben vom indikativen Wetterkontext getrennt.\n\nBetrugsanalyse starten und den Sturm anhand öffentlicher Schweizer Quellen für Schaffhausen am 28. August 2026 prüfen. Alle zehn Szenariozeiten liegen nach dem Sturm; spätere Fotos zeigen Schadenminderung, Inventur und Besichtigung. Gebäudeschäden und Notdach werden von der GVSH bearbeitet und sind nicht Teil dieser Forderung.",
             "tip": "Erwartet: keine eingebaute Unstimmigkeit. Fotos zeigen Ausschnitte, nicht das vollständige Inventar oder innere Uhrenschäden. Inventurlisten, technische Berichte und Bewertungsbelege anfordern; sie sind nicht beigefügt. Die Bilder sind synthetisch; JPEG-Kopien enthalten keine C2PA-Nachweise. Der Nettobetrag bleibt eine sachverständig zu prüfende Schätzung."
           },
           {
@@ -3737,7 +3752,8 @@
         "reviewScope": "Gemeldeten Schadenzeitpunkt mit diesem Fenster vergleichen. Relevante Belege sammeln und Abweichungen menschlich prüfen lassen.",
         "customer": "Kundenkontakt vorbereiten",
         "customerScope": "Schadenzeit bestätigen und datierte Fotos sichern. Präventionshinweise erfordern aktuelles, geprüftes Wetter und amtliche Warnungen.",
-        "inferenceUnavailable": "Neue Berechnungen sind nicht verfügbar; gespeicherte Ergebnisse bleiben lesbar."
+        "inferenceUnavailable": "Neue Berechnungen sind nicht verfügbar; gespeicherte Ergebnisse bleiben lesbar.",
+        "demo_simulation": "Gespeicherte Wetteraussichten"
       },
       "workspace": {
         "title": "Wetter, Schadenort und öffentliche Quellen",
@@ -3857,7 +3873,57 @@
       "millimeters": "{value, number} mm",
       "notAvailable": "Nicht verfügbar",
       "provenance": "Quelle: {provider} · erstellt am {time}.",
-      "error": "Aurora ist in dieser Umgebung nicht verfügbar oder konfiguriert."
+      "error": "Aurora ist in dieser Umgebung nicht verfügbar oder konfiguriert.",
+      "claimMetrics": {
+        "details": "Kurve, Zeitachse und Quellen öffnen",
+        "generate": "Wetter prüfen",
+        "refresh": "Aktualisieren",
+        "running": "In Arbeit…",
+        "open": "Wetter prüfen",
+        "kilometersPerHour": "{value} km/h",
+        "gustHelp": "Dach- und Fassadenbelege prüfen",
+        "rainHelp": "Wassereintritt und Zeitpunkt prüfen",
+        "dateLabel": "Gemeldetes Schadendatum",
+        "boundary": "Nur indikativer Kontext · kein Nachweis für Ursache, Deckung oder beobachtetes Wetter.",
+        "scope": {
+          "missing_date": "Datum erforderlich",
+          "invalid_date": "Datum prüfen",
+          "unavailable": "Zeitfenster nicht verfügbar",
+          "same_day": "Gleicher Tag · Uhrzeit prüfen",
+          "within_window": "Zeit im Fenster",
+          "outside_window": "Ausserhalb des Fensters"
+        },
+        "scopeHelp": {
+          "missing_date": "Schadendatum vor dem Vergleich ergänzen.",
+          "invalid_date": "Gültiges Datum oder Uhrzeit mit Zeitzone verwenden.",
+          "unavailable": "Kein validiertes Stundenfenster zum Vergleich.",
+          "same_day": "Eine Tagesüberschneidung bestätigt nicht die Schadenzeit.",
+          "within_window": "Datierte Fotos und Schadenmeldung vergleichen.",
+          "outside_window": "Diese Daten nicht für dieses Schadendatum verwenden."
+        }
+      },
+      "scenario": {
+        "run": "Wetteraussichten erstellen",
+        "running": "Wetteraussichten werden vorbereitet…",
+        "refresh": "Wetteraussichten aktualisieren",
+        "location": "Referenzort",
+        "description": "Wetteraussichten für die angezeigten Daten und den Ort. Nur indikativer Kontext, kein beobachteter Wetterbeleg; fachliche Prüfung bleibt erforderlich.",
+        "result": "Wetteraussichten über {hours} Stunden.",
+        "maxGust": "Maximale Böe",
+        "precipitation": "Gesamtniederschlag",
+        "window": "{count} Stundenpunkte · {start} bis {end}",
+        "reviewRequired": "Gespeicherte Aussichten · fachliche Prüfung erforderlich",
+        "chartTitle": "Stündliche Wetteraussichten",
+        "chartLabel": "Stündliche Wetteraussichten für Böen, Niederschlag und Temperatur",
+        "timelineTitle": "Wetterzeitachse",
+        "timelineLead": "Nur zeitlicher Kontext; bestätigt weder Schadenzeit noch beobachteten Sturm.",
+        "pointCount": "{count} Stundenpunkte",
+        "timelineBoundary": "Indikativer Kontext für das angezeigte Zeitfenster, keine Wetterbeobachtung oder Kausalitätsnachweis.",
+        "startsAt": "Referenzzeit",
+        "source": "Gespeichertes Wetterszenario",
+        "risk": "Wetterhinweis: {severity}",
+        "provider": "Wetterszenario"
+      }
     },
     "drawer": {
       "label": "Falldetails",
@@ -4018,5 +4084,26 @@
       "overclaim": "Geforderter Betrag über der KI-Schätzung",
       "overclaimDetail": "{claimed} gefordert ggü. {recommended} geschätzt (+{percent} %)"
     }
+  },
+  "auroraDemo": {
+    "shortNotice": "Synthetische Ergebnisse ohne Modell; Admin-Validierung erforderlich.",
+    "saveMode": "Modus speichern und validieren",
+    "title": "Demo-Simulation",
+    "notice": "Synthetisches Wetterszenario, keine Aurora-Inferenz oder Wetterbeobachtung. Diese Werte belegen weder Schaden, Deckung noch Betrug. Die menschliche Prüfung bleibt erforderlich.",
+    "confirm": "Ich genehmige die Nutzung synthetischer Demo-Ergebnisse",
+    "scenario": "Synthetisches Wetterszenario",
+    "saveHelp": "Szenario wählen, dann Modus speichern und validieren. Der Server prüft den lokalen Demo-Vertrag, nicht die Azure-Verbindung. Zum echten Modell zurückkehren: Option deaktivieren und speichern.",
+    "validated": "Demo von {admin} am {at} validiert",
+    "liveConfigured": "Die Konfiguration des echten Modells ist bereit; dies belegt keine erfolgreiche Inferenz.",
+    "liveNotConfigured": "Das echte Modell ist deaktiviert, abgelaufen oder nicht konfiguriert. Die Demo-Prüfung ist unabhängig.",
+    "billing": "Die Simulation stoppt oder löscht keine bereitgestellte GPU. Die Abrechnung läuft bis zum Stoppen oder Löschen weiter.",
+    "scenarios": {
+      "swiss-chocolate-storm": "Schokoladenwerkstatt — Sturm in Winterthur, 28/08/2026",
+      "swiss-watch-storm": "Uhrenmanufaktur — Sturm in Schaffhausen, 28/08/2026",
+      "wine-cellar": "Weinkeller — Wassereintritt nach Sturm, 27/03/2026"
+    },
+    "presentation": "Demo- und Simulationshinweise erscheinen nur in der Administration. Kundenseiten verwenden neutrale Bezeichnungen für Wetteraussichten. Die synthetische Herkunft bleibt in gespeicherten Daten und im Agentenkontext erhalten.",
+    "guideTitle": "Administratoranleitung",
+    "guide": "Synthetische Ergebnisse genehmigen, das passende Szenario für Schokoladenwerkstatt, Uhrenmanufaktur oder Weinkeller wählen und die Simulation speichern und validieren. Unter Wetter und Karte kann der Kunde Wetteraussichten erstellen und Stundenkurve, Zeitachse, Herkunft und Prüfungsvorschläge erkunden. Modusdetails erscheinen nur hier in der Administration; gespeicherte Daten und Agentenkontext behalten die synthetische Herkunft. Echte Belege bleiben separat. Simulation deaktivieren und speichern, um zum echten Modell zurückzukehren. Echte Azure-Verbindung testen prüft die tatsächlichen Abhängigkeiten."
   }
 }

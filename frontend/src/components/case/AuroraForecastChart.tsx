@@ -42,11 +42,14 @@ function extent(
 export default function AuroraForecastChart({
   series,
   locale,
+  synthetic = false,
 }: {
   series: ForecastPoint[];
   locale: string;
+  synthetic?: boolean;
 }) {
   const t = useTranslations('caseCockpit.aurora.chart');
+  const scenario = useTranslations('caseCockpit.aurora.scenario');
   if (series.length === 0) {
     return <p className="text-xs text-slate-500">{t('empty')}</p>;
   }
@@ -86,14 +89,14 @@ export default function AuroraForecastChart({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold">{t('title')}</p>
+        <p className="text-xs font-semibold">{synthetic ? scenario('chartTitle') : t('title')}</p>
         <p className="text-[10px] opacity-70">{t('hourly')}</p>
       </div>
       <div className="overflow-x-auto rounded-md border border-current/10 bg-white/80 p-2">
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           role="img"
-          aria-label={t('ariaLabel')}
+          aria-label={synthetic ? scenario('chartLabel') : t('ariaLabel')}
           className="mx-auto block w-full min-w-[34rem] max-w-3xl"
         >
           {rows.map((row) => {

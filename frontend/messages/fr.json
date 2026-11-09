@@ -369,9 +369,9 @@
       "reload": "Recharger",
       "hours": "{count} heures",
       "configuration": {
-        "title": "Configuration du point de terminaison managé",
+        "title": "Configuration du modèle réel",
         "lead": "Configurez uniquement les identifiants de ressources non secrets. L'accès Blob utilise l'identité managée ; l'authentification du point de terminaison est fournie de façon sécurisée par le déploiement.",
-        "enabled": "Activer Aurora",
+        "enabled": "Activer le modèle réel",
         "disabledReason": {
           "label": "Motif de suspension affiché dans les dossiers",
           "unspecified": "Suspension sans motif précisé",
@@ -423,7 +423,10 @@
           "endpoint_authentication": "L'identité managée ou le secret Key Vault du point de terminaison peut s'authentifier",
           "endpoint": "Le point de terminaison managé est joignable",
           "initial_conditions": "Les conditions initiales respectent le contrat Aurora",
-          "blob_channel": "Le canal de tâches autorise l'accès Blob délégué"
+          "blob_channel": "Le canal de tâches autorise l'accès Blob délégué",
+          "demo_scenario": "Scénario synthétique reconnu",
+          "demo_contract": "Contrat de sortie 6/12 h validé",
+          "demo_audit": "Validation administrateur enregistrée"
         }
       },
       "inputContract": {
@@ -460,6 +463,18 @@
           }
         },
         "measurement": "Tableau de mesure : comparez le temps de triage, les demandes d'informations évitables, le temps de préparation du gestionnaire et la précision des escalades. Ne présentez pas les économies projetées comme un ROI acquis."
+      },
+      "demo": {
+        "activated": "Démo synthétique activée et validée. Aucune inférence Aurora ni connexion Azure n'est revendiquée.",
+        "testPassed": "Contrat de simulation validé — aucun appel au modèle ou au Blob météo.",
+        "lead": "Des scénarios météo synthétiques validés par un admin gardent la démonstration utilisable sans le modèle Aurora. La configuration et les preuves réelles sont conservées séparément.",
+        "readiness": "Disponibilité de la simulation",
+        "save": "Enregistrer et valider la simulation",
+        "test": "Tester la simulation",
+        "testLive": "Tester la connexion Azure réelle",
+        "checklist": "Validation locale de démo uniquement",
+        "inputTitle": "Contrat du scénario synthétique",
+        "noNetcdf": "6 ou 12 points horaires, indicateurs déterministes de démo et provenance synthétique explicite. Aucun fichier ERA5, résultat NetCDF ou tâche Azure n'est créé."
       }
     },
     "accessRequests": {
@@ -3091,7 +3106,7 @@
   "demoGuide": {
     "claimsKpiColors": "Dans Aperçu des sinistres habitation, les cartes sont roses pour une revue prioritaire, orange pour les contrôles requis, vertes pour les indicateurs de faible risque ou de calme, bleues pour le contexte, violettes pendant l’analyse et grises sans évaluation disponible. La couleur ne confirme ni la couverture ni la fraude ; lire les libellés et les preuves.",
     "claimsWorkflow": "Dans Client, les libellés de tonalité et le brouillon complet de Courriel, SMS ou Lettre suivent la langue sélectionnée ; les noms et références source restent inchangés. Dans Ask IQ, lancer un workflow pour suivre le plan d’exécution en direct : lecture du dossier, contrôles des agents en parallèle, puis synthèse. Les icônes identifient les rôles ; les contrôles indisponibles exigent une revue. La recommandation finale apparaît en premier, suivie du plan et des résultats détaillés des agents. Aucun envoi ni aucune décision automatique.",
-    "claimsNavigation": "Utiliser Aperçu pour les actions directes, Pièces pour les fichiers et la police, Analyse et faits pour la couverture, la fraude et Web IQ, Client pour les brouillons modifiables, et Météo et carte pour la localisation et la disponibilité d'Aurora. La Chronologie du sinistre a un seul onglet principal. Plus contient les données techniques.\n\nDans Météo et carte, choisir Données Aurora, Lieu du sinistre ou Sources Web IQ ; seul le panneau actif s’affiche. Dans Aurora, choisir Graphique horaire, Date du sinistre, Provenance ou Actions dossier. La lecture est manuelle. Aperçu et Ask IQ lisent les données enregistrées uniquement dans leur fenêtre affichée, même si les nouveaux calculs sont indisponibles. Choisir un onglet ne lance ni Aurora ni Web IQ.",
+    "claimsNavigation": "Utiliser Aperçu pour les actions directes, Pièces pour les fichiers et la police, Analyse et faits pour la couverture, la fraude et Web IQ, Client pour les brouillons modifiables, et Météo et carte pour la localisation et la disponibilité d'Aurora. La Chronologie du sinistre a un seul onglet principal. Plus contient les données techniques.\n\nDans Météo et carte, choisir Données Aurora, Lieu du sinistre ou Sources Web IQ ; seul le panneau actif s’affiche. Dans Aurora, choisir Graphique horaire, Date du sinistre, Provenance ou Actions dossier. La lecture est manuelle. Aperçu et Ask IQ lisent les données enregistrées uniquement dans leur fenêtre affichée, même si les nouveaux calculs sont indisponibles. Choisir un onglet ne lance ni Aurora ni Web IQ.\n\nUtiliser Vérifier la météo dans Aperçu pour ouvrir Météo et carte. La carte compacte garde une seule action Analyser météo ou Actualiser en haut. Lire d'abord la rafale maximale en km/h, la pluie cumulée et la comparaison avec la date du sinistre, puis déplier Explorer graphique, chronologie et sources pour accéder au Graphique horaire, à la Date du sinistre, à la Provenance ou aux Actions dossier. Même jour ne confirme pas l'heure ; un avertissement Hors de la fenêtre exclut l'utilisation de ces données pour cette date. La configuration du mode reste dans l'administration.",
     "openTitle": "Guide de démonstration",
     "openBadge": "Démo",
     "title": "Guide de Démonstration",
@@ -3122,7 +3137,7 @@
           },
           {
             "title": "4. Analyse Météo, Anti-Fraude & Cat-Nat",
-            "detail": "Ouvrir Météo et carte pour la localisation et la disponibilité d'Aurora. Ne lancer Aurora que si le service est disponible ; sans prévision terminée, aucun graphique météo n'est affiché. Des conditions initiales historiques ne sont pas des observations en direct.\n\nDepuis Aperçu, Lancer l'analyse fraude démarre directement la vérification. Si un résultat existe, ouvrir le rapport dans Analyse et faits ; relancer est une action distincte. Web IQ s'exécute avec l'analyse fraude et vérifie les sources publiques et la Cat-Nat française si applicable. Points d'attention liste chaque signal une seule fois.",
+            "detail": "Depuis Aperçu, ouvrir Météo et carte avec Vérifier la météo. Lire rafale maximale, pluie cumulée et concordance avec la date du sinistre dans la fenêtre affichée. Utiliser l'unique action en haut pour générer ou actualiser les perspectives. Même jour nécessite de confirmer l'heure ; les données hors fenêtre ne doivent pas être utilisées pour cette date. Ouvrir graphique, chronologie, provenance ou actions pour les détails. Les contrôles de sources et la revue experte restent distincts du contexte météo indicatif.\n\nDepuis Aperçu, Lancer l'analyse fraude démarre directement la vérification. Si un résultat existe, ouvrir le rapport dans Analyse et faits ; relancer est une action distincte. Web IQ s'exécute avec l'analyse fraude et vérifie les sources publiques et la Cat-Nat française si applicable. Points d'attention liste chaque signal une seule fois.",
             "tip": "Les preuves Aurora sont prédictives et indicatives ; les sources Web IQ restent des preuves historiques cliquables."
           },
           {
@@ -3157,7 +3172,7 @@
           },
           {
             "title": "4. Fraude, Web IQ et provenance",
-            "detail": "Lancer l'analyse fraude :\n• Web IQ cherche en allemand, région CH (« Unwetter Winterthur 28. August 2026 Hagel Sturm »), sans requête Cat-Nat\n• Points attendus : bâtiment aussi déclaré à la GVZ, denrées réfrigérées sans l'extension Kühlgut, photo datée du 26.08 (avant la tempête)\n• Chaque photo affiche son badge Content Credentials (C2PA), à titre d'information",
+            "detail": "Depuis Aperçu, ouvrir Météo et carte avec Vérifier la météo. Lire rafale maximale, pluie cumulée et concordance avec la date du sinistre dans la fenêtre affichée. Utiliser l'unique action en haut pour générer ou actualiser les perspectives. Même jour nécessite de confirmer l'heure ; les données hors fenêtre ne doivent pas être utilisées pour cette date. Ouvrir graphique, chronologie, provenance ou actions pour les détails. Les contrôles de sources et la revue experte restent distincts du contexte météo indicatif.\n\nLancer l'analyse fraude :\n• Web IQ cherche en allemand, région CH (« Unwetter Winterthur 28. August 2026 Hagel Sturm »), sans requête Cat-Nat\n• Points attendus : bâtiment aussi déclaré à la GVZ, denrées réfrigérées sans l'extension Kühlgut, photo datée du 26.08 (avant la tempête)\n• Chaque photo affiche son badge Content Credentials (C2PA), à titre d'information",
             "tip": "Images synthétiques ; copies JPEG sans données C2PA. Store rentré avant l'orage ; grêle oblique poussée par le vent, fissures retenues dans le verre de sécurité, aucun trou découpé. Grêle répartie sur les zones de rue exposées, pas en un seul tas. Traces d'eau locales aux raccords des cadres, pas à travers le verre plein. Chocolat protégé en vitrines fermées, emballages et équipements de cuisine à couvercle. La chambre froide sèche affiche 23,8 °C après le retour du courant, sans prouver le pourrissement ni la perte de tout le stock. Montants provisoires ; rapports techniques, inventaires et relevés de température non joints."
           },
           {
@@ -3193,7 +3208,7 @@
           },
           {
             "title": "4. Vérifier la cohérence, Web IQ et la provenance",
-            "detail": "Lancer l'analyse fraude et vérifier la tempête dans les sources publiques suisses pour Schaffhouse le 28 août 2026. Les dix horaires du scénario sont postérieurs à la tempête ; les dernières photos montrent les mesures conservatoires, l'inventaire et l'expertise. Le bâtiment et la couverture provisoire du toit relèvent de la GVSH et ne sont pas inclus dans cette demande.",
+            "detail": "Depuis Aperçu, ouvrir Météo et carte avec Vérifier la météo. Lire rafale maximale, pluie cumulée et concordance avec la date du sinistre dans la fenêtre affichée. Utiliser l'unique action en haut pour générer ou actualiser les perspectives. Même jour nécessite de confirmer l'heure ; les données hors fenêtre ne doivent pas être utilisées pour cette date. Ouvrir graphique, chronologie, provenance ou actions pour les détails. Les contrôles de sources et la revue experte restent distincts du contexte météo indicatif.\n\nLancer l'analyse fraude et vérifier la tempête dans les sources publiques suisses pour Schaffhouse le 28 août 2026. Les dix horaires du scénario sont postérieurs à la tempête ; les dernières photos montrent les mesures conservatoires, l'inventaire et l'expertise. Le bâtiment et la couverture provisoire du toit relèvent de la GVSH et ne sont pas inclus dans cette demande.",
             "tip": "Attendu : aucune incohérence introduite. Les photos montrent des échantillons, pas l'inventaire complet ni les dommages internes des montres. Demander les inventaires, rapports techniques et justificatifs de valorisation, non joints. Les images sont synthétiques ; les JPEG n'ont pas de justificatifs C2PA. Le net reste une estimation soumise à l'expert."
           },
           {
@@ -3737,7 +3752,8 @@
         "reviewScope": "Comparer l'heure déclarée à cette fenêtre. Rassembler les pièces pertinentes et faire examiner les écarts par un gestionnaire.",
         "customer": "Préparer le contact client",
         "customerScope": "Confirmer l'heure du sinistre et conserver les photos datées. Les conseils de prévention nécessitent une météo actuelle vérifiée et les alertes officielles.",
-        "inferenceUnavailable": "Les nouveaux calculs sont indisponibles ; les résultats enregistrés restent consultables."
+        "inferenceUnavailable": "Les nouveaux calculs sont indisponibles ; les résultats enregistrés restent consultables.",
+        "demo_simulation": "Perspectives météo enregistrées"
       },
       "workspace": {
         "title": "Météo, lieu et sources publiques",
@@ -3857,7 +3873,57 @@
       "millimeters": "{value, number} mm",
       "notAvailable": "Indisponible",
       "provenance": "Source : {provider} · générée le {time}.",
-      "error": "Aurora est indisponible ou n'est pas configuré dans cet environnement."
+      "error": "Aurora est indisponible ou n'est pas configuré dans cet environnement.",
+      "claimMetrics": {
+        "details": "Explorer graphique, chronologie et sources",
+        "generate": "Analyser météo",
+        "refresh": "Actualiser",
+        "running": "En cours…",
+        "open": "Vérifier la météo",
+        "kilometersPerHour": "{value} km/h",
+        "gustHelp": "Vérifier les preuves toiture et façade",
+        "rainHelp": "Vérifier l'entrée d'eau et sa chronologie",
+        "dateLabel": "Date du sinistre déclarée",
+        "boundary": "Contexte indicatif uniquement · sans preuve de cause, de couverture ou de météo observée.",
+        "scope": {
+          "missing_date": "Date à renseigner",
+          "invalid_date": "Date à vérifier",
+          "unavailable": "Fenêtre indisponible",
+          "same_day": "Même jour · heure à confirmer",
+          "within_window": "Heure dans la fenêtre",
+          "outside_window": "Hors de la fenêtre"
+        },
+        "scopeHelp": {
+          "missing_date": "Renseigner la date avant de comparer.",
+          "invalid_date": "Utiliser une date valide ou une heure avec fuseau.",
+          "unavailable": "Aucune fenêtre horaire validée à comparer.",
+          "same_day": "Un recoupement de journée ne confirme pas l'heure du sinistre.",
+          "within_window": "Comparer les photos datées et la déclaration.",
+          "outside_window": "Ne pas utiliser ces données pour cette date de sinistre."
+        }
+      },
+      "scenario": {
+        "run": "Générer les perspectives météo",
+        "running": "Préparation des perspectives météo…",
+        "refresh": "Actualiser les perspectives météo",
+        "location": "Localisation de référence",
+        "description": "Perspectives météo pour les dates et le lieu affichés. Contexte indicatif, sans preuve météo observée ; la revue experte reste obligatoire.",
+        "result": "Perspectives météo sur {hours} heures.",
+        "maxGust": "Rafale maximale",
+        "precipitation": "Précipitations totales",
+        "window": "{count} points horaires · du {start} au {end}",
+        "reviewRequired": "Perspectives enregistrées · revue experte requise",
+        "chartTitle": "Perspectives météo horaires",
+        "chartLabel": "Perspectives météo horaires : rafales, précipitations et température",
+        "timelineTitle": "Chronologie météo",
+        "timelineLead": "Contexte temporel uniquement ; ne confirme ni l'heure du sinistre ni une tempête observée.",
+        "pointCount": "{count} points horaires",
+        "timelineBoundary": "Contexte indicatif pour la fenêtre affichée, sans observation météo ni preuve de causalité.",
+        "startsAt": "Date de référence",
+        "source": "Scénario météo enregistré",
+        "risk": "Signal météo : {severity}",
+        "provider": "Scénario météo"
+      }
     },
     "drawer": {
       "label": "Détails du dossier",
@@ -4018,5 +4084,26 @@
       "overclaim": "Montant déclaré supérieur à l'estimation IA",
       "overclaimDetail": "{claimed} déclarés vs {recommended} estimés (+{percent} %)"
     }
+  },
+  "auroraDemo": {
+    "shortNotice": "Résultats synthétiques sans modèle ; validation administrateur obligatoire.",
+    "saveMode": "Enregistrer et valider le mode",
+    "title": "Démo simulée",
+    "notice": "Scénario météo synthétique, sans inférence Aurora ni observation météo. Ces valeurs ne prouvent ni le sinistre, ni la couverture, ni la fraude. La revue humaine reste obligatoire.",
+    "confirm": "J'autorise l'utilisation de résultats synthétiques de démonstration",
+    "scenario": "Scénario météo synthétique",
+    "saveHelp": "Choisir un scénario, puis Enregistrer et valider le mode. Le serveur valide le contrat local de démo, pas la connexion Azure. Désactiver l'option et enregistrer pour revenir au modèle réel.",
+    "validated": "Démo validée par {admin} le {at}",
+    "liveConfigured": "La configuration du modèle réel est prête ; cela ne prouve pas qu'une inférence a réussi.",
+    "liveNotConfigured": "Le modèle réel est désactivé, expiré ou non configuré. La validation de démo est indépendante.",
+    "billing": "La simulation n'arrête ni ne supprime un GPU provisionné. Sa facturation continue jusqu'à son arrêt ou sa suppression.",
+    "scenarios": {
+      "swiss-chocolate-storm": "Chocolaterie — tempête à Winterthur, 28/08/2026",
+      "swiss-watch-storm": "Horlogerie — tempête à Schaffhausen, 28/08/2026",
+      "wine-cellar": "Cave à vin — infiltration après tempête, 27/03/2026"
+    },
+    "presentation": "Les mentions démo et simulation sont réservées à l'administration. Les vues client utilisent des libellés neutres de perspectives météo. La provenance synthétique reste conservée dans les données et le contexte des agents.",
+    "guideTitle": "Guide administrateur",
+    "guide": "Autoriser les résultats synthétiques, choisir le scénario correspondant à la chocolaterie, à l'horlogerie ou à la cave à vin, puis enregistrer et valider la simulation. Dans Météo et carte, le client peut générer des perspectives météo et explorer graphique horaire, chronologie, provenance et suggestions de revue. Les détails du mode sont visibles uniquement ici dans l'administration ; les données et le contexte des agents conservent la provenance synthétique. Les preuves réelles restent séparées. Désactiver la simulation et enregistrer pour revenir au modèle réel. Tester la connexion Azure réelle effectue de vrais contrôles des dépendances."
   }
 }

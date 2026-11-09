@@ -2116,6 +2116,8 @@ export async function getClaimLocation(applicationId: string): Promise<ClaimLoca
   return apiFetch(`/api/applications/${encodeURIComponent(applicationId)}/location`);
 }
 
+export type AuroraDemoScenario = 'swiss-chocolate-storm' | 'swiss-watch-storm' | 'wine-cellar';
+
 export interface AuroraForecast {
   request_id: string;
   model: string;
@@ -2167,6 +2169,10 @@ export interface AuroraForecast {
     provider: string;
     model: string;
     source: string;
+    synthetic?: boolean;
+    scenario_id?: AuroraDemoScenario;
+    scenario_version?: number;
+    scenario_started_at?: string;
     initial_condition_blob?: string;
   };
 }
@@ -2179,6 +2185,8 @@ export interface AuroraStatus {
   ensemble_model: string;
   provider: string;
   mode: string;
+  demo_scenario?: AuroraDemoScenario;
+  demo_location?: { latitude: number; longitude: number };
   human_review_required: boolean;
   requires_initial_conditions: boolean;
   default_horizon_hours: number;
@@ -2201,7 +2209,7 @@ export interface AuroraForecastResponse {
 }
 
 export interface AuroraEvidenceContext {
-  kind: 'historical_simulation' | 'model_forecast';
+  kind: 'historical_simulation' | 'model_forecast' | 'demo_simulation';
   window: { starts_at: string; ends_at: string };
   point_count: number;
   horizon_hours: number;

@@ -19,3 +19,17 @@ export function parseAuroraClaimTime(value?: string): {
   const end = new Date(year, month - 1, day + 1).getTime() - 1;
   return {start, end, marker: new Date(year, month - 1, day, 12).getTime(), precision: 'day'};
 }
+
+export function assessAuroraClaimWindow(
+  series: ReadonlyArray<{valid_at: string}>,
+  claimDate?: string,
+): 'missing_date' | 'invalid_date' | 'unavailable' | 'same_day' | 'within_window' | 'outside_window' {
+  if (!claimDate?.trim()) return 'missing_date';
+  const claim = parseAuroraClaimTime(claimDate);
+  if (!claim) return 'invalid_date';
+  const times = series.map(point => Date.parse(point.valid_at));
+  if (!times.length || times.some((time, index) =>
+    !Number.isFinite(time) || (index > 0 && time <= times[index - 1]))) return 'unavailable';
+  if (claim.end < times[0] || claim.start > times[times.length - 1]) return 'outside_window';
+  return claim.precision === 'day' ? 'same_day' : 'within_window';
+}

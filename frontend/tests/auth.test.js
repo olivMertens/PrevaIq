@@ -55,6 +55,36 @@ function request(pathname, token) {
   });
 }
 
+test('only a session administrator can activate Aurora simulation or test the real endpoint', async () => {
+  const calls = [];
+  const {auth, load} = loadAuth({
+    NODE_ENV: 'production', ...entra,
+    fetch: async (url, init) => {
+      calls.push({url, init});
+      return Response.json({configuration: {demo_enabled: true}});
+    },
+  });
+  const route = load('app/api/admin/aurora/route');
+  const body = {demo_enabled: true, demo_scenario: 'wine-cellar', admin: 'spoofed-admin'};
+  const put = username => new NextRequest('http://localhost:3000/api/admin/aurora', {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json', cookie: `session=${auth.createSessionToken(username)}`},
+    body: JSON.stringify(body),
+  });
+  assert.equal((await route.PUT(put('entra:user@example.com'))).status, 403);
+  assert.equal(calls.length, 0);
+  assert.equal((await route.PUT(put('entra-admin:admin@example.com'))).status, 200);
+  const forwarded = JSON.parse(calls[0].init.body);
+  assert.equal(forwarded.demo_enabled, true);
+  assert.equal(forwarded.admin, 'entra-admin:admin@example.com');
+  const testRoute = load('app/api/admin/aurora/test/route');
+  const user = auth.createSessionToken('entra:user@example.com');
+  assert.equal((await testRoute.POST(request('/api/admin/aurora/test?mode=live', user))).status, 403);
+  const admin = auth.createSessionToken('entra-admin:admin@example.com');
+  assert.equal((await testRoute.POST(request('/api/admin/aurora/test?mode=live', admin))).status, 200);
+  assert.ok(calls[1].url.endsWith('/api/internal/aurora/test?mode=live'));
+});
+
 test('production ignores local credentials and opt-in flag', () => {
   const { auth, policy } = loadAuth({
     NODE_ENV: 'production', LOCAL_AUTH_ENABLED: 'true', AUTH_USER_1: 'demo:password',

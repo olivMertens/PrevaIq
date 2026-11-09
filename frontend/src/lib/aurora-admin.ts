@@ -13,6 +13,6 @@ export async function auroraAdminApi(
     headers,
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
     cache: 'no-store',
-    signal: AbortSignal.timeout(path === '/test' ? 120_000 : 25_000),
+    signal: AbortSignal.timeout(path.startsWith('/test') ? 120_000 : 25_000),
   });
 }

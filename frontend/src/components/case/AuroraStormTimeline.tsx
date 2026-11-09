@@ -78,13 +78,16 @@ export default function AuroraStormTimeline({
   hazardWindow,
   claimDate,
   locale,
+  synthetic = false,
 }: {
   series: ForecastPoint[];
   hazardWindow: HazardWindow;
   claimDate?: string;
   locale: string;
+  synthetic?: boolean;
 }) {
   const t = useTranslations('caseCockpit.aurora.timeline');
+  const scenario = useTranslations('caseCockpit.aurora.scenario');
   const [activeIndex, setActiveIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -140,8 +143,8 @@ export default function AuroraStormTimeline({
     <section className="rounded-lg border border-current/10 bg-white/80 p-3" aria-labelledby="aurora-storm-timeline-title">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
-          <p id="aurora-storm-timeline-title" className="font-semibold">{t('title')}</p>
-          <p className="mt-0.5 text-[11px] opacity-70">{t('lead')}</p>
+          <p id="aurora-storm-timeline-title" className="font-semibold">{synthetic ? scenario('timelineTitle') : t('title')}</p>
+          <p className="mt-0.5 text-[11px] opacity-70">{synthetic ? scenario('timelineLead') : t('lead')}</p>
         </div>
         <button
           type="button"
@@ -174,7 +177,7 @@ export default function AuroraStormTimeline({
               </div>
               <p className="mt-1 text-[10px] opacity-75">
                 {points.length
-                  ? t('pointCount', { count: points.length })
+                  ? (synthetic ? scenario('pointCount', { count: points.length }) : t('pointCount', { count: points.length }))
                   : t(`phases.${phase}.empty`)}
               </p>
             </div>
@@ -222,7 +225,7 @@ export default function AuroraStormTimeline({
             : t('claimOutside', {date: claimDate})}
         </p>
       )}
-      <p className="mt-2 text-[10px] opacity-65">{t('advisory')}</p>
+      <p className="mt-2 text-[10px] opacity-65">{synthetic ? scenario('timelineBoundary') : t('advisory')}</p>
     </section>
   );
 }

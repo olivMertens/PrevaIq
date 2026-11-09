@@ -21,9 +21,15 @@ import clsx from 'clsx';
 import { useTranslations } from 'next-intl';
 import { brand } from '@/lib/brand';
 import AuroraExpiryCountdown from '@/components/aurora/AuroraExpiryCountdown';
+import AuroraDemoSettings from './AuroraDemoSettings';
+import type { AuroraDemoScenario, AuroraStatus } from '@/lib/api';
 
 type AuroraConfig = {
   enabled: boolean;
+  demo_enabled: boolean;
+  demo_scenario: AuroraDemoScenario;
+  demo_validated_at: string | null;
+  demo_validated_by: string | null;
   disabled_reason?: 'blob_access_denied' | null;
   endpoint: string;
   deterministic_model: string;
@@ -39,12 +45,8 @@ type AuroraConfig = {
 type AuroraSnapshot = {
   configuration: AuroraConfig;
   source: 'admin' | 'environment';
-  runtime: {
-    enabled: boolean;
-    configured: boolean;
-    model: string;
-    missing: string[];
-  };
+  runtime: AuroraStatus;
+  live_runtime: AuroraStatus;
   checklist: Array<{ id: string; ready: boolean }>;
   ready_count: number;
   total_count: number;
@@ -56,7 +58,7 @@ type AuroraSnapshot = {
     cadence: string;
   };
   security: {
-    endpoint_authentication: 'managed_identity' | 'key_vault_secret';
+    endpoint_authentication: 'managed_identity' | 'key_vault_secret' | 'not_used';
     storage_authentication: 'managed_identity';
     secrets_persisted: boolean;
     sas_persisted: boolean;
@@ -65,6 +67,7 @@ type AuroraSnapshot = {
 
 type TestResult = {
   ok: boolean;
+  mode?: 'managed_foundry' | 'demo_simulation';
   checks: Array<{
     id: string;
     ok: boolean;
@@ -80,6 +83,10 @@ type TestResult = {
 
 const EMPTY_CONFIG: AuroraConfig = {
   enabled: false,
+  demo_enabled: false,
+  demo_scenario: 'swiss-chocolate-storm',
+  demo_validated_at: null,
+  demo_validated_by: null,
   disabled_reason: null,
   endpoint: '',
   deterministic_model: 'aurora-0.25-v1.5',
@@ -169,7 +176,7 @@ export default function AuroraAdminTab() {
       const value = await response.json() as AuroraSnapshot;
       setSnapshot(value);
       setForm(value.configuration);
-      setMessage({ kind: 'success', text: t('saved') });
+      setMessage({ kind: 'success', text: t(value.configuration.demo_enabled ? 'demo.activated' : 'saved') });
     } catch (error) {
       setMessage({ kind: 'error', text: error instanceof Error ? error.message : t('saveError') });
     } finally {
@@ -177,15 +184,16 @@ export default function AuroraAdminTab() {
     }
   }
 
-  async function testConnection() {
+  async function testConnection(mode: 'active' | 'live' = 'active') {
     setTesting(true);
     setMessage(null);
     try {
-      const response = await fetch('/api/admin/aurora/test', { method: 'POST' });
+      const response = await fetch(`/api/admin/aurora/test${mode === 'live' ? '?mode=live' : ''}`, { method: 'POST' });
       if (!response.ok) throw new Error(await responseError(response, t('testError')));
       const value = await response.json() as TestResult;
       setTestResult(value);
-      setMessage({ kind: value.ok ? 'success' : 'error', text: value.ok ? t('testPassed') : t('testFailed') });
+      setMessage({ kind: value.ok ? 'success' : 'error', text: value.ok
+        ? t(value.mode === 'demo_simulation' ? 'demo.testPassed' : 'testPassed') : t('testFailed') });
     } catch (error) {
       setMessage({ kind: 'error', text: error instanceof Error ? error.message : t('testError') });
     } finally {
@@ -196,8 +204,16 @@ export default function AuroraAdminTab() {
   const readinessPercent = snapshot
     ? Math.round((snapshot.ready_count / snapshot.total_count) * 100)
     : 0;
+  const isDemo = snapshot?.runtime.mode === 'demo_simulation';
+  const demoDirty = Boolean(snapshot && (
+    form.demo_enabled !== snapshot.configuration.demo_enabled ||
+    form.demo_scenario !== snapshot.configuration.demo_scenario
+  ));
+  const displayedChecks = testResult?.mode === 'managed_foundry' && isDemo
+    ? testResult.checks.map(check => ({ id: check.id, ready: check.ok }))
+    : snapshot?.checklist;
   const agentContext = useMemo(() => JSON.stringify({
-    source: 'aurora-0.25-v1.5',
+    source: isDemo ? 'demo_simulation' : 'aurora-0.25-v1.5',
     location: { latitude: 46.2, longitude: 6.1 },
     horizon_hours: form.default_horizon_hours,
     weather_evidence: {
@@ -211,8 +227,8 @@ export default function AuroraAdminTab() {
       recommended_actions: ['contact_customer', 'preserve_evidence', 'expedite_adjuster'],
       human_review_required: true,
     },
-    provenance: { provider: 'Microsoft Foundry', generated_at: '…' },
-  }, null, 2), [form.default_horizon_hours]);
+    provenance: { provider: isDemo ? 'PrevaIQ demo' : 'Microsoft Foundry', synthetic: isDemo, generated_at: '…' },
+  }, null, 2), [form.default_horizon_hours, isDemo]);
 
   if (loading) {
     return (
@@ -233,9 +249,9 @@ export default function AuroraAdminTab() {
               {t('eyebrow')}
             </div>
             <h2 className="mt-3 text-2xl font-semibold">{t('title')}</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t('lead')}</p>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t(isDemo ? 'demo.lead' : 'lead')}</p>
             <div className="mt-5 flex flex-wrap gap-2 text-xs">
-              {(['hourly', 'variables', 'ensemble', 'advisory'] as const).map((key) => (
+              {(isDemo ? ['hourly', 'advisory'] as const : ['hourly', 'variables', 'ensemble', 'advisory'] as const).map((key) => (
                 <span key={key} className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5">
                   {t(`facts.${key}`)}
                 </span>
@@ -244,7 +260,7 @@ export default function AuroraAdminTab() {
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{t('readiness')}</span>
+              <span className="text-sm font-medium">{t(isDemo ? 'demo.readiness' : 'readiness')}</span>
               <span className="text-2xl font-semibold text-teal-300">{readinessPercent}%</span>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
@@ -259,6 +275,15 @@ export default function AuroraAdminTab() {
       </div>
 
       <AuroraExpiryCountdown expiresAt={form.endpoint_expires_at} />
+
+      <AuroraDemoSettings enabled={form.demo_enabled ?? false}
+        scenario={form.demo_scenario ?? 'swiss-chocolate-storm'}
+        validatedAt={snapshot?.configuration.demo_validated_at ?? null}
+        validatedBy={snapshot?.configuration.demo_validated_by ?? null}
+        liveConfigured={snapshot?.live_runtime?.configured ?? false} disabled={saving}
+        onSave={() => void save()}
+        onEnabledChange={demo_enabled => { setForm({ ...form, demo_enabled }); setTestResult(null); }}
+        onScenarioChange={demo_scenario => { setForm({ ...form, demo_scenario }); setTestResult(null); }} />
 
       {message && (
         <p
@@ -384,17 +409,22 @@ export default function AuroraAdminTab() {
               style={{ backgroundColor: brand.primary }}
             >
               {saving ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <Save className="h-4 w-4" aria-hidden />}
-              {saving ? t('saving') : t('save')}
+              {saving ? t('saving') : form.demo_enabled ? t('demo.save') : t('save')}
             </button>
             <button
               type="button"
               onClick={() => void testConnection()}
-              disabled={testing || !snapshot}
+              disabled={testing || !snapshot || demoDirty}
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               {testing ? <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden /> : <TestTube2 className="h-4 w-4" aria-hidden />}
-              {testing ? t('testing') : t('test')}
+              {testing ? t('testing') : isDemo ? t('demo.test') : t('test')}
             </button>
+            {isDemo && <button type="button" onClick={() => void testConnection('live')}
+              disabled={testing || demoDirty}
+              className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm disabled:opacity-50">
+              {t('demo.testLive')}
+            </button>}
             <button
               type="button"
               onClick={() => void load()}
@@ -410,9 +440,11 @@ export default function AuroraAdminTab() {
 
         <div className="space-y-6">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="text-base font-semibold text-slate-900">{t('checklist.title')}</h3>
+            <h3 className="text-base font-semibold text-slate-900">
+              {t(isDemo && testResult?.mode !== 'managed_foundry' ? 'demo.checklist' : 'checklist.title')}
+            </h3>
             <div className="mt-4 space-y-3">
-              {snapshot?.checklist.map((item) => {
+              {displayedChecks?.map((item) => {
                 const tested = testResult?.checks.find((check) => check.id === item.id);
                 const ready = tested ? tested.ok : item.ready;
                 return (
@@ -446,9 +478,9 @@ export default function AuroraAdminTab() {
           <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
             <h3 className="flex items-center gap-2 font-semibold text-blue-950">
               <Database className="h-5 w-5" aria-hidden />
-              {t('inputContract.title')}
+              {t(isDemo ? 'demo.inputTitle' : 'inputContract.title')}
             </h3>
-            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+            {isDemo ? <p className="mt-3 text-sm">{t('demo.noNetcdf')}</p> : <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               {([
                 ['history', snapshot?.input_contract.history_steps],
                 ['surface', snapshot?.input_contract.surface_variables],
@@ -460,7 +492,7 @@ export default function AuroraAdminTab() {
                   <dd className="mt-1 font-semibold text-blue-950">{value}</dd>
                 </div>
               ))}
-            </dl>
+            </dl>}
           </div>
         </div>
       </div>

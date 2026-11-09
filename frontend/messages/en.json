@@ -369,9 +369,9 @@
       "reload": "Reload",
       "hours": "{count} hours",
       "configuration": {
-        "title": "Managed endpoint configuration",
+        "title": "Real model configuration",
         "lead": "Configure non-secret resource identifiers. Blob access uses managed identity; endpoint authentication is supplied securely by the deployment.",
-        "enabled": "Enable Aurora",
+        "enabled": "Enable the real model",
         "disabledReason": {
           "label": "Suspension reason shown in cases",
           "unspecified": "Suspended without a specified reason",
@@ -423,7 +423,10 @@
           "endpoint_authentication": "Managed identity or the Key Vault endpoint secret can authenticate",
           "endpoint": "Managed endpoint is reachable",
           "initial_conditions": "Initial conditions satisfy the Aurora contract",
-          "blob_channel": "Task channel supports delegated Blob access"
+          "blob_channel": "Task channel supports delegated Blob access",
+          "demo_scenario": "Known synthetic scenario",
+          "demo_contract": "6/12-hour output contract validated",
+          "demo_audit": "Administrator validation recorded"
         }
       },
       "inputContract": {
@@ -460,6 +463,18 @@
           }
         },
         "measurement": "Demo scorecard: compare triage time, avoidable information requests, handler preparation time and escalation accuracy. Do not present projected savings as achieved ROI."
+      },
+      "demo": {
+        "activated": "Synthetic demo activated and validated. No Aurora inference or Azure connectivity was claimed.",
+        "testPassed": "Simulation contract passed — no model or weather Blob call.",
+        "lead": "Admin-approved synthetic weather scenarios keep the demonstration usable without the Aurora model. Real configuration and evidence are preserved separately.",
+        "readiness": "Simulation readiness",
+        "save": "Save and validate simulation",
+        "test": "Test simulation",
+        "testLive": "Test real Azure connection",
+        "checklist": "Local demo validation only",
+        "inputTitle": "Synthetic scenario contract",
+        "noNetcdf": "6 or 12 hourly points, deterministic demo metrics and explicit synthetic provenance. No ERA5 input, NetCDF output or Azure task is created."
       }
     },
     "accessRequests": {
@@ -3091,7 +3106,7 @@
   "demoGuide": {
     "claimsKpiColors": "Property Overview cards use rose for high-priority review, amber for required checks, green for low-risk or calm indicators, blue for context, violet for running analysis and grey when no assessment is available. Color does not establish coverage or fraud; read the labels and evidence.",
     "claimsWorkflow": "In Customer, tone labels and the entire Email, SMS or Letter draft follow the selected language; names and source references stay unchanged. In Ask IQ, run a workflow to see the live execution plan: case reading, parallel agent checks, then synthesis. Role icons identify the agents; unavailable checks require review. The final recommendation appears first, with the execution plan and expandable agent findings below. Nothing is automatically sent or decided.",
-    "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.\n\nIn Weather & map, choose Aurora evidence, Loss location or Web IQ sources; only the active panel is shown. In Aurora, choose Hourly chart, Claim timing, Provenance or Case actions. Playback is manual. Overview and Ask IQ read saved evidence only for its displayed window, even while new calculations are unavailable. Selecting a tab does not run Aurora or Web IQ.",
+    "claimsNavigation": "Use Overview for direct actions, Evidence for files and the policy, Analysis & facts for cover, fraud and Web IQ, Customer for editable drafts, and Weather & map for location and Aurora availability. The claim Timeline has a single main tab. More contains technical data.\n\nIn Weather & map, choose Aurora evidence, Loss location or Web IQ sources; only the active panel is shown. In Aurora, choose Hourly chart, Claim timing, Provenance or Case actions. Playback is manual. Overview and Ask IQ read saved evidence only for its displayed window, even while new calculations are unavailable. Selecting a tab does not run Aurora or Web IQ.\n\nUse Review weather in Overview to open Weather & map. The compact card keeps one Check weather or Refresh action at the top. Read the maximum gust in km/h, total precipitation and loss-date comparison first; expand Explore chart, timing and sources for Hourly chart, Claim timing, Provenance or Case actions. Same day does not confirm the event hour, and an outside-window warning means these data cannot support that loss date. Technical mode setup remains in administration.",
     "openTitle": "Demo guide",
     "openBadge": "Demo",
     "title": "Demo Guide",
@@ -3122,7 +3137,7 @@
           },
           {
             "title": "4. Weather, Anti-Fraud & Cat-Nat Analysis",
-            "detail": "Open Weather & map for location and Aurora availability. Only run Aurora when available; without a completed forecast, no weather chart is shown. Historical initial conditions are not live observations.\n\nFrom Overview, Run fraud analysis starts the check directly. If a result exists, open the report in Analysis & facts; rerunning is a separate action. Web IQ runs with fraud analysis and checks French Cat-Nat and public sources where relevant. Needs your attention lists each signal once.",
+            "detail": "Open Weather & map using Review weather in Overview. Check maximum gust, total precipitation and whether the reported loss date falls in the displayed window. Use the single top action to generate or refresh the outlook. A day overlap requires the loss hour to be confirmed; outside-window data must not be used for that date. Open the hourly chart, timing, provenance or case actions for details. Keep source checks and expert review separate from indicative weather context.\n\nFrom Overview, Run fraud analysis starts the check directly. If a result exists, open the report in Analysis & facts; rerunning is a separate action. Web IQ runs with fraud analysis and checks French Cat-Nat and public sources where relevant. Needs your attention lists each signal once.",
             "tip": "Aurora evidence is predictive and advisory; Web IQ sources remain clickable historical evidence."
           },
           {
@@ -3157,7 +3172,7 @@
           },
           {
             "title": "4. Fraud analysis, Web IQ and provenance",
-            "detail": "Run the fraud analysis:\n• Web IQ searches in German, region CH (\"Unwetter Winterthur 28. August 2026 Hagel Sturm\"), without a Cat-Nat query\n• Expected points: building items also reported to the GVZ, refrigerated goods without the Kühlgut extension, a photo dated 26.08 (before the storm)\n• Each photo shows its Content Credentials (C2PA) badge, for information only",
+            "detail": "Open Weather & map using Review weather in Overview. Check maximum gust, total precipitation and whether the reported loss date falls in the displayed window. Use the single top action to generate or refresh the outlook. A day overlap requires the loss hour to be confirmed; outside-window data must not be used for that date. Open the hourly chart, timing, provenance or case actions for details. Keep source checks and expert review separate from indicative weather context.\n\nRun the fraud analysis:\n• Web IQ searches in German, region CH (\"Unwetter Winterthur 28. August 2026 Hagel Sturm\"), without a Cat-Nat query\n• Expected points: building items also reported to the GVZ, refrigerated goods without the Kühlgut extension, a photo dated 26.08 (before the storm)\n• Each photo shows its Content Credentials (C2PA) badge, for information only",
             "tip": "Synthetic images; JPEG copies have no C2PA data. Awning retracted before the storm; oblique wind-driven hail, retained cracks in safety glazing, no punched-out holes. Hail covers exposed street areas, not just one spot. Local water tracks come from frame joints, not solid glass. Chocolate stays in closed showcases, packaging and lidded kitchen equipment. The dry cold room shows 23.8 °C after power restoration, not proof of spoilage or full stock loss. Amounts are provisional; technical reports, inventory and temperature records are not attached."
           },
           {
@@ -3193,7 +3208,7 @@
           },
           {
             "title": "4. Check consistency, Web IQ and provenance",
-            "detail": "Run the fraud analysis and verify the storm against Swiss public sources for Schaffhausen on 28 August 2026. All ten photo scenario times follow the storm; later photos show mitigation, inventory and the adjuster's visit. Building repairs and emergency roof cover are handled by the GVSH, not included in this claim.",
+            "detail": "Open Weather & map using Review weather in Overview. Check maximum gust, total precipitation and whether the reported loss date falls in the displayed window. Use the single top action to generate or refresh the outlook. A day overlap requires the loss hour to be confirmed; outside-window data must not be used for that date. Open the hourly chart, timing, provenance or case actions for details. Keep source checks and expert review separate from indicative weather context.\n\nRun the fraud analysis and verify the storm against Swiss public sources for Schaffhausen on 28 August 2026. All ten photo scenario times follow the storm; later photos show mitigation, inventory and the adjuster's visit. Building repairs and emergency roof cover are handled by the GVSH, not included in this claim.",
             "tip": "Expected: no planted inconsistency. Photos show samples, not the full inventory or internal watch damage. Request inventory records, technical reports and valuation evidence; these are not attached. Images are synthetic; JPEG copies have no C2PA credentials. The net amount remains an estimate subject to adjuster validation."
           },
           {
@@ -3737,7 +3752,8 @@
         "reviewScope": "Compare the reported loss time with this window. Collect relevant evidence and ask a human reviewer to assess discrepancies.",
         "customer": "Prepare customer contact",
         "customerScope": "Confirm the loss time and preserve dated photos. Prevention advice requires current, verified weather and official alerts.",
-        "inferenceUnavailable": "New calculations are unavailable; saved results remain readable."
+        "inferenceUnavailable": "New calculations are unavailable; saved results remain readable.",
+        "demo_simulation": "Saved weather outlook"
       },
       "workspace": {
         "title": "Weather, location and public sources",
@@ -3857,7 +3873,57 @@
       "millimeters": "{value, number} mm",
       "notAvailable": "Not available",
       "provenance": "Source: {provider} · generated {time}.",
-      "error": "Aurora is unavailable or not configured for this environment."
+      "error": "Aurora is unavailable or not configured for this environment.",
+      "claimMetrics": {
+        "details": "Explore chart, timing and sources",
+        "generate": "Check weather",
+        "refresh": "Refresh",
+        "running": "Working…",
+        "open": "Review weather",
+        "kilometersPerHour": "{value} km/h",
+        "gustHelp": "Check roof and facade evidence",
+        "rainHelp": "Check water entry and damage timing",
+        "dateLabel": "Reported loss date",
+        "boundary": "Indicative context only · not proof of cause, cover or observed weather.",
+        "scope": {
+          "missing_date": "Date needed",
+          "invalid_date": "Date to verify",
+          "unavailable": "Window unavailable",
+          "same_day": "Same day · confirm time",
+          "within_window": "Time inside window",
+          "outside_window": "Outside the window"
+        },
+        "scopeHelp": {
+          "missing_date": "Add the loss date before comparing.",
+          "invalid_date": "Use a valid date or a time with timezone.",
+          "unavailable": "No validated hourly window to compare.",
+          "same_day": "A day overlap does not establish the loss time.",
+          "within_window": "Compare dated photos and the declaration.",
+          "outside_window": "Do not use these data for this loss date."
+        }
+      },
+      "scenario": {
+        "run": "Generate weather outlook",
+        "running": "Preparing weather outlook…",
+        "refresh": "Refresh weather outlook",
+        "location": "Reference location",
+        "description": "Weather outlook for the dates and location shown. Indicative context, not observed-weather evidence; expert review remains required.",
+        "result": "Weather outlook over {hours} hours.",
+        "maxGust": "Maximum gust",
+        "precipitation": "Total precipitation",
+        "window": "{count} hourly points · {start} to {end}",
+        "reviewRequired": "Saved outlook · expert review required",
+        "chartTitle": "Hourly weather outlook",
+        "chartLabel": "Hourly weather outlook for gust, precipitation and temperature",
+        "timelineTitle": "Weather timeline",
+        "timelineLead": "Timing context only; it does not confirm the loss time or observed storm.",
+        "pointCount": "{count} hourly points",
+        "timelineBoundary": "Indicative context for the displayed window, not observed weather or proof of cause.",
+        "startsAt": "Reference time",
+        "source": "Saved weather scenario",
+        "risk": "Weather signal: {severity}",
+        "provider": "Weather scenario"
+      }
     },
     "drawer": {
       "label": "Case details",
@@ -4018,5 +4084,26 @@
       "overclaim": "Claimed amount above the AI estimate",
       "overclaimDetail": "{claimed} claimed vs {recommended} estimated (+{percent}%)"
     }
+  },
+  "auroraDemo": {
+    "shortNotice": "Synthetic results without the model; administrator validation required.",
+    "saveMode": "Save and validate mode",
+    "title": "Demo simulation",
+    "notice": "Synthetic weather scenario, not Aurora inference or observed weather. These values are not evidence of the loss, coverage or fraud. Human review remains required.",
+    "confirm": "I authorize the use of synthetic demo results",
+    "scenario": "Synthetic weather scenario",
+    "saveHelp": "Choose a scenario, then Save and validate mode. The server validates the local demo contract, not Azure connectivity. Disable the option and save to return to the real model.",
+    "validated": "Demo validated by {admin} at {at}",
+    "liveConfigured": "Real model configuration is ready; this is not proof of successful inference.",
+    "liveNotConfigured": "Real model configuration is disabled, expired or incomplete. Demo validation is independent.",
+    "billing": "Simulation does not stop or delete a provisioned GPU. Its billing continues until shutdown or deletion.",
+    "scenarios": {
+      "swiss-chocolate-storm": "Chocolate workshop — Winterthur storm, 28/08/2026",
+      "swiss-watch-storm": "Watch manufacture — Schaffhausen storm, 28/08/2026",
+      "wine-cellar": "Wine cellar — storm water ingress, 27/03/2026"
+    },
+    "presentation": "Demo and simulation notices are shown only in administration. Customer views use neutral weather-outlook labels. Synthetic provenance remains unchanged in saved data and agent context.",
+    "guideTitle": "Administrator guide",
+    "guide": "Authorize synthetic results, select the matching chocolate workshop, watch manufacture or wine-cellar scenario, then save and validate simulation. In Weather & map, the customer can generate a weather outlook and explore its hourly chart, timeline, provenance and suggested review actions. Mode details are visible only here in administration; saved data and agent context retain synthetic provenance. Real evidence stays separate. Disable simulation and save to return to the real model. Test real Azure connection performs actual dependency checks."
   }
 }

@@ -23,13 +23,15 @@ export function useAuroraEvidence(applicationId: string) {
     Promise.allSettled([getAuroraStatus(), getAuroraForecast(applicationId)]).then(([status, saved]) => {
       if (!active) return;
       const missing = saved.status === 'rejected' && saved.reason instanceof APIError && saved.reason.status === 404;
+      const differentMode = status.status === 'fulfilled' && saved.status === 'fulfilled' &&
+        ((status.value.mode === 'demo_simulation') !== (saved.value.result.provenance.source === 'demo_simulation'));
       setState({
         applicationId,
         status: status.status === 'fulfilled' ? status.value : null,
-        forecast: saved.status === 'fulfilled' ? saved.value.result : null,
-        context: saved.status === 'fulfilled' ? saved.value.context ?? null : null,
+        forecast: saved.status === 'fulfilled' && !differentMode ? saved.value.result : null,
+        context: saved.status === 'fulfilled' && !differentMode ? saved.value.context ?? null : null,
         error: status.status === 'rejected' ? 'statusError'
-          : saved.status === 'rejected' && !missing ? 'loadError' : null,
+          : differentMode || (saved.status === 'rejected' && !missing) ? 'loadError' : null,
       });
     });
     return () => { active = false; };

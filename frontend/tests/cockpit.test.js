@@ -28,6 +28,23 @@ const timelineDates = load('timelineDates.ts', libDir);
 const analysisMarkdown = load('analysisMarkdown.ts', propertyDir);
 const coverageView = load('coverageView.ts', propertyDir);
 const propertySignals = load('buildPropertySignals.ts', propertyDir);
+const {assessAuroraClaimWindow} = loadTs('auroraClaimTime.ts', libDir);
+
+test('claim weather comparison distinguishes an event hour from an overlapping calendar day', () => {
+  const series = [
+    {valid_at: '2026-08-28T07:00:00Z'}, {valid_at: '2026-08-28T12:00:00Z'},
+  ];
+  assert.equal(assessAuroraClaimWindow(series), 'missing_date');
+  assert.equal(assessAuroraClaimWindow(series, '31/02/2026'), 'invalid_date');
+  assert.equal(assessAuroraClaimWindow(series, '28/08/2026'), 'same_day');
+  assert.equal(assessAuroraClaimWindow(series, '2026-08-28T09:00:00+02:00'), 'within_window');
+  assert.equal(assessAuroraClaimWindow(series, '2026-08-28T12:00:00Z'), 'within_window');
+  assert.equal(assessAuroraClaimWindow(series, '2026-08-28T12:00:01Z'), 'outside_window');
+  assert.equal(assessAuroraClaimWindow(series, '2030-08-28'), 'outside_window');
+  assert.equal(assessAuroraClaimWindow([], '2026-08-28'), 'unavailable');
+  assert.equal(assessAuroraClaimWindow([...series].reverse(), '2026-08-28'), 'unavailable');
+  assert.equal(assessAuroraClaimWindow([{valid_at: 'invalid'}], '2026-08-28'), 'unavailable');
+});
 
 test('case categories follow the UI locale before compacting, without changing holder names', () => {
   const { localizeApplicationTitle, compactApplicationTitle, localizeClaimSubject } = display;
@@ -582,6 +599,33 @@ test('Swiss weather signals refer to AVB rather than the French Cat-Nat order in
         ]);
         if (country?.toUpperCase() === 'CH') assert.match(result.detail, /AVB/);
       }
+    }
+  }
+});
+
+test('Aurora mode details stay in administration while client outlook labels remain neutral', () => {
+  for (const locale of locales) {
+    const messages = messagesFor(locale);
+    const demo = createTranslator({locale, messages, namespace: 'auroraDemo'});
+    for (const key of ['title', 'notice', 'confirm', 'scenario', 'saveHelp', 'billing']) {
+      assert.ok(demo(key).length > 5);
+      assert.notEqual(demo(key), `auroraDemo.${key}`);
+    }
+    assert.ok(demo('validated', {admin: 'test-admin', at: '2026-11-08'}).includes('test-admin'));
+    for (const id of ['swiss-chocolate-storm', 'swiss-watch-storm', 'wine-cellar']) {
+      assert.notEqual(demo(`scenarios.${id}`), `auroraDemo.scenarios.${id}`);
+    }
+    const admin = messages.adminPanel.aurora;
+    for (const key of ['demo_scenario', 'demo_contract', 'demo_audit']) {
+      assert.equal(typeof admin.checklist.items[key], 'string');
+    }
+    assert.equal(typeof messages.caseCockpit.aurora.summary.demo_simulation, 'string');
+    assert.match(demo('guide'), /simulat/i);
+    assert.ok(demo('presentation').length > 20);
+    assert.ok(!messages.demoGuide.claimsNavigation.includes(demo('guide')));
+    const outlook = createTranslator({locale, messages, namespace: 'caseCockpit.aurora.scenario'});
+    for (const key of ['run', 'running', 'refresh', 'description', 'chartLabel', 'timelineBoundary']) {
+      assert.doesNotMatch(outlook(key), /demo|démo|simulat|synthe|synthé/i);
     }
   }
 });

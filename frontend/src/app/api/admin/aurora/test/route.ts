@@ -6,5 +6,6 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   if (!adminFrom(request)) return forbidden();
-  return relay(await auroraAdminApi(request, '/test', { method: 'POST' }));
+  const path = request.nextUrl.searchParams.get('mode') === 'live' ? '/test?mode=live' : '/test';
+  return relay(await auroraAdminApi(request, path, { method: 'POST' }));
 }
