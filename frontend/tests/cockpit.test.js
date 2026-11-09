@@ -331,6 +331,43 @@ test('structured analyses render as readable Markdown, not run-together lines', 
   assert.equal(tabs.risk, '#### Fraud indicators\n- none');
 });
 
+test('translated field labels head the summary tabs and the model language tag is hidden', () => {
+  const { analysisFieldsMarkdown, parseAiSummary } = analysisMarkdown;
+  const labels = {
+    decision: 'Entscheid', statut: 'Status', couverture: 'Deckung', elements_exclus: 'Ausgeschlossen',
+    partiellement_acceptable: 'Teilweise annehmbar',
+  };
+  const parsed = {
+    langue: 'fr',
+    dossier: { police: 'PIQ-CH-KMU-2026-071506' },
+    decision: { statut: 'partiellement_acceptable' },
+    couverture: { elements_exclus: ['Gebäude', 'Dach'] },
+  };
+  const markdown = analysisFieldsMarkdown(parsed, {
+    label: (key) => labels[key] ?? null,
+    valueLabel: (code) => labels[code] ?? null,
+  });
+
+  assert.doesNotMatch(markdown, /Langue|\bfr\b/);
+  const tabs = parseAiSummary(markdown);
+  assert.match(tabs.overview, /^#### Dossier/);
+  assert.match(tabs.decision, /^#### Entscheid\n- \*\*Status:\*\* Teilweise annehmbar/);
+  assert.match(tabs.decision, /#### Deckung\n- \*\*Ausgeschlossen:\*\* Gebäude, Dach/);
+  // Without translated labels, codes and keys are still humanized as written.
+  assert.match(analysisFieldsMarkdown(parsed), /- \*\*Statut:\*\* Partiellement acceptable/);
+  assert.match(analysisFieldsMarkdown({ language: 'Deutsch und Englisch' }), /Language:\*\* Deutsch und Englisch/);
+
+  const german = parseAiSummary([
+    '#### Übersicht', '- a', '#### Schäden am Gebäude', '- b', '#### Gesamtbeurteilung', '- c',
+    '#### Betrugsindikatoren', '- d', '#### Zeitachse', '- e',
+  ].join('\n'));
+  assert.equal(german.overview, '#### Übersicht\n- a');
+  assert.equal(german.damages, '#### Schäden am Gebäude\n- b');
+  assert.equal(german.decision, '#### Gesamtbeurteilung\n- c');
+  assert.equal(german.risk, '#### Betrugsindikatoren\n- d');
+  assert.equal(german.timeline, '#### Zeitachse\n- e');
+});
+
 test('timeline previews are plain text cut at a word boundary', () => {
   const { markdownPreview } = analysisMarkdown;
   assert.equal(markdownPreview('## Summary\n**Storm** damage confirmed by [MeteoSwiss](https://x.ch).'), 'Summary');

@@ -81,6 +81,13 @@ fields, free-form descriptions, names, references and original documents are
 not rewritten. French `sinistre élémentaire` and high/critical urgency values
 from French, English and German are recognized.
 
+The property AI summary labels field names and coded values (for example
+`statut` / `partiellement_acceptable`) with the `analysis_labels` returned with a
+translated analysis: static labels first, then those, then the humanized name.
+Stored keys and codes never change. Summary tabs are routed from French, English
+and German headings, and the model's own output-language tag (`langue: fr`) is
+not displayed because it is wrong once the analysis is translated.
+
 The extracted-text panel also localizes recognized generated photo-analysis
 headings in the translated view, including legacy `Analyse des Photos` wrappers.
 It only changes the first generated Markdown heading when it names the exact

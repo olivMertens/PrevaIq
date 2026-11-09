@@ -35,6 +35,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
     [application?.llm_outputs],
   );
   const files = useMemo(() => application?.files || [], [application?.files]);
+  const analysisLabels = application?.analysis_labels;
   const docMarkdown = String((application as unknown as Record<string, unknown>)?.document_markdown || '');
 
   // Customer 360 cross-reference — by external_reference or auto-match by name
@@ -241,7 +242,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
             }
             // Fallback: format parsed JSON into readable text
             else {
-              const lines = formatParsedFields(sub.parsed, t, locale, currency);
+              const lines = formatParsedFields(sub.parsed, t, locale, currency, analysisLabels);
               if (lines.length > 0) {
                 parts.push(lines.join('\n'));
               }
@@ -256,7 +257,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
       parts.push(t('analysisDialog.analysisComplete', { count: sectionCount }));
     }
     return parts.join(ANALYSIS_SEPARATOR);
-  }, [currency, llmOutputs, locale, t]);
+  }, [analysisLabels, currency, llmOutputs, locale, t]);
 
   // Amount comparison: customer claimed vs AI-assessed
   const amountComparison = useMemo(() => {
@@ -524,6 +525,7 @@ export function usePropertyClaimData(application: ApplicationMetadata | null) {
     currency,
     ef,
     llmOutputs,
+    analysisLabels,
     files,
     docMarkdown,
     customerData,

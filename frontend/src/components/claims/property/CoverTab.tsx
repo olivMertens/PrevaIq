@@ -15,6 +15,8 @@ import { formatParsedFields } from './propertyClaimHelpers';
 interface CoverTabProps {
   labels: ContextLabel[];
   llmOutputs: Record<string, unknown>;
+  /** Labels of field names and coded values translated with the analysis. */
+  analysisLabels?: Record<string, string>;
   currency: CurrencyCode;
   /** Claimed amount as written in the claim. */
   claimedText: string;
@@ -67,7 +69,7 @@ function LabelSection({ title, labels }: { title: string; labels: ContextLabel[]
  * Cover & amounts: the coverage verdict and the indemnity first, then the claim items,
  * guarantees, exclusions and rules applied; policy articles and the full analysis on demand.
  */
-export default function CoverTab({ labels, llmOutputs, currency, claimedText, deductibleText, coverageText }: CoverTabProps) {
+export default function CoverTab({ labels, llmOutputs, analysisLabels, currency, claimedText, deductibleText, coverageText }: CoverTabProps) {
   const t = useTranslations('caseCockpit.coverTab');
   const tClaims = useTranslations('claims');
   const locale = useLocale();
@@ -76,10 +78,10 @@ export default function CoverTab({ labels, llmOutputs, currency, claimedText, de
   const view = useMemo(() => buildCoverageView(coverage, settlement), [coverage, settlement]);
   const fullAnalysis = useMemo(
     () => [coverage, settlement]
-      .flatMap((parsed) => (parsed ? [formatParsedFields(parsed, tClaims, locale, currency).join('\n')] : []))
+      .flatMap((parsed) => (parsed ? [formatParsedFields(parsed, tClaims, locale, currency, analysisLabels).join('\n')] : []))
       .filter(Boolean)
       .join(ANALYSIS_SEPARATOR),
-    [coverage, settlement, tClaims, locale, currency],
+    [coverage, settlement, tClaims, locale, currency, analysisLabels],
   );
   const claimedValue = parseAmount(claimedText);
   const claimed = Number.isFinite(claimedValue) && claimedValue > 0 ? claimedValue : undefined;

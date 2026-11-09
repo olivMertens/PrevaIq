@@ -478,6 +478,8 @@ export interface ApplicationMetadata {
   }[];
   /** Language of the AI analysis in this payload. */
   analysis_language?: string;
+  /** Labels of the analysis field names and coded values in this payload's language (when translated). */
+  analysis_labels?: Record<string, string>;
   /** Requested language still being translated in the background (analysis shown as generated). */
   analysis_translation_pending?: string;
   /** Requested language whose translation failed recently (analysis shown as generated). */

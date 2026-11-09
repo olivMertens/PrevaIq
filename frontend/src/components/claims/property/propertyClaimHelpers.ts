@@ -115,11 +115,13 @@ export function classifyDocument(filename: string, t: TranslateFn): { type: stri
 // Format parsed JSON into Markdown for the AI summary display (lines of the Markdown text).
 // NOTE: Do NOT use t() for dynamic field names — next-intl throws MISSING_MESSAGE
 // errors that crash React. Use a static lookup map + auto-formatting fallback instead.
+// analysisLabels: labels of field names and coded values translated with the analysis.
 export function formatParsedFields(
   parsed: Record<string, unknown>,
   t?: TranslateFn,
   locale = 'en',
   currency: CurrencyCode = 'EUR',
+  analysisLabels?: Record<string, string>,
 ): string[] {
   // Comprehensive static label map — covers all known LLM output field names
   const labelMap: Record<string, string> = {
@@ -145,8 +147,9 @@ export function formatParsedFields(
     fraud_indicators: 'fraudIndicators', risk_level: 'riskLevel', severity: 'severity',
   };
   const markdown = analysisFieldsMarkdown(parsed, {
-    // Static label map only: next-intl throws on missing dynamic keys.
-    label: (key) => (labelMap[key] && t ? t(`parsedFields.${labelMap[key]}`) : null),
+    // Static label map first, then the labels translated with the analysis.
+    label: (key) => (labelMap[key] && t ? t(`parsedFields.${labelMap[key]}`) : analysisLabels?.[key] ?? null),
+    valueLabel: (code) => analysisLabels?.[code] ?? null,
     money: (amount) => formatAmount(amount, currency, locale),
     yes: t?.('parsedFields.yes') || 'Yes',
     no: t?.('parsedFields.no') || 'No',

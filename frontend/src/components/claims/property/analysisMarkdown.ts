@@ -4,13 +4,19 @@
 
 export type SyntheseTabKey = 'overview' | 'damages' | 'decision' | 'risk' | 'timeline';
 
-// Section headings are routed to a tab by keyword (first matching tab wins).
+// Section headings are routed to a tab by keyword (first matching tab wins). Headings are
+// field labels in the language of the analysis or of its translation (FR, EN or DE).
 export const TAB_KEYWORDS: Record<SyntheseTabKey, string[]> = {
-  overview: ['vue', 'synthèse', 'synthese', 'résumé', 'resume', 'summary', 'overview', 'contexte', 'dossier', 'assuré', 'assure', 'sinistre'],
-  damages: ['dommage', 'préjudice', 'prejudice', 'bien', 'mobilier', 'immobilier', 'damage'],
-  decision: ['décision', 'decision', 'couverture', 'recommandation', 'indemnisation', 'franchise', 'garantie', 'coverage', 'verdict', 'settlement', 'payout', 'deductible', 'indemn'],
-  risk: ['risque', 'risk', 'fraude', 'fraud', 'alerte', 'alert', 'indicateur', 'signal', 'anomalie', 'consistency', 'suspicious'],
-  timeline: ['chronologie', 'timeline', 'historique', 'date', 'événement', 'evenement'],
+  overview: ['vue', 'synthèse', 'synthese', 'résumé', 'resume', 'summary', 'overview', 'contexte', 'dossier', 'assuré', 'assure', 'sinistre',
+    'übersicht', 'uebersicht', 'zusammenfassung', 'kontext', 'versicherungsnehmer', 'schadenfall', 'schadenmeldung'],
+  damages: ['dommage', 'préjudice', 'prejudice', 'bien', 'mobilier', 'immobilier', 'damage',
+    'schäden', 'schaeden', 'schadenzone', 'schadenbild', 'schadenumfang', 'schadensumfang', 'schadenposition', 'beschädig', 'beschaedig'],
+  decision: ['décision', 'decision', 'couverture', 'recommandation', 'indemnisation', 'franchise', 'garantie', 'coverage', 'verdict', 'settlement', 'payout', 'deductible', 'indemn',
+    'entscheid', 'deckung', 'beurteilung', 'empfehlung', 'entschädigung', 'entschaedigung', 'selbstbehalt', 'berechnung', 'regulierung'],
+  risk: ['risque', 'risk', 'fraude', 'fraud', 'alerte', 'alert', 'indicateur', 'signal', 'anomalie', 'consistency', 'suspicious',
+    'risiko', 'betrug', 'warnung', 'indikator', 'auffällig', 'auffaellig', 'verdacht', 'widerspr'],
+  timeline: ['chronologie', 'timeline', 'historique', 'date', 'événement', 'evenement',
+    'zeitachse', 'zeitleiste', 'verlauf', 'ereignis', 'datum'],
 };
 
 /** Separator between two analyses in the full text (dropped from the topic tabs). */
@@ -43,6 +49,8 @@ export function parseAiSummary(text: string): Record<SyntheseTabKey, string> {
 export interface FieldMarkdownOptions {
   /** Translated label of a known field, or null to derive one from the key. */
   label?: (key: string) => string | null;
+  /** Translated label of a coded value ("partially_covered"), or null to derive one. */
+  valueLabel?: (code: string) => string | null;
   /** Format of monetary amounts (currency and locale of the case). */
   money?: (value: number) => string;
   yes?: string;
@@ -58,6 +66,13 @@ const MONEY_KEY = /montant|franchise|indemni|plafond|total|amount|deductible|pay
 const NOT_MONEY_KEY = /count|number|nombre|rate|ratio|percent|score|days|jours|confidence/i;
 const ENUM_TOKEN = /^[a-z]+(?:_[a-z]+)+$/;
 const INLINE_LIST_MAX = 160;
+const LANGUAGE_TAG_KEY = /^(?:langue|language|lang|sprache)$/i;
+const LANGUAGE_CODE = /^[a-z]{2}(?:-[a-z]{2})?$/i;
+
+/** The model's note of the language it wrote in ("langue": "fr"): wrong once translated. */
+function isLanguageTag(key: string, value: unknown): boolean {
+  return LANGUAGE_TAG_KEY.test(key) && typeof value === 'string' && LANGUAGE_CODE.test(value.trim());
+}
 
 /** "coverage_status" -> "Coverage status", "irsi" -> "IRSI", "cat_nat" -> "Cat-Nat". */
 export function humanizeFieldKey(key: string): string {
@@ -112,7 +127,7 @@ function scalarText(key: string, value: unknown, options: FieldMarkdownOptions):
   // One line per field: line breaks inside a value would break the Markdown list.
   const text = value.replace(/\s*\n\s*/g, ' ').trim();
   if (!text) return null;
-  return ENUM_TOKEN.test(text) ? humanizeFieldKey(text) : text;
+  return ENUM_TOKEN.test(text) ? options.valueLabel?.(text) ?? humanizeFieldKey(text) : text;
 }
 
 function objectLines(obj: Record<string, unknown>, depth: number, options: FieldMarkdownOptions): string[] {
@@ -172,7 +187,7 @@ export function analysisFieldsMarkdown(parsed: Record<string, unknown>, options:
     simpleFields = [];
   };
   for (const [key, value] of Object.entries(parsed)) {
-    if (key.startsWith('_')) continue;
+    if (key.startsWith('_') || isLanguageTag(key, value)) continue;
     const lines = fieldLines(key, value, 0, options);
     if (lines.length === 0) continue;
     if (lines.length === 1) {

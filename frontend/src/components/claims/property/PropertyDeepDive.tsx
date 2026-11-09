@@ -77,6 +77,7 @@ export default function PropertyDeepDive({
         <CoverTab
           labels={application.context_labels ?? []}
           llmOutputs={data.llmOutputs}
+          analysisLabels={data.analysisLabels}
           currency={data.currency}
           claimedText={field('MontantEstime', 'TotalIncurred', 'MontantTotal')}
           deductibleText={field('FranchiseApplicable', 'Franchise') || undefined}
