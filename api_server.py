@@ -4145,24 +4145,12 @@ async def get_policy_by_id(policy_id: str, persona: str = "underwriting"):
     import json
     from pathlib import Path
 
-    # Mapping of personas to their policy files
-    PERSONA_POLICY_FILES = {
-        "underwriting": "prompts/life-health-underwriting-policies.json",
-        "life_health_claims": "prompts/life-health-claims-policies.json",
-        "automotive_claims": "prompts/automotive-claims-policies.json",
-        "property_casualty_claims": "prompts/property-casualty-claims-policies.json",
-        "mortgage_underwriting": "prompts/mortgage-underwriting-policies.json",
-        "mortgage": "prompts/mortgage-underwriting-policies.json",
-    }
-
     try:
-        # Get the policy file for this persona
-        policy_file = PERSONA_POLICY_FILES.get(persona.lower())
-        if not policy_file:
-            # Fall back to underwriting
-            policy_file = PERSONA_POLICY_FILES["underwriting"]
+        from app.underwriting_policies import get_policy_file_for_persona
 
-        policy_path = Path(policy_file)
+        policy_path = Path(
+            get_policy_file_for_persona(load_settings().app.prompts_root, persona.lower())
+        )
         if not policy_path.exists():
             raise HTTPException(
                 status_code=404, detail=f"Policy file not found for persona: {persona}"
