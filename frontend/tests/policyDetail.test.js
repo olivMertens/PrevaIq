@@ -93,6 +93,30 @@ test('viewer validates real criteria without a risk level and rejects wrong or m
   assert.equal(h.validate({...policy, references: [null]}, policy.id), false);
 });
 
+test('criteria without a risk level show no empty badge and no moderate-risk color', async () => {
+  const badge = /px-2 py-0\.5 text-xs font-medium rounded [^"]*">([^<]*)<\/span>/g;
+  const render = async (data) => {
+    const h = harness(async () => response({policy: data}));
+    h.render();
+    await settle();
+    return renderToStaticMarkup(h.render());
+  };
+
+  assert.ok(policy.criteria.every(criterion => !criterion.risk_level));
+  const unrated = await render(policy);
+  assert.deepEqual([...unrated.matchAll(badge)], []);
+  assert.doesNotMatch(unrated, /amber/);
+  assert.equal(unrated.match(/border-slate-200 bg-slate-50 p-4/g).length, policy.criteria.length);
+
+  const rated = await render({
+    ...policy,
+    criteria: [{...policy.criteria[0], risk_level: ' High '}, {...policy.criteria[1], risk_level: '  '}],
+  });
+  assert.deepEqual([...rated.matchAll(badge)].map(match => match[1]), ['High']);
+  assert.match(rated, /rounded-lg border border-red-200 bg-red-50 p-4/);
+  assert.match(rated, /rounded-lg border border-slate-200 bg-slate-50 p-4/);
+});
+
 for (const locale of ['en', 'fr', 'de']) {
   test(`${locale}: transport failure is localized, logged and recoverable with Retry`, async () => {
     const requests = [];

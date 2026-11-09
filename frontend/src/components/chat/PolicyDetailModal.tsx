@@ -55,6 +55,8 @@ const riskLevelColors: Record<string, { bg: string; text: string; border: string
   rated: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200' },
   decline: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
 };
+// Claims catalogs define no risk level: their criteria must not look like a moderate risk.
+const noRiskLevelColors = { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' };
 
 /**
  * PolicyDetailModal - Modal component for viewing policy details
@@ -113,8 +115,8 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
   }, [onClose]);
 
   const getRiskColors = (level: string | undefined) => {
-    if (!level) return riskLevelColors.moderate;
-    const normalizedLevel = level.toLowerCase();
+    const normalizedLevel = level?.trim().toLowerCase();
+    if (!normalizedLevel) return noRiskLevelColors;
     return riskLevelColors[normalizedLevel] || riskLevelColors.moderate;
   };
 
@@ -189,7 +191,8 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
                   </h4>
                   <div className="space-y-3">
                     {policy.criteria.map((criterion, idx) => {
-                      const colors = getRiskColors(criterion.risk_level);
+                      const riskLevel = criterion.risk_level?.trim();
+                      const colors = getRiskColors(riskLevel);
                       return (
                         <div
                           key={criterion.id || idx}
@@ -200,9 +203,11 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
                               <span className="text-xs font-mono text-slate-500">{criterion.id}</span>
                               <p className="text-sm font-medium text-slate-900 mt-1">{criterion.condition}</p>
                             </div>
-                            <span className={`px-2 py-0.5 text-xs font-medium rounded ${colors.text} ${colors.bg} border ${colors.border}`}>
-                              {criterion.risk_level}
-                            </span>
+                            {riskLevel && (
+                              <span className={`px-2 py-0.5 text-xs font-medium rounded ${colors.text} ${colors.bg} border ${colors.border}`}>
+                                {riskLevel}
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-slate-600 space-y-1">
                             <div className="flex gap-2">

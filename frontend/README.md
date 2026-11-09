@@ -115,6 +115,8 @@ could incorrectly fall back to underwriting.
 The viewer validates the requested ID and detail structure, cancels stale requests,
 and provides localized HTTP/connection errors with a Retry action. It never displays
 an incomplete response or a different policy as a successful lookup.
+Only criteria with a defined risk level show a level badge and a risk color; the
+claims catalogs define none, so their criteria use a neutral card without a badge.
 Live, streamed and restored conversations also expose `policy_citations` resolved
 from exact policy/unique criteria IDs in the selected persona catalog. These are
 catalog references, not claimed vector-retrieval results. Unknown IDs and ambiguous
