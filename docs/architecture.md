@@ -13,15 +13,89 @@ while the browser loads map tiles. Fabric is explicitly conditional.
 The [Aurora integration contract](architecture/prevaiq-aurora-runtime.png) shows
 required control and file paths, not proof of live serving. In the 2026-11-07
 snapshot, serving is unavailable and prior historical results remain readable.
-The separate model-recovery workflow must revalidate connectivity and inference.
+The separate model-recovery experiment below has revalidated its own connectivity
+and inference; the existing API configuration has not been rebound to it.
 No current forecast is claimed by an application health check.
+
+![Aurora shared-capacity recovery experiment](architecture/prevaiq-aurora-recovery.png)
+
+The [editable recovery view](architecture/prevaiq-aurora-recovery.drawio) and
+[standalone SVG](architecture/prevaiq-aurora-recovery.svg) record the verified
+2026-11-08 experiment in `rg-prevaiq-demo`, Sweden Central. A classic Hub-based
+project recovered Aurora-1.5 v2 on one `Standard_NC24ads_A100_v4` instance through
+temporary shared capacity. Azure reports automatic deletion on
+**2026-11-15 13:30:57 UTC**. The displayed USD 4.78/hour rate is a billed-compute
+reference, not a free trial or a spending cap.
+
+The existing VNet-connected bootstrap job exercised the deployed task/Blob adapter
+without changing its persistent definition or the application image. It copied
+weather-only ERA5 data to the isolated authenticated Storage and produced six
+NetCDF outputs and six hourly points in **62.6 seconds**. Initial conditions are
+**2026-08-28 06:00 UTC**, so this is historical evidence, not live weather.
+The model key stays in the isolated vault with secret-scoped read access;
+anonymous Blob and Shared Key access remain disabled. Only the four experimental
+resources have the explicitly approved public-network policy exception. Existing
+business Storage and Key Vault remain private. No customer documents or claim
+records were changed, and expert review remains mandatory.
+
+## Explicit Aurora demo simulation
+
+![Synthetic Aurora demonstration flow](architecture/prevaiq-aurora-simulation.png)
+
+The [editable source](architecture/prevaiq-aurora-simulation.drawio) and
+[self-contained SVG](architecture/prevaiq-aurora-simulation.svg) show application
+components, not additional Azure services. Simulation is **off by default** and
+never a fallback for a failed inference. An administrator opens **Admin → Aurora**,
+authorizes synthetic demo results, chooses chocolate workshop, watch manufacture
+or wine cellar, then selects **Save and validate mode** in that same compact card.
+The server validates
+both 6- and 12-hour scenarios and records the trusted administrator and timestamp.
+**Test simulation** checks the local contract; **Test real Azure connection**
+still runs the actual dependency checks, without changing modes.
+
+The dossier's **Weather and map** view can then produce hourly charts, timelines,
+KPIs and advisory actions without contacting the model or weather Blob Storage.
+The application API and dossier/configuration storage must still be available.
+Every result carries `source=demo_simulation`, `synthetic=true`, a scenario/version,
+and human-review requirements. No ERA5 input or NetCDF artifact is fabricated.
+Dates belong to the selected synthetic scenario, not current observed weather.
+
+Synthetic results use `llm_outputs.aurora_demo`; real evidence stays in
+`llm_outputs.aurora`. The overview and read-only agent context select the active
+mode explicitly and do not generate new weather automatically. Synthetic scenarios
+are not evidence of the loss, fraud, coverage or payment. Disable simulation and
+save to return to the real configuration and its saved evidence, including genuine
+unavailable/expired states. Switching to simulation **does not stop GPU billing**.
+Demo/simulation labels, consent, audit and mode-switching instructions are
+restricted to **Admin → Aurora**. Customer weather panels, summaries, charts,
+timelines and source captions use neutral weather-outlook wording; they do not
+display raw synthetic provider/model identifiers or claim successful Azure
+inference. The saved API provenance and the agent context retain the explicit
+synthetic source. Expert review and non-observation limits remain visible.
+The customer demo guide describes the weather-outlook actions, while technical
+mode instructions live in the administrator guide. EN/FR/DE are synchronized;
+existing demo files, photos, manifests and selection paths are unchanged.
+
+The customer card has one compact primary action in its header (minimum 44 px
+target), shared by initial generation and refresh. Three first-level indicators
+show maximum gust in km/h (with the original m/s), cumulative rain in mm, and
+the reported loss date against the returned hourly window. A day overlap is
+explicitly distinguished from an exact timestamp match; missing/invalid dates
+and outside-window results never imply causal confirmation. Roof/facade and
+water-entry checks are prompts for the handler, not damage findings. The
+overview's **Review weather** action opens the existing panel without triggering
+inference. Charts, timing, provenance and case actions remain separate detail tabs
+inside a disclosure collapsed by default, keeping the initial card short.
 
 Icons preserve their Microsoft service identity and colors; custom/external services
 use labeled rectangles without substitute Microsoft logos. Verified asset URLs and
 hashes are recorded in [icon provenance](architecture/icon-sources.json).
-Regenerate both views with `python scripts/render_architecture_diagrams.py` using
+Regenerate the overview and integration views with `python scripts/render_architecture_diagrams.py` using
 draw.io and the temporary `@resvg/resvg-js` rasterizer; pass `--resvg-module` if it
-is installed outside the project dependencies. Geometry validation is available
+is installed outside the project dependencies. Pass
+`docs/architecture/prevaiq-aurora-recovery.drawio` or
+`docs/architecture/prevaiq-aurora-simulation.drawio` explicitly to regenerate
+the corresponding separate view. Geometry validation is available
 with `--check-only`. Diagrams follow the
 [architecture authoring skill](../.github/skills/architecture-diagram-author/SKILL.md).
 

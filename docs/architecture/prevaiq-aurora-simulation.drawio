@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" type="device">
+  <diagram id="aurora-simulation" name="Synthetic demo mode">
+    <mxGraphModel grid="1" gridSize="10" page="1" pageWidth="1200" pageHeight="1020" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="Aurora - explicit synthetic demo mode&#10;No automatic fallback / no model or weather Blob calls" vertex="1" parent="1" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fillColor=none;strokeColor=none;">
+          <mxGeometry as="geometry" x="40" y="30" width="1120" height="80" />
+        </mxCell>
+        <mxCell id="admin" value="" vertex="1" parent="1" diagramRole="node" style="rounded=0;html=0;container=1;collapsible=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;spacing=16;fillColor=#F0EEFF;strokeColor=#17395C;strokeWidth=1.5;">
+          <mxGeometry as="geometry" x="40" y="160" width="280" height="130" />
+        </mxCell>
+        <mxCell id="admin-label" value="Administrator UI&#10;Demo labels / synthetic consent&#10;Save + validate scenario&#10;Trusted session identity" vertex="1" parent="admin" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;overflow=hidden;strokeColor=none;fillColor=none;">
+          <mxGeometry as="geometry" x="16" y="10" width="248" height="110" />
+        </mxCell>
+        <mxCell id="config" value="" vertex="1" parent="1" diagramRole="node" style="rounded=0;html=0;container=1;collapsible=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;spacing=16;fillColor=#F0EEFF;strokeColor=#17395C;strokeWidth=1.5;">
+          <mxGeometry as="geometry" x="420" y="160" width="300" height="130" />
+        </mxCell>
+        <mxCell id="config-label" value="Audited demo configuration&#10;Default off / persisted&#10;Validated by + timestamp&#10;Real settings preserved" vertex="1" parent="config" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;overflow=hidden;strokeColor=none;fillColor=none;">
+          <mxGeometry as="geometry" x="16" y="10" width="268" height="110" />
+        </mxCell>
+        <mxCell id="case" value="" vertex="1" parent="1" diagramRole="node" style="rounded=0;html=0;container=1;collapsible=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;spacing=16;fillColor=#F0EEFF;strokeColor=#17395C;strokeWidth=1.5;">
+          <mxGeometry as="geometry" x="40" y="400" width="280" height="180" />
+        </mxCell>
+        <mxCell id="case-label" value="Customer UI / Overview&#10;Neutral outlook wording&#10;Hourly chart + timeline&#10;Advisory actions only&#10;No coverage or fraud proof" vertex="1" parent="case" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;overflow=hidden;strokeColor=none;fillColor=none;">
+          <mxGeometry as="geometry" x="16" y="10" width="248" height="160" />
+        </mxCell>
+        <mxCell id="api" value="" vertex="1" parent="1" diagramRole="node" style="rounded=0;html=0;container=1;collapsible=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;spacing=16;fillColor=#F0EEFF;strokeColor=#17395C;strokeWidth=1.5;">
+          <mxGeometry as="geometry" x="420" y="400" width="300" height="180" />
+        </mxCell>
+        <mxCell id="api-label" value="Aurora request / read gate&#10;Mode + admin validation&#10;No automatic fallback&#10;Strict source selection&#10;Human review required" vertex="1" parent="api" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;overflow=hidden;strokeColor=none;fillColor=none;">
+          <mxGeometry as="geometry" x="16" y="10" width="268" height="160" />
+        </mxCell>
+        <mxCell id="generator" value="" vertex="1" parent="1" diagramRole="node" style="rounded=0;html=0;container=1;collapsible=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;spacing=16;fillColor=#F0EEFF;strokeColor=#17395C;strokeWidth=1.5;">
+          <mxGeometry as="geometry" x="850" y="160" width="310" height="150" />
+        </mxCell>
+        <mxCell id="generator-label" value="Local synthetic generator&#10;Chocolate / watches / wine&#10;6 or 12 hourly points&#10;Shared KPI / advisory rules&#10;No fabricated NetCDF" vertex="1" parent="generator" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;overflow=hidden;strokeColor=none;fillColor=none;">
+          <mxGeometry as="geometry" x="16" y="10" width="278" height="130" />
+        </mxCell>
+        <mxCell id="saved" value="" vertex="1" parent="1" diagramRole="node" style="rounded=0;html=0;container=1;collapsible=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;spacing=16;fillColor=#F0EEFF;strokeColor=#17395C;strokeWidth=1.5;">
+          <mxGeometry as="geometry" x="850" y="650" width="310" height="160" />
+        </mxCell>
+        <mxCell id="saved-label" value="Saved dossier metadata&#10;aurora_demo: synthetic only&#10;aurora: real proof preserved&#10;Mode-aware read-only context&#10;No cross-dossier reuse" vertex="1" parent="saved" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;overflow=hidden;strokeColor=none;fillColor=none;">
+          <mxGeometry as="geometry" x="16" y="10" width="278" height="140" />
+        </mxCell>
+        <mxCell id="admin-config" value="" source="admin" target="config" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="config-gate" value="" source="config" target="api" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="config-validation" value="" source="config" target="generator" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=1;exitY=0.38461538461538464;entryX=0;entryY=0.3333333333333333;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="case-request" value="" source="case" target="api" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="generate" value="" source="api" target="generator" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=1;exitY=0.2777777777777778;entryX=0;entryY=0.6666666666666666;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="780" y="450" />
+              <mxPoint x="780" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="generated" value="" source="generator" target="api" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=0;exitY=0.8333333333333334;entryX=1;entryY=0.5555555555555556;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="810" y="285" />
+              <mxPoint x="810" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="save" value="" source="api" target="saved" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=1;exitY=0.7777777777777778;entryX=0;entryY=0.375;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="780" y="540" />
+              <mxPoint x="780" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="read" value="" source="saved" target="api" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=block;endFill=1;strokeColor=#007D76;strokeWidth=2;exitX=0.5;exitY=1;entryX=0.7666666666666667;entryY=1;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1005" y="880" />
+              <mxPoint x="650" y="880" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="limits" value="Software-component view: the managed task/Blob path is unchanged (see integration contract).&#10;Simulation does not stop or delete a provisioned GPU. Its billing continues." vertex="1" parent="1" diagramRole="label" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fillColor=none;strokeColor=none;">
+          <mxGeometry as="geometry" x="40" y="935" width="1120" height="65" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
