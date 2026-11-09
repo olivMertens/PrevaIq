@@ -163,7 +163,7 @@ export function RecommendedWorkflow({ recommendations, disabled, onRun }: Recomm
       onClick={() => onRun(top.workflow.id, name)}
       disabled={disabled}
       className={clsx(
-        'mx-auto mt-6 flex w-full max-w-md items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50',
+        'mx-auto mt-3 flex w-full max-w-md items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50',
         top.workflow.highlightClass,
       )}
     >

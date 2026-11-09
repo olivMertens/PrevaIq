@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import type { ApplicationDecision, FraudAnalysisResponse } from '@/lib/api';
 import { formatAmount } from '@/lib/currency';
+import { localizeClaimSubject } from '@/lib/applicationDisplay';
 import type { ApplicationMetadata } from '@/lib/types';
 import { mergeSignals } from '@/components/case/caseSignals';
 import { collectCaseUpdates, type CaseUpdateSource } from '@/components/case/caseUpdates';
@@ -52,6 +53,7 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
   const t = useTranslations('claims');
   const tc = useTranslations('caseCockpit');
   const tNext = useTranslations('nextAction');
+  const tSubject = useTranslations('claimSubjects');
   const locale = useLocale();
   const { currency, ef, llmOutputs, files, aiSummary, amountComparison, galleryItems, steps } = data;
 
@@ -147,7 +149,7 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
     const lossDate = field('DateSinistre');
     const contract = field('NumeroContrat', 'NumeroPolice');
     const identity = [
-      field('NatureSinistre', 'CauseOfLoss'),
+      localizeClaimSubject(field('NatureSinistre', 'CauseOfLoss'), tSubject),
       place ? municipality(place) : '',
       lossDate ? tc('verdict.lossDate', { date: lossDate }) : '',
       contract ? tc('verdict.contract', { number: contract }) : '',
@@ -199,5 +201,5 @@ export function usePropertyCockpit({ application, data, fraud, fraudStatus, anal
       settlement,
       amount: hasAmount ? amount : 0,
     };
-  }, [currency, application, aiSummary, amountComparison, analyzing, checkedCount, ef, files, fraud, fraudStatus, galleryItems, llmOutputs, locale, steps, t, tc, tNext]);
+  }, [currency, application, aiSummary, amountComparison, analyzing, checkedCount, ef, files, fraud, fraudStatus, galleryItems, llmOutputs, locale, steps, t, tc, tNext, tSubject]);
 }

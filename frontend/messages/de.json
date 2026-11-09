@@ -28,6 +28,7 @@
     "description": "KI-gestützte Dokumentenverarbeitung für Versicherungen"
   },
   "claimSubjects": {
+    "critical": "Kritisch",
     "water": "Wasserschaden",
     "storm": "Sturm",
     "hail": "Hagel",
@@ -87,6 +88,7 @@
     "dark": "Dunkles Design"
   },
   "currency": {
+    "selectorLabel": "Währung",
     "title": "Referenzwährung",
     "USD": "US-Dollar",
     "EUR": "Euro",
@@ -1664,15 +1666,18 @@
     "conversationLoadError": "Unterhaltung konnte nicht geladen werden"
   },
   "policyDetail": {
-    "title": "Politische Details",
-    "unableToLoad": "Politik kann nicht geladen werden",
+    "requestError": "Police konnte nicht geladen werden (HTTP {status})",
+    "invalidResponse": "Der Server hat unvollständige Policendetails oder eine andere Referenz zurückgegeben.",
+    "retry": "Erneut versuchen",
+    "title": "Policendetails",
+    "unableToLoad": "Police konnte nicht geladen werden",
     "evaluationCriteria": "Bewertungskriterien",
     "modifyingFactors": "Änderungsfaktoren",
     "references": "Referenzen",
     "action": "Aktion",
     "rationale": "Begründung",
     "close": "Schließen",
-    "loadError": "Police konnte nicht geladen werden"
+    "loadError": "Der Policendienst ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
   },
   "decisions": {
     "yourDecision": "Ihre Entscheidung:",
@@ -1820,6 +1825,8 @@
       "procedure": "Verfahren"
     },
     "contentLanguage": {
+      "originalView": "Originaltextansicht",
+      "showTranslatedView": "Übersetzte Ansicht verwenden",
       "translating": "Wird übersetzt (Original: {language})…",
       "translatedFrom": "Maschinelle Übersetzung (Original: {language})",
       "failed": "Übersetzung nicht verfügbar (Original: {language})",
@@ -2217,6 +2224,7 @@
     "pageNumber": "Seite {page}"
   },
   "documentViewer": {
+    "photoAnalysisHeading": "Fotoanalyse: {filename}",
     "documents": "Dokumente ({count})",
     "photos": "Fotos ({count})",
     "pageCount": "{count, plural, one {# Seite} other {# Seiten}}",
@@ -3110,6 +3118,9 @@
     }
   },
   "demoGuide": {
+    "photoTextHelp": "Im extrahierten Fototext folgen erkannte generierte Analyseüberschriften der UI-Sprache, auch wenn der Text bereits in dieser Sprache ist. Dateiname und Text bleiben unverändert. Die Originalansicht behält die gespeicherte Überschrift; Überschriften originaler Dokumente/PDFs sind keine UI-Bezeichnungen.",
+    "displayHelpTitle": "Sprache, Währung und Antwortanzeige",
+    "displayHelp": "Bekannte Schadenart- und Dringlichkeitsbezeichnungen folgen in Übersicht und Zeitachse der UI-Sprache; Namen und zitierte Belege bleiben unverändert. Das Währungsmenü der Administration ändert nur die Referenzwährung, niemals explizite CHF/EUR/USD-Fallwerte. Kompakte Ask-IQ-Vorschläge füllen die Eingabe ohne Scrollleiste. Antworten unterstützen Fett- und Kursivschrift; unterstrichene, durch Zitate belegte Policen-IDs öffnen die Police. Nach erfolgreicher Wetteraktualisierung verschwindet der frühere Ladefehler.",
     "chatHistoryHelp": "Der Ask-IQ-Verlauf kann bei einem Fall ohne gespeicherte Chats leer sein. Bei Ladefehlern im Verlauf Erneut versuchen wählen; der HTTP-Status unterscheidet Dienst- oder Zugriffsfehler von einem leeren Verlauf. Keine Schadendokumente ersetzen oder Gespräche erfinden, um einen Fehler zu beseitigen.",
     "claimsKpiColors": "Die Karten unter Übersicht für Sachschäden sind rosa bei vorrangigem Prüfbedarf, gelb bei erforderlichen Prüfungen, grün bei niedrigem Risiko oder ruhigen Kundenindikatoren, blau für Kontext, violett während der Analyse und grau ohne verfügbare Bewertung. Die Farbe bestätigt weder Deckung noch Betrug; lesen Sie die Bezeichnungen und Belege.",
     "claimsWorkflow": "Unter Kunde folgen die Tonbezeichnungen und der gesamte E-Mail-, SMS- oder Schreiben-Entwurf der gewählten Sprache; Namen und Quellenverweise bleiben unverändert. Starten Sie in Ask IQ einen Workflow, um den Live-Ausführungsplan zu sehen: Fall lesen, parallele Agentenprüfungen, dann Zusammenfassung. Symbole kennzeichnen die Rollen; nicht verfügbare Prüfungen erfordern eine Überprüfung. Die abschließende Empfehlung erscheint zuerst, darunter der Plan und aufklappbare Agentenergebnisse. Nichts wird automatisch versendet oder entschieden.",
@@ -4093,6 +4104,7 @@
     }
   },
   "auroraDemo": {
+    "scenarioScopeHelp": "Das gewählte Szenario gilt für neue Aussichten aller Fälle. Vor dem Aktualisieren das passende Fallszenario wählen; gespeicherte Ergebnisse behalten ihre ursprüngliche Herkunft.",
     "shortNotice": "Synthetische Ergebnisse ohne Modell; Admin-Validierung erforderlich.",
     "saveMode": "Modus speichern und validieren",
     "title": "Demo-Simulation",

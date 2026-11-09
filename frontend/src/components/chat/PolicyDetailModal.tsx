@@ -7,7 +7,7 @@ import { X, FileText, AlertTriangle, Shield, ChevronRight, ExternalLink, Loader2
 interface PolicyCriteria {
   id: string;
   condition: string;
-  risk_level: string;
+  risk_level?: string;
   action: string;
   rationale: string;
 }
@@ -15,12 +15,30 @@ interface PolicyCriteria {
 interface PolicyDetail {
   id: string;
   category: string;
-  subcategory: string;
+  subcategory?: string;
   name: string;
   description: string;
   criteria: PolicyCriteria[];
-  modifying_factors: Array<{ factor: string; impact: string }>;
-  references: string[];
+  modifying_factors?: Array<{ factor: string; impact: string }>;
+  references?: string[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function isPolicyDetail(value: unknown, policyId: string): value is PolicyDetail {
+  return isRecord(value) && value.id === policyId
+    && ['category', 'name', 'description'].every(key => typeof value[key] === 'string')
+    && (value.subcategory === undefined || typeof value.subcategory === 'string')
+    && Array.isArray(value.criteria) && value.criteria.every(criterion => isRecord(criterion)
+      && ['id', 'condition', 'action', 'rationale'].every(key => typeof criterion[key] === 'string')
+      && (criterion.risk_level === undefined || typeof criterion.risk_level === 'string'))
+    && (value.modifying_factors === undefined || (Array.isArray(value.modifying_factors)
+      && value.modifying_factors.every(factor => isRecord(factor)
+        && typeof factor.factor === 'string' && typeof factor.impact === 'string')))
+    && (value.references === undefined || (Array.isArray(value.references)
+      && value.references.every(reference => typeof reference === 'string')));
 }
 
 interface PolicyDetailModalProps {
@@ -47,30 +65,43 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
   const [policy, setPolicy] = useState<PolicyDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
     async function fetchPolicy() {
+      let failure = t('loadError');
       try {
         setLoading(true);
         setError(null);
-        // Use relative path to go through Next.js proxy
-        const response = await fetch(`/api/policies/${policyId}?persona=${persona}`);
+        setPolicy(null);
+        const response = await fetch(
+          `/api/policies/${encodeURIComponent(policyId)}?persona=${encodeURIComponent(persona)}`,
+          {signal: controller.signal},
+        );
         
         if (!response.ok) {
-          throw new Error(`Policy not found: ${policyId}`);
+          failure = t('requestError', {status: response.status});
+          throw new Error(failure);
         }
         
-        const data = await response.json();
-        setPolicy(data.policy || data);
+        failure = t('invalidResponse');
+        const data: unknown = await response.json();
+        const detail = isRecord(data) && 'policy' in data ? data.policy : data;
+        if (!isPolicyDetail(detail, policyId)) throw new Error(failure);
+        if (!controller.signal.aborted) setPolicy(detail);
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('loadError'));
+        if (controller.signal.aborted) return;
+        console.warn('Policy detail request failed', {policyId, persona, error: err});
+        setError(failure);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
-    fetchPolicy();
-  }, [policyId, persona]);
+    void fetchPolicy();
+    return () => controller.abort();
+  }, [policyId, persona, t, retry]);
 
   // Close on escape key
   useEffect(() => {
@@ -88,7 +119,8 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
   };
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
+    <div role="dialog" aria-modal="true" aria-labelledby="policy-detail-title"
+      className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-3xl lg:max-w-4xl 2xl:max-w-5xl w-full max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
@@ -97,12 +129,13 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
               <Shield className="w-5 h-5 text-indigo-600" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">{t('title')}</h2>
+              <h2 id="policy-detail-title" className="text-lg font-semibold text-slate-900">{t('title')}</h2>
               <p className="text-sm text-slate-500 font-mono">{policyId}</p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label={t('close')}
             className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -122,6 +155,10 @@ const PolicyDetailModal: React.FC<PolicyDetailModalProps> = ({ policyId, onClose
               <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
               <h3 className="text-lg font-semibold text-slate-900 mb-2">{t('unableToLoad')}</h3>
               <p className="text-slate-600">{error}</p>
+              <button onClick={() => setRetry(value => value + 1)}
+                className="mt-4 min-h-11 px-4 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                {t('retry')}
+              </button>
             </div>
           )}
 

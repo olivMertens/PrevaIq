@@ -171,21 +171,21 @@ export default function AuroraRiskPanel({
                 hazardWindow={forecast.decision_support.hazard_window}
                 claimDate={claimDate}
                 locale={locale}
-                synthetic={forecast.provenance.source === 'demo_simulation'}
+                synthetic={forecast.provenance?.source === 'demo_simulation'}
               />
             </div>}
             {detail === 'chart' && <div>
               <AuroraForecastChart series={forecast.forecast.series} locale={locale}
-                synthetic={forecast.provenance.source === 'demo_simulation'} />
+                synthetic={forecast.provenance?.source === 'demo_simulation'} />
             </div>}
             {detail === 'trace' && <div className="rounded-md border border-current/10 bg-white/70 p-2">
               <p className="font-semibold">{t('evidence.title')}</p>
               <dl className="mt-1 grid grid-cols-2 gap-x-3 gap-y-1">
-                <dt className="opacity-70">{t(forecast.provenance.synthetic ? 'scenario.location' : 'evidence.location')}</dt>
+                <dt className="opacity-70">{t(forecast.provenance?.synthetic ? 'scenario.location' : 'evidence.location')}</dt>
                 <dd className="text-right font-medium">{forecast.latitude.toFixed(3)}, {forecast.longitude.toFixed(3)}</dd>
                 <dt className="opacity-70">{t('evidence.generated')}</dt>
                 <dd className="text-right font-medium">{formatDateTime(forecast.requested_at)}</dd>
-                {forecast.provenance.scenario_started_at && <>
+                {forecast.provenance?.scenario_started_at && <>
                   <dt className="opacity-70">{t('scenario.startsAt')}</dt>
                   <dd className="text-right font-medium">{formatDateTime(forecast.provenance.scenario_started_at)}</dd>
                 </>}
@@ -197,9 +197,9 @@ export default function AuroraRiskPanel({
                 )}
                 <dt className="opacity-70">{t('evidence.source')}</dt>
                 <dd className="break-all text-right font-medium">
-                  {forecast.provenance.source === 'demo_simulation'
+                  {forecast.provenance?.source === 'demo_simulation'
                     ? t('scenario.source')
-                    : forecast.provenance.initial_condition_blob ?? forecast.provenance.source}
+                    : forecast.provenance?.initial_condition_blob ?? forecast.provenance?.source ?? t('notAvailable')}
                 </dd>
               </dl>
             </div>}
@@ -226,8 +226,8 @@ export default function AuroraRiskPanel({
             </>}
             </div>
             {detail === 'trace' && <p className="mt-1 text-[11px] opacity-80">{t('provenance', {
-                provider: forecast.provenance.source === 'demo_simulation'
-                  ? t('scenario.provider') : forecast.provenance.provider,
+                provider: forecast.provenance?.source === 'demo_simulation'
+                  ? t('scenario.provider') : forecast.provenance?.provider ?? t('notAvailable'),
                 time: formatDateTime(forecast.requested_at),
               })}</p>}
             </details>

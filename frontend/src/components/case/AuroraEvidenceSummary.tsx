@@ -12,7 +12,7 @@ export default function AuroraEvidenceSummary({
   const locale = useLocale();
   const {forecast, context, status, error, initializing} = useAuroraEvidence(applicationId);
   const support = forecast?.decision_support;
-  const isDemo = forecast?.provenance.source === 'demo_simulation';
+  const isDemo = forecast?.provenance?.source === 'demo_simulation';
   const riskStyle = support && {
     low: 'border-emerald-200 bg-emerald-50 text-emerald-950',
     moderate: 'border-amber-200 bg-amber-50 text-amber-950',

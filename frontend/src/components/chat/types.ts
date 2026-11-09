@@ -85,3 +85,67 @@ export interface ChatRecommendation {
   score: number;
   reason: string;
 }
+
+// Type definitions for structured chat responses
+export interface RiskFactor {
+  title: string;
+  description: string;
+  risk_level: 'low' | 'moderate' | 'high';
+  policy_id?: string;
+}
+
+export interface RiskFactorsResponse {
+  type: 'risk_factors';
+  summary: string;
+  factors: RiskFactor[];
+  overall_risk: 'low' | 'low-moderate' | 'moderate' | 'moderate-high' | 'high';
+}
+
+export interface PolicyItem {
+  policy_id: string;
+  name: string;
+  relevance: string;
+  finding: string;
+}
+
+export interface PolicyListResponse {
+  type: 'policy_list';
+  summary: string;
+  policies: PolicyItem[];
+}
+
+export interface RecommendationResponse {
+  type: 'recommendation';
+  decision: 'approve' | 'approve_with_conditions' | 'defer' | 'decline';
+  confidence: 'high' | 'medium' | 'low';
+  summary: string;
+  conditions?: string[];
+  rationale: string;
+  next_steps?: string[];
+}
+
+export interface ComparisonResponse {
+  type: 'comparison';
+  title: string;
+  columns: string[];
+  rows: { label: string; values: string[] }[];
+}
+
+export interface FraudAnalysisResponse {
+  type: 'fraud_analysis';
+  title: string;
+  photosAnalyzed?: number;
+  riskLevel?: string;
+  score?: string;
+  summary?: string;
+  rationale?: string;
+  findings: string[];
+  consistency?: string;
+}
+
+export type StructuredResponse =
+  | RiskFactorsResponse
+  | PolicyListResponse
+  | RecommendationResponse
+  | ComparisonResponse
+  | FraudAnalysisResponse;

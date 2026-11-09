@@ -28,6 +28,7 @@
     "description": "Poste de travail intelligent de traitement de documents pour l'assurance"
   },
   "claimSubjects": {
+    "critical": "Critique",
     "water": "Dégâts des eaux",
     "storm": "Tempête",
     "hail": "Grêle",
@@ -87,6 +88,7 @@
     "dark": "Thème sombre"
   },
   "currency": {
+    "selectorLabel": "Devise",
     "title": "Devise de référence",
     "USD": "Dollar américain",
     "EUR": "Euro",
@@ -1664,6 +1666,9 @@
     "conversationLoadError": "Impossible de charger la conversation"
   },
   "policyDetail": {
+    "requestError": "Impossible de charger la police (HTTP {status})",
+    "invalidResponse": "Le serveur a renvoyé une police incomplète ou une référence différente.",
+    "retry": "Réessayer",
     "title": "Détails de la police",
     "unableToLoad": "Impossible de charger la police",
     "evaluationCriteria": "Critères d'évaluation",
@@ -1672,7 +1677,7 @@
     "action": "Action",
     "rationale": "Justification",
     "close": "Fermer",
-    "loadError": "Échec du chargement de la police"
+    "loadError": "Impossible de joindre le service des polices. Vérifiez votre connexion et réessayez."
   },
   "decisions": {
     "yourDecision": "Votre décision :",
@@ -1820,6 +1825,8 @@
       "procedure": "Procédure"
     },
     "contentLanguage": {
+      "originalView": "Vue du texte original",
+      "showTranslatedView": "Utiliser la vue traduite",
       "translating": "Traduction en cours (original : {language})…",
       "translatedFrom": "Traduction automatique (original : {language})",
       "failed": "Traduction indisponible (original : {language})",
@@ -2217,6 +2224,7 @@
     "pageNumber": "Page {page}"
   },
   "documentViewer": {
+    "photoAnalysisHeading": "Analyse photo : {filename}",
     "documents": "Documents ({count})",
     "photos": "Photos ({count})",
     "pageCount": "{count, plural, one {# page} other {# pages}}",
@@ -3110,6 +3118,9 @@
     }
   },
   "demoGuide": {
+    "photoTextHelp": "Dans le texte extrait d'une photo, les titres générés reconnus suivent la langue de l'interface, même si le corps est déjà dans cette langue. Nom de fichier et corps ne sont pas réécrits. La vue Original conserve le titre enregistré ; les titres des documents ou PDF originaux ne sont pas des libellés UI.",
+    "displayHelpTitle": "Langue, devise et affichage des réponses",
+    "displayHelp": "Les libellés connus de type de sinistre et d'urgence suivent la langue dans Aperçu et Chronologie ; noms et preuves citées restent inchangés. Le menu Devise de l'administration modifie la devise de référence, jamais les valeurs CHF/EUR/USD explicites d'un dossier. Dans Ask IQ, les suggestions compactes remplissent la saisie sans bande défilante. Les réponses affichent gras et italique ; les identifiants de police soulignés et reliés à une citation ouvrent la police. Une actualisation météo réussie efface l'ancienne erreur de chargement du résultat.",
     "chatHistoryHelp": "L'historique Ask IQ peut être vide si le dossier n'a pas de conversations enregistrées. En cas d'échec, choisir Réessayer dans Historique ; le statut HTTP distingue un problème de service ou d'accès d'un historique vide. Ne pas remplacer les documents ni inventer de conversations pour effacer une erreur.",
     "claimsKpiColors": "Dans Aperçu des sinistres habitation, les cartes sont roses pour une revue prioritaire, orange pour les contrôles requis, vertes pour les indicateurs de faible risque ou de calme, bleues pour le contexte, violettes pendant l’analyse et grises sans évaluation disponible. La couleur ne confirme ni la couverture ni la fraude ; lire les libellés et les preuves.",
     "claimsWorkflow": "Dans Client, les libellés de tonalité et le brouillon complet de Courriel, SMS ou Lettre suivent la langue sélectionnée ; les noms et références source restent inchangés. Dans Ask IQ, lancer un workflow pour suivre le plan d’exécution en direct : lecture du dossier, contrôles des agents en parallèle, puis synthèse. Les icônes identifient les rôles ; les contrôles indisponibles exigent une revue. La recommandation finale apparaît en premier, suivie du plan et des résultats détaillés des agents. Aucun envoi ni aucune décision automatique.",
@@ -4093,6 +4104,7 @@
     }
   },
   "auroraDemo": {
+    "scenarioScopeHelp": "Le scénario choisi s'applique aux nouvelles perspectives de tous les dossiers. Choisir celui du dossier avant d'actualiser ; les résultats enregistrés conservent leur source d'origine.",
     "shortNotice": "Résultats synthétiques sans modèle ; validation administrateur obligatoire.",
     "saveMode": "Enregistrer et valider le mode",
     "title": "Démo simulée",

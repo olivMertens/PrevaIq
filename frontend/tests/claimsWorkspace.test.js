@@ -43,7 +43,8 @@ function component(relativePath, locale = 'en', stubs = {}) {
 
 function elements(node) {
   if (!React.isValidElement(node)) return [];
-  return [node, ...React.Children.toArray(node.props.children).flatMap(elements)];
+  return [node, ...React.Children.toArray(node.props.children).flatMap(elements),
+    ...React.Children.toArray(node.props.aside).flatMap(elements)];
 }
 
 test('claims use six ordered business views and every detail has one primary destination', () => {
@@ -225,8 +226,9 @@ test('Aurora is visible when disabled or without a location, without a fabricate
         error: null, initializing: false, setForecast() {},
       }) },
       './CaseTabs': empty,
+      './AuroraClaimMetrics': empty,
       '@/lib/api': { APIError: Error },
-      './caseUi': { CockpitCard: ({ title, children }) => React.createElement('section', null, title, children) },
+      './caseUi': { CockpitCard: ({ title, children, aside }) => React.createElement('section', null, title, aside, children) },
       './AuroraForecastChart': () => { throw new Error('Disabled Aurora must not render a forecast chart'); },
       './AuroraStormTimeline': { default: () => { throw new Error('Disabled Aurora must not render a weather timeline'); }, AuroraResolvingState: empty, __esModule: true },
       '@/components/aurora/AuroraExpiryCountdown': empty,
@@ -330,7 +332,7 @@ test('forecast failures show a localized toast and retain saved evidence', async
       forecast: null, context: null, error: null, initializing: false, setForecast: value => writes.push(value),
     })},
     './caseUi': {CockpitCard: ({children}) => React.createElement('section', null, children)},
-    './CaseTabs': empty, './AuroraForecastChart': empty,
+    './CaseTabs': empty, './AuroraForecastChart': empty, './AuroraClaimMetrics': empty,
     './AuroraStormTimeline': {default: empty, AuroraResolvingState: empty, __esModule: true},
     '@/components/aurora/AuroraExpiryCountdown': empty,
   });

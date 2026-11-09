@@ -10,6 +10,7 @@ import { useConversationRequest } from './chat/useConversationRequest';
 import ChatMessageSkeleton from './chat/ChatMessageSkeleton';
 import MessageBubble from './chat/MessageBubble';
 import ChatModeBar from './chat/ChatModeBar';
+import ChatSuggestions from './chat/ChatSuggestions';
 import WorkflowPicker, { RecommendedWorkflow } from './chat/WorkflowPicker';
 import WorkflowProgress from './chat/WorkflowProgress';
 import { useWorkflowRequest } from './chat/useWorkflowRequest';
@@ -714,34 +715,22 @@ export default function ChatDrawer({
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4" aria-busy={isLoading || isLoadingConversation}>
+          <div className="min-h-0 flex-1 overflow-y-auto p-4 space-y-4" aria-busy={isLoading || isLoadingConversation}>
             {isLoadingConversation ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
               </div>
             ) : isEmpty ? (
-              <div className="text-center py-6">
-                <Bot className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <div className="text-center py-3">
+                <Bot className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                 <p className="text-sm text-slate-500">
                   {t('emptyStateAsk')}
                 </p>
                 {contextualSuggestions.length > 0 && (
                   <div className="mt-4 space-y-2">
                     <p className="text-xs text-slate-400">{t('tryForExample')}</p>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {contextualSuggestions.slice(0, 3).map((suggestion, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => {
-                            setInputValue(suggestion);
-                            inputRef.current?.focus();
-                          }}
-                          className="text-xs px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition-colors"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
+                    <ChatSuggestions suggestions={contextualSuggestions}
+                      onSelect={suggestion => { setInputValue(suggestion); inputRef.current?.focus(); }} />
                   </div>
                 )}
                 {canRunWorkflows && activeAgent !== 'workflow' && (
@@ -762,7 +751,7 @@ export default function ChatDrawer({
           </div>
 
           {/* Input */}
-          <div className="p-3 border-t border-slate-200 bg-white">
+          <div className="shrink-0 p-3 border-t border-slate-200 bg-white">
             <ChatModeBar
               mode={activeAgent}
               onModeChange={setActiveAgent}
@@ -784,20 +773,8 @@ export default function ChatDrawer({
             )}
             {/* Suggestions: in the empty state above, here once the conversation has started */}
             {!isEmpty && contextualSuggestions.length > 0 && !busy && activeAgent !== 'workflow' && (
-              <div className="flex gap-1.5 mb-2 overflow-x-auto pb-0.5 scrollbar-thin">
-                {contextualSuggestions.slice(0, 4).map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setInputValue(suggestion);
-                      inputRef.current?.focus();
-                    }}
-                    className="flex-shrink-0 text-[11px] px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-full transition-colors border border-indigo-100 hover:border-indigo-200 whitespace-nowrap"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
+              <ChatSuggestions suggestions={contextualSuggestions} compact
+                onSelect={suggestion => { setInputValue(suggestion); inputRef.current?.focus(); }} />
             )}
             {activeAgent === 'workflow' && (
               <WorkflowPicker

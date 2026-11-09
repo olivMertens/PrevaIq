@@ -88,6 +88,59 @@ function hooks(initial = []) {
 }
 
 for (const locale of ['en', 'fr', 'de', 'de-CH']) {
+  test(`login currency selector ${locale} keeps native values and compact labels with localized descriptions`, () => {
+    let selected = 'EUR';
+    const h = hooks();
+    const load = loadUI({ locale, react: h.react, overrides: {
+      '@/lib/CurrencyProvider': { useReferenceCurrency: () => ({
+        currency: selected, setCurrency: value => { selected = value; },
+      }) },
+    } });
+    const tree = load('components/CurrencySwitcher.tsx').default({ variant: 'login' });
+    assert.equal(tree.type, 'select');
+    assert.equal(tree.props.value, 'EUR');
+    assert.equal(tree.props['data-currency'], true);
+    assert.equal(tree.props['aria-label'], catalogs[locale].currency.title);
+    const options = React.Children.toArray(tree.props.children);
+    assert.deepEqual(options.map(option => option.props.value), currencyHelpers.CURRENCIES);
+    for (const option of options) {
+      const code = option.props.value;
+      assert.equal(option.props.children, code);
+      assert.equal(option.props['data-description'], catalogs[locale].currency[code]);
+      assert.equal(option.props['aria-label'], `${code} - ${catalogs[locale].currency[code]}`);
+      tree.props.onChange({ target: { value: code } });
+      assert.equal(selected, code);
+    }
+    assert.throws(() => tree.props.onChange({ target: { value: 'invalid' } }), /Unsupported reference currency/);
+    assert.equal(selected, 'CHF');
+  });
+}
+
+test('native select enhancement compiles with a system-picker fallback, bounded menus and scoped theme tokens', async () => {
+  const postcss = require('postcss');
+  const tailwind = require('tailwindcss');
+  const source = readFileSync(path.join(frontend, 'src/app/globals.css'), 'utf8');
+  const { css: compiled } = await postcss([tailwind({
+    content: [{ raw: '<select class="bg-white px-3 py-2">', extension: 'html' }],
+  })]).process(source, { from: undefined });
+  assert.match(compiled, /@supports \(appearance: base-select\)/);
+  assert.match(compiled, /::picker\(select\)/);
+  assert.match(compiled, /option::checkmark/);
+  assert.match(compiled, /option::after\s*\{[^}]*content: attr\(data-description\)/);
+  assert.match(compiled, /max-inline-size: calc\(100vw - 24px\)/);
+  assert.match(compiled, /max-block-size: min\(320px, 60dvh\)/);
+  assert.match(compiled, /option\s*\{[^}]*min-height: 40px/);
+  assert.match(compiled, /select:not\(\[multiple\], \[size\]\)/);
+  assert.match(compiled, /:disabled\s*\{[^}]*cursor: not-allowed/);
+  assert.match(compiled, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(compiled, /@media \(forced-colors: active\)[\s\S]*appearance: auto/);
+  const login = readFileSync(path.join(frontend, 'src/components/auth/login.module.css'), 'utf8');
+  assert.match(login, /--app-select-surface: var\(--pq-surface\)/);
+  assert.match(login, /--app-select-muted: var\(--pq-muted\)/);
+  assert.match(login, /--app-select-selected: #203e4b/);
+});
+
+for (const locale of ['en', 'fr', 'de', 'de-CH']) {
   for (const theme of ['light', 'dark']) {
     for (const [entraEnabled, localAuthEnabled] of [[true, false], [true, true], [false, true], [false, false]]) {
       test(`login ${locale}/${theme}, Entra=${entraEnabled}, local=${localAuthEnabled}: composition, branding, links and provider gates`, () => {
@@ -204,6 +257,8 @@ test('reference currency options update only the selected currency and expose al
   for (const locale of ['en', 'fr', 'de', 'de-CH']) {
     let selected = 'EUR';
     const load = loadUI({ locale, overrides: {
+      react: {...React, useState: initial => [initial, () => {}], useEffect: () => {},
+        useRef: () => ({current: null}), useId: () => 'currency-control'},
       '@/lib/CurrencyProvider': { useReferenceCurrency: () => ({ currency: selected, setCurrency: next => { selected = next; } }) },
     } });
     const Options = load('components/CurrencySwitcher.tsx').CurrencyOptions;
@@ -217,9 +272,9 @@ test('reference currency options update only the selected currency and expose al
       assert.match(renderToStaticMarkup(React.createElement(Options)), new RegExp(catalogs[locale].currency[code]));
     }
     const Switcher = load('components/CurrencySwitcher.tsx').default;
-    Switcher({}).props.onChange({ target: { value: 'USD' } });
+    Switcher({variant: 'login'}).props.onChange({ target: { value: 'USD' } });
     assert.equal(selected, 'USD');
-    assert.throws(() => Switcher({}).props.onChange({ target: { value: 'invalid' } }), /Unsupported reference currency/);
+    assert.throws(() => Switcher({variant: 'login'}).props.onChange({ target: { value: 'invalid' } }), /Unsupported reference currency/);
   }
 });
 

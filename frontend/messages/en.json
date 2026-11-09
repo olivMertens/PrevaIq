@@ -28,6 +28,7 @@
     "description": "AI-powered document processing workbench for insurance"
   },
   "claimSubjects": {
+    "critical": "Critical",
     "water": "Water damage",
     "storm": "Storm",
     "hail": "Hail",
@@ -87,6 +88,7 @@
     "dark": "Dark template"
   },
   "currency": {
+    "selectorLabel": "Currency",
     "title": "Reference currency",
     "USD": "US dollar",
     "EUR": "Euro",
@@ -1664,6 +1666,9 @@
     "conversationLoadError": "Unable to load the conversation"
   },
   "policyDetail": {
+    "requestError": "Policy could not be loaded (HTTP {status})",
+    "invalidResponse": "The server returned incomplete or mismatched policy details.",
+    "retry": "Retry",
     "title": "Policy Details",
     "unableToLoad": "Unable to Load Policy",
     "evaluationCriteria": "Evaluation Criteria",
@@ -1672,7 +1677,7 @@
     "action": "Action",
     "rationale": "Rationale",
     "close": "Close",
-    "loadError": "Failed to load policy"
+    "loadError": "Unable to connect to the policy service. Check your connection and retry."
   },
   "decisions": {
     "yourDecision": "Your decision:",
@@ -1820,6 +1825,8 @@
       "procedure": "Procedure"
     },
     "contentLanguage": {
+      "originalView": "Original text view",
+      "showTranslatedView": "Use translated view",
       "translating": "Translating (original: {language})…",
       "translatedFrom": "Machine translation (original: {language})",
       "failed": "Translation unavailable (original: {language})",
@@ -2217,6 +2224,7 @@
     "pageNumber": "Page {page}"
   },
   "documentViewer": {
+    "photoAnalysisHeading": "Photo analysis: {filename}",
     "documents": "Documents ({count})",
     "photos": "Photos ({count})",
     "pageCount": "{count, plural, one {# page} other {# pages}}",
@@ -3110,6 +3118,9 @@
     }
   },
   "demoGuide": {
+    "photoTextHelp": "In extracted photo text, recognized generated analysis headings follow the interface language, even when the body is already in that language. The filename and body are not rewritten. Original view keeps the stored heading; original document/PDF headings are not treated as UI labels.",
+    "displayHelpTitle": "Language, currency and answer display",
+    "displayHelp": "Known claim-type and urgency labels follow the UI language in Overview and Timeline; source names and quoted evidence stay unchanged. The Currency menu in administration changes the reference currency, never a case's explicit CHF/EUR/USD values. In Ask IQ, compact suggestion buttons fill the input without a scroll strip. Answers support bold and italic emphasis; underlined policy IDs backed by citations open the policy viewer. After a successful weather refresh, the previous saved-result loading error clears.",
     "chatHistoryHelp": "Ask IQ history can be empty for a case with no saved chats. If loading fails, use Retry in History; the HTTP status helps distinguish a service or access error from an empty history. Do not replace claim documents or invent conversations to clear an error.",
     "claimsKpiColors": "Property Overview cards use rose for high-priority review, amber for required checks, green for low-risk or calm indicators, blue for context, violet for running analysis and grey when no assessment is available. Color does not establish coverage or fraud; read the labels and evidence.",
     "claimsWorkflow": "In Customer, tone labels and the entire Email, SMS or Letter draft follow the selected language; names and source references stay unchanged. In Ask IQ, run a workflow to see the live execution plan: case reading, parallel agent checks, then synthesis. Role icons identify the agents; unavailable checks require review. The final recommendation appears first, with the execution plan and expandable agent findings below. Nothing is automatically sent or decided.",
@@ -4093,6 +4104,7 @@
     }
   },
   "auroraDemo": {
+    "scenarioScopeHelp": "The selected scenario applies to new outlooks for all cases. Choose the matching case scenario before refreshing; saved results retain their original source.",
     "shortNotice": "Synthetic results without the model; administrator validation required.",
     "saveMode": "Save and validate mode",
     "title": "Demo simulation",

@@ -295,7 +295,7 @@ export default function MessageBubble({
             msg.workflow ? (
               <WorkflowResult result={msg.workflow} onPolicyClick={onPolicyClick} />
             ) : (
-              <StructuredContentRenderer content={msg.content} onPolicyClick={onPolicyClick} />
+              <StructuredContentRenderer content={msg.content} citations={msg.rag?.citations} onPolicyClick={onPolicyClick} />
             )
           ) : (
             <span className="whitespace-pre-wrap">{msg.content}</span>

@@ -16,7 +16,7 @@ const CLAIM_SUBJECT_ALIASES = {
   glass: ['Bris de glace', 'Glass breakage', 'Glasbruch'],
   electrical: ['Dommages électriques', 'Electrical damage', 'Elektroschäden'],
   liability: ['Responsabilité civile', 'Liability', 'Third-party liability', 'Haftpflicht'],
-  natural: ['Dommage élémentaire', 'Dommages élémentaires', 'Natural hazards', 'Elementarschaden'],
+  natural: ['Dommage élémentaire', 'Dommages élémentaires', 'Sinistre élémentaire', 'Natural hazards', 'Elementarschaden'],
   naturalDisaster: ['Catastrophe naturelle', 'Natural disaster', 'Naturkatastrophe'],
   collision: ['Collision', 'Kollision'],
   sideScrape: ['Frottement latéral avec bris de glace', 'Side scrape with glass breakage', 'Seitlicher Streifschaden mit Glasbruch'],
@@ -26,6 +26,7 @@ const CLAIM_SUBJECT_ALIASES = {
   low: ['Faible', 'Low', 'Gering'],
   moderate: ['Modéré', 'Modérée', 'Moderate', 'Mittel'],
   high: ['Élevé', 'Élevée', 'High', 'Hoch'],
+  critical: ['Critique', 'Critical', 'Kritisch'],
   severe: ['Grave', 'Severe', 'Schwer'],
 } as const;
 

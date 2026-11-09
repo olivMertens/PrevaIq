@@ -18,73 +18,9 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import type { Components } from 'react-markdown';
-
-// Type definitions for structured chat responses
-export interface RiskFactor {
-  title: string;
-  description: string;
-  risk_level: 'low' | 'moderate' | 'high';
-  policy_id?: string;
-}
-
-export interface RiskFactorsResponse {
-  type: 'risk_factors';
-  summary: string;
-  factors: RiskFactor[];
-  overall_risk: 'low' | 'low-moderate' | 'moderate' | 'moderate-high' | 'high';
-}
-
-export interface PolicyItem {
-  policy_id: string;
-  name: string;
-  relevance: string;
-  finding: string;
-}
-
-export interface PolicyListResponse {
-  type: 'policy_list';
-  summary: string;
-  policies: PolicyItem[];
-}
-
-export interface RecommendationResponse {
-  type: 'recommendation';
-  decision: 'approve' | 'approve_with_conditions' | 'defer' | 'decline';
-  confidence: 'high' | 'medium' | 'low';
-  summary: string;
-  conditions?: string[];
-  rationale: string;
-  next_steps?: string[];
-}
-
-export interface ComparisonResponse {
-  type: 'comparison';
-  title: string;
-  columns: string[];
-  rows: { label: string; values: string[] }[];
-}
-
-export interface FraudAnalysisResponse {
-  type: 'fraud_analysis';
-  title: string;
-  photosAnalyzed?: number;
-  riskLevel?: string;
-  score?: string;
-  summary?: string;
-  rationale?: string;
-  findings: string[];
-  consistency?: string;
-}
-
-export type StructuredResponse = 
-  | RiskFactorsResponse 
-  | PolicyListResponse 
-  | RecommendationResponse 
-  | ComparisonResponse
-  | FraudAnalysisResponse;
+import ChatMarkdown from './ChatMarkdown';
+import type { RiskFactorsResponse, PolicyListResponse, RecommendationResponse, ComparisonResponse, FraudAnalysisResponse, StructuredResponse, RAGCitation } from './types';
+export type { RiskFactor, RiskFactorsResponse, PolicyItem, PolicyListResponse, RecommendationResponse, ComparisonResponse, FraudAnalysisResponse, StructuredResponse } from './types';
 
 // Risk level styling
 const riskLevelConfig = {
@@ -585,69 +521,12 @@ export function parseStructuredContent(content: string): { structured: Structure
   return { structured: null, plainText: content };
 }
 
-// Markdown components with Tailwind styling for chat messages
-const markdownComponents: Components = {
-  h1: ({ children }) => <h1 className="text-base font-bold text-slate-900 mt-3 mb-1.5 first:mt-0">{children}</h1>,
-  h2: ({ children }) => <h2 className="text-sm font-bold text-slate-800 mt-3 mb-1 first:mt-0 border-b border-slate-200 pb-0.5">{children}</h2>,
-  h3: ({ children }) => <h3 className="text-sm font-semibold text-slate-800 mt-2 mb-1 first:mt-0">{children}</h3>,
-  h4: ({ children }) => <h4 className="text-xs font-semibold text-slate-700 mt-2 mb-0.5 first:mt-0">{children}</h4>,
-  p: ({ children }) => <p className="text-sm text-slate-700 mb-1.5 last:mb-0 leading-relaxed">{children}</p>,
-  strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
-  em: ({ children }) => <em className="italic text-slate-600">{children}</em>,
-  ul: ({ children }) => <ul className="list-disc list-outside ml-4 mb-1.5 space-y-0.5 text-sm">{children}</ul>,
-  ol: ({ children }) => <ol className="list-decimal list-outside ml-4 mb-1.5 space-y-0.5 text-sm">{children}</ol>,
-  li: ({ children }) => <li className="text-slate-700 leading-relaxed">{children}</li>,
-  hr: () => <hr className="my-2 border-slate-200" />,
-  blockquote: ({ children }) => (
-    <blockquote className="border-l-3 border-indigo-300 pl-3 my-1.5 text-sm italic text-slate-600 bg-indigo-50/50 py-1 rounded-r">
-      {children}
-    </blockquote>
-  ),
-  table: ({ children }) => (
-    <div className="overflow-x-auto my-2 rounded border border-slate-200">
-      <table className="min-w-full text-xs">{children}</table>
-    </div>
-  ),
-  thead: ({ children }) => <thead className="bg-slate-100">{children}</thead>,
-  th: ({ children }) => <th className="px-2 py-1.5 text-left font-semibold text-slate-700 border-b border-slate-200">{children}</th>,
-  td: ({ children }) => <td className="px-2 py-1 text-slate-600 border-b border-slate-100">{children}</td>,
-  code: ({ className, children }) => {
-    const isInline = !className;
-    if (isInline) {
-      return (
-        <code className="font-mono text-xs bg-indigo-100 text-indigo-700 px-1 py-0.5 rounded">
-          {children}
-        </code>
-      );
-    }
-    return (
-      <code className={`block overflow-x-auto p-2 text-xs bg-slate-50 rounded border border-slate-200 ${className || ''}`}>
-        {children}
-      </code>
-    );
-  },
-  a: ({ href, children }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline hover:text-indigo-800 inline-flex items-center gap-0.5">
-      {children}<ExternalLink className="w-3 h-3 inline" />
-    </a>
-  ),
-};
-
-// Render markdown content — used for assistant messages
-function MarkdownRenderer({ content }: { content: string }) {
-  return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-      {content}
-    </ReactMarkdown>
-  );
-}
-
 // Main renderer component
 export function StructuredContentRenderer({ 
-  content, 
-  onPolicyClick 
-}: { 
+  content, citations, onPolicyClick,
+}: {
   content: string;
+  citations?: RAGCitation[];
   onPolicyClick?: (policyId: string) => void;
 }) {
   const { structured, plainText } = parseStructuredContent(content);
@@ -657,7 +536,7 @@ export function StructuredContentRenderer({
       {/* Render plain text as rich markdown */}
       {plainText && (
         <div className="text-sm chat-markdown">
-          <MarkdownRenderer content={plainText} />
+          <ChatMarkdown content={plainText} citations={citations} onPolicyClick={onPolicyClick} />
         </div>
       )}
       
