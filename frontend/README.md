@@ -74,6 +74,48 @@ only the weather endpoints.
 
 ## Case label localization
 
+Known extracted claim-type and urgency enum labels are localized in both the
+overview identity and the main chronology through the same safe alias helper.
+The pure chronology builders live under `src/components/chronology/`; source
+fields, free-form descriptions, names, references and original documents are
+not rewritten. French `sinistre élémentaire` and high/critical urgency values
+from French, English and German are recognized.
+
+The extracted-text panel also localizes recognized generated photo-analysis
+headings in the translated view, including legacy `Analyse des Photos` wrappers.
+It only changes the first generated Markdown heading when it names the exact
+image file being read. This prevents a French wrapper from remaining in DE/DE-CH
+when language detection correctly identifies the body as German and skips
+translation. Filenames, the body, persisted content and Original mode remain
+unchanged; PDF headings, quotations, code and mismatching filenames are not
+rewritten. Original mode is explicitly indicated even when no machine translation
+is required, with a control to return to the translated view. The literal-JSX audit is a static-label check, not a guarantee that
+arbitrary source documents or generated prose are in the selected UI language.
+
+Administration and Client 360 use a compact named currency menu with current
+selection, keyboard navigation, Escape/outside dismissal and the reference-only
+hint. The login page keeps its native select. The existing cookie/provider still
+controls persistence; an explicit case currency always wins, with no FX conversion.
+
+Ask IQ suggestion chips use a compact grid instead of a nested scrolling strip.
+Displayed Markdown responses support colored headings, bold/italic emphasis and
+underlined policy references. Only unambiguous IDs provided by citation metadata
+become policy-viewer buttons; unknown references, code and existing links are not
+rewritten. Raw HTML is not enabled. Policy content and quoted source wording stay
+unchanged. Policy details use the same configured persona-to-catalog resolver as
+the policy list, including habitation claims, rather than a separate mapping that
+could incorrectly fall back to underwriting.
+The viewer validates the requested ID and detail structure, cancels stale requests,
+and provides localized HTTP/connection errors with a Retry action. It never displays
+an incomplete response or a different policy as a successful lookup.
+
+A successful Aurora refresh clears a previous saved-result load error but does
+not clear an unresolved service-status error. The admin scenario remains an
+explicit global choice for new requests; changing it does not rewrite saved
+evidence or automatically select a different scenario for another case. Older
+saved results without provenance remain readable; missing source details are
+shown as unavailable instead of causing a rendering exception.
+
 The login language switcher and account menu offer EN, FR, DE and **DE-CH**
 (`de-CH`, Deutsch (Schweiz)). The locale cookie, HTML language and `next-intl`
 provider retain the regional locale for Swiss number and date formatting.
@@ -272,6 +314,21 @@ Follow the repository's SOLID, DRY, and YAGNI rules.
 - **No god components**: refactor components above roughly 400 lines, such as `admin/page.tsx`, `LandingPage.tsx`, or `LifeHealthClaimsOverview.tsx`.
 - **Co-location**: keep related files together, such as `components/admin/DocumentsTab.tsx` and `components/admin/useAdminState.ts`.
 - **Custom hooks**: use hooks for reusable logic, such as `useApplications` and `useToast`.
+
+### Form selectors
+
+Single-value native selectors share their presentation in `src/app/globals.css`.
+Browsers supporting `appearance: base-select` render a rounded, scrollable picker
+with 40px option targets, a selected-option checkmark and theme-aware focus/hover
+states. Other browsers keep the system picker; native keyboard navigation,
+form validation, values and change handlers are preserved. Multi-select and
+explicitly sized listboxes are left unchanged. Forced-colors mode uses the system picker.
+
+The login currency control keeps its short code when closed and displays localized
+currency names in the enhanced picker. Its palette follows the independent login
+theme on `/login`. The existing application currency menu is preserved.
+No demo-guide labels, scenario references, assets or file selections change;
+demo-settings selectors inherit the shared styles.
 
 ## Login appearance
 
