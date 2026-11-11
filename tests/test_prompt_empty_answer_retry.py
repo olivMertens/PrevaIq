@@ -80,6 +80,22 @@ def test_second_empty_answer_is_not_retried_again(calls):
     assert output["parsed"]["_error"] == "Failed to parse JSON response."
 
 
+def test_damage_analysis_cut_at_its_token_cap_is_repaired(calls):
+    calls.answers.append(
+        {
+            "content": '{"damage_zones": [{"zone": "shop window"}], "summary": "Hail cracked',
+            "usage": _usage(9000, 12000),
+        }
+    )
+
+    output = _run()
+
+    assert calls.recorded[0]["max_tokens"] == 12000
+    assert "_error" not in output["parsed"]
+    assert output["parsed"]["damage_zones"] == [{"zone": "shop window"}]
+    assert output["parsed"]["_truncated"] is True
+
+
 def test_non_empty_answer_makes_a_single_call(calls):
     calls.answers.append({"content": '{"severity": "low"}', "usage": _usage(9000, 300)})
 

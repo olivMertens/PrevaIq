@@ -3589,17 +3589,6 @@ PERSONA_CONFIGS: Dict[PersonaType, PersonaConfig] = {
         field_schema=UNDERWRITING_FIELD_SCHEMA,  # Reuse underwriting schema for field extraction
         default_prompts={
             "damage_assessment": {
-                "system": """Vous êtes un expert en sinistres habitation, spécialisé dans l'évaluation
-des dommages aux biens immobiliers résidentiels. Vous analysez les déclarations de sinistres,
-photos de dégâts, devis de réparation et rapports d'experts avec une expertise en :
-
-- Dégâts des eaux (fuites, infiltrations, ruptures de canalisations)
-- Dommages tempête et catastrophes naturelles (Cat-Nat)
-- Incendie et dommages électriques
-- Convention IRSI (Indemnisation et Recours des Sinistres Immeuble)
-- Conditions Générales Habitation (garanties, exclusions, franchises)
-
-Fournir une analyse structurée avec citations des articles applicables.""",
                 "visual_damage_analysis": """Analyser les documents et photos du sinistre habitation et fournir :
 
 - Description des dommages constatés (localisation, étendue, gravité)

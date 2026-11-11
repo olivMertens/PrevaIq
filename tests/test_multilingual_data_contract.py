@@ -615,6 +615,41 @@ def test_same_language_family_adaptation_is_not_retried(monkeypatch: pytest.Monk
     assert calls == 1
 
 
+def test_prose_in_another_language_is_translated_in_the_analysis_language(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    metadata = _metadata()
+    metadata.analysis_locale = "de-CH"
+    metadata.llm_outputs = {
+        "liability_assessment": {
+            "coverage_verification": {
+                "parsed": {"conclusion": _GERMAN_DECISION, "commentaire": _FRENCH_DECISION}
+            }
+        }
+    }
+    sent: list[tuple[str, dict]] = []
+
+    def fake_completion(_settings, messages, **_kwargs):
+        chunk = json.loads(messages[1]["content"])
+        sent.append((messages[0]["content"], chunk))
+        return {"content": json.dumps({key: _GERMAN_DECISION for key in chunk})}
+
+    monkeypatch.setattr("app.processing.chat_completion", fake_completion)
+    monkeypatch.setattr("app.processing.load_application", lambda *args: metadata)
+    monkeypatch.setattr("app.processing.load_localized_analysis_cache", lambda *args: None)
+    monkeypatch.setattr("app.processing.save_localized_analysis_cache", lambda *args: "cache")
+    settings = SimpleNamespace(openai=object(), app=SimpleNamespace(storage_root="unused"))
+
+    assert cached_localized_analysis_payload(settings, metadata, "de-CH") is None
+    localized = localized_analysis_payload(settings, metadata, "de-CH")
+
+    parsed = localized["llm_outputs"]["liability_assessment"]["coverage_verification"]["parsed"]
+    assert parsed == {"conclusion": _GERMAN_DECISION, "commentaire": _GERMAN_DECISION}
+    # Only the French value is sent: the German prose stays as the model wrote it.
+    assert [list(chunk.values()) for _, chunk in sent] == [[_FRENCH_DECISION]]
+    assert "from French into Swiss Standard German" in sent[0][0]
+
+
 def _label_case() -> ApplicationMetadata:
     metadata = _metadata()
     metadata.llm_outputs = {
@@ -701,16 +736,33 @@ def test_label_failure_keeps_the_translated_analysis(
     assert localized["llm_outputs"]["damage_assessment"]["system"]["parsed"]["decision"]
 
 
-def test_labels_are_not_requested_in_the_analysis_language(
-    monkeypatch: pytest.MonkeyPatch,
+@pytest.mark.parametrize("language", ["de-CH", "de"])
+def test_labels_are_requested_in_the_analysis_language_and_its_family(
+    monkeypatch: pytest.MonkeyPatch, language: str
 ) -> None:
-    def unexpected_completion(*_args, **_kwargs):
-        raise AssertionError("no model call expected")
+    # Field names and codes follow the French prompts, not the analysis language.
+    german = {
+        "garanties": "Garantien",
+        "type": "Art",
+        "tempete": "Sturm",
+        "niveau": "Stufe",
+        "non_applicable": "Nicht anwendbar",
+    }
 
-    metadata = _label_case()
-    metadata.context_labels = []
-    metadata.context_tasks = []
+    def fake_completion(_settings, messages, **_kwargs):
+        chunk = json.loads(messages[1]["content"])
+        return {"content": json.dumps({key: german[name] for key, name in chunk.items()})}
 
-    localized = _localize_with_labels(monkeypatch, metadata, "fr", unexpected_completion)
+    metadata = _metadata()
+    metadata.analysis_locale = "de-CH"
+    metadata.llm_outputs = {
+        "liability_assessment": {
+            "coverage_verification": {
+                "parsed": {"garanties": [{"type": "tempete", "niveau": "non_applicable"}]}
+            }
+        }
+    }
 
-    assert ANALYSIS_LABELS_KEY not in localized
+    localized = _localize_with_labels(monkeypatch, metadata, language, fake_completion)
+
+    assert localized[ANALYSIS_LABELS_KEY] == german

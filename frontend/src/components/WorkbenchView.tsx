@@ -154,8 +154,8 @@ export default function WorkbenchView({
     return () => clearInterval(interval);
   }, [selectedApp]);
 
-  // In a new language the analysis is shown as generated while the API translates it;
-  // the translated case replaces it as soon as it is ready (bounded: 3 minutes).
+  // In another language than the analysis, and until its field labels are localized, the
+  // analysis is shown as generated; the localized case replaces it when ready (3 minutes max).
   const pendingLanguage = selectedApp?.analysis_translation_pending;
   const selectedAppId = selectedApp?.id;
   useEffect(() => {

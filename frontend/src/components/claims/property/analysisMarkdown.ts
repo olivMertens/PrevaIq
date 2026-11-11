@@ -65,6 +65,8 @@ const KEY_LABELS: Record<string, string> = { cat_nat: 'Cat-Nat', catnat: 'Cat-Na
 const MONEY_KEY = /montant|franchise|indemni|plafond|total|amount|deductible|payout|cost|premium|limit|betrag|selbstbehalt|entsch/i;
 const NOT_MONEY_KEY = /count|number|nombre|rate|ratio|percent|score|days|jours|confidence/i;
 const ENUM_TOKEN = /^[a-z]+(?:_[a-z]+)+$/;
+// Single-word codes ("tempete", "oui"): their translated label, else shown as written.
+const CODE_WORD = /^[a-zà-öø-ÿ]{3,}$/;
 const INLINE_LIST_MAX = 160;
 const LANGUAGE_TAG_KEY = /^(?:langue|language|lang|sprache)$/i;
 const LANGUAGE_CODE = /^[a-z]{2}(?:-[a-z]{2})?$/i;
@@ -127,7 +129,8 @@ function scalarText(key: string, value: unknown, options: FieldMarkdownOptions):
   // One line per field: line breaks inside a value would break the Markdown list.
   const text = value.replace(/\s*\n\s*/g, ' ').trim();
   if (!text) return null;
-  return ENUM_TOKEN.test(text) ? options.valueLabel?.(text) ?? humanizeFieldKey(text) : text;
+  if (ENUM_TOKEN.test(text)) return options.valueLabel?.(text) ?? humanizeFieldKey(text);
+  return CODE_WORD.test(text) ? options.valueLabel?.(text) ?? text : text;
 }
 
 function objectLines(obj: Record<string, unknown>, depth: number, options: FieldMarkdownOptions): string[] {

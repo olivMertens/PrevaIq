@@ -404,6 +404,17 @@ test('translated field labels head the summary tabs and the model language tag i
   assert.equal(german.timeline, '#### Zeitachse\n- e');
 });
 
+test('single-word codes show their translated label, or stay as written', () => {
+  const { analysisFieldsMarkdown } = analysisMarkdown;
+  const parsed = { garanties: [{ type: 'tempete', niveau: 'oui', commentaire: 'Hagel' }] };
+  const labels = { tempete: 'Sturm', oui: 'Ja' };
+
+  const markdown = analysisFieldsMarkdown(parsed, { valueLabel: (code) => labels[code] ?? null });
+
+  assert.match(markdown, /- \*\*Sturm\*\*\n {2}- \*\*Niveau:\*\* Ja\n {2}- \*\*Commentaire:\*\* Hagel/);
+  assert.match(analysisFieldsMarkdown(parsed), /- \*\*tempete\*\*\n {2}- \*\*Niveau:\*\* oui/);
+});
+
 test('timeline previews are plain text cut at a word boundary', () => {
   const { markdownPreview } = analysisMarkdown;
   assert.equal(markdownPreview('## Summary\n**Storm** damage confirmed by [MeteoSwiss](https://x.ch).'), 'Summary');

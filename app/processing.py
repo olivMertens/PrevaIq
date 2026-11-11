@@ -297,8 +297,13 @@ def translate_analysis_payload(
     *,
     source_language: str,
     target_language: str,
+    foreign_only: bool = False,
 ) -> Dict[str, Any]:
-    """Translate generated prose without changing JSON shape or source evidence."""
+    """Translate generated prose without changing JSON shape or source evidence.
+
+    ``foreign_only`` sends only the values not detected in the target language: the prose
+    a model wrote in ``source_language`` inside an analysis written in the target language.
+    """
     import copy
 
     source = require_language(source_language)
@@ -308,6 +313,9 @@ def translate_analysis_payload(
         return translated
 
     strings = _localizable_strings(payload)
+    if foreign_only:
+        family = base_language(target)
+        strings = [(path, text) for path, text in strings if detect_language(text) != family]
     if not strings:
         return translated
     chunks = _translation_chunks([text for _, text in strings])
@@ -328,6 +336,8 @@ def translate_analysis_payload(
 ANALYSIS_LABELS_KEY = "analysis_labels"
 # Coded values the cockpit shows humanized (same pattern as ENUM_TOKEN in analysisMarkdown.ts).
 _CODED_VALUE = re.compile(r"^[a-z]+(?:_[a-z]+)+$")
+# Single-word codes ("tempete", "oui"), shown as written unless labelled (CODE_WORD there).
+_CODED_WORD = re.compile(r"^[a-zà-öø-ÿ]{3,}$")
 
 
 def _analysis_label_names(llm_outputs: Any) -> List[str]:
@@ -345,8 +355,10 @@ def _analysis_label_names(llm_outputs: Any) -> List[str]:
         elif isinstance(value, list):
             for child in value:
                 collect(child)
-        elif isinstance(value, str) and _CODED_VALUE.match(value.strip()):
-            names.setdefault(value.strip(), None)
+        elif isinstance(value, str):
+            code = value.strip()
+            if _CODED_VALUE.match(code) or _CODED_WORD.match(code):
+                names.setdefault(code, None)
 
     if isinstance(llm_outputs, dict):
         for subsections in llm_outputs.values():
@@ -361,21 +373,21 @@ def translate_analysis_labels(
     settings: Settings,
     names: List[str],
     *,
-    source_language: str,
     target_language: str,
 ) -> Dict[str, str]:
     """Labels in the target language for field names and coded values of an analysis.
 
+    Requested in every language, the analysis language included: names follow the French
+    prompts and the model's choices (French or English), not the analysis language.
     Best effort: names whose labels could not be translated are shown as written.
     """
-    source = require_language(source_language)
     target = require_language(target_language)
-    if not names or base_language(source) == base_language(target):
+    if not names:
         return {}
     prompt = (
         "Each JSON string value below is a field name or a coded value from a structured "
-        f"insurance claim analysis written in {language_name(source)} (snake_case or "
-        "camelCase, accents may be missing). Return a JSON object with exactly the same keys "
+        "insurance claim analysis (snake_case, camelCase or a single word, usually French or "
+        "English, accents may be missing). Return a JSON object with exactly the same keys "
         f"and, for each one, a short display label in {language_name(target)}: sentence case, "
         "correct accents, no trailing colon, no commentary. Keep acronyms such as AVB, IRSI, "
         "Cat-Nat, SIU or DDE unchanged. " + language_instruction(target)
@@ -385,7 +397,7 @@ def translate_analysis_labels(
         try:
             return _request_chunk_translation(settings, chunk, prompt)
         except Exception as exc:  # noqa: BLE001 - labels must not block the translated analysis
-            logger.warning("Analysis labels %s->%s failed: %s", source, target, exc)
+            logger.warning("Analysis labels in %s failed: %s", target, exc)
             return {}
 
     labels: Dict[str, str] = {}
@@ -435,6 +447,34 @@ def _analysis_part_sources(
     return sources
 
 
+def _stray_language(value: Any, target: str) -> Optional[str]:
+    """Most frequent other language among the prose of a part meant to be in the target."""
+    family = base_language(target)
+    counts: Dict[str, int] = {}
+    for _, text in _localizable_strings(value):
+        detected = detect_language(text)
+        if detected and detected != family:
+            counts[detected] = counts.get(detected, 0) + 1
+    return max(counts, key=counts.__getitem__) if counts else None
+
+
+def _translation_plan(
+    app_md: ApplicationMetadata, canonical: Dict[str, Any], target: str
+) -> Dict[str, Tuple[str, bool]]:
+    """Source language of each part to translate into the target, and if only stray prose.
+
+    A part already in the target language is still translated when the model wrote some
+    of its prose in another language (French in a German analysis): only that prose.
+    """
+    plan: Dict[str, Tuple[str, bool]] = {}
+    for key, source in _analysis_part_sources(app_md, canonical).items():
+        if source != target:
+            plan[key] = (source, False)
+        elif stray := _stray_language(canonical[key], target):
+            plan[key] = (stray, True)
+    return plan
+
+
 def _translate_canonical_payload(
     settings: Settings,
     app_md: ApplicationMetadata,
@@ -444,28 +484,25 @@ def _translate_canonical_payload(
     """Translate each canonical part from its own source language."""
     import copy
 
-    sources = _analysis_part_sources(app_md, canonical)
     translated = copy.deepcopy(canonical)
-    for source in sorted(set(sources.values()) - {target_language}):
-        part = {
-            key: canonical[key] for key, part_source in sources.items() if part_source == source
-        }
+    groups: Dict[Tuple[str, bool], Dict[str, Any]] = {}
+    for key, how in _translation_plan(app_md, canonical, target_language).items():
+        groups.setdefault(how, {})[key] = canonical[key]
+    for (source, stray_only), part in sorted(groups.items(), key=lambda item: item[0]):
+        options = {"foreign_only": True} if stray_only else {}
         translated.update(
             translate_analysis_payload(
-                settings, part, source_language=source, target_language=target_language
+                settings, part, source_language=source, target_language=target_language, **options
             )
         )
-    # The cockpit shows field names and codes as labels: they follow the analysis language.
-    llm_source = sources.get("llm_outputs")
-    if llm_source and llm_source != target_language:
-        labels = translate_analysis_labels(
-            settings,
-            _analysis_label_names(canonical.get("llm_outputs")),
-            source_language=llm_source,
-            target_language=target_language,
-        )
-        if labels:
-            translated[ANALYSIS_LABELS_KEY] = labels
+    # The cockpit shows field names and codes as labels, in every language.
+    labels = translate_analysis_labels(
+        settings,
+        _analysis_label_names(canonical.get("llm_outputs")),
+        target_language=target_language,
+    )
+    if labels:
+        translated[ANALYSIS_LABELS_KEY] = labels
     return translated
 
 
@@ -477,7 +514,9 @@ def cached_localized_analysis_payload(
     """Localized analysis when no translation is needed or it is cached, else None."""
     locale = require_language(language)
     canonical = canonical_analysis_payload(app_md)
-    if all(source == locale for source in _analysis_part_sources(app_md, canonical).values()):
+    if not _translation_plan(app_md, canonical, locale) and not _analysis_label_names(
+        canonical.get("llm_outputs")
+    ):
         return canonical
 
     revision = analysis_source_revision(app_md)
@@ -2154,12 +2193,15 @@ def _try_repair_truncated_json(text: str) -> Dict[str, Any]:
 
 
 # Per-subsection max_tokens overrides for prompts that produce large JSON.
-# Subsections not listed here use the chat_completion default (1200).
+# Subsections not listed here use the chat_completion default (1200), raised to 4000 for
+# reasoning models, whose hidden reasoning shares that budget with the answer.
 _SUBSECTION_MAX_TOKENS: Dict[str, int] = {
     "body_system_review": 16000,  # Multi-system structured JSON for 100+ page docs
     "pending_investigations": 4000,  # Can be lengthy for large APS docs
     "abnormal_labs": 4000,  # Many abnormal labs in complex cases
     "last_office_visit": 2000,
+    # Claims with several documents and photos: reasoning plus an answer above 4000 tokens
+    "visual_damage_analysis": 12000,
 }
 
 
