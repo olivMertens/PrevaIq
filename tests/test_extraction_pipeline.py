@@ -33,8 +33,11 @@ from app.markitdown_service import MarkItDownConversionResult
 from app.processing import run_content_understanding_for_files
 from app.storage import ApplicationMetadata, StoredFile
 from app.content_understanding_client import (
+    ContentUnderstandingError,
     ContentUnderstandingOperationError,
+    ContentUnderstandingRequestError,
     analyze_document,
+    analyze_image,
     poll_result,
 )
 
@@ -63,6 +66,60 @@ def test_poll_request_has_a_bounded_network_timeout():
         result = poll_result(accepted, {}, timeout_seconds=5)
     assert result["status"] == "Succeeded"
     assert 0 < get.call_args.kwargs["timeout"] <= 5
+
+
+@pytest.mark.parametrize(("status", "calls"), [(404, 1), (400, 1), (503, 3)])
+def test_only_transient_analysis_failures_are_retried(tmp_path, status, calls):
+    settings = _settings(tmp_path).content_understanding
+    settings.use_azure_ad = False
+    settings.api_key = "test"
+    failed = SimpleNamespace(
+        ok=False,
+        status_code=status,
+        reason="error",
+        url="https://cu.example",
+        text="",
+        json=lambda: {},
+    )
+    with (
+        patch("app.content_understanding_client.requests.post", return_value=failed) as post,
+        patch("app.content_understanding_client.time.sleep"),
+    ):
+        with pytest.raises(ContentUnderstandingError) as caught:
+            analyze_image(settings, file_bytes=b"jpeg", analyzer_id="claimImageAnalyzer")
+    assert post.call_count == calls
+    assert isinstance(caught.value, ContentUnderstandingRequestError) == (status != 503)
+
+
+def _photo_case(persona: str) -> ApplicationMetadata:
+    return ApplicationMetadata(
+        id="app1",
+        created_at="2026-01-01T00:00:00Z",
+        external_reference=None,
+        status="pending",
+        persona=persona,
+        files=[StoredFile(filename=f"photo{i}.jpg", path=f"photo{i}.jpg") for i in (1, 2)],
+    )
+
+
+@pytest.mark.parametrize(
+    ("persona", "cu_calls"), [("habitation_claims", 1), ("life_health_claims", 0)]
+)
+def test_photos_skip_unusable_analyzers_and_use_gpt_vision(tmp_path, persona, cu_calls):
+    missing = ContentUnderstandingRequestError(404, "Analyzer was not found")
+    with (
+        patch("app.processing.load_file_content", return_value=b"jpeg"),
+        patch("app.processing.analyze_image", side_effect=missing) as analyze,
+        patch("app.processing._gpt_vision_describe_image", return_value="# Photo\n\nHail"),
+        patch("app.processing._llm_extract_fields", return_value={}),
+        patch("app.processing.save_application_metadata"),
+    ):
+        result = run_content_understanding_for_files(_settings(tmp_path), _photo_case(persona))
+
+    # A missing analyzer is called once per run; personas without one never call it.
+    assert analyze.call_count == cu_calls
+    backends = [item["extraction_backend"] for item in result.extraction_provenance["files"]]
+    assert backends == ["gpt-vision-fallback"] * 2
 
 
 # These would need to be imported from actual modules after implementing

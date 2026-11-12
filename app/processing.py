@@ -11,6 +11,8 @@ from typing import Any, Dict, List, Optional, Tuple
 from .brands import DEFAULT_BRAND
 from .config import Settings
 from .content_understanding_client import (
+    ContentUnderstandingError,
+    ContentUnderstandingRequestError,
     analyze_document,
     analyze_image,
     analyze_video,
@@ -960,11 +962,10 @@ def run_content_understanding_for_files(
                 e,
             )
 
-    # Custom CU analyzers using prebuilt-document base are broken on the GA API
-    # 2025-11-01 (swedencentral, AIServices S0) — they return InternalServerError.
-    # Skip them to avoid wasting a failed CU round-trip before the prebuilt-layout
-    # fallback. When Azure fixes prebuilt-document custom analyzers, remove this.
-    # Note: prebuilt-image based analyzers (habitationClaimsImageAnalyzer) DO work.
+    # The persona's custom document analyzers do not exist on the GA API 2025-11-01
+    # (404 ModelNotFound: they were created with the retired preview API). Skip them to
+    # avoid a failed round-trip before prebuilt-layout; remove an entry once its analyzer
+    # is recreated on the GA API.
     _BROKEN_ANALYZERS = {
         "healthUnderwritingAnalyzer",
         "lifeHealthClaimsAnalyzer",
@@ -978,10 +979,11 @@ def run_content_understanding_for_files(
         )
         doc_analyzer_id = "prebuilt-layout"
 
-    # Enable image processing for all personas using prebuilt analyzer as fallback
-    if not image_analyzer_id:
-        image_analyzer_id = "prebuilt-image"
+    # Images: the persona's custom image analyzer, else a GPT vision description. Base
+    # analyzers such as prebuilt-image only serve as parents and cannot run on their own.
     is_multimodal_persona = True  # All personas can now process images
+    # Analyzers the service rejected for good during this run are not called again.
+    rejected_analyzers: set[str] = set()
 
     for idx, stored in enumerate(app_md.files):
         # Skip files already extracted (incremental processing) — but only when
@@ -1033,9 +1035,13 @@ def run_content_understanding_for_files(
                 logger.warning("Composite PDF profiling skipped for %s: %s", stored.filename, exc)
 
         # Route to appropriate analyzer based on media type (for multimodal personas)
-        if is_multimodal_persona and media_type == "image" and image_analyzer_id:
-            # Process as image with image analyzer
+        if is_multimodal_persona and media_type == "image":
+            usable_analyzer = (
+                bool(image_analyzer_id) and image_analyzer_id not in rejected_analyzers
+            )
             try:
+                if not usable_analyzer:
+                    raise ContentUnderstandingError("no usable Content Understanding analyzer")
                 logger.info(
                     "[CU-CALL] file=%s media=image analyzer=%s size_kb=%.1f "
                     "completion=%s embedding=%s",
@@ -1111,95 +1117,48 @@ def run_content_understanding_for_files(
                 )
 
             except Exception as e:
-                logger.error("Image analysis failed for %s: %s", stored.filename, e)
-                image_recovered = False
-                # First fallback: CU prebuilt-image (handles missing custom analyzers
-                # without depending on the GPT-vision deployment).
-                if image_analyzer_id != "prebuilt-image":
-                    try:
-                        logger.info("Falling back to prebuilt-image for %s", stored.filename)
-                        payload = analyze_image(
-                            settings.content_understanding,
-                            file_bytes=file_content,
-                            analyzer_id="prebuilt-image",
+                if isinstance(e, ContentUnderstandingRequestError):
+                    rejected_analyzers.add(image_analyzer_id)
+                if usable_analyzer:
+                    logger.error("Image analysis failed for %s: %s", stored.filename, e)
+                logger.info("Describing %s with GPT vision", stored.filename)
+                try:
+                    vision_md = _gpt_vision_describe_image(
+                        settings,
+                        file_content,
+                        stored.filename,
+                        persona=app_md.persona or "automotive_claims",
+                        language=language,
+                    )
+                    if vision_md:
+                        all_markdown_parts.append(vision_md)
+                        page_counter += 1
+                        all_pages.append(
+                            {
+                                "file": stored.filename,
+                                "page_number": page_counter,
+                                "markdown": vision_md,
+                            }
                         )
-                        extracted = extract_markdown_from_result(payload)
-                        image_md = extracted.get("document_markdown", "")
-                        if image_md:
-                            summary = f"# Image Analysis: {stored.filename}\n\n{image_md}\n\n"
-                            all_markdown_parts.append(summary)
-                            page_counter += 1
-                            all_pages.append(
-                                {
-                                    "file": stored.filename,
-                                    "page_number": page_counter,
-                                    "markdown": summary,
-                                }
-                            )
-                            analyzer_used = "prebuilt-image"
-                            file_provenance.append(
-                                {
-                                    "file": stored.filename,
-                                    "media_type": "image",
-                                    "extraction_backend": "content-understanding",
-                                    "analyzer_id": "prebuilt-image",
-                                    "fallback_from": image_analyzer_id,
-                                    "field_count": 0,
-                                    "page_count": 1,
-                                }
-                            )
-                            image_recovered = True
-                            logger.info(
-                                "prebuilt-image fallback produced %d chars for %s",
-                                len(image_md),
-                                stored.filename,
-                            )
-                    except Exception as e_pi:
-                        logger.warning(
-                            "prebuilt-image fallback failed for %s: %s", stored.filename, e_pi
+                        analyzer_used = f"{settings.openai.model_name}-vision-fallback"
+                        file_provenance.append(
+                            {
+                                "file": stored.filename,
+                                "media_type": "image",
+                                "extraction_backend": "gpt-vision-fallback",
+                                "analyzer_id": analyzer_used,
+                                "fallback_from": image_analyzer_id,
+                                "field_count": 0,
+                                "page_count": 1,
+                            }
                         )
-                # Second fallback: GPT vision description.
-                if not image_recovered:
-                    logger.info("Falling back to GPT vision for %s", stored.filename)
-                    try:
-                        vision_md = _gpt_vision_describe_image(
-                            settings,
-                            file_content,
+                        logger.info(
+                            "GPT vision fallback produced %d chars for %s",
+                            len(vision_md),
                             stored.filename,
-                            persona=app_md.persona or "automotive_claims",
-                            language=language,
                         )
-                        if vision_md:
-                            all_markdown_parts.append(vision_md)
-                            page_counter += 1
-                            all_pages.append(
-                                {
-                                    "file": stored.filename,
-                                    "page_number": page_counter,
-                                    "markdown": vision_md,
-                                }
-                            )
-                            analyzer_used = f"{settings.openai.model_name}-vision-fallback"
-                            file_provenance.append(
-                                {
-                                    "file": stored.filename,
-                                    "media_type": "image",
-                                    "extraction_backend": "gpt-vision-fallback",
-                                    "analyzer_id": analyzer_used,
-                                    "fallback_from": image_analyzer_id,
-                                    "field_count": 0,
-                                    "page_count": 1,
-                                }
-                            )
-                            logger.info(
-                                "GPT vision fallback produced %d chars for %s",
-                                len(vision_md),
-                                stored.filename,
-                            )
-                    except Exception as e2:
-                        logger.error(
-                            "GPT vision fallback also failed for %s: %s", stored.filename, e2
-                        )
+                except Exception as e2:
+                    logger.error("GPT vision fallback also failed for %s: %s", stored.filename, e2)
 
         elif is_multimodal_persona and media_type == "video" and video_analyzer_id:
             # Process as video with video analyzer

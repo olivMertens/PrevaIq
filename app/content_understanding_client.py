@@ -31,6 +31,39 @@ class ContentUnderstandingError(Exception):
     pass
 
 
+class ContentUnderstandingRequestError(ContentUnderstandingError):
+    """The service rejected the request for good: the same call cannot succeed later.
+
+    For example an analyzer that does not exist (404 ModelNotFound) or a base analyzer
+    such as prebuilt-image, which only serves as a parent (400 InvalidAnalyzer).
+    """
+
+    def __init__(self, status_code: int, message: str):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _rejected_status(exc: Optional[Exception]) -> Optional[int]:
+    """HTTP status of a request rejected for good, or None when a retry may succeed."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    if isinstance(status, int) and 400 <= status < 500 and status not in (401, 408, 429):
+        return status
+    return None
+
+
+def _analysis_failure(
+    operation: str, attempts: int, ctx: str, last_err: Optional[Exception]
+) -> ContentUnderstandingError:
+    message = (
+        f"Content Understanding {operation} failed after {attempts} attempt(s) [{ctx}]: "
+        f"{last_err}"
+    )
+    status = _rejected_status(last_err)
+    if status is not None:
+        return ContentUnderstandingRequestError(status, message)
+    return ContentUnderstandingError(message)
+
+
 @dataclass
 class FieldConfidence:
     """Represents an extracted field with confidence score and source grounding."""
@@ -327,13 +360,12 @@ def analyze_document(
                 file_label,
                 str(exc)[:600],
             )
+            if _rejected_status(exc) is not None:
+                break
             if attempt < max_retries:
                 time.sleep(retry_backoff**attempt)
 
-    raise ContentUnderstandingError(
-        f"Content Understanding analyze_document failed after {max_retries} attempts "
-        f"[{ctx}]: {last_err}"
-    )
+    raise _analysis_failure("analyze_document", attempt, ctx, last_err)
 
 
 def analyze_image(
@@ -346,14 +378,14 @@ def analyze_image(
 ) -> Dict[str, Any]:
     """Analyze an image using Azure Content Understanding.
 
-    Uses the prebuilt-image analyzer or a custom image analyzer for
-    automotive claims damage detection.
+    Uses a custom image analyzer (derived from the prebuilt-image base analyzer) or a
+    ready-to-use one such as prebuilt-imageSearch. Base analyzers cannot run on their own.
 
     Args:
         settings: Content Understanding settings
         file_path: Path to the image file (used if file_bytes not provided)
         file_bytes: Raw image content bytes (preferred for cloud storage)
-        analyzer_id: Analyzer ID to use (defaults to prebuilt-image)
+        analyzer_id: Analyzer ID to use (defaults to prebuilt-imageSearch)
         max_retries: Number of retry attempts
         retry_backoff: Backoff multiplier between retries
 
@@ -364,7 +396,7 @@ def analyze_image(
         raise ContentUnderstandingError("Azure Content Understanding endpoint is not set.")
 
     endpoint = settings.endpoint.rstrip("/")
-    analyzer_id = analyzer_id or "prebuilt-image"
+    analyzer_id = analyzer_id or "prebuilt-imageSearch"
 
     # Get authentication
     token, headers = _get_auth_token_and_headers(settings)
@@ -413,13 +445,12 @@ def analyze_image(
                 file_label,
                 str(exc)[:600],
             )
+            if _rejected_status(exc) is not None:
+                break
             if attempt < max_retries:
                 time.sleep(retry_backoff**attempt)
 
-    raise ContentUnderstandingError(
-        f"Content Understanding analyze_image failed after {max_retries} attempts "
-        f"[{ctx}]: {last_err}"
-    )
+    raise _analysis_failure("analyze_image", attempt, ctx, last_err)
 
 
 def analyze_video(
@@ -502,13 +533,12 @@ def analyze_video(
                 file_label,
                 str(exc)[:600],
             )
+            if _rejected_status(exc) is not None:
+                break
             if attempt < max_retries:
                 time.sleep(retry_backoff**attempt)
 
-    raise ContentUnderstandingError(
-        f"Content Understanding analyze_video failed after {max_retries} attempts "
-        f"[{ctx}]: {last_err}"
-    )
+    raise _analysis_failure("analyze_video", attempt, ctx, last_err)
 
 
 def extract_video_keyframes(payload: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1193,6 +1223,8 @@ def analyze_document_with_confidence(
                 file_label,
                 str(exc)[:600],
             )
+            if _rejected_status(exc) is not None:
+                break
             if attempt < max_retries:
                 if is_rate_limit:
                     wait = rate_limit_wait
@@ -1206,10 +1238,7 @@ def analyze_document_with_confidence(
                     wait = retry_backoff**attempt
                 time.sleep(wait)
 
-    raise ContentUnderstandingError(
-        f"Content Understanding analyze_document_with_confidence failed after {max_retries} "
-        f"attempts [{ctx}]: {last_err}"
-    )
+    raise _analysis_failure("analyze_document_with_confidence", attempt, ctx, last_err)
 
 
 def extract_fields_with_confidence(payload: Dict[str, Any]) -> Dict[str, FieldConfidence]:
