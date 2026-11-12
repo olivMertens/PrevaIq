@@ -213,7 +213,7 @@ Claims are jurisdiction-aware (`app/jurisdiction.py`): a Swiss claim (4-digit po
 - `STORAGE_BACKEND` — `azure_blob` or `local`
 - `AGENTS_OPENAI_API` — `responses` (default) or `chat_completions` for MAF agents
 - `FRAUD_PROVENANCE_MODE` — `inform` (default: C2PA Content Credentials badge per photo, read locally with `c2pa-python`, never passed to the fraud model), `score` (also weighed by the fraud model) or `off`. Set in Bicep and Terraform.
-- `APPLICATIONINSIGHTS_CONNECTION_STRING` — enables OpenTelemetry → Application Insights (set by Bicep). Startup logs the masked connection and emits an `app_insights.connection_check` span; agent spans/logs come from `app/telemetry.py` (`start_span`)
+- `APPLICATIONINSIGHTS_CONNECTION_STRING` — enables OpenTelemetry → Application Insights (set by Bicep). Startup logs the masked connection and emits an `app_insights.connection_check` span; agent spans/logs come from `app/telemetry.py` (`start_span`); incoming requests (`AppRequests`) need `instrument_fastapi_app(app)`, because the app is built from the `FastAPI` class imported before the distro instruments it
 - `LOG_LEVEL` — `INFO` (default) or `DEBUG` for the app logger (`app.utils.setup_logging()`); use it to see agent/telemetry debug logs
 - `EXTRACTION_BUDGET_SECONDS` / `ANALYSIS_BUDGET_SECONDS` / `ANALYSIS_TOKEN_BUDGET` / `MAX_REEXTRACTIONS` / `REEXTRACTION_QUALITY_THRESHOLD` / `REVIEW_CONFIDENCE_THRESHOLD` — orchestration budgets and review thresholds
 - `DATABASE_BACKEND` — `postgresql` or `json`

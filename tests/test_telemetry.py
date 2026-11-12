@@ -12,6 +12,10 @@ import types
 from types import SimpleNamespace
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+from opentelemetry import trace as trace_api
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
@@ -117,6 +121,28 @@ def test_configure_telemetry_logs_a_failed_configuration_and_stays_disabled(monk
         telemetry.configure_telemetry()
     assert "Failed to configure Azure Monitor telemetry" in caplog.text
     assert telemetry._initialized is False
+
+
+def test_requests_of_an_app_built_before_configuration_are_recorded(monkeypatch):
+    """api_server builds its app from the FastAPI class imported before configure_telemetry()."""
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    monkeypatch.setattr(trace_api, "_TRACER_PROVIDER", provider)
+    monkeypatch.setattr(telemetry, "_initialized", True)
+    app = FastAPI()
+    app.get("/claims/{claim_id}")(lambda claim_id: {"id": claim_id})
+    telemetry.install_claim_correlation_middleware(app)
+
+    telemetry.instrument_fastapi_app(app)
+    try:
+        assert TestClient(app).get("/claims/CLM-42").status_code == 200
+    finally:
+        FastAPIInstrumentor.uninstrument_app(app)
+
+    requests = [span for span in exporter.get_finished_spans() if span.kind == SpanKind.SERVER]
+    assert [span.name for span in requests] == ["GET /claims/{claim_id}"]
+    assert requests[0].attributes["claim.id"] == "CLM-42"
 
 
 def test_setup_logging_honours_log_level(monkeypatch):

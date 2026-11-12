@@ -227,6 +227,23 @@ def _register_baggage_span_processor() -> None:
         logger.warning("Failed to register baggage span processor", exc_info=True)
 
 
+def instrument_fastapi_app(app) -> None:
+    """Record the incoming requests of this app (AppRequests table).
+
+    The distro instruments the FastAPI class, but the API module imports FastAPI before
+    configure_telemetry() runs, so its app is built from the original class: the instance
+    is instrumented here. No-op when telemetry is disabled.
+    """
+    if not _initialized:
+        return
+    try:
+        from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    except ImportError:
+        logger.warning("opentelemetry-instrumentation-fastapi missing: requests not recorded")
+        return
+    FastAPIInstrumentor.instrument_app(app)
+
+
 def install_claim_correlation_middleware(app) -> None:
     """Register a FastAPI middleware that sets claim.id + brand in OTel baggage.
 

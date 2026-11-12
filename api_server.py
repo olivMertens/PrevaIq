@@ -41,7 +41,11 @@ from app.languages import (
 )
 from app.database.settings import DatabaseSettings
 from app.database.pool import init_pool
-from app.telemetry import configure_telemetry, install_claim_correlation_middleware
+from app.telemetry import (
+    configure_telemetry,
+    install_claim_correlation_middleware,
+    instrument_fastapi_app,
+)
 from app.storage import (
     delete_application_file,
     list_application_files,
@@ -126,6 +130,7 @@ app.add_middleware(
 )
 
 install_claim_correlation_middleware(app)
+instrument_fastapi_app(app)
 
 
 # Health check + API key middleware — runs on HTTP only (not WebSocket).
