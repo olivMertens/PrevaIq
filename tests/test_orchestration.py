@@ -17,7 +17,7 @@ from app.orchestration import (
     mark_reviewed,
     record_stage,
 )
-from app.processing import run_content_understanding_for_files
+from app.processing import run_content_understanding_for_files, run_underwriting_prompts
 from app.storage import ApplicationMetadata, StoredFile
 from tests.test_extraction_pipeline import _settings
 
@@ -127,6 +127,33 @@ def test_analysis_errors_and_review_completion():
     mark_reviewed(app_md, decision="approve", decided_at="2026-01-02T00:00:00Z")
     assert app_md.orchestration["review"]["status"] == REVIEW_DONE
     assert app_md.orchestration["review"]["reasons"]
+
+
+def test_full_reanalysis_keeps_the_decision_and_saved_forecasts(tmp_path):
+    decision = {"decision": "approve", "decided_at": "2026-01-02T00:00:00Z"}
+    forecast = {"model": "aurora-0.25-v1.5"}
+    app_md = _app(
+        persona="habitation_claims",
+        document_markdown="# Claim",
+        llm_outputs={
+            "damage_assessment": {"system": {"parsed": {"stale": True}}},
+            "decision": decision,
+            "aurora": forecast,
+            "aurora_demo": forecast,
+        },
+    )
+    fresh = {"visual_damage_analysis": {"parsed": {"severity": "moderate"}}}
+
+    with (
+        patch("app.processing._run_section_prompts", return_value=fresh),
+        patch("app.processing.save_application_metadata"),
+    ):
+        run_underwriting_prompts(_settings(tmp_path), app_md, sections_to_run=None)
+
+    outputs = app_md.llm_outputs
+    assert outputs["damage_assessment"] == fresh
+    assert outputs["decision"] == decision
+    assert outputs["aurora"] == outputs["aurora_demo"] == forecast
 
 
 # Stable API/UI contract: new keys may be added, existing keys must never disappear.

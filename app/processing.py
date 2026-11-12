@@ -3338,6 +3338,11 @@ def generate_context_tasks(app_md: ApplicationMetadata) -> List[Dict[str, Any]]:
     return tasks
 
 
+# Entries of llm_outputs that no analysis step produces: the recorded decision and saved
+# weather forecasts. A full re-analysis replaces the analysis, never these.
+_NON_ANALYSIS_OUTPUTS = ("decision", "aurora", "aurora_demo")
+
+
 def run_underwriting_prompts(
     settings: Settings,
     app_md: ApplicationMetadata,
@@ -3740,7 +3745,12 @@ def run_underwriting_prompts(
                 existing[section] = section_results
         app_md.llm_outputs = existing
     else:
-        app_md.llm_outputs = results
+        kept = {
+            key: value
+            for key, value in (app_md.llm_outputs or {}).items()
+            if key in _NON_ANALYSIS_OUTPUTS
+        }
+        app_md.llm_outputs = {**kept, **results}
 
     record_stage(app_md, budget, assess_analysis(budget=budget, results=results))
     app_md.status = "completed"

@@ -74,9 +74,14 @@ def _locked():
             blob.upload_blob(b"", overwrite=False, retry_total=0)
         except ResourceExistsError:
             pass
+        except HttpResponseError as error:
+            # The lock blob exists: while a writer holds its lease, the service answers
+            # LeaseIdMissing instead of BlobAlreadyExists.
+            if getattr(error, "error_code", None) != "LeaseIdMissing":
+                raise
         for attempt in range(10):
             try:
-                lease = blob.acquire_lease(lease_duration=60, retry_total=0)
+                lease = blob.acquire_lease(lease_duration=15, retry_total=0)
                 break
             except HttpResponseError as error:
                 if getattr(error, "error_code", None) != "LeaseAlreadyPresent" or attempt == 9:
@@ -195,8 +200,9 @@ def _load_unlocked() -> AuroraAdminConfig | None:
 
 
 def load_config() -> AuroraAdminConfig | None:
-    with _locked():
-        return _load_unlocked()
+    # A read returns one committed version, so it takes no lease: every forecast read and
+    # status check loads the configuration, and the lease only serializes writers.
+    return _load_unlocked()
 
 
 def save_config(config: AuroraAdminConfig, admin: str) -> AuroraAdminConfig:

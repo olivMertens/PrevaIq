@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import json
 from contextlib import nullcontext
+from dataclasses import asdict
 from datetime import UTC, datetime
 from unittest.mock import Mock
 
@@ -98,6 +100,48 @@ def test_suspension_reason_is_persisted_and_exposed_without_changing_endpoint(
 
 def test_unspecified_suspension_does_not_claim_a_blob_failure():
     assert status(AuroraSettings())["disabled_reason"] is None
+
+
+class _Container:
+    """Blob container whose configuration lock is leased by another writer."""
+
+    def __init__(self, payload: bytes = b"") -> None:
+        self.payload = payload
+        self.leases = 0
+
+    def download_blob(self, path, **kwargs):
+        return Mock(readall=lambda: self.payload)
+
+    def get_blob_client(self, path):
+        def leased_upload(*args, **kwargs):
+            error = HttpResponseError(message="There is currently a lease on the blob.")
+            error.error_code = "LeaseIdMissing"
+            raise error
+
+        def acquire_lease(**kwargs):
+            self.leases += 1
+            return Mock()
+
+        return Mock(upload_blob=leased_upload, acquire_lease=acquire_lease)
+
+
+def test_reading_the_configuration_takes_no_lease(monkeypatch):
+    expected = aurora_config.validate_config(valid_config())
+    container = _Container(json.dumps(asdict(expected)).encode())
+    monkeypatch.setattr(aurora_config, "_get_blob_container", lambda: container)
+
+    assert aurora_config.load_config() == expected
+    assert container.leases == 0
+
+
+def test_writer_waits_for_the_lease_when_the_lock_blob_is_leased(monkeypatch):
+    container = _Container()
+    monkeypatch.setattr(aurora_config, "_get_blob_container", lambda: container)
+
+    with aurora_config._locked():
+        pass
+
+    assert container.leases == 1
 
 
 def test_reenabling_clears_the_suspension_reason():
