@@ -4,8 +4,36 @@ Handles loading and saving persona-specific prompts.
 """
 import json
 import os
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Union
 from .personas import PersonaType, get_default_prompts
+
+# Catalog entries that describe prompts rather than being prompts: "metadata" (catalog
+# version and conventions) and "system" (persona description text).
+_NON_PROMPT_KEYS = frozenset({"metadata", "system"})
+
+
+def analysis_steps(prompts: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+    """Prompt text of each analysis step, by section and subsection.
+
+    A section is a single prompt ({"prompt": ...}) or a map of subsections whose values
+    are prompt text or {"prompt": ...}. Anything else in the catalog never runs.
+    """
+    steps: Dict[str, Dict[str, str]] = {}
+    for section, content in prompts.items():
+        if section in _NON_PROMPT_KEYS or not isinstance(content, dict):
+            continue
+        if "prompt" in content:
+            steps[section] = {section: content["prompt"]}
+            continue
+        subsections = {
+            subsection: value["prompt"] if isinstance(value, dict) else value
+            for subsection, value in content.items()
+            if subsection not in _NON_PROMPT_KEYS
+            and (isinstance(value, str) or (isinstance(value, dict) and "prompt" in value))
+        }
+        if subsections:
+            steps[section] = subsections
+    return steps
 
 
 def _get_prompts_file_path(storage_root: str) -> str:

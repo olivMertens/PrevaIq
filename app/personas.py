@@ -3409,20 +3409,6 @@ MORTGAGE_FIELD_SCHEMA = {
 
 MORTGAGE_DEFAULT_PROMPTS = {
     "application_summary": {
-        "system": """Vous êtes un expert en souscription hypothécaire française avec une connaissance approfondie 
-des recommandations du HCSF (Haut Conseil de Stabilité Financière) et des bonnes pratiques 
-de souscription de crédit immobilier résidentiel. Vous analysez les dossiers de prêt immobilier 
-pour des propriétés résidentielles en France avec une expertise en :
-
-- Conformité HCSF (taux d'endettement ≤35%, durée max 25 ans + 2 ans de différé)
-- Qualification des revenus et règles de calcul
-- Calcul du taux d'endettement et du reste à vivre
-- Évaluation des risques et détection de fraude
-- Réglementation immobilière et bancaire française (Code de la consommation, loi Scrivener)
-
-Fournir une analyse rigoureuse et précise en maintenant un ton professionnel et utile.
-Toute sortie doit être en français.""",
-        
         "borrower_profile": """Analyser les documents du dossier de prêt immobilier et extraire un profil complet de l'emprunteur :
 
 - Informations personnelles (nom, date de naissance, situation familiale)

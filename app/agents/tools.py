@@ -689,7 +689,7 @@ def analyze_section(
     from ..config import load_settings
     from ..storage import load_application, save_application_metadata
     from ..processing import _run_single_prompt
-    from ..prompts import load_prompts
+    from ..prompts import analysis_steps, load_prompts
     from ..underwriting_policies import format_all_policies_for_prompt
 
     settings = load_settings()
@@ -698,20 +698,16 @@ def analyze_section(
         return f"Application {application_id} introuvable."
 
     persona = app_md.persona or "underwriting"
-    prompts = load_prompts(settings.app.prompts_root, persona)
+    steps = analysis_steps(load_prompts(settings.app.prompts_root, persona))
 
-    if section not in prompts or subsection not in prompts.get(section, {}):
-        available = []
-        for s, subs in prompts.items():
-            if isinstance(subs, dict):
-                for ss in subs:
-                    available.append(f"{s}.{ss}")
+    if subsection not in steps.get(section, {}):
+        available = [f"{s}.{ss}" for s, subs in steps.items() for ss in subs]
         return (
             f"Section '{section}.{subsection}' non trouvée. "
             f"Disponibles : {', '.join(available[:10])}"
         )
 
-    template = prompts[section][subsection]
+    template = steps[section][subsection]
     policies = format_all_policies_for_prompt(settings.app.prompts_root, persona)
     doc_md = app_md.document_markdown or ""
 
@@ -755,19 +751,13 @@ def list_available_analyses(persona: str = "underwriting") -> str:
         Formatted list of section.subsection combinations.
     """
     from ..config import load_settings
-    from ..prompts import load_prompts
+    from ..prompts import analysis_steps, load_prompts
 
     settings = load_settings()
-    prompts = load_prompts(settings.app.prompts_root, persona)
+    steps = analysis_steps(load_prompts(settings.app.prompts_root, persona))
 
     lines = [f"## Analyses disponibles — {persona}\n"]
-    for section, subs in prompts.items():
-        if isinstance(subs, dict):
-            for sub in subs:
-                lines.append(f"- `{section}.{sub}`")
-        else:
-            lines.append(f"- `{section}` (prompt unique)")
-
+    lines.extend(f"- `{section}.{sub}`" for section, subs in steps.items() for sub in subs)
     return "\n".join(lines)
 
 

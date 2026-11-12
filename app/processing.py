@@ -42,7 +42,7 @@ from .markitdown_service import (
 from .mistral_ocr_client import MistralOCRError, extract_with_mistral
 from .openai_client import chat_completion
 from .orchestration import StageBudget, assess_analysis, assess_extraction, record_stage
-from .prompts import load_prompts
+from .prompts import analysis_steps, load_prompts
 from .storage import (
     ApplicationMetadata,
     save_application_metadata,
@@ -3486,27 +3486,7 @@ def run_underwriting_prompts(
 
     # Load persona-specific prompts from prompts_root
     prompts = prompts_override or load_prompts(settings.app.prompts_root, persona)
-
-    # Normalize prompts structure - convert single prompts to subsection format
-    # Structure can be either:
-    # 1. {"section": {"prompt": "...", "json_schema": {...}}} - single prompt section
-    # 2. {"section": {"subsection": {"prompt": "...", "json_schema": {...}}}} - nested subsections
-    normalized_prompts: Dict[str, Dict[str, str]] = {}
-    for section, content in prompts.items():
-        if isinstance(content, dict):
-            if "prompt" in content:
-                # Single prompt section - use section name as subsection too
-                normalized_prompts[section] = {section: content["prompt"]}
-            else:
-                # Nested subsections
-                subsections = {}
-                for subsection, sub_content in content.items():
-                    if isinstance(sub_content, dict) and "prompt" in sub_content:
-                        subsections[subsection] = sub_content["prompt"]
-                    elif isinstance(sub_content, str):
-                        subsections[subsection] = sub_content
-                if subsections:
-                    normalized_prompts[section] = subsections
+    normalized_prompts = analysis_steps(prompts)
 
     # Determine which sections to run
     sections_to_process = []
