@@ -9,11 +9,9 @@ Tests cover:
 
 import pytest
 import json
-import os
 import tempfile
 import shutil
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 
 # ============================================================================
@@ -289,7 +287,8 @@ class TestGlossaryModule:
         )
         
         assert len(results) == 1
-        assert results[0]["category"] == "cardiac"
+        assert results[0]["category_id"] == "cardiac"
+        assert results[0]["category"] == "Cardiac"  # display name
     
     def test_add_term_success(self, temp_glossary):
         """Test adding a new term."""
@@ -369,7 +368,7 @@ class TestGlossaryModule:
         """Test moving term to different category."""
         from app.glossary import update_term, get_glossary_for_persona
         
-        result = update_term(
+        update_term(
             temp_glossary, 
             "underwriting", 
             "HTN", 
@@ -500,7 +499,10 @@ class TestGlossaryModule:
         
         # Count number of abbreviation entries (excluding header)
         lines = result.strip().split('\n')
-        term_lines = [l for l in lines if '|' in l and 'Abbreviation' not in l and '---' not in l]
+        term_lines = [
+            line for line in lines
+            if '|' in line and 'Abbreviation' not in line and '---' not in line
+        ]
         
         assert len(term_lines) <= 2
     
@@ -567,7 +569,8 @@ class TestGlossaryAPI:
         
         assert response.status_code == 200
         data = response.json()
-        assert all(r.get("category") == "cardiac" for r in data["results"])
+        assert data["results"]
+        assert all(r.get("category_id") == "cardiac" for r in data["results"])
     
     def test_api_search_glossary_no_results(self, client):
         """Test search with no matching results."""
@@ -576,7 +579,7 @@ class TestGlossaryAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["results"] == []
-        assert data["total"] == 0
+        assert data["count"] == 0
     
     @pytest.mark.skip(reason="Requires writable test glossary")
     def test_api_add_term(self, client):
@@ -631,12 +634,11 @@ class TestGlossaryAPI:
     def test_api_add_term_missing_required(self, client):
         """Test 422 for missing required fields."""
         term_data = {
-            "category_id": "cardiac"
             # Missing abbreviation and meaning
         }
         
         response = client.post(
-            "/api/glossary/underwriting/terms",
+            "/api/glossary/underwriting/terms/cardiac",
             json=term_data
         )
         

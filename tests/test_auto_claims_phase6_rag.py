@@ -9,13 +9,11 @@ Tests for the claims policy RAG system including:
 - ClaimsPolicySearchService
 """
 
-import json
 import pytest
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
-from dataclasses import asdict
 
-from app.claims.chunker import ClaimsPolicyChunk, ClaimsPolicyChunker
+from app.claims.chunker import ClaimsPolicyChunker
 from app.claims.indexer import ClaimsPolicyChunkRepository, ClaimsPolicyIndexer
 from app.claims.search import ClaimsPolicySearchService, ClaimsSearchResult, get_claims_policy_context
 from app.claims.policies import ClaimsPolicyLoader
@@ -174,12 +172,14 @@ class TestClaimsPolicyChunkRepository:
     async def test_repository_initialize_table(self, repository):
         """T077: Repository can initialize table."""
         mock_conn = AsyncMock()
+        mock_conn.fetchval = AsyncMock(return_value=False)  # table does not exist yet
         mock_pool = MagicMock()
         mock_pool.acquire = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_conn)))
 
         with patch("app.claims.indexer.get_pool", return_value=mock_pool):
             await repository.initialize_table()
             mock_conn.execute.assert_called()
+            assert "CREATE TABLE" in mock_conn.execute.await_args_list[0].args[0]
 
     @pytest.mark.asyncio
     async def test_repository_insert_chunks(self, repository, chunker, sample_policy):
@@ -191,6 +191,7 @@ class TestClaimsPolicyChunkRepository:
             chunk.embedding = [0.1] * 1536
 
         mock_conn = AsyncMock()
+        mock_conn.execute = AsyncMock(return_value="INSERT 0 1")  # asyncpg status string
         mock_pool = MagicMock()
         mock_pool.acquire = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_conn)))
 
@@ -202,7 +203,7 @@ class TestClaimsPolicyChunkRepository:
     async def test_repository_delete_by_policy(self, repository):
         """Repository can delete chunks by policy ID."""
         mock_conn = AsyncMock()
-        mock_conn.fetchval = AsyncMock(return_value=5)
+        mock_conn.execute = AsyncMock(return_value="DELETE 5")  # asyncpg status string
         mock_pool = MagicMock()
         mock_pool.acquire = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_conn)))
 
@@ -214,7 +215,7 @@ class TestClaimsPolicyChunkRepository:
     async def test_repository_get_chunk_count(self, repository):
         """Repository can get chunk count."""
         mock_conn = AsyncMock()
-        mock_conn.fetchval = AsyncMock(return_value=42)
+        mock_conn.fetchrow = AsyncMock(return_value=(42,))
         mock_pool = MagicMock()
         mock_pool.acquire = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_conn)))
 
@@ -251,9 +252,9 @@ class TestClaimsPolicyIndexer:
 
         mock_embeddings = [[0.1] * 1536 for _ in chunks]
         with patch.object(indexer.embedding_service, "get_embeddings_batch", return_value=mock_embeddings):
-            result = indexer._add_embeddings(chunks)
+            indexer._embed_chunks(chunks)
 
-            for chunk in result:
+            for chunk in chunks:
                 assert chunk.embedding is not None
                 assert len(chunk.embedding) == 1536
 
@@ -262,14 +263,19 @@ class TestClaimsPolicyIndexer:
         """Indexer runs full pipeline: chunk -> embed -> store."""
         mock_pool = MagicMock()
         mock_conn = AsyncMock()
+        mock_conn.fetchval = AsyncMock(return_value=True)  # table already exists
+        mock_conn.execute = AsyncMock(return_value="INSERT 0 1")
         mock_pool.acquire = MagicMock(return_value=AsyncMock(__aenter__=AsyncMock(return_value=mock_conn)))
 
         with patch("app.claims.indexer.get_pool", return_value=mock_pool):
             with patch.object(indexer.embedding_service, "get_embeddings_batch") as mock_embed:
                 mock_embed.return_value = [[0.1] * 1536] * 100  # Return enough embeddings
 
-                total = await indexer.index_policies(all_policies)
-                assert total > 0
+                metrics = await indexer.index_policies(policy_ids=[p.id for p in all_policies])
+                assert metrics["status"] == "success"
+                assert metrics["policies_indexed"] == len(all_policies)
+                assert metrics["chunks_created"] > 0
+                assert metrics["chunks_stored"] == metrics["chunks_created"]
                 mock_embed.assert_called()
 
 

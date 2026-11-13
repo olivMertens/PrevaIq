@@ -13,13 +13,19 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from app.config import load_settings
 from app.database.pool import init_pool, close_pool
 from app.database.settings import DatabaseSettings
-from app.rag.service import RAGService, get_rag_service, RAGQueryResult
+from app.rag.service import RAGService, get_rag_service
+
+# Script against live PostgreSQL/pgvector and Azure OpenAI: skipped unless
+# RUN_INTEGRATION_TESTS=1.
+pytestmark = pytest.mark.integration
 
 
 async def test_rag_service_initialization() -> bool:
@@ -33,7 +39,7 @@ async def test_rag_service_initialization() -> bool:
         service = RAGService(settings)
         await service.initialize()
         
-        print(f"  Service initialized: OK")
+        print("  Service initialized: OK")
         print(f"  Search service: {type(service._search_service).__name__}")
         print(f"  Context builder: {type(service._context_builder).__name__}")
         
@@ -108,7 +114,7 @@ async def test_context_format() -> bool:
         print(f"  Has header: {'## Relevant' in context}")
         
         # Show preview
-        print(f"\n  Context preview (first 500 chars):")
+        print("\n  Context preview (first 500 chars):")
         print("-" * 40)
         print(context[:500])
         print("-" * 40)

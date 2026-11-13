@@ -11,9 +11,15 @@ import asyncio
 import json
 import hashlib
 import os
+
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()
+
+# Script against live PostgreSQL/pgvector and Azure OpenAI: skipped unless
+# RUN_INTEGRATION_TESTS=1.
+pytestmark = pytest.mark.integration
 
 # Configuration from environment
 DB_CONFIG = {
@@ -138,7 +144,7 @@ async def test_connection():
         
         # Test basic query
         version = await conn.fetchval("SELECT version();")
-        print(f"✅ Connected to PostgreSQL")
+        print("✅ Connected to PostgreSQL")
         print(f"   Version: {version[:60]}...")
         
         # Test pgvector
@@ -152,9 +158,9 @@ async def test_connection():
             )
         """)
         if trgm_exists:
-            print(f"✅ pg_trgm extension enabled (hybrid search ready)")
+            print("✅ pg_trgm extension enabled (hybrid search ready)")
         else:
-            print(f"⚠️  pg_trgm extension not found (hybrid search unavailable)")
+            print("⚠️  pg_trgm extension not found (hybrid search unavailable)")
         
         # Check schema exists
         schema_exists = await conn.fetchval("""
@@ -180,9 +186,9 @@ async def test_connection():
         """, DB_CONFIG["schema"])
         
         if table_exists:
-            print(f"✅ Table 'policy_chunks' exists")
+            print("✅ Table 'policy_chunks' exists")
         else:
-            print(f"❌ Table 'policy_chunks' not found")
+            print("❌ Table 'policy_chunks' not found")
             await conn.close()
             return None
         

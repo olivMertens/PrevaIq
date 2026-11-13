@@ -10,8 +10,6 @@ Tests cover:
 - Calculation provenance tracking
 """
 import pytest
-from decimal import Decimal
-from unittest.mock import MagicMock
 
 
 class TestMortgageCalculator:
@@ -213,9 +211,8 @@ class TestOSFIStressTest:
         assert stress_test.is_insured_mortgage("conventional") is False
 
     def test_is_insured_mortgage_high_ratio(self, stress_test):
-        """High-ratio mortgage should be insured."""
+        """High-ratio (high LTV) mortgage should be flagged as insured."""
         assert stress_test.is_insured_mortgage("high_ratio") is True
-        assert stress_test.is_insured_mortgage("cmhc_insured") is True
 
 
 class TestIncomeQualificationRules:

@@ -7,10 +7,11 @@ Tests cover:
 - Context-aware interpretation
 """
 
+import asyncio
+from types import SimpleNamespace
+from unittest.mock import patch
+
 import pytest
-import json
-from unittest.mock import patch, MagicMock, AsyncMock
-from typing import Dict, Any, List
 
 
 # ============================================================================
@@ -124,29 +125,25 @@ def mock_chat_context():
 # ============================================================================
 
 class TestChatSystemPrompt:
-    """Tests for chat system prompt modification."""
+    """Tests for the glossary context given to the chat agent.
+
+    The chat runs on the Agent Framework: the agent reads the glossary through its
+    ``get_glossary`` tool instead of a glossary section injected in a system prompt.
+    """
     
     def test_system_prompt_includes_glossary_section(self, sample_glossary):
-        """Test glossary section appears in system prompt."""
-        from api_server import get_chat_system_prompt
-        from app.glossary import format_glossary_for_prompt
+        """Test the chat agent's glossary tool returns the formatted glossary."""
+        from app.agents.tools import get_glossary
         
         with patch('app.glossary.format_glossary_for_prompt') as mock_format:
             mock_format.return_value = "- HTN: Hypertension\n- DM: Diabetes mellitus"
             
-            prompt = get_chat_system_prompt(
-                persona="underwriting",
-                policies_context="## Policies...",
-                app_id="test-001",
-                app_context_parts=["## Documents..."],
-            )
+            glossary = get_glossary()
+            term = get_glossary("htn")
         
-        # Should contain glossary header
-        assert "Domain Terminology" in prompt or "Glossary" in prompt
-        
-        # Should contain the formatted glossary
-        assert "HTN" in prompt
-        assert "Hypertension" in prompt
+        assert "HTN" in glossary
+        assert "Hypertension" in glossary
+        assert term == "- HTN: Hypertension"
     
     def test_glossary_per_persona_in_chat_underwriting(self, sample_glossary):
         """Test correct glossary for underwriting persona."""
@@ -221,27 +218,23 @@ class TestChatSystemPrompt:
         # Should still contain key terms
         assert "HTN" in result
     
-    def test_glossary_instruction_in_prompt(self, sample_glossary):
-        """Test instruction for interpreting abbreviations."""
-        from api_server import get_chat_system_prompt
+    def test_glossary_instruction_in_prompt(self, monkeypatch):
+        """Test the chat agent is told to use, and is given, the glossary tool."""
+        from app.agents import agents
+        from app.agents.tools import get_glossary
         
-        with patch('app.glossary.format_glossary_for_prompt') as mock_format:
-            mock_format.return_value = "- HTN: Hypertension"
-            
-            prompt = get_chat_system_prompt(
-                persona="underwriting",
-                policies_context="",
-                app_id="test",
-                app_context_parts=[],
-            )
+        monkeypatch.setattr(agents, "_get_chat_client", lambda settings: object())
+        monkeypatch.setattr(agents, "_agent_options", lambda *args, **kwargs: {})
+        monkeypatch.setattr(agents, "_create_agent", lambda client, **kwargs: kwargs)
+        settings = SimpleNamespace(
+            brand_name="PrevaIQ", openai=SimpleNamespace(chat_reasoning_effort="low")
+        )
         
-        # Should include instruction about using glossary
-        assert any(phrase in prompt.lower() for phrase in [
-            "abbreviation",
-            "terminology",
-            "interpret",
-            "understand"
-        ])
+        agent = asyncio.run(agents.create_chat_agent(settings, use_corrections=False))
+        
+        assert get_glossary in agent["tools"]
+        assert "`get_glossary`" in agent["instructions"]
+        assert "glossaire" in agent["instructions"].lower()
 
 
 # ============================================================================
@@ -498,21 +491,14 @@ class TestChatErrorHandling:
         """
         Test chat still works if glossary is unavailable.
         
-        Chat should continue with empty glossary context, not fail.
+        The glossary tool answers with a fallback message instead of failing.
         """
-        from api_server import get_chat_system_prompt
+        from app.agents.tools import get_glossary
         
         with patch('app.glossary.format_glossary_for_prompt', return_value=""):
-            prompt = get_chat_system_prompt(
-                persona="underwriting",
-                policies_context="## Policies",
-                app_id="test",
-                app_context_parts=[],
-            )
+            result = get_glossary("HTN")
         
-        # Prompt should still be valid
-        assert len(prompt) > 100
-        assert "underwriter" in prompt.lower() or "expert" in prompt.lower()
+        assert result == "Glossaire non disponible."
     
     def test_chat_handles_glossary_load_error(self):
         """

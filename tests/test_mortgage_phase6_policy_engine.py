@@ -10,7 +10,7 @@ Tests cover:
 - Recommendation engine
 """
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 
 class TestMortgagePolicyLoading:
@@ -34,19 +34,19 @@ class TestMortgagePolicyLoading:
                 policies = json.load(f)
             assert isinstance(policies, (dict, list))
 
-    def test_policy_file_has_osfi_rules(self):
-        """Policy file should include OSFI B-20 rules."""
+    def test_policy_file_has_hcsf_rules(self):
+        """Policy file should include the French HCSF rules."""
         from pathlib import Path
         import json
         
         policy_path = Path("prompts/mortgage-underwriting-policies.json")
-        if policy_path.exists():
-            with open(policy_path) as f:
-                policies = json.load(f)
-            
-            # Look for OSFI-related rules
-            text = json.dumps(policies).lower()
-            assert "osfi" in text or "b-20" in text or "stress test" in text
+        with open(policy_path, encoding="utf-8") as f:
+            policies = json.load(f)
+        
+        assert policies["jurisdiction"].lower() == "france"
+        assert "HCSF" in policies["regulatory_framework"]
+        rule_ids = {policy["id"] for policy in policies["policies"]}
+        assert {"HCSF-EFFORT-001", "HCSF-DUREE-001", "BANK-APPORT-001"} <= rule_ids
 
 
 class TestPolicyEvaluator:
@@ -60,10 +60,10 @@ class TestPolicyEvaluator:
 
     @pytest.fixture
     def passing_case(self):
-        """Return case data that should pass all policies."""
+        """Return case data within the HCSF 35% limits, stressed ratios included."""
         return {
-            "ratios": {"gds": 0.30, "tds": 0.35, "ltv": 0.80},
-            "stress_ratios": {"gds": 0.35, "tds": 0.40},
+            "ratios": {"gds": 0.25, "tds": 0.30, "ltv": 0.80},
+            "stress_ratios": {"gds": 0.28, "tds": 0.34},
             "property": {"type": "single_family", "occupancy": "owner_occupied"},
             "borrower": {"credit_score": 720, "employment_status": "permanent"},
         }
@@ -79,27 +79,28 @@ class TestPolicyEvaluator:
         }
 
     def test_evaluate_gds_pass(self, evaluator, passing_case):
-        """GDS under 39% should pass."""
+        """Taux d'effort within the HCSF 35% limit should pass."""
         findings = evaluator.evaluate_gds(passing_case)
         
         assert len([f for f in findings if f.severity == "fail"]) == 0
 
     def test_evaluate_gds_fail(self, evaluator, failing_case):
-        """GDS over 39% should fail."""
+        """Taux d'effort above the HCSF limit (and its dérogation band) should fail."""
         findings = evaluator.evaluate_gds(failing_case)
         
         fail_findings = [f for f in findings if f.severity == "fail"]
         assert len(fail_findings) > 0
-        assert any("gds" in f.rule_id.lower() or "39" in f.message for f in fail_findings)
+        assert all(f.rule_id == "HCSF-EFFORT-001" for f in fail_findings)
+        assert fail_findings[0].evidence["limit"] == 0.35
 
     def test_evaluate_tds_pass(self, evaluator, passing_case):
-        """TDS under 44% should pass."""
+        """Taux d'endettement within the HCSF 35% limit should pass."""
         findings = evaluator.evaluate_tds(passing_case)
         
         assert len([f for f in findings if f.severity == "fail"]) == 0
 
     def test_evaluate_tds_fail(self, evaluator, failing_case):
-        """TDS over 44% should fail."""
+        """Taux d'endettement above the HCSF 35% limit should fail."""
         findings = evaluator.evaluate_tds(failing_case)
         
         fail_findings = [f for f in findings if f.severity == "fail"]
@@ -117,9 +118,9 @@ class TestPolicyEvaluator:
         assert len([f for f in findings if f.severity == "fail"]) == 0
 
     def test_evaluate_ltv_conventional_fail(self, evaluator):
-        """LTV over 80% for conventional without insurance should fail."""
+        """LTV over the bank's 90% standard limit should fail."""
         case = {
-            "ratios": {"ltv": 0.85},
+            "ratios": {"ltv": 0.95},
             "loan": {"type": "conventional"},
         }
         
@@ -127,6 +128,7 @@ class TestPolicyEvaluator:
         
         fail_findings = [f for f in findings if f.severity == "fail"]
         assert len(fail_findings) > 0
+        assert fail_findings[0].rule_id == "BANK-LTV-002"
 
 
 class TestOSFIComplianceChecks:
@@ -158,17 +160,18 @@ class TestOSFIComplianceChecks:
         # Contract + 2% = 7.25%, which is > floor 5.25%
         assert qualifying_rate == 7.25
 
-    def test_amortization_limit_30_years(self, evaluator):
-        """Maximum amortization should be 30 years (uninsured)."""
-        case = {
-            "loan": {"type": "conventional", "amortization_years": 30},
-        }
+    def test_amortization_limit_25_years(self, evaluator):
+        """HCSF caps the loan duration at 25 years for standard loans."""
+        within = evaluator.evaluate_amortization(
+            {"loan": {"type": "conventional", "amortization_years": 25}}
+        )
+        beyond = evaluator.evaluate_amortization(
+            {"loan": {"type": "conventional", "amortization_years": 30}}
+        )
         
-        findings = evaluator.evaluate_amortization(case)
-        
-        # 30 years for uninsured is allowed
-        fail_findings = [f for f in findings if f.severity == "fail"]
-        assert len(fail_findings) == 0
+        assert [f for f in within if f.severity == "fail"] == []
+        fail_findings = [f for f in beyond if f.severity == "fail"]
+        assert [f.rule_id for f in fail_findings] == ["HCSF-DUREE-001"]
 
     def test_amortization_limit_insured_25_years(self, evaluator):
         """Maximum amortization should be 25 years for insured mortgages."""
@@ -182,29 +185,31 @@ class TestOSFIComplianceChecks:
         fail_findings = [f for f in findings if f.severity == "fail"]
         assert len(fail_findings) > 0
 
-    def test_minimum_down_payment_first_500k(self, evaluator):
-        """Minimum down payment is 5% on first $500K."""
-        case = {
-            "deal": {"purchase_price": 500000, "down_payment": 25000},
-        }
+    def test_minimum_down_payment_10_percent(self, evaluator):
+        """The bank requires a minimum apport of 10% of the purchase price."""
+        minimum = evaluator.evaluate_down_payment(
+            {"deal": {"purchase_price": 500000, "down_payment": 50000}}
+        )
+        short = evaluator.evaluate_down_payment(
+            {"deal": {"purchase_price": 500000, "down_payment": 25000}}
+        )
         
-        findings = evaluator.evaluate_down_payment(case)
-        
-        # $25,000 = 5% of $500,000, should pass
-        fail_findings = [f for f in findings if f.severity == "fail"]
-        assert len(fail_findings) == 0
+        assert [f for f in minimum if f.severity == "fail"] == []
+        fail_findings = [f for f in short if f.severity == "fail"]
+        assert [f.rule_id for f in fail_findings] == ["BANK-APPORT-001"]
+        assert fail_findings[0].evidence["shortfall"] == 25000
 
     def test_minimum_down_payment_above_500k(self, evaluator):
-        """Minimum down payment is 10% on portion above $500K."""
-        case = {
-            "deal": {"purchase_price": 850000, "down_payment": 60000},
-        }
+        """The 10% minimum applies to the whole price: no reduced tier below 500 K."""
+        tiered = evaluator.evaluate_down_payment(
+            {"deal": {"purchase_price": 850000, "down_payment": 60000}}
+        )
+        flat = evaluator.evaluate_down_payment(
+            {"deal": {"purchase_price": 850000, "down_payment": 85000}}
+        )
         
-        findings = evaluator.evaluate_down_payment(case)
-        
-        # Required: 5% of $500K = $25K + 10% of $350K = $35K = $60K
-        fail_findings = [f for f in findings if f.severity == "fail"]
-        assert len(fail_findings) == 0
+        assert [f.severity for f in tiered] == ["fail"]
+        assert [f for f in flat if f.severity == "fail"] == []
 
 
 class TestFindingsGeneration:

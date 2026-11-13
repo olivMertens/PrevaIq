@@ -11,11 +11,10 @@ Tests cover:
 - Payout recommendation calculation
 - Policy citations and rationale
 """
-import json
 import pytest
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 # Import claims policy components
 from app.claims import (
@@ -23,10 +22,8 @@ from app.claims import (
     FRAUD_RISK_LOW,
     FRAUD_RISK_MODERATE,
     LIABILITY_CLEAR,
-    LIABILITY_DISPUTED,
     LIABILITY_SHARED,
     SEVERITY_HEAVY,
-    SEVERITY_MINIMAL,
     SEVERITY_MINOR,
     SEVERITY_MODERATE,
     SEVERITY_TOTAL_LOSS,
@@ -35,17 +32,13 @@ from app.claims.policies import (
     ClaimsPolicy,
     ClaimsPolicyDocument,
     ClaimsPolicyLoader,
-    ModifyingFactor,
     PolicyCriterion,
 )
 from app.claims.engine import (
     ClaimAssessment,
     ClaimsPolicyEngine,
-    DamageAssessment,
     FraudAssessment,
     LiabilityAssessment,
-    PayoutAssessment,
-    PolicyCitation,
 )
 
 
@@ -782,7 +775,7 @@ class TestAssessmentPersistence:
 
         repo = ClaimsMediaRepository(pool=pool)
         result = await repo.update_adjuster_decision(
-            application_id="test-app-001",
+            claim_id="test-app-001",
             decision="approve",
             notes="Approved as submitted",
         )

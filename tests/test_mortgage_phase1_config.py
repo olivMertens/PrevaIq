@@ -9,8 +9,6 @@ Tests cover:
 - Persona enum and registry updates
 - Unified indexer configuration
 """
-import os
-import pytest
 
 
 class TestMortgageUnderwritingSettings:
@@ -40,18 +38,20 @@ class TestMortgageUnderwritingSettings:
         # Clear any env vars that might be set
         for var in ["MORTGAGE_UNDERWRITING_ENABLED", "MORTGAGE_DOC_ANALYZER", 
                     "MORTGAGE_POLICIES_PATH", "OSFI_MQR_FLOOR_PCT",
-                    "OSFI_MQR_BUFFER_PCT", "GDS_LIMIT_STANDARD", "TDS_LIMIT_STANDARD"]:
+                    "OSFI_MQR_BUFFER_PCT", "TAUX_SENSIBILITE_BUFFER_PCT",
+                    "GDS_LIMIT_STANDARD", "TDS_LIMIT_STANDARD"]:
             monkeypatch.delenv(var, raising=False)
         
         settings = MortgageUnderwritingSettings.from_env()
         
-        # Check defaults per OSFI B-20
+        # Defaults per HCSF (35% taux d'effort / endettement) and the French +1 pt sensibilité
         assert settings.enabled is True
         assert settings.doc_analyzer == "mortgageDocAnalyzer"
         assert settings.osfi_mqr_floor_pct == 5.25
-        assert settings.osfi_mqr_buffer_pct == 2.0
-        assert settings.gds_limit_standard == 0.39
-        assert settings.tds_limit_standard == 0.44
+        assert settings.osfi_mqr_buffer_pct == 1.0
+        assert settings.osfi_mqr_buffer_pct == settings.taux_sensibilite_buffer_pct
+        assert settings.gds_limit_standard == 0.35
+        assert settings.tds_limit_standard == 0.35
         assert "mortgage-underwriting-policies.json" in settings.policies_path
 
     def test_osfi_mqr_parameters_configurable(self, monkeypatch):
@@ -97,7 +97,7 @@ class TestPersonaRegistry:
         config = PERSONA_CONFIGS[PersonaType.MORTGAGE_UNDERWRITING]
         
         assert config.id == "mortgage_underwriting"
-        assert config.name == "Mortgage Underwriting"
+        assert config.name == "Souscription Hypothécaire"
         assert config.icon == "🏠"
         assert config.enabled is True
 
@@ -175,8 +175,8 @@ class TestPackageStructure:
         """app/mortgage/constants.py should exist with status enums."""
         from app.mortgage.constants import (
             MortgageCaseStatus,
-            MortgageDocType,
-            MortgageProductType,
+            MortgageDocType,  # noqa: F401 — importability check
+            MortgageProductType,  # noqa: F401 — importability check
         )
         
         # Check status enum values

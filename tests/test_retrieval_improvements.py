@@ -14,13 +14,18 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from app.config import Settings, load_settings
+from app.config import load_settings
 from app.database.pool import init_pool, close_pool
 from app.database.settings import DatabaseSettings
 from app.rag.search import PolicySearchService
+
+# Script against a live PostgreSQL/pgvector database: skipped unless RUN_INTEGRATION_TESTS=1.
+pytestmark = pytest.mark.integration
 
 
 async def test_category_filtering(search: PolicySearchService) -> bool:
@@ -108,7 +113,6 @@ async def test_risk_level_filtering(search: PolicySearchService) -> bool:
         ("normal blood pressure 115/75", ["Low", "Low-Moderate"]),
     ]
     
-    all_passed = True
     for query, expected_levels in test_cases:
         results, inferred = await search.intelligent_search(query, top_k=10)
         
@@ -122,7 +126,7 @@ async def test_risk_level_filtering(search: PolicySearchService) -> bool:
         print(f"   Expected any of: {expected_levels}")
     
     # This test is informational - risk inference is probabilistic
-    print(f"\n[CHECKPOINT] Risk Level Filtering: INFO (probabilistic)")
+    print("\n[CHECKPOINT] Risk Level Filtering: INFO (probabilistic)")
     return True  # Don't fail on risk level - it's probabilistic
 
 
@@ -147,7 +151,7 @@ async def test_semantic_vs_hybrid(search: PolicySearchService) -> bool:
         print(f"  Semantic: {[(r.policy_id, f'{r.similarity:.3f}') for r in semantic]}")
         print(f"  Hybrid:   {[(r.policy_id, f'{r.similarity:.3f}') for r in hybrid]}")
     
-    print(f"\n[CHECKPOINT] Comparison: INFO (manual review)")
+    print("\n[CHECKPOINT] Comparison: INFO (manual review)")
     return True
 
 
@@ -168,7 +172,7 @@ async def test_combined_filters(search: PolicySearchService) -> bool:
     all_cvd = all(r.category == "cardiovascular" for r in results)
     all_hypertension = all(r.subcategory == "hypertension" for r in results if r.subcategory)
     
-    print(f"  Filters: category=cardiovascular, subcategory=hypertension")
+    print("  Filters: category=cardiovascular, subcategory=hypertension")
     print(f"  Results: {len(results)} chunks")
     print(f"  All cardiovascular: {all_cvd}")
     print(f"  All hypertension (where set): {all_hypertension}")

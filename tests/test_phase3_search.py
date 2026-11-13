@@ -15,19 +15,25 @@ import asyncio
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add project root to path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 load_dotenv()
 
-from app.config import Settings
-from app.database.pool import init_pool, close_pool
-from app.database.settings import DatabaseSettings
-from app.rag.search import PolicySearchService
-from app.rag.inference import CategoryInference
-from app.rag.context import RAGContextBuilder
+from app.config import Settings  # noqa: E402
+from app.database.pool import init_pool, close_pool  # noqa: E402
+from app.database.settings import DatabaseSettings  # noqa: E402
+from app.rag.search import PolicySearchService  # noqa: E402
+from app.rag.inference import CategoryInference  # noqa: E402
+from app.rag.context import RAGContextBuilder  # noqa: E402
+
+# Script against live PostgreSQL/pgvector and Azure OpenAI: skipped unless
+# RUN_INTEGRATION_TESTS=1.
+pytestmark = pytest.mark.integration
 
 
 async def test_semantic_search(search_service: PolicySearchService):
@@ -99,7 +105,7 @@ async def test_intelligent_search(search_service: PolicySearchService):
     
     results, inferred = await search_service.intelligent_search(query, top_k=5)
     
-    print(f"\nInferred context:")
+    print("\nInferred context:")
     print(f"  Categories: {inferred.categories}")
     print(f"  Subcategories: {inferred.subcategories}")
     print(f"  Risk levels: {inferred.risk_levels}")
@@ -132,7 +138,7 @@ async def test_context_assembly(search_service: PolicySearchService):
     builder = RAGContextBuilder(max_tokens=2000)
     context = builder.assemble_context(results, query=query)
     
-    print(f"\nContext Stats:")
+    print("\nContext Stats:")
     print(f"  Chunks included: {context.chunks_included}")
     print(f"  Chunks truncated: {context.chunks_truncated}")
     print(f"  Total tokens: {context.total_tokens}")
@@ -142,7 +148,7 @@ async def test_context_assembly(search_service: PolicySearchService):
     for citation in context.citations[:5]:
         print(f"  - {citation}")
     
-    print(f"\nContext preview (first 500 chars):")
+    print("\nContext preview (first 500 chars):")
     print("-" * 40)
     print(context.context_text[:500])
     print("-" * 40)

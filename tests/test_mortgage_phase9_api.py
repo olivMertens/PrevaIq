@@ -9,10 +9,11 @@ Tests cover:
 - Error handling
 - API response format
 """
+import copy
+
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
-import json
 
 
 class TestMortgageAPIRoutes:
@@ -52,6 +53,18 @@ class TestMortgageAPIRoutes:
 class TestAnalyzeEndpoint:
     """Tests for POST /api/mortgage/analyze endpoint."""
 
+    @pytest.fixture(autouse=True)
+    def translation_calls(self, monkeypatch):
+        """Replace the LLM translation of the French findings (the default locale is en)."""
+        calls = []
+
+        def fake_translate(settings, payload, *, source_language, target_language, **kwargs):
+            calls.append((source_language, target_language))
+            return copy.deepcopy(payload)
+
+        monkeypatch.setattr("app.processing.translate_analysis_payload", fake_translate)
+        return calls
+
     @pytest.fixture
     def client(self):
         """Return a TestClient for the FastAPI app."""
@@ -84,13 +97,15 @@ class TestAnalyzeEndpoint:
             },
         }
 
-    def test_analyze_returns_ratios(self, client, sample_request):
+    def test_analyze_returns_ratios(self, client, sample_request, translation_calls):
         """Analyze should return calculated ratios."""
         response = client.post("/api/mortgage/analyze", json=sample_request)
         
         assert response.status_code == 200
         data = response.json()
         assert "ratios" in data
+        assert data["language"] == "en"
+        assert translation_calls == [("fr", "en")]
 
     def test_analyze_returns_decision(self, client, sample_request):
         """Analyze should return underwriting decision."""

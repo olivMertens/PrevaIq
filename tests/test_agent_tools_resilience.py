@@ -11,6 +11,9 @@ from __future__ import annotations
 import asyncio
 from types import SimpleNamespace
 
+import pytest
+
+import app.storage_providers as storage_providers
 from app.agents.tools import (
     _coerce_text,
     _pct,
@@ -19,6 +22,19 @@ from app.agents.tools import (
     search_policies,
 )
 from app.storage import ApplicationMetadata
+from app.storage_providers.base import StorageBackend, StorageSettings
+
+
+@pytest.fixture
+def local_storage(monkeypatch, tmp_path):
+    """Local storage provider in tmp_path (the Aurora status reads its config through it)."""
+    monkeypatch.setenv("UW_APP_STORAGE_ROOT", str(tmp_path))
+    # Restores the previous global provider at teardown.
+    monkeypatch.setattr(storage_providers, "_storage_provider", None)
+    storage_providers.init_storage_provider(
+        StorageSettings(backend=StorageBackend.LOCAL, local_root=str(tmp_path))
+    )
+    return tmp_path
 
 
 def _make_settings():
@@ -84,7 +100,7 @@ def test_pct_tolerates_bad_values() -> None:
     assert _pct("oops") == 0
 
 
-def test_get_application_summary_survives_dict_shaped_synthese(monkeypatch) -> None:
+def test_get_application_summary_survives_dict_shaped_synthese(monkeypatch, local_storage) -> None:
     """Regression: liability_assessment.coverage_verification.parsed.synthese was a
     dict in production, and ``synthese[:300]`` raised TypeError, breaking the tool."""
     app_md = ApplicationMetadata(
@@ -115,7 +131,7 @@ def test_get_application_summary_survives_dict_shaped_synthese(monkeypatch) -> N
     assert "liability_assessment.coverage_verification" in result
 
 
-def test_get_application_summary_survives_bad_fraud_scores(monkeypatch) -> None:
+def test_get_application_summary_survives_bad_fraud_scores(monkeypatch, local_storage) -> None:
     """Regression: round(None * 100) and slicing dict summaries in the fraud block."""
     app_md = ApplicationMetadata(
         id="dossier-3",

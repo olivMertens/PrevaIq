@@ -82,7 +82,12 @@ def test_local_configuration_round_trip_is_audited(local_config_store):
 def test_suspension_reason_is_persisted_and_exposed_without_changing_endpoint(
     local_config_store, monkeypatch
 ):
-    config = valid_config(enabled=False, disabled_reason="blob_access_denied")
+    # A future expiry: an expired endpoint would be reported as missing.
+    config = valid_config(
+        enabled=False,
+        disabled_reason="blob_access_denied",
+        endpoint_expires_at="2099-01-01T00:00:00Z",
+    )
     saved = aurora_config.save_config(config, "admin@example.com")
     assert aurora_config.load_config() == saved
     monkeypatch.setattr(aurora_config, "load_config", lambda: saved)

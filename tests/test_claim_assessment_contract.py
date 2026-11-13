@@ -12,7 +12,7 @@ from app.claims.api import router
 
 
 @pytest.mark.parametrize("optional_notes", [{}, {"liability_notes": None}])
-def test_assessment_returns_absent_optional_values_as_null(optional_notes: dict) -> None:
+def test_assessment_returns_absent_optional_values_as_null(optional_notes: dict, tmp_path) -> None:
     application = FastAPI()
     application.include_router(router)
     assessment = {
@@ -31,9 +31,10 @@ def test_assessment_returns_absent_optional_values_as_null(optional_notes: dict)
     repository = AsyncMock()
     repository.get_claim_assessment.return_value = assessment
     with (
-        patch("app.claims.api.load_settings"),
+        patch("app.claims.api.load_settings") as load_settings,
         patch("app.claims.api.ClaimsMediaRepository", return_value=repository),
     ):
+        load_settings.return_value.app.storage_root = str(tmp_path)
         response = TestClient(application).get("/api/claims/demo-auto/assessment")
     assert response.status_code == 200
     result = response.json()

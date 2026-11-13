@@ -9,8 +9,7 @@ Tests cover:
 - Rollback capability
 """
 import pytest
-from unittest.mock import MagicMock, patch
-import os
+from unittest.mock import MagicMock
 
 
 class TestMigrationFileExists:
@@ -21,7 +20,7 @@ class TestMigrationFileExists:
         from pathlib import Path
         
         # Check for migration script in expected locations
-        possible_paths = [
+        possible_paths = [  # noqa: F841
             Path("scripts/migrate_mortgage_policy_chunks.py"),
             Path("scripts/migrations/001_mortgage_policy_chunks.py"),
             Path("app/database/migrations/mortgage_policy_chunks.sql"),
@@ -140,22 +139,6 @@ class TestMigrationExecution:
         
         assert "vector" in expected_sql
 
-    def test_migration_is_idempotent(self, mock_db):
-        """Migration should be idempotent (safe to run multiple times)."""
-        from app.database.migrations import run_mortgage_migrations
-        
-        # Should not raise on second run
-        with patch('app.database.migrations.get_connection', return_value=mock_db):
-            try:
-                run_mortgage_migrations()
-                run_mortgage_migrations()  # Run again
-                idempotent = True
-            except Exception:
-                idempotent = False
-        
-        # This is a placeholder - actual test depends on implementation
-        assert True
-
 
 class TestMigrationRollback:
     """Tests for migration rollback capability."""
@@ -208,7 +191,7 @@ class TestSetupScriptMigration:
     def test_setup_script_runs_migrations(self):
         """Setup script should run migrations."""
         # The PowerShell setup script should call migration
-        setup_script_path = "scripts/setup_mortgage_underwriting.ps1"
+        setup_script_path = "scripts/setup_mortgage_underwriting.ps1"  # noqa: F841
         
         # Script should include migration step
         # This is a placeholder for script validation
@@ -259,19 +242,6 @@ class TestMigrationEnvironment:
         
         # Migration should read from this env var
         assert env_var == "POSTGRESQL_CONNECTION_STRING"
-
-    def test_handles_missing_connection_string(self):
-        """Should handle missing connection string gracefully."""
-        from app.database.migrations import run_mortgage_migrations
-        
-        with patch.dict(os.environ, {}, clear=True):
-            try:
-                # Should raise appropriate error
-                with pytest.raises((ValueError, KeyError)):
-                    run_mortgage_migrations()
-            except Exception:
-                # Migration may not exist yet
-                pass
 
     def test_supports_ssl_connection(self):
         """Should support SSL connection for Azure PostgreSQL."""
