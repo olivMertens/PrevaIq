@@ -133,7 +133,7 @@ The script handles: Azure login verification, AI deployment preflight, minimal c
 - The brand controls: email/SMS signatures, agent instructions, policy search context, communication templates, blob prefix `brands/<brand>/...`
 - **NEVER set `BRAND_NAME` via `az containerapp update --set-env-vars`** — it would override the baked-in value. `deploy.ps1` removes it if present.
 
-**ACA revision immutability**: ACA revisions are immutable — if the image tag hasn't changed, `az containerapp update` is a no-op and the old code keeps running. The deploy script uses `--revision-suffix d<MMddHHmmss>` to force a new revision on every deploy, even when the image tag is reused. The git short SHA is the default tag. Verify active revisions with `az containerapp revision list`.
+**ACA revision immutability**: ACA revisions are immutable — if the image tag hasn't changed, `az containerapp update` is a no-op and the old code keeps running. The deploy script uses `--revision-suffix d<MMddHHmmss>` to force a new revision on every deploy, even when the image tag is reused. The git short SHA is the default tag; when files copied into the images being built have uncommitted changes, it becomes `<sha>-dirty-<MMddHHmmss>` and the banner lists those files, so a tag never claims a commit the image does not match. Verify active revisions with `az containerapp revision list`.
 
 ### Build Images (reference only — prefer deploy.ps1)
 ```bash

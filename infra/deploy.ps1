@@ -22,7 +22,9 @@
     Skip frontend image build (use existing latest image)
 
 .PARAMETER Tag
-    Override image tag (default: git short SHA)
+    Override image tag (default: git short SHA, suffixed -dirty-<MMddHHmmss> when files copied
+    into the images being built have uncommitted changes, since the images are built from the
+    working tree; the banner lists those files)
 
 .PARAMETER BrandName
     Brand identity baked into the Docker images (default: PrevaIQ).
@@ -84,6 +86,14 @@ $FRONTEND_APP  = $FrontendAppName
 $API_IMAGE     = "prevaiq-api"
 $FE_IMAGE      = "prevaiq-frontend"
 $TAGS          = @{ SecurityControl = "ignore"; CostControl = "ignore" }
+$REPO_ROOT     = (Resolve-Path "$PSScriptRoot\..").Path
+
+# Repository paths copied into each image by the staging steps below: keep both in sync.
+$BACKEND_CONTEXT  = @("Dockerfile", "pyproject.toml", "uv.lock", "requirements.txt", "api_server.py",
+    "app", "prompts", "assets/pdf", "scripts/startup.sh")
+$FRONTEND_CONTEXT = @("Dockerfile", "package.json", "package-lock.json", "next.config.js",
+    "postcss.config.js", "tailwind.config.js", "theme.cjs", "tsconfig.json", "next-env.d.ts",
+    "src", "public", "messages") | ForEach-Object { "frontend/$_" }
 
 function Copy-DirectoryToStage {
     param(
@@ -99,20 +109,40 @@ function Copy-DirectoryToStage {
     $global:LASTEXITCODE = 0
 }
 
+$contextPaths = @()
+if (-not $SkipBackend)  { $contextPaths += $BACKEND_CONTEXT }
+if (-not $SkipFrontend) { $contextPaths += $FRONTEND_CONTEXT }
+$uncommitted = @()
+if ($contextPaths) {
+    $uncommitted = @(git -C $REPO_ROOT status --porcelain -- $contextPaths 2>$null |
+        ForEach-Object { $_.Substring(3) })
+}
+
 if (-not $Tag) {
-    $Tag = (git rev-parse --short HEAD 2>$null)
-    if (-not $Tag) { $Tag = "latest" }
+    $Tag = (git -C $REPO_ROOT rev-parse --short HEAD 2>$null)
+    if (-not $Tag) {
+        $Tag = "latest"
+    } elseif ($uncommitted) {
+        # The images are built from the working tree: never give uncommitted changes the commit's tag.
+        $Tag = "$Tag-dirty-$(Get-Date -Format 'MMddHHmmss')"
+    }
 }
 
 $ACR_SERVER = "$ACR.azurecr.io"
+$autoRegistry = -not $PSBoundParameters.ContainsKey('AcrName') -and -not $BuildOnly
 
 Write-Host ""
 Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host " PrevaIQ — Azure Deployment" -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 Write-Host " Resource Group : $RG"
-Write-Host " ACR            : $ACR_SERVER"
+Write-Host " ACR            : $(if ($autoRegistry) { "$ACR_SERVER (IaC default, checked after login)" } else { $ACR_SERVER })"
 Write-Host " Image Tag      : $Tag"
+if ($uncommitted) {
+    $shown = ($uncommitted | Select-Object -First 5) -join ', '
+    if ($uncommitted.Count -gt 5) { $shown += " (+$($uncommitted.Count - 5) more)" }
+    Write-Host " Uncommitted    : $shown" -ForegroundColor Yellow
+}
 Write-Host " Backend        : $(if ($SkipBackend) { 'SKIP' } else { 'BUILD' })"
 Write-Host " Frontend       : $(if ($SkipFrontend) { 'SKIP' } else { 'BUILD' })"
 Write-Host " Brand          : $BrandName"
@@ -146,7 +176,8 @@ if ($TenantId) {
 }
 
 # Existing deployments may predate the IaC registry name; reuse the registry attached to the API.
-if (-not $PSBoundParameters.ContainsKey('AcrName') -and -not $BuildOnly) {
+if ($autoRegistry) {
+    $registrySource = "IaC name"
     az acr show --name $ACR --subscription $SUBSCRIPTION_ID -o none 2>$null
     if ($LASTEXITCODE -ne 0) {
         $attachedRegistry = az containerapp show -n $API_APP -g $RG --subscription $SUBSCRIPTION_ID `
@@ -154,10 +185,11 @@ if (-not $PSBoundParameters.ContainsKey('AcrName') -and -not $BuildOnly) {
         if ($LASTEXITCODE -eq 0 -and $attachedRegistry -match '^([a-z0-9]+)\.azurecr\.io$') {
             $ACR = $Matches[1]
             $ACR_SERVER = "$ACR.azurecr.io"
-            Write-Host "    Registry: $ACR_SERVER (attached to $API_APP)" -ForegroundColor Green
+            $registrySource = "attached to $API_APP"
         }
     }
     $global:LASTEXITCODE = 0
+    Write-Host "    Registry: $ACR_SERVER ($registrySource)" -ForegroundColor Green
 }
 
 $backendModelEnvVarArgs = @()
@@ -344,7 +376,7 @@ if (-not $SkipBackend) {
     New-Item $StageDir -ItemType Directory -Force | Out-Null
     
     Write-Host "    Staging minimal context..."
-    # Copy only what the Dockerfile needs
+    # Copy only what the Dockerfile needs ($BACKEND_CONTEXT lists these paths: keep it in sync)
     Copy-Item "$RepoRoot\Dockerfile"       $StageDir
     Copy-Item "$RepoRoot\pyproject.toml"   $StageDir
     Copy-Item "$RepoRoot\uv.lock"          $StageDir
@@ -411,7 +443,8 @@ if (-not $SkipFrontend) {
     New-Item $StageDir -ItemType Directory -Force | Out-Null
     
     Write-Host "    Staging minimal context..."
-    # Copy only what the Dockerfile needs (no node_modules, no .next)
+    # Copy only what the Dockerfile needs, no node_modules or .next ($FRONTEND_CONTEXT lists these
+    # paths: keep it in sync)
     Copy-Item "$FrontendDir\Dockerfile"         $StageDir
     Copy-Item "$FrontendDir\package.json"        $StageDir
     Copy-Item "$FrontendDir\package-lock.json"   $StageDir -ErrorAction SilentlyContinue
