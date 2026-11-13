@@ -1725,7 +1725,7 @@ export async function updateAdjusterDecision(
 export interface ClaimsPolicySearchRequest {
   query: string;
   category?: string;
-  limit?: number;
+  top_k?: number;
 }
 
 export interface ClaimsPolicySearchResult {

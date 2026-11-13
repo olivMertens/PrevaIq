@@ -1258,12 +1258,20 @@ async def search_policies(request: PolicySearchRequest) -> PolicySearchResponse:
     search_service = AutomotiveClaimsPolicySearchService(settings)
     
     try:
-        # Use lower threshold for policy search UI (single keywords often score lower)
-        results = await search_service.hybrid_search(
-            query=request.query,
-            top_k=request.top_k,
-            similarity_threshold=0.3,  # Lower threshold for keyword searches
-        )
+        # Lower threshold for the policy search UI (single keywords often score lower)
+        if request.category:
+            results = await search_service.filtered_search(
+                query=request.query,
+                category=request.category,
+                top_k=request.top_k,
+                similarity_threshold=0.3,
+            )
+        else:
+            results = await search_service.hybrid_search(
+                query=request.query,
+                top_k=request.top_k,
+                similarity_threshold=0.3,
+            )
         
         return PolicySearchResponse(
             query=request.query,

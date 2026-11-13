@@ -298,15 +298,6 @@ class TestPolicySearchEndpoints:
         assert data["total_results"] == 0
         mock_service.hybrid_search.assert_awaited_once()
 
-    @pytest.mark.xfail(
-        strict=True,
-        raises=AssertionError,
-        reason=(
-            "Product bug: POST /api/claims/policies/search ignores the documented `category` "
-            "filter (PolicySearchRequest.category) and always runs an unfiltered hybrid_search "
-            "(app/claims/api.py search_policies)"
-        ),
-    )
     @patch("app.claims.api.load_settings")
     @patch("app.claims.api.AutomotiveClaimsPolicySearchService")
     def test_policy_search_with_category(self, mock_service_class, mock_settings, test_client):
@@ -322,7 +313,9 @@ class TestPolicySearchEndpoints:
         )
 
         assert response.status_code == 200
-        mock_service.filtered_search.assert_called_once()
+        mock_service.filtered_search.assert_awaited_once()
+        assert mock_service.filtered_search.await_args.kwargs["category"] == "damage_assessment"
+        mock_service.hybrid_search.assert_not_awaited()
 
 
 # ============================================================================

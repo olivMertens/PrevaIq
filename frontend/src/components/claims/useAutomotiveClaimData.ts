@@ -105,7 +105,7 @@ export default function useAutomotiveClaimData(applicationId: string) {
     if (!policyQuery.trim()) return;
     setIsSearchingPolicies(true);
     try {
-      const results = await searchClaimsPolicies({ query: policyQuery, limit: 10 });
+      const results = await searchClaimsPolicies({ query: policyQuery, top_k: 10 });
       setPolicyResults(results.results);
     } catch (err) {
       console.error('Failed to search policies:', err);
