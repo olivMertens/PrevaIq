@@ -45,6 +45,7 @@ dev = [
     "black",
     "ruff",
     "pytest>=7.4.0",
+    "pytest-asyncio>=1.0",
 ]
 
 [project.scripts]

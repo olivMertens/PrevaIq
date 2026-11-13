@@ -20,7 +20,7 @@ jobs:
   # Backend: Python lint + import check
   # ──────────────────────────────────────────────
   backend-lint:
-    name: Backend Lint
+    name: Backend Lint & Tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +50,10 @@ jobs:
           print('✅ Backend import check passed')
           "
 
+      # Integration tests (live PostgreSQL / Azure OpenAI) are skipped unless RUN_INTEGRATION_TESTS=1.
+      - name: Unit tests
+        run: uv run pytest -q -p no:cacheprovider tests
+
   # ──────────────────────────────────────────────
   # Frontend: TypeScript lint + build
   # ──────────────────────────────────────────────
@@ -77,6 +81,9 @@ jobs:
 
       - name: Next.js lint
         run: npm run lint
+
+      - name: Unit tests
+        run: npm test
 
       - name: Next.js build
         run: npm run build

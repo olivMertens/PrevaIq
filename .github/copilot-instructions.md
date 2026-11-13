@@ -162,8 +162,8 @@ az containerapp update --name ca-frontend-demo --resource-group rg-prevaiq-demo 
 ## CI/CD Pipeline
 
 ### CI (ci.yml) — Runs on every push/PR
-1. **Backend lint**: `ruff check` + `ruff format --check` + import verification
-2. **Frontend lint**: TypeScript type check + Next.js lint + build
+1. **Backend lint & tests**: `ruff check` + `ruff format --check` + import verification + `pytest` (integration tests are skipped unless `RUN_INTEGRATION_TESTS=1`)
+2. **Frontend lint**: TypeScript type check + Next.js lint + `npm test` (all `frontend/tests/*.test.js`) + build
 3. **Docker build check**: Verify both Dockerfiles build (no push)
 
 ### CD (deploy.yml) — Runs after CI passes on main
