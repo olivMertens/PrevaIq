@@ -31,6 +31,10 @@ pg_admin_login      = "prevaiqadmin"
 # maintenance scripts; Owner/Contributor does not include them. Object ID: az ad signed-in-user show --query id -o tsv
 # admin_principal_ids = ["<object-id>"]
 
+# Email notified by the Azure Monitor alerts (API HTTP 5xx, failed analysis steps). Empty: alerts only show in
+# Azure Monitor. Bicep equivalent: alertEmail, read from PREVAIQ_ALERT_EMAIL by main.bicepparam.
+# alert_email = "ops@example.com"
+
 # Private networking: VNet, private endpoints for Storage, Key Vault, AI Search and Foundry, PostgreSQL private
 # access. ACR stays public. Without admin_ip_ranges the data services are private-only, so deploy.ps1 and
 # set-webiq-secret.ps1 need a network path into the VNet.

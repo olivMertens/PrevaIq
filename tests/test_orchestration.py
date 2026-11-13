@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -154,6 +155,30 @@ def test_full_reanalysis_keeps_the_decision_and_saved_forecasts(tmp_path):
     assert outputs["damage_assessment"] == fresh
     assert outputs["decision"] == decision
     assert outputs["aurora"] == outputs["aurora_demo"] == forecast
+
+
+def test_failed_analysis_steps_are_logged_for_the_alert(tmp_path, caplog):
+    app_md = _app(persona="habitation_claims", document_markdown="# Claim")
+    failed = {
+        "visual_damage_analysis": {"parsed": {"_error": "Failed to parse JSON response."}},
+        "coverage": {"parsed": {"covered": True}},
+    }
+
+    with (
+        patch("app.processing._run_section_prompts", return_value=failed),
+        patch("app.processing.save_application_metadata"),
+        caplog.at_level(logging.WARNING, logger="underwriting_assistant"),
+    ):
+        run_underwriting_prompts(_settings(tmp_path), app_md, sections_to_run=None)
+
+    [message] = [
+        record.getMessage()
+        for record in caplog.records
+        if record.getMessage().startswith("Analysis steps failed")
+    ]
+    assert message.startswith(f"Analysis steps failed for application {app_md.id}: ")
+    assert "damage_assessment.visual_damage_analysis" in message
+    assert "damage_assessment.coverage" not in message
 
 
 # Stable API/UI contract: new keys may be added, existing keys must never disappear.

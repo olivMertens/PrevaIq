@@ -87,6 +87,9 @@ param accessEmailDataLocation string = 'Europe'
 param accessRequestEmail string = ''
 param accessAdminUrl string = ''
 
+@description('Optional email notified by the Azure Monitor alerts (API HTTP 5xx, failed analysis steps). Empty: alerts only show in Azure Monitor. Mirrors alert_email in infra/terraform.')
+param alertEmail string = ''
+
 @description('Create the Container Apps. First provisioning: false, build the images (deploy.ps1 -BuildOnly), then true.')
 param deployApps bool = true
 
@@ -164,6 +167,17 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
     WorkspaceResourceId: logAnalytics.id
     IngestionMode: 'LogAnalytics'
     RetentionInDays: 30
+  }
+}
+
+module alerts 'alerts.bicep' = {
+  name: 'prevaiq-alerts'
+  params: {
+    prefix: prefix
+    location: location
+    workspaceId: logAnalytics.id
+    alertEmail: alertEmail
+    tags: tags
   }
 }
 

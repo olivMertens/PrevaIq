@@ -3711,7 +3711,16 @@ def run_underwriting_prompts(
         }
         app_md.llm_outputs = {**kept, **results}
 
-    record_stage(app_md, budget, assess_analysis(budget=budget, results=results))
+    reasons = assess_analysis(budget=budget, results=results)
+    for reason in reasons:
+        if reason["code"] == "analysis_errors":
+            # The "analysis step failures" alert (infra/alerts.bicep) matches this message.
+            logger.warning(
+                "Analysis steps failed for application %s: %s",
+                app_md.id,
+                ", ".join(reason["detail"]),
+            )
+    record_stage(app_md, budget, reasons)
     app_md.status = "completed"
     app_md.analysis_locale = language
     save_application_metadata(settings.app.storage_root, app_md)

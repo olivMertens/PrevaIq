@@ -24,3 +24,6 @@ param auroraEndpointExpiresAt = '2026-11-13T05:59:39.304Z'
 // Secrets — provide at deploy time
 param apiKey = readEnvironmentVariable('PREVAIQ_API_KEY', '')
 param pgAdminPassword = readEnvironmentVariable('PREVAIQ_PG_PASSWORD', '')
+
+// Optional email for the Azure Monitor alerts (infra/alerts.bicep); kept out of the repository.
+param alertEmail = readEnvironmentVariable('PREVAIQ_ALERT_EMAIL', '')

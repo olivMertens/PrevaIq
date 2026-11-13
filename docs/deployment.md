@@ -107,6 +107,24 @@ terraform -chdir=infra/terraform apply
 
 Defaults in `infra/terraform/variables.tf` target the demo environment. To override them, copy `infra/terraform/terraform.tfvars.example` to `terraform.tfvars`, which is ignored by git. On bash, run `./infra/deploy.sh --infra --iac terraform`, or `--full` to also build images and update apps. Bicep is the default IaC option.
 
+### Alerts
+
+`infra/alerts.bicep` (a module of `main.bicep`) and `infra/terraform/alerts.tf` create two Azure Monitor log alerts on the Log Analytics workspace. Each one checks the last 15 minutes, every 15 minutes, and resolves itself once the matches stop.
+
+| Alert | Fires when |
+|---|---|
+| `alert-<prefix>-api-5xx` | The API answered at least one HTTP 5xx (`AppRequests`). |
+| `alert-<prefix>-analysis-failures` | An analysis step failed and the case shows the AI pipeline problem badge (`Analysis steps failed for application …` in `AppTraces`; the message names the case and the steps). |
+
+Fired alerts appear in **Azure Monitor > Alerts**. To also receive an email, set `PREVAIQ_ALERT_EMAIL` before a Bicep deployment (read by `main.bicepparam` as `alertEmail`) or `alert_email` in Terraform. To add the alerts to an existing deployment without reapplying the other resources:
+
+```powershell
+$workspace = az monitor log-analytics workspace show -g <resource-group> -n <workspace> --query id -o tsv
+az deployment group create -g <resource-group> -n prevaiq-alerts `
+  --template-file infra\alerts.bicep --parameters prefix=<project>-<environment> workspaceId=$workspace
+# Optional: add alertEmail=<address> to the parameters.
+```
+
 ## Images and Container Apps
 
 Image deployment is identical for Bicep and Terraform.

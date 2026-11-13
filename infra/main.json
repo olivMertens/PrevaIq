@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "3703527520306810987"
+      "templateHash": "3021841494955638201"
     }
   },
   "parameters": {
@@ -126,6 +126,27 @@
         "description": "HTTPS Blob URL of the current validated Aurora NetCDF initial condition."
       }
     },
+    "auroraChannelStorageAccountName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional existing Aurora channel storage account in this resource group. Empty keeps the application storage channel."
+      }
+    },
+    "auroraChannelContainerName": {
+      "type": "string",
+      "defaultValue": "aurora-tasks",
+      "metadata": {
+        "description": "Private task container on the optional existing Aurora channel storage account."
+      }
+    },
+    "auroraWorkspaceName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional existing system-assigned-identity AML workspace in this resource group. Private networking adds its client Private Endpoint and scoped channel connection approver role; no workspace or GPU is created."
+      }
+    },
     "auroraEndpointKeySecretEnabled": {
       "type": "bool",
       "defaultValue": false,
@@ -175,6 +196,13 @@
     "accessAdminUrl": {
       "type": "string",
       "defaultValue": ""
+    },
+    "alertEmail": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional email notified by the Azure Monitor alerts (API HTTP 5xx, failed analysis steps). Empty: alerts only show in Azure Monitor. Mirrors alert_email in infra/terraform."
+      }
     },
     "deployApps": {
       "type": "bool",
@@ -236,14 +264,7 @@
     },
     "webIqEnv": "[if(parameters('webIqSecretEnabled'), createArray(createObject('name', 'WEBIQ_API_KEY', 'secretRef', 'webiq-api-key')), createArray())]",
     "auroraEndpointEnv": "[if(parameters('auroraEndpointKeySecretEnabled'), createArray(createObject('name', 'AURORA_ENDPOINT_TOKEN', 'secretRef', 'aurora-endpoint-key')), createArray())]",
-    "privateDnsZoneNames": [
-      "privatelink.blob.core.windows.net",
-      "privatelink.vaultcore.azure.net",
-      "privatelink.search.windows.net",
-      "privatelink.cognitiveservices.azure.com",
-      "privatelink.openai.azure.com",
-      "privatelink.services.ai.azure.com"
-    ],
+    "privateDnsZoneNames": "[concat(createArray('privatelink.blob.core.windows.net', 'privatelink.vaultcore.azure.net', 'privatelink.search.windows.net', 'privatelink.cognitiveservices.azure.com', 'privatelink.openai.azure.com', 'privatelink.services.ai.azure.com'), if(empty(parameters('auroraWorkspaceName')), createArray(), createArray('privatelink.api.azureml.ms', 'privatelink.notebooks.azure.net')))]",
     "postgresPrivateDnsZoneName": "[format('{0}.private.postgres.database.azure.com', variables('prefix'))]"
   },
   "resources": [
@@ -392,6 +413,58 @@
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/blobServices', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24), 'default')]"
       ]
+    },
+    {
+      "condition": "[not(empty(parameters('auroraChannelStorageAccountName')))]",
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName'))]",
+      "properties": {
+        "publicAccess": "None"
+      }
+    },
+    {
+      "condition": "[not(empty(parameters('auroraChannelStorageAccountName')))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[0], split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[1], split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[2])]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[0], split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[1], split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[2]), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), 'aurora-task-contributor')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ba92f5b4-2d11-453d-a403-e96b0029c9fe')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[0], split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[1], split(format('{0}/default/{1}', parameters('auroraChannelStorageAccountName'), parameters('auroraChannelContainerName')), '/')[2])]",
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix')))]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('auroraChannelStorageAccountName')))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('auroraChannelStorageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('auroraChannelStorageAccountName')), resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), 'aurora-blob-delegator')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'db58b8e5-c6ad-4a2a-8342-4190687cbf4a')]",
+        "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').principalId]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix')))]"
+      ]
+    },
+    {
+      "condition": "[and(and(parameters('privateNetworkingEnabled'), not(empty(parameters('auroraChannelStorageAccountName')))), not(empty(parameters('auroraWorkspaceName'))))]",
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "scope": "[resourceId('Microsoft.Storage/storageAccounts', parameters('auroraChannelStorageAccountName'))]",
+      "name": "[guid(resourceId('Microsoft.Storage/storageAccounts', parameters('auroraChannelStorageAccountName')), resourceId('Microsoft.MachineLearningServices/workspaces', parameters('auroraWorkspaceName')), 'aurora-network-approver')]",
+      "properties": {
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'b556d68e-0be0-4f35-a333-ad7ee1ce17ea')]",
+        "principalId": "[reference(resourceId('Microsoft.MachineLearningServices/workspaces', parameters('auroraWorkspaceName')), '2024-10-01', 'full').identity.principalId]",
+        "principalType": "ServicePrincipal"
+      }
     },
     {
       "type": "Microsoft.CognitiveServices/accounts",
@@ -894,6 +967,106 @@
       ]
     },
     {
+      "condition": "[and(parameters('privateNetworkingEnabled'), not(empty(parameters('auroraChannelStorageAccountName'))))]",
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2024-05-01",
+      "name": "[format('pe-aurora-channel-{0}', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "subnet": {
+          "id": "[format('{0}/subnets/snet-private-endpoints', resourceId('Microsoft.Network/virtualNetworks', format('vnet-{0}', variables('prefix'))))]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "psc-aurora-channel",
+            "properties": {
+              "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('auroraChannelStorageAccountName'))]",
+              "groupIds": [
+                "blob"
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', format('vnet-{0}', variables('prefix')))]"
+      ]
+    },
+    {
+      "condition": "[and(parameters('privateNetworkingEnabled'), not(empty(parameters('auroraChannelStorageAccountName'))))]",
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}/{1}', format('pe-aurora-channel-{0}', variables('prefix')), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "blob",
+            "properties": {
+              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.blob.core.windows.net')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateEndpoints', format('pe-aurora-channel-{0}', variables('prefix')))]",
+        "privateDnsZoneLinks"
+      ]
+    },
+    {
+      "condition": "[and(parameters('privateNetworkingEnabled'), not(empty(parameters('auroraWorkspaceName'))))]",
+      "type": "Microsoft.Network/privateEndpoints",
+      "apiVersion": "2024-05-01",
+      "name": "[format('pe-aurora-workspace-{0}', variables('prefix'))]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('tags')]",
+      "properties": {
+        "subnet": {
+          "id": "[format('{0}/subnets/snet-private-endpoints', resourceId('Microsoft.Network/virtualNetworks', format('vnet-{0}', variables('prefix'))))]"
+        },
+        "privateLinkServiceConnections": [
+          {
+            "name": "psc-aurora-workspace",
+            "properties": {
+              "privateLinkServiceId": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('auroraWorkspaceName'))]",
+              "groupIds": [
+                "amlworkspace"
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', format('vnet-{0}', variables('prefix')))]"
+      ]
+    },
+    {
+      "condition": "[and(parameters('privateNetworkingEnabled'), not(empty(parameters('auroraWorkspaceName'))))]",
+      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+      "apiVersion": "2024-05-01",
+      "name": "[format('{0}/{1}', format('pe-aurora-workspace-{0}', variables('prefix')), 'default')]",
+      "properties": {
+        "privateDnsZoneConfigs": [
+          {
+            "name": "api",
+            "properties": {
+              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.api.azureml.ms')]"
+            }
+          },
+          {
+            "name": "notebooks",
+            "properties": {
+              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', 'privatelink.notebooks.azure.net')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/privateEndpoints', format('pe-aurora-workspace-{0}', variables('prefix')))]",
+        "privateDnsZoneLinks"
+      ]
+    },
+    {
       "condition": "[parameters('privateNetworkingEnabled')]",
       "type": "Microsoft.Network/privateEndpoints",
       "apiVersion": "2024-05-01",
@@ -1198,7 +1371,7 @@
                 "cpu": "[json('0.5')]",
                 "memory": "1Gi"
               },
-              "env": "[concat(createArray(createObject('name', 'API_KEY', 'secretRef', 'api-key'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').clientId), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-large'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_OPENAI_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_OPENAI_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_NANO_DEPLOYMENT_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_NANO_MODEL_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', '2025-04-01-preview'), createObject('name', 'AZURE_OPENAI_REASONING_EFFORT', 'value', 'low'), createObject('name', 'FRAUD_VISION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_VISION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_PROVENANCE_MODE', 'value', 'inform'), createObject('name', 'STORAGE_BACKEND', 'value', 'azure_blob'), createObject('name', 'AZURE_STORAGE_AUTH_MODE', 'value', 'default'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), createObject('name', 'AZURE_STORAGE_CONTAINER_NAME', 'value', variables('dataContainerName')), createObject('name', 'DATABASE_BACKEND', 'value', 'postgresql'), createObject('name', 'POSTGRESQL_HOST', 'value', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', format('pg-{0}', variables('prefix'))), '2024-08-01').fullyQualifiedDomainName), createObject('name', 'POSTGRESQL_PORT', 'value', '5432'), createObject('name', 'POSTGRESQL_DATABASE', 'value', parameters('postgresDatabaseName')), createObject('name', 'POSTGRESQL_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'POSTGRESQL_PASSWORD', 'secretRef', 'pg-password'), createObject('name', 'POSTGRESQL_SSL_MODE', 'value', 'require'), createObject('name', 'RAG_ENABLED', 'value', 'true'), createObject('name', 'EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-small'), createObject('name', 'AGENT_FRAMEWORK_ENABLED', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString), createObject('name', 'OTEL_SERVICE_NAME', 'value', parameters('brandName')), createObject('name', 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', 'value', 'true'), createObject('name', 'FABRIC_DATA_AGENT_ENDPOINT', 'value', parameters('fabricDataAgentEndpoint')), createObject('name', 'FABRIC_WORKSPACE_ID', 'value', parameters('fabricWorkspaceId')), createObject('name', 'FABRIC_DATA_AGENT_ID', 'value', parameters('fabricDataAgentId')), createObject('name', 'AZURE_SEARCH_ENDPOINT', 'value', format('https://{0}.search.windows.net', format('srch-{0}', variables('prefix')))), createObject('name', 'AZURE_SEARCH_INDEX_NAME', 'value', 'corrections'), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', format('{0}/api/projects/{1}', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint, format('ai-{0}-project', parameters('projectName')))), createObject('name', 'AURORA_ENABLED', 'value', string(parameters('auroraEnabled'))), createObject('name', 'AURORA_FOUNDRY_ENDPOINT', 'value', parameters('auroraFoundryEndpoint')), createObject('name', 'AURORA_DEPLOYMENT_NAME', 'value', parameters('auroraDeploymentName')), createObject('name', 'AURORA_ENSEMBLE_DEPLOYMENT_NAME', 'value', parameters('auroraEnsembleDeploymentName')), createObject('name', 'AURORA_INITIAL_CONDITION_BLOB_URL', 'value', parameters('auroraInitialConditionBlobUrl')), createObject('name', 'AURORA_CHANNEL_CONTAINER_URL', 'value', format('{0}{1}/aurora', reference(resourceId('Microsoft.Storage/storageAccounts', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), '2023-05-01').primaryEndpoints.blob, variables('dataContainerName'))), createObject('name', 'AURORA_TOKEN_SCOPE', 'value', 'https://ml.azure.com/.default'), createObject('name', 'AURORA_TIMEOUT_SECONDS', 'value', '900'), createObject('name', 'AURORA_USE_AZURE_AD', 'value', string(not(parameters('auroraEndpointKeySecretEnabled')))), createObject('name', 'AURORA_ENDPOINT_EXPIRES_AT', 'value', parameters('auroraEndpointExpiresAt'))), variables('webIqEnv'), variables('auroraEndpointEnv'), if(parameters('accessEmailEnabled'), createArray(createObject('name', 'ACCESS_EMAIL_ENDPOINT', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.endpoint.value), createObject('name', 'ACCESS_EMAIL_SENDER', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.senderAddress.value), createObject('name', 'ACCESS_REQUEST_EMAIL', 'value', parameters('accessRequestEmail')), createObject('name', 'ACCESS_ADMIN_URL', 'value', parameters('accessAdminUrl'))), createArray()))]"
+              "env": "[concat(createArray(createObject('name', 'API_KEY', 'secretRef', 'api-key'), createObject('name', 'AZURE_CLIENT_ID', 'value', reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix'))), '2023-01-31').clientId), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_COMPLETION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_CONTENT_UNDERSTANDING_EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-large'), createObject('name', 'AZURE_OPENAI_ENDPOINT', 'value', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint), createObject('name', 'AZURE_OPENAI_USE_AZURE_AD', 'value', 'true'), createObject('name', 'AZURE_OPENAI_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_CHAT_MODEL_NAME', 'value', 'gpt-5.4-mini'), createObject('name', 'AZURE_OPENAI_NANO_DEPLOYMENT_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_NANO_MODEL_NAME', 'value', 'gpt-5.4-nano'), createObject('name', 'AZURE_OPENAI_API_VERSION', 'value', '2025-04-01-preview'), createObject('name', 'AZURE_OPENAI_REASONING_EFFORT', 'value', 'low'), createObject('name', 'FRAUD_VISION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_VISION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_DEPLOYMENT', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_DETECTION_MODEL', 'value', 'gpt-5.4-mini'), createObject('name', 'FRAUD_PROVENANCE_MODE', 'value', 'inform'), createObject('name', 'STORAGE_BACKEND', 'value', 'azure_blob'), createObject('name', 'AZURE_STORAGE_AUTH_MODE', 'value', 'default'), createObject('name', 'AZURE_STORAGE_ACCOUNT_NAME', 'value', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), createObject('name', 'AZURE_STORAGE_CONTAINER_NAME', 'value', variables('dataContainerName')), createObject('name', 'DATABASE_BACKEND', 'value', 'postgresql'), createObject('name', 'POSTGRESQL_HOST', 'value', reference(resourceId('Microsoft.DBforPostgreSQL/flexibleServers', format('pg-{0}', variables('prefix'))), '2024-08-01').fullyQualifiedDomainName), createObject('name', 'POSTGRESQL_PORT', 'value', '5432'), createObject('name', 'POSTGRESQL_DATABASE', 'value', parameters('postgresDatabaseName')), createObject('name', 'POSTGRESQL_USER', 'value', parameters('pgAdminLogin')), createObject('name', 'POSTGRESQL_PASSWORD', 'secretRef', 'pg-password'), createObject('name', 'POSTGRESQL_SSL_MODE', 'value', 'require'), createObject('name', 'RAG_ENABLED', 'value', 'true'), createObject('name', 'EMBEDDING_DEPLOYMENT', 'value', 'text-embedding-3-small'), createObject('name', 'AGENT_FRAMEWORK_ENABLED', 'value', 'true'), createObject('name', 'APPLICATIONINSIGHTS_CONNECTION_STRING', 'value', reference(resourceId('Microsoft.Insights/components', format('appi-{0}', variables('prefix'))), '2020-02-02').ConnectionString), createObject('name', 'OTEL_SERVICE_NAME', 'value', parameters('brandName')), createObject('name', 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', 'value', 'true'), createObject('name', 'FABRIC_DATA_AGENT_ENDPOINT', 'value', parameters('fabricDataAgentEndpoint')), createObject('name', 'FABRIC_WORKSPACE_ID', 'value', parameters('fabricWorkspaceId')), createObject('name', 'FABRIC_DATA_AGENT_ID', 'value', parameters('fabricDataAgentId')), createObject('name', 'AZURE_SEARCH_ENDPOINT', 'value', format('https://{0}.search.windows.net', format('srch-{0}', variables('prefix')))), createObject('name', 'AZURE_SEARCH_INDEX_NAME', 'value', 'corrections'), createObject('name', 'FOUNDRY_PROJECT_ENDPOINT', 'value', format('{0}/api/projects/{1}', reference(resourceId('Microsoft.CognitiveServices/accounts', format('ai-{0}-foundry', parameters('projectName'))), '2025-06-01').endpoint, format('ai-{0}-project', parameters('projectName')))), createObject('name', 'AURORA_ENABLED', 'value', string(parameters('auroraEnabled'))), createObject('name', 'AURORA_FOUNDRY_ENDPOINT', 'value', parameters('auroraFoundryEndpoint')), createObject('name', 'AURORA_DEPLOYMENT_NAME', 'value', parameters('auroraDeploymentName')), createObject('name', 'AURORA_ENSEMBLE_DEPLOYMENT_NAME', 'value', parameters('auroraEnsembleDeploymentName')), createObject('name', 'AURORA_INITIAL_CONDITION_BLOB_URL', 'value', parameters('auroraInitialConditionBlobUrl')), createObject('name', 'AURORA_CHANNEL_CONTAINER_URL', 'value', if(not(empty(parameters('auroraChannelStorageAccountName'))), format('{0}{1}', reference(resourceId('Microsoft.Storage/storageAccounts', parameters('auroraChannelStorageAccountName')), '2023-05-01').primaryEndpoints.blob, parameters('auroraChannelContainerName')), format('{0}{1}/aurora', reference(resourceId('Microsoft.Storage/storageAccounts', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24)), '2023-05-01').primaryEndpoints.blob, variables('dataContainerName')))), createObject('name', 'AURORA_TOKEN_SCOPE', 'value', 'https://ml.azure.com/.default'), createObject('name', 'AURORA_TIMEOUT_SECONDS', 'value', '900'), createObject('name', 'AURORA_USE_AZURE_AD', 'value', string(not(parameters('auroraEndpointKeySecretEnabled')))), createObject('name', 'AURORA_ENDPOINT_EXPIRES_AT', 'value', parameters('auroraEndpointExpiresAt'))), variables('webIqEnv'), variables('auroraEndpointEnv'), if(parameters('accessEmailEnabled'), createArray(createObject('name', 'ACCESS_EMAIL_ENDPOINT', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.endpoint.value), createObject('name', 'ACCESS_EMAIL_SENDER', 'value', reference(resourceId('Microsoft.Resources/deployments', 'prevaiq-access-email'), '2025-04-01').outputs.senderAddress.value), createObject('name', 'ACCESS_REQUEST_EMAIL', 'value', parameters('accessRequestEmail')), createObject('name', 'ACCESS_ADMIN_URL', 'value', parameters('accessAdminUrl'))), createArray()))]"
             }
           ],
           "scale": {
@@ -1460,6 +1633,156 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', format('id-{0}', variables('prefix')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "prevaiq-alerts",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "prefix": {
+            "value": "[variables('prefix')]"
+          },
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workspaceId": {
+            "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', variables('prefix')))]"
+          },
+          "alertEmail": {
+            "value": "[parameters('alertEmail')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.48.1.52935",
+              "templateHash": "16616037678859445415"
+            }
+          },
+          "parameters": {
+            "prefix": {
+              "type": "string",
+              "metadata": {
+                "description": "Resource name prefix: <projectName>-<environment>."
+              }
+            },
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "workspaceId": {
+              "type": "string",
+              "metadata": {
+                "description": "Log Analytics workspace that receives the Application Insights telemetry."
+              }
+            },
+            "alertEmail": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional email notified when an alert fires. Empty: alerts only show in Azure Monitor."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "variables": {
+            "rules": [
+              {
+                "name": "api-5xx",
+                "description": "The API answered HTTP 5xx.",
+                "query": "AppRequests | where toint(ResultCode) >= 500"
+              },
+              {
+                "name": "analysis-failures",
+                "description": "Analysis steps failed: the case shows the AI pipeline problem badge. The message names the application and the steps.",
+                "query": "AppTraces | where Message startswith \"Analysis steps failed for application\""
+              }
+            ]
+          },
+          "resources": [
+            {
+              "condition": "[not(empty(parameters('alertEmail')))]",
+              "type": "Microsoft.Insights/actionGroups",
+              "apiVersion": "2023-01-01",
+              "name": "[format('ag-{0}', parameters('prefix'))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "groupShortName": "[take(replace(parameters('prefix'), '-', ''), 12)]",
+                "enabled": true,
+                "emailReceivers": [
+                  {
+                    "name": "operator",
+                    "emailAddress": "[parameters('alertEmail')]",
+                    "useCommonAlertSchema": true
+                  }
+                ]
+              }
+            },
+            {
+              "copy": {
+                "name": "alerts",
+                "count": "[length(variables('rules'))]"
+              },
+              "type": "Microsoft.Insights/scheduledQueryRules",
+              "apiVersion": "2023-12-01",
+              "name": "[format('alert-{0}-{1}', parameters('prefix'), variables('rules')[copyIndex()].name)]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "kind": "LogAlert",
+              "properties": {
+                "description": "[variables('rules')[copyIndex()].description]",
+                "severity": 2,
+                "enabled": true,
+                "scopes": [
+                  "[parameters('workspaceId')]"
+                ],
+                "evaluationFrequency": "PT15M",
+                "windowSize": "PT15M",
+                "autoMitigate": true,
+                "skipQueryValidation": true,
+                "criteria": {
+                  "allOf": [
+                    {
+                      "query": "[variables('rules')[copyIndex()].query]",
+                      "timeAggregation": "Count",
+                      "operator": "GreaterThan",
+                      "threshold": 0,
+                      "failingPeriods": {
+                        "numberOfEvaluationPeriods": 1,
+                        "minFailingPeriodsToAlert": 1
+                      }
+                    }
+                  ]
+                },
+                "actions": {
+                  "actionGroups": "[if(empty(parameters('alertEmail')), createArray(), createArray(resourceId('Microsoft.Insights/actionGroups', format('ag-{0}', parameters('prefix')))))]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Insights/actionGroups', format('ag-{0}', parameters('prefix')))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-{0}', variables('prefix')))]"
       ]
     }
   ],
