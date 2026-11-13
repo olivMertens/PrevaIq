@@ -8,7 +8,7 @@
         <mxCell id="title" value="PrevaIQ - deployed Azure architecture" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=32;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
           <mxGeometry x="360" y="28" width="1500" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="Application topology | Aurora serving unavailable; saved evidence readable | 2026-11-07 snapshot" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
+        <mxCell id="subtitle" value="Implemented topology | Explicit weather simulation is separate from the optional real-inference path" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
           <mxGeometry x="360" y="88" width="1500" height="32" as="geometry" />
         </mxCell>
         <mxCell id="tenant" value="" style="rounded=0;fillColor=none;strokeColor=#17395C;strokeWidth=2;dashed=1;dashPattern=6 4;html=0;" vertex="1" parent="1" diagramRole="domain">
@@ -50,7 +50,7 @@
         <mxCell id="weather" value="" style="rounded=0;fillColor=none;strokeColor=#007D76;strokeWidth=2;dashed=1;dashPattern=6 4;html=0;" vertex="1" parent="1" diagramRole="domain">
           <mxGeometry x="1400" y="1190" width="420" height="630" as="geometry" />
         </mxCell>
-        <mxCell id="weather-title" value="A - Aurora + weather exchange" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="weather" diagramRole="label">
+        <mxCell id="weather-title" value="A - real Aurora contract (optional)" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=18;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="weather" diagramRole="label">
           <mxGeometry x="18" y="12" width="384" height="34" as="geometry" />
         </mxCell>
         <mxCell id="entra" value="" style="rounded=0;fillColor=#EAF3FC;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -122,7 +122,7 @@
         <mxCell id="cu-heading" value="Content Understanding" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="cu" diagramRole="label">
           <mxGeometry x="64" y="12" width="254" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="cu-body" value="AI Services / GA 2025-11-01&#10;Document extraction + model aliases&#10;MarkItDown runs locally in the API" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="cu" diagramRole="label">
+        <mxCell id="cu-body" value="GA 2025-11-01 / usable analyzers only&#10;PDF layout + LLM / vision fallbacks&#10;Local MarkItDown; review + provenance" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="cu" diagramRole="label">
           <mxGeometry x="14" y="62" width="302" height="68" as="geometry" />
         </mxCell>
         <mxCell id="search" value="" style="rounded=0;fillColor=#F2EDFA;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -170,7 +170,7 @@
         <mxCell id="business-blob-heading" value="Business Blob Storage" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="business-blob" diagramRole="label">
           <mxGeometry x="64" y="12" width="204" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="business-blob-body" value="Cases, documents, ERA5 source&#10;Managed-identity access via PE&#10;Public network access: disabled&#10;Not the Aurora exchange container" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="business-blob" diagramRole="label">
+        <mxCell id="business-blob-body" value="Cases, documents, ERA5 source&#10;Private / managed identity via PE&#10;Versioning / 7-day soft delete&#10;Previous versions: 30-day retention&#10;Separate from Aurora exchange" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="business-blob" diagramRole="label">
           <mxGeometry x="14" y="62" width="252" height="108" as="geometry" />
         </mxCell>
         <mxCell id="vault" value="" style="rounded=0;fillColor=#E6F5EE;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -239,7 +239,7 @@
         <mxCell id="monitor-heading" value="Application Insights / logs" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="monitor" diagramRole="label">
           <mxGeometry x="64" y="12" width="294" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="monitor-body" value="C: API, agent and Aurora stage spans&#10;Trace-correlated duration and failure logs&#10;Log Analytics / application health checks&#10;No tokens or SAS in manual Aurora traces" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="monitor" diagramRole="label">
+        <mxCell id="monitor-body" value="C: incoming API requests + agent spans&#10;Trace-correlated stage and failure logs&#10;Alerts: HTTP 5xx / failed analysis steps&#10;Email recipient optional / no secret traces" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="monitor" diagramRole="label">
           <mxGeometry x="14" y="62" width="342" height="118" as="geometry" />
         </mxCell>
         <mxCell id="aml" value="" style="rounded=0;fillColor=#E6F5EE;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -251,7 +251,7 @@
         <mxCell id="aml-heading" value="Aurora 1.5 / Azure ML" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="aml" diagramRole="label">
           <mxGeometry x="64" y="12" width="254" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="aml-body" value="Existing user-managed AML workspace&#10;Required /score task contract&#10;Endpoint key comes from app Key Vault&#10;Serving recovery pending; no active GPU" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="aml" diagramRole="label">
+        <mxCell id="aml-body" value="Existing user-managed AML workspace&#10;Real mode: /score task protocol&#10;Endpoint key comes from app Key Vault&#10;Readiness required / no simulation calls" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="aml" diagramRole="label">
           <mxGeometry x="14" y="62" width="302" height="98" as="geometry" />
         </mxCell>
         <mxCell id="weather-blob" value="" style="rounded=0;fillColor=#E6F5EE;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -263,7 +263,7 @@
         <mxCell id="weather-blob-heading" value="Private weather container" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="weather-blob" diagramRole="label">
           <mxGeometry x="64" y="12" width="254" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="weather-blob-body" value="Private weather Storage / app Blob PE&#10;aurora-tasks / one prefix per request&#10;App: managed identity; model: short SAS&#10;Worker data path awaits serving recovery" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="weather-blob" diagramRole="label">
+        <mxCell id="weather-blob-body" value="Private weather Storage / app Blob PE&#10;aurora-tasks / one prefix per request&#10;App: managed identity; model: short SAS&#10;Real mode only / validate worker access" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="weather-blob" diagramRole="label">
           <mxGeometry x="14" y="62" width="302" height="108" as="geometry" />
         </mxCell>
         <mxCell id="weather-in" value="Input&#10;read" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">

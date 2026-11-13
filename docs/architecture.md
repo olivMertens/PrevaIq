@@ -11,11 +11,16 @@ credential remains in Key Vault. The location service geocodes once with Nominat
 while the browser loads map tiles. Fabric is explicitly conditional.
 
 The [Aurora integration contract](architecture/prevaiq-aurora-runtime.png) shows
-required control and file paths, not proof of live serving. In the 2026-11-07
-snapshot, serving is unavailable and prior historical results remain readable.
-The separate model-recovery experiment below has revalidated its own connectivity
-and inference; the existing API configuration has not been rebound to it.
-No current forecast is claimed by an application health check.
+required real-mode control and file paths, not proof of live serving. Explicit
+simulation uses the separate local flow below, without calling that endpoint or
+weather exchange. Saved results remain readable without acquiring a configuration
+write lease, and full re-analysis preserves both real and synthetic evidence plus
+the recorded human decision. Configuration writes use a bounded 15-second lease.
+The [editable real-mode source](architecture/prevaiq-aurora-runtime.drawio) and
+[standalone SVG](architecture/prevaiq-aurora-runtime.svg) describe the same contract.
+The dated model-recovery experiment below is separate evidence, not a current
+availability claim. Neither a saved forecast nor an application health check
+establishes live model readiness.
 
 ![Aurora shared-capacity recovery experiment](architecture/prevaiq-aurora-recovery.png)
 
@@ -101,14 +106,14 @@ with `--check-only`. Diagrams follow the
 
 ```mermaid
 flowchart TB
-    subgraph UI["Next.js 16 UI (React 19 + Tailwind + next-intl EN/FR/DE)"]
+    subgraph UI["Next.js 16 UI (React 19 + Tailwind + next-intl EN/FR/DE/DE-CH)"]
         P1["Life & health underwriting"]
         P2["Home / Auto / Health claims"]
         P3["Mortgage underwriting"]
         P4["Customer 360"]
     end
 
-    UI -->|"REST + x-api-key"| API
+    UI -->|"Server-side proxy injects x-api-key"| API
 
     subgraph API["FastAPI (Python 3.12) + Microsoft Agent Framework 1.24"]
         Brand["Brand resolver<br/>BRAND_NAME baked"]
@@ -117,25 +122,29 @@ flowchart TB
         Storage["Storage manager<br/>data/brands/{brand}/..."]
         Claims["Claims engine<br/>policy lookup, NBA, fraud"]
         RAG["RAG repository"]
+        MD["MarkItDown<br/>local office/email conversion"]
         Aurora["Aurora adapter<br/>task/Blob protocol<br/>advisory decision support"]
+        DemoWeather["Explicit synthetic weather<br/>admin-authorized local scenario<br/>no model or weather Blob call"]
     end
 
     API --> Azure
 
     subgraph Azure["Azure AI Services"]
         CU["Content Understanding GA<br/>2025-11-01<br/>models.completion: gpt-5.4-mini<br/>models.embedding: text-embedding-3-large"]
-        MD["MarkItDown<br/>local layout-aware<br/>.doc .xls .eml .msg .csv"]
         OAI["Azure OpenAI<br/>GPT-5.4 mini and GPT-5.4 nano<br/>embeddings"]
-        AUR["Aurora-v1p5 custom model<br/>Foundry real-time endpoint<br/>GPU · optional"]
+        AUR["Aurora-v1p5 custom model<br/>managed real-time endpoint<br/>optional / readiness required"]
     end
 
     API --> Data
-    Aurora --> AUR
+    Aurora -->|"Real mode only"| AUR
+    Aurora -->|"Explicit simulation mode only"| DemoWeather
 
     subgraph Data["Azure Data Services"]
         PG[("Azure PostgreSQL Flexible Server<br/>pgvector HNSW and pg_trgm GIN<br/>policy chunks and few_shot_store")]
-        Blob[("Azure Blob Storage<br/>per-brand container prefix")]
+        Blob[("Azure Blob Storage<br/>per-brand prefix / versioning<br/>7-day soft delete / 30-day old versions")]
     end
+
+    API --> Monitor["Application Insights / Log Analytics<br/>incoming requests + stage spans<br/>5xx and failed-analysis alerts"]
 
 ```
 
@@ -153,9 +162,11 @@ The dedicated organizational Entra application authenticates Microsoft colleague
 ```mermaid
 flowchart LR
     U["Upload"] --> R{"Routing"}
-    R -->|"PDF / images"| CU["Azure Content Understanding GA<br/>analyzer and confidence"]
+    R -->|"PDF / images"| CU["Content Understanding GA<br/>usable analyzer"]
     R -->|".doc .xls .eml .msg .csv .json .html .md"| MD["MarkItDown<br/>layout-aware Markdown"]
-    CU --> N["Normalized fields<br/>and provenance"]
+    CU --> N["Normalized fields + provenance<br/>analyzer confidence when available"]
+    CU -->|"Unavailable / rejected analyzer"| F["PDF: layout + LLM fields<br/>Image: GPT vision<br/>explicit review required"]
+    F --> N
     MD --> N
     N --> A["Agent Framework<br/>GPT-5.4 mini / nano<br/>with tool calling"]
     A --> RAG[("pgvector RAG<br/>policies and few-shot")]
@@ -170,10 +181,20 @@ flowchart LR
 
 The pipeline is extraction -> targeted bounded re-extraction -> validation -> analysis -> human review, with no open-ended agent loop (`app/orchestration.py`).
 
+[Editable source](architecture/prevaiq-orchestration.drawio) and
+[self-contained SVG](architecture/prevaiq-orchestration.svg). Boxes describe
+in-process stages, not additional hosted agents or queue services.
+
 - **Explicit budgets** per stage (`StageBudget`): wall-clock time through `EXTRACTION_BUDGET_SECONDS` and `ANALYSIS_BUDGET_SECONDS`, analysis tokens through `ANALYSIS_TOKEN_BUDGET`, and re-extractions through `MAX_REEXTRACTIONS`. Exhausted budgets skip remaining files or sections instead of restarting loops.
 - **Targeted re-extraction** applies only to documents whose quality score is below `REEXTRACTION_QUALITY_THRESHOLD`, at most once per file, using Mistral Document AI. The best result is kept.
+- **Permanent request errors fail fast**: non-retryable Content Understanding 4xx responses do not consume repeated service retries. A rejected image analyzer is remembered for that extraction run; subsequent affected images use the explicit GPT vision fallback rather than a non-executable base analyzer.
+- **Executable prompts only**: `analysis_steps()` excludes catalog metadata and persona `system` descriptions. A description is not submitted as a JSON analysis task.
 - **Validation** produces review reasons for extraction quality, average confidence below `REVIEW_CONFIDENCE_THRESHOLD`, LLM-extracted fields, composite documents, analysis errors, and exhausted budgets.
 - **Human review** uses `orchestration.review.status`: `needs_review`, `auto_ok`, or `reviewed` after `PUT /api/applications/{id}/decision`. The stage trace exposes duration, tokens, re-extractions, and skipped items in `GET /api/applications/{id}` and in the AI pipeline banner.
+- **Non-analysis outputs survive re-analysis**: `decision`, `aurora` and `aurora_demo` are preserved while the analysis sections are replaced. Reading weather context does not trigger a new forecast.
+
+Jobs, progress and execution concurrency are still process-local. Stage budgets and
+saved dossier metadata do not constitute a durable distributed job queue.
 
 ## API decisions
 
@@ -191,7 +212,7 @@ findings, with unavailable context or branches flagged for human review.
 |-------|-----|----------|
 | JSON analysis prompts and field extraction (`app/openai_client.py`) | Chat Completions, retained | `AZURE_OPENAI_ENDPOINT` |
 | Microsoft Agent Framework agents for chat and workflows | Responses through `OpenAIChatClient`, with rollback `AGENTS_OPENAI_API=chat_completions` | `AZURE_OPENAI_ENDPOINT` |
-| Foundry agents for Web Intelligence and Fabric Data Agent | Responses `agent_reference` through `AIProjectClient` | `FOUNDRY_PROJECT_ENDPOINT` (`settings.foundry`) |
+| Optional configured Foundry agents, distinct from the direct Web IQ MCP tool | Responses `agent_reference` through `AIProjectClient`; unavailable integrations stay unconfigured | `FOUNDRY_PROJECT_ENDPOINT` (`settings.foundry`) |
 | Document extraction | Content Understanding GA `2025-11-01` | `AZURE_CONTENT_UNDERSTANDING_ENDPOINT` |
 | Aurora weather forecasting for property-claim decision support | Custom task messages plus NetCDF files over Blob Storage; deterministic by default | `AURORA_FOUNDRY_ENDPOINT` and the configured private task container; application I/O uses managed identity and Aurora receives a short-lived delegated SAS |
 
@@ -204,6 +225,24 @@ The dossier GET returns the same context for the overview and weather tabs. This
 no service, network path or automatic inference loop: new forecasts remain an explicit
 bounded POST, separately gated by generation availability. Stored historical results
 cannot predict present weather, distant dates or seasonal climate.
+
+## Observability and recovery
+
+- The constructed FastAPI instance is explicitly instrumented for incoming
+  `AppRequests`, alongside agent/stage spans, dependencies, traces and exceptions.
+- Analysis failures emit one aggregate warning,
+  `Analysis steps failed for application <id>: <steps>`. The paired Bicep/Terraform
+  alerts match that warning and API HTTP 5xx in the shared Log Analytics workspace.
+  Their default evaluation frequency and lookback are 15 minutes. Email delivery
+  requires the optional configured action-group recipient.
+- Business Blob Storage enables versioning, 7-day blob/container soft delete and
+  lifecycle deletion of previous versions after 30 days. Current versions are not
+  deleted by that lifecycle rule. These controls do not establish that a restore
+  drill or a separate backup has been completed.
+
+See [deployment](deployment.md) for standalone alert rollout, recovery settings and
+the mandatory image-deployment script. These controls do not imply that GitHub OIDC
+or production readiness has been completed.
 
 ## Evaluation before rollout
 

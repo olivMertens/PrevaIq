@@ -1,10 +1,10 @@
 # WorkbenchIQ Next.js frontend
 
-This brand-agnostic Next.js 14 UI uses PrevaIQ as the default brand for the insurance agentic workbench. It covers five personas: Life & health underwriting, Home claims, Auto claims, Health claims, Mortgage underwriting, and Customer 360. English, French, German and Swiss German UI locales are available.
+This brand-agnostic Next.js 16 UI uses PrevaIQ as the default brand for the insurance agentic workbench. It covers five workbenches: Life & health underwriting, Property claims, Auto claims, Health claims and Mortgage underwriting, plus Customer 360. English, French, German and Swiss German UI locales are available.
 
 ## Stack
 
-- **Next.js 14** with App Router, `'use client'`, React 18, and TypeScript.
+- **Next.js 16** with App Router, `'use client'`, React 19.2, and TypeScript.
 - **Tailwind CSS** with `primary-*` / `brand-*` palettes mapped to PrevaIQ colors `#17395C`, `#2EC4B6`, and `#0F2E4D`.
 - **next-intl** for English, French, German and Swiss German translations and locale-aware print reports.
 - **lucide-react** for icons and **clsx** for conditional classes.
@@ -19,7 +19,7 @@ flowchart LR
     Brand --> Comp["Persona components<br/>Claims, Mortgage, Underwriting"]
     Comp --> Proxy["Server Action / Route Handler<br/>injects x-api-key"]
     Proxy --> API["FastAPI backend<br/>ca-api-demo"]
-    Comp --> I18n["useTranslations()<br/>messages/fr.json and en.json"]
+    Comp --> I18n["useTranslations()<br/>EN / FR / DE catalogs<br/>DE-CH derived from German"]
 ```
 
 ## Structure

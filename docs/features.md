@@ -94,10 +94,18 @@ The web-intelligence branch for Cat-Nat, weather, and official decrees uses the 
 
 ## Content Understanding + MarkItDown ingestion
 
-The ingestion router chooses between Azure Content Understanding GA for PDFs and images, and MarkItDown for office documents, email, CSV/JSON, HTML, Markdown, and plain text. Both paths produce normalized Markdown enriched with provenance: file, page, analyzer, and model.
+The ingestion router uses Azure Content Understanding GA for PDFs and images when
+a usable analyzer is available, and MarkItDown for office documents, email,
+CSV/JSON, HTML, Markdown and plain text. Unavailable custom analyzers can lead to
+PDF layout plus LLM field extraction or GPT vision for images. Normalized output
+retains file/page/backend provenance; LLM-inferred fields are review conditions,
+not analyzer-verified confidence.
 
 - **Content Understanding GA API `2025-11-01`**: `app/content_understanding_client.py` provisions custom analyzers through `ensure_custom_analyzer_exists` with `models.completion = gpt-5.4-mini` and `models.embedding = text-embedding-3-large`, unless overridden by environment variables. `infra/deploy.ps1` aligns resource defaults for `prebuilt-analyzer-completion`, `-completion-mini`, and `-embedding`.
 - **MarkItDown**: `app/markitdown_pipeline.py` supports `local`, `cu`, and `auto` modes through `MARKITDOWN_MODE`. It is enabled by default with `MARKITDOWN_ENABLED=true`.
+- **Bounded fallback**: permanent CU request errors are not retried as transient
+  failures; rejected image analyzers are remembered for that run. Optional targeted
+  Mistral re-extraction keeps the better result within the stage budget.
 
 ## Souscr'IA connector
 
@@ -109,9 +117,13 @@ The connector is a read-only bridge to the **Souscr'IA** acquisition app. When a
 
 ## Internationalisation
 
-- The frontend uses next-intl with English (default) and French message files; the EN/FR switcher stores the choice in a `locale` cookie.
+- The frontend uses next-intl with English (default), French, German and Swiss
+  German (`de-CH`). The language menu stores the choice in a `locale` cookie.
 - User-facing strings must go through `useTranslations()`; no hardcoded UI text.
-- Translation files are `frontend/messages/fr.json` and `frontend/messages/en.json`.
+- Message catalogs are `frontend/messages/en.json`, `fr.json` and `de.json`.
+  Swiss German derives from the German catalog with Swiss orthography.
+- Localized analysis is a cached projection with translated display labels and
+  prose; original documents/OCR and canonical coded field names are not rewritten.
 - Print reports and exports use locale-aware date, number, and currency formatting.
 
 ## HITL corrections and learning scenario

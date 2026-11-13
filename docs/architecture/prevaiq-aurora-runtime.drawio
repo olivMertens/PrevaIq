@@ -8,7 +8,7 @@
         <mxCell id="title" value="Aurora 1.5 - integration contract and saved evidence" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=30;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
           <mxGeometry x="60" y="30" width="1500" height="48" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="Serving unavailable on 2026-11-07 | arrows describe required paths, not live connectivity | historic outputs retained" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
+        <mxCell id="subtitle" value="Real-mode contract, not a live availability check | explicit simulation uses a separate local path | saved evidence retained" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
           <mxGeometry x="60" y="90" width="1500" height="30" as="geometry" />
         </mxCell>
         <mxCell id="tenant" value="" style="rounded=0;fillColor=none;strokeColor=#17395C;strokeWidth=2;dashed=1;dashPattern=6 4;html=0;" vertex="1" parent="1" diagramRole="domain">
@@ -50,7 +50,7 @@
         <mxCell id="adapter-heading" value="PrevaIQ Aurora adapter" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="adapter" diagramRole="label">
           <mxGeometry x="64" y="12" width="284" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="adapter-body" value="Validate input; create task; poll bounded&#10;Generate delegated SAS at runtime&#10;App Blob I/O uses managed identity&#10;Normalize nearest grid point locally&#10;Never approve, deny, price or pay a claim" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="adapter" diagramRole="label">
+        <mxCell id="adapter-body" value="Validate input; create task; poll bounded&#10;Generate delegated SAS at runtime&#10;App Blob I/O uses managed identity&#10;Read config without a write lease&#10;Never approve, deny, price or pay a claim" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="adapter" diagramRole="label">
           <mxGeometry x="14" y="62" width="332" height="168" as="geometry" />
         </mxCell>
         <mxCell id="endpoint" value="" style="rounded=0;fillColor=#E6F5EE;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -62,7 +62,7 @@
         <mxCell id="endpoint-heading" value="Aurora 1.5 / ML endpoint" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="endpoint" diagramRole="label">
           <mxGeometry x="64" y="12" width="254" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="endpoint-body" value="Model contract: Aurora-1.5 version 2&#10;No active deployment; recovery pending&#10;/score: submission / task_info&#10;API key from application Key Vault&#10;Endpoint does not need the app API key" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="endpoint" diagramRole="label">
+        <mxCell id="endpoint-body" value="Model contract: Aurora-1.5 version 2&#10;Provision and validate before real use&#10;/score: submission / task_info&#10;API key from application Key Vault&#10;No call from explicit simulation mode" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="endpoint" diagramRole="label">
           <mxGeometry x="14" y="62" width="302" height="168" as="geometry" />
         </mxCell>
         <mxCell id="vault" value="" style="rounded=0;fillColor=#E6F5EE;strokeColor=#17395C;strokeWidth=1.5;container=1;collapsible=0;html=0;" vertex="1" parent="1" diagramRole="node">
@@ -95,7 +95,7 @@
         <mxCell id="evidence-heading" value="Persisted case evidence / UI" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=16;fontColor=#17395C;fontStyle=1;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="evidence" diagramRole="label">
           <mxGeometry x="14" y="12" width="334" height="38" as="geometry" />
         </mxCell>
-        <mxCell id="evidence-body" value="Read-only Ask IQ and overview context&#10;Model, source, location, time and artifacts&#10;Human review; no inferred probability&#10;Historical simulation, not observed weather" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="evidence" diagramRole="label">
+        <mxCell id="evidence-body" value="Read-only Ask IQ and overview context&#10;Model, source, location, time and artifacts&#10;Human review / preserved on re-analysis&#10;Historical forecasts are not observations" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="evidence" diagramRole="label">
           <mxGeometry x="14" y="62" width="332" height="78" as="geometry" />
         </mxCell>
         <mxCell id="source-read" value="" edge="1" parent="1" source="source" target="adapter" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;exitX=1.0;exitY=0.47368421052631576;entryX=0.0;entryY=0.375;exitDx=0;exitDy=0;entryDx=0;entryDy=0;exitPerimeter=0;entryPerimeter=0;strokeColor=#007D76;strokeWidth=2;endArrow=block;endFill=1;">
@@ -143,7 +143,7 @@
         <mxCell id="legend" value="Blue: /score control + endpoint key | Green: app managed-identity data | Orange: Aurora SAS file exchange | Purple: saved evidence" style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=15;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
           <mxGeometry x="70" y="1270" width="1480" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="network-note" value="App weather Blob access uses its approved Private Endpoint. Worker-to-Blob connectivity still requires serving recovery; it is not verified live." style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
+        <mxCell id="network-note" value="Validate endpoint, NetCDF input and worker-to-Blob access in real mode. A health check or saved result does not prove live model readiness." style="text;html=0;align=left;verticalAlign=middle;fontFamily=Arial;fontSize=14;fontColor=#17395C;fontStyle=0;strokeColor=none;fillColor=none;spacing=0;overflow=hidden;" vertex="1" parent="1" diagramRole="label">
           <mxGeometry x="70" y="1310" width="1480" height="30" as="geometry" />
         </mxCell>
       </root>
