@@ -300,9 +300,52 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   }
 }
 
+// Versioning and soft delete keep overwritten or deleted case data recoverable: metadata.json
+// is rewritten at every pipeline step. Mirrors blob_properties in infra/terraform/main.tf.
 resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
   parent: storageAccount
   name: 'default'
+  properties: {
+    isVersioningEnabled: true
+    deleteRetentionPolicy: {
+      enabled: true
+      days: 7
+    }
+    containerDeleteRetentionPolicy: {
+      enabled: true
+      days: 7
+    }
+  }
+}
+
+// Previous versions are deleted after 30 days, so versioning does not grow the account forever.
+resource blobLifecycle 'Microsoft.Storage/storageAccounts/managementPolicies@2023-05-01' = {
+  parent: storageAccount
+  name: 'default'
+  dependsOn: [blobService]
+  properties: {
+    policy: {
+      rules: [
+        {
+          name: 'delete-old-versions'
+          enabled: true
+          type: 'Lifecycle'
+          definition: {
+            filters: {
+              blobTypes: ['blockBlob']
+            }
+            actions: {
+              version: {
+                delete: {
+                  daysAfterCreationGreaterThan: 30
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
 }
 
 resource blobContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {

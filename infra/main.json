@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.48.1.52935",
-      "templateHash": "3021841494955638201"
+      "templateHash": "2820242179220713795"
     }
   },
   "parameters": {
@@ -394,7 +394,52 @@
       "type": "Microsoft.Storage/storageAccounts/blobServices",
       "apiVersion": "2023-05-01",
       "name": "[format('{0}/{1}', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24), 'default')]",
+      "properties": {
+        "isVersioningEnabled": true,
+        "deleteRetentionPolicy": {
+          "enabled": true,
+          "days": 7
+        },
+        "containerDeleteRetentionPolicy": {
+          "enabled": true,
+          "days": 7
+        }
+      },
       "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/managementPolicies",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24), 'default')]",
+      "properties": {
+        "policy": {
+          "rules": [
+            {
+              "name": "delete-old-versions",
+              "enabled": true,
+              "type": "Lifecycle",
+              "definition": {
+                "filters": {
+                  "blobTypes": [
+                    "blockBlob"
+                  ]
+                },
+                "actions": {
+                  "version": {
+                    "delete": {
+                      "daysAfterCreationGreaterThan": 30
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24), 'default')]",
         "[resourceId('Microsoft.Storage/storageAccounts', take(format('st{0}{1}', parameters('projectName'), variables('uniqueSuffix')), 24))]"
       ]
     },

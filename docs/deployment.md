@@ -125,6 +125,17 @@ az deployment group create -g <resource-group> -n prevaiq-alerts `
 # Optional: add alertEmail=<address> to the parameters.
 ```
 
+### Data protection
+
+The storage account keeps blob versions, plus soft-deleted blobs and containers for 7 days. A lifecycle rule deletes previous versions after 30 days. To recover an overwritten case file such as `metadata.json`, open the blob's **Versions** in the portal and make the right version current. To enable the same protection on an existing account without reapplying the infrastructure:
+
+```powershell
+az storage account blob-service-properties update -g <resource-group> --account-name <storage-account> `
+  --enable-versioning true --enable-delete-retention true --delete-retention-days 7 `
+  --enable-container-delete-retention true --container-delete-retention-days 7
+# Then create the delete-old-versions rule from main.bicep with: az storage account management-policy create
+```
+
 ## Images and Container Apps
 
 Image deployment is identical for Bicep and Terraform.

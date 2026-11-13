@@ -97,6 +97,20 @@ resource "azurerm_storage_account" "this" {
   public_network_access           = local.public_access ? "Enabled" : "Disabled"
   tags                            = local.tags
 
+  # Versioning and soft delete keep overwritten or deleted case data recoverable: metadata.json
+  # is rewritten at every pipeline step. Mirrors the blobService properties in ../main.bicep.
+  blob_properties {
+    versioning_enabled = true
+
+    delete_retention_policy {
+      days = 7
+    }
+
+    container_delete_retention_policy {
+      days = 7
+    }
+  }
+
   # Selected networks: the Foundry blob connection reaches the account as a trusted resource instance.
   dynamic "network_rules" {
     for_each = local.restrict_public ? [1] : []
@@ -118,6 +132,26 @@ resource "azurerm_storage_container" "this" {
 
   name               = each.key
   storage_account_id = azurerm_storage_account.this.id
+}
+
+# Previous versions are deleted after 30 days, so versioning does not grow the account forever.
+resource "azurerm_storage_management_policy" "this" {
+  storage_account_id = azurerm_storage_account.this.id
+
+  rule {
+    name    = "delete-old-versions"
+    enabled = true
+
+    filters {
+      blob_types = ["blockBlob"]
+    }
+
+    actions {
+      version {
+        delete_after_days_since_creation = 30
+      }
+    }
+  }
 }
 
 data "azurerm_storage_account" "aurora_channel" {
